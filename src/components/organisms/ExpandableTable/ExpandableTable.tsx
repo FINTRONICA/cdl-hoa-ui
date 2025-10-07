@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { SearchInput } from '../../atoms/SearchInput'
 import { StatusBadge } from '../../atoms/StatusBadge'
 import { ActionDropdown } from '../../molecules/ActionDropdown'
@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  ArrowDownUp,
 } from 'lucide-react'
 
 interface Column {
@@ -19,7 +20,7 @@ interface Column {
 }
 
 interface ExpandableRowData {
-  [key: string]: any
+  [key: string]: unknown
   expandedContent?: React.ReactNode
 }
 
@@ -114,7 +115,7 @@ export const ExpandableTable: React.FC<ExpandableTableProps> = ({
     return pages
   }
 
-  const renderCell = (column: Column, value: any, rowIndex: number) => {
+  const renderCell = (column: Column, value: unknown, rowIndex: number) => {
     switch (column.type) {
       case 'status':
         return <StatusBadge status={value} />
@@ -134,8 +135,16 @@ export const ExpandableTable: React.FC<ExpandableTableProps> = ({
         const rowData = data[rowIndex]
         return (
           <ActionDropdown
-            onDelete={onRowDelete && rowData ? () => onRowDelete(rowData, rowIndex) : undefined}
-            onView={onRowView && rowData ? () => onRowView(rowData, rowIndex) : undefined}
+            onDelete={
+              onRowDelete && rowData
+                ? () => onRowDelete(rowData, rowIndex)
+                : undefined
+            }
+            onView={
+              onRowView && rowData
+                ? () => onRowView(rowData, rowIndex)
+                : undefined
+            }
             showDelete={showDeleteAction}
             showView={showViewAction}
           />
@@ -153,7 +162,7 @@ export const ExpandableTable: React.FC<ExpandableTableProps> = ({
     <div className={`bg-[#FFFFFFBF] ${className}`}>
       <div className="overflow-x-auto w-full">
         <table className="w-full min-w-[1200px] table-fixed">
-          <thead>
+          <thead className="sticky top-0 z-10">
             <tr className="bg-[#FFFFFFBF] border-b border-gray-200">
               <th className="w-12 px-6 py-4 text-left"></th>
               <th className="w-8 px-2 py-4 border-r">
@@ -172,7 +181,7 @@ export const ExpandableTable: React.FC<ExpandableTableProps> = ({
                   <div className="flex items-center gap-1 font-outfit font-normal text-[12px] leading-[16px] tracking-normal">
                     {column.label}
                     {column.sortable && (
-                      <img src="/arrow-down.svg" alt="sort icon" />
+                      <ArrowDownUp className="w-4 h-4 text-gray-400" />
                     )}
                   </div>
                 </th>
@@ -269,8 +278,16 @@ export const ExpandableTable: React.FC<ExpandableTableProps> = ({
                   ))}
                   <td className="p-4 whitespace-nowrap text-right flex justify-center items-center">
                     <ActionDropdown
-                      onDelete={onRowDelete && row ? () => onRowDelete(row, rowIndex) : undefined}
-                      onView={onRowView && row ? () => onRowView(row, rowIndex) : undefined}
+                      onDelete={
+                        onRowDelete && row
+                          ? () => onRowDelete(row, rowIndex)
+                          : undefined
+                      }
+                      onView={
+                        onRowView && row
+                          ? () => onRowView(row, rowIndex)
+                          : undefined
+                      }
                       showDelete={showDeleteAction}
                       showView={showViewAction}
                     />

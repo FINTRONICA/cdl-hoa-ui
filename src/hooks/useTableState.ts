@@ -1,12 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
-
-interface TableState<T> {
-  search: Record<string, string>
-  page: number
-  rowsPerPage: number
-  selectedRows: number[]
-  expandedRows: number[]
-}
+import { useState, useMemo, useCallback } from 'react'
 
 interface UseTableStateProps<T> {
   data: T[]
@@ -26,92 +18,146 @@ export const useTableState = <T>({
   const [page, setPage] = useState(1)
   const [selectedRows, setSelectedRows] = useState<number[]>([])
   const [expandedRows, setExpandedRows] = useState<number[]>([])
+  const [sortConfig, setSortConfig] = useState<{
+    key: string
+    direction: 'asc' | 'desc'
+  } | null>(null)
 
   // Memoize search fields to prevent unnecessary re-renders
   const memoizedSearchFields = useMemo(() => searchFields, [searchFields])
 
-  // Optimized filtered data with better memoization
+  // Optimized filtered data with proper dependencies
   const filtered = useMemo(() => {
     // Early return if no search values
     const hasSearchValues = Object.values(search).some(val => val.trim() !== '')
-    if (!hasSearchValues) return data
+    let filteredData = data
 
-    return data.filter((row: any) =>
-      memoizedSearchFields.every((field) => {
-        const searchVal = search[field]?.toLowerCase().trim() || ''
-        if (!searchVal) return true
-        const value = String(row[field] ?? '').toLowerCase()
-        return value.includes(searchVal)
+    if (hasSearchValues) {
+      // Use a more efficient filtering approach with early termination
+      filteredData = data.filter((row: unknown) => {
+        return memoizedSearchFields.every((field) => {
+          const searchVal = search[field]?.toLowerCase().trim() || ''
+          if (!searchVal) return true
+          const value = String((row as Record<string, unknown>)[field] ?? '').toLowerCase()
+          return value.includes(searchVal)
+        })
       })
-    )
-  }, [data, search, memoizedSearchFields])
+    }
+
+    // Apply sorting if sortConfig is set
+    if (sortConfig) {
+      filteredData = [...filteredData].sort((a, b) => {
+        const aVal = (a as Record<string, unknown>)[sortConfig.key]
+        const bVal = (b as Record<string, unknown>)[sortConfig.key]
+        
+        if (aVal === bVal) return 0
+        
+        // Type-safe comparison
+        const aStr = String(aVal ?? '')
+        const bStr = String(bVal ?? '')
+        const comparison = aStr < bStr ? -1 : 1
+        return sortConfig.direction === 'asc' ? comparison : -comparison
+      })
+    }
+
+    return filteredData
+  }, [data, search, sortConfig, memoizedSearchFields])
 
   // Memoize pagination calculations
-  const paginationData = useMemo(() => {
+  const pagination = useMemo(() => {
     const totalRows = filtered.length
     const totalPages = Math.ceil(totalRows / rowsPerPage)
-    const startItem = totalRows > 0 ? (page - 1) * rowsPerPage + 1 : 0
-    const endItem = Math.min(page * rowsPerPage, totalRows)
-    const paginated = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage)
-
+    const startIndex = (page - 1) * rowsPerPage
+    const endIndex = Math.min(startIndex + rowsPerPage, totalRows)
+    
     return {
       totalRows,
       totalPages,
-      startItem,
-      endItem,
-      paginated,
+      startIndex,
+      endIndex,
     }
-  }, [filtered, page, rowsPerPage])
+  }, [filtered.length, rowsPerPage, page])
 
-  // Reset to page 1 if current page is beyond available data
-  useEffect(() => {
-    if (page > paginationData.totalPages && paginationData.totalPages > 0) {
-      setPage(1)
-    }
-  }, [page, paginationData.totalPages])
+  // Memoize paginated data
+  const paginated = useMemo(() => {
+    const { startIndex, endIndex } = pagination
+    return filtered.slice(startIndex, endIndex)
+  }, [filtered, pagination])
 
-  // Optimized handlers with useCallback
+  // Optimized search change handler
   const handleSearchChange = useCallback((field: string, value: string) => {
-    setSearch((prev) => ({ ...prev, [field]: value }))
-    setPage(1) // Reset to first page when searching
+    setSearch(prev => {
+      const newSearch = { ...prev, [field]: value }
+      // Reset to first page when searching
+      setPage(1)
+      return newSearch
+    })
   }, [])
 
+  // Optimized page change handler
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage)
   }, [])
 
+  // Optimized rows per page change handler
   const handleRowsPerPageChange = useCallback((newRowsPerPage: number) => {
     setRowsPerPage(newRowsPerPage)
-    setPage(1) // Reset to first page when changing rows per page
+    setPage(1) // Reset to first page
   }, [])
 
-  const handleRowSelectionChange = useCallback((newSelectedRows: number[]) => {
-    setSelectedRows(newSelectedRows)
+  // Optimized row selection handler
+  const handleRowSelectionChange = useCallback((selectedRows: number[]) => {
+    setSelectedRows(selectedRows)
   }, [])
 
-  const handleRowExpansionChange = useCallback((newExpandedRows: number[]) => {
-    setExpandedRows(newExpandedRows)
+  // Optimized row expansion handler
+  const handleRowExpansionChange = useCallback((expandedRows: number[]) => {
+    setExpandedRows(expandedRows)
+  }, [])
+
+  // Optimized sort handler
+  const handleSort = useCallback((key: string) => {
+    setSortConfig(prev => {
+      if (prev?.key === key) {
+        return {
+          key,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc'
+        }
+      } else {
+        return { key, direction: 'asc' }
+      }
+    })
   }, [])
 
   return {
-    // State
-    search,
-    filtered: paginationData.paginated, // Return only paginated data
-    paginated: paginationData.paginated,
-    totalRows: paginationData.totalRows,
-    totalPages: paginationData.totalPages,
-    startItem: paginationData.startItem,
-    endItem: paginationData.endItem,
+    // Data
+    filtered,
+    paginated,
+    
+    // Pagination
+    totalRows: pagination.totalRows,
+    totalPages: pagination.totalPages,
+    startItem: pagination.startIndex + 1,
+    endItem: pagination.endIndex,
     page,
     rowsPerPage,
+    
+    // Search
+    search,
+    handleSearchChange,
+    
+    // Selection
     selectedRows,
     expandedRows,
-    
-    // Handlers
-    handleSearchChange,
-    handlePageChange,
-    handleRowsPerPageChange,
     handleRowSelectionChange,
     handleRowExpansionChange,
+    
+    // Sorting
+    sortConfig,
+    handleSort,
+    
+    // Pagination handlers
+    handlePageChange,
+    handleRowsPerPageChange,
   }
 } 

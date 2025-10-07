@@ -29,7 +29,10 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
@@ -48,14 +51,17 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
 
   const handleOptionToggle = (optionValue: string) => {
     const newValue = value.includes(optionValue)
-      ? value.filter(v => v !== optionValue)
+      ? value.filter((v) => v !== optionValue)
       : [...value, optionValue]
     onChange(newValue)
   }
 
-  const displayValue = value.length > 0 
-    ? value.map(v => options.find(opt => opt.value === v)?.label).join(', ')
-    : placeholder
+  const displayValue =
+    value.length > 0
+      ? value
+          .map((v) => options.find((opt) => opt.value === v)?.label)
+          .join(', ')
+      : placeholder
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
@@ -64,16 +70,20 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
         onClick={handleToggle}
         disabled={disabled}
         className={`w-full px-3 py-2 text-left border border-gray-300 rounded-md bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-          disabled ? 'bg-gray-100 cursor-not-allowed opacity-60' : 'hover:bg-gray-50'
+          disabled
+            ? 'bg-gray-100 cursor-not-allowed opacity-60'
+            : 'hover:bg-gray-50'
         }`}
       >
-        <span className={`block truncate ${value.length === 0 ? 'text-gray-500' : 'text-gray-900'}`}>
+        <span
+          className={`block truncate ${value.length === 0 ? 'text-gray-500' : 'text-gray-900'}`}
+        >
           {displayValue}
         </span>
-        <ChevronDown 
+        <ChevronDown
           className={`absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none w-4 h-4 transition-transform ${
             isOpen ? 'rotate-180' : ''
-          }`} 
+          }`}
         />
       </button>
 
@@ -97,4 +107,4 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
       )}
     </div>
   )
-} 
+}

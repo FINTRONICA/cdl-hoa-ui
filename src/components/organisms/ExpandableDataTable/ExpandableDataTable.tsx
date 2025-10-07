@@ -1,75 +1,94 @@
-import React from "react";
-import { Checkbox } from "../../atoms/Checkbox";
-import { StatusBadge } from "../../atoms/StatusBadge";
-import { TableSearchRow } from "../../molecules/TableSearchRow";
-import { ActionDropdown } from "../../molecules/ActionDropdown";
+import React, { useMemo, useCallback } from 'react'
+import { Checkbox } from '../../atoms/Checkbox'
+import { StatusBadge } from '../../atoms/StatusBadge'
+import { TableSearchRow } from '../../molecules/TableSearchRow'
+import { ActionDropdown } from '../../molecules/ActionDropdown'
 
-import { MultiSelect } from "../../atoms/MultiSelect";
+import { MultiSelect } from '../../atoms/MultiSelect'
 import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-} from "lucide-react";
-import { formatDateForDisplay } from "../../../utils";
+  ArrowDownUp,
+  ArrowUp,
+  ArrowDown,
+} from 'lucide-react'
+import { formatDateForDisplay } from '../../../utils'
 
 interface Column {
-  key: string;
-  label: string;
-  width?: string;
-  sortable?: boolean;
-  searchable?: boolean;
-  type?:
-    | "text"
-    | "status"
-    | "date"
-    | "actions"
-    | "checkbox"
-    | "expand"
-    | "user"
-    | "select"
-    | "custom"
-    | "comment";
-  options?: { value: string; label: string }[];
+  key: string
+  label: string
+  width?: string
+  sortable?: boolean
+  searchable?: boolean
+  type:
+    | 'checkbox'
+    | 'text'
+    | 'custom'
+    | 'status'
+    | 'actions'
+    | 'select'
+    | 'date'
+    | 'expand'
+    | 'user'
+    | 'comment'
+  options?: { value: string; label: string }[]
 }
 
 interface ExpandableDataTableProps<T = Record<string, unknown>> {
-  data: T[];
-  columns: Column[];
-  searchState: Record<string, string>;
-  onSearchChange: (field: string, value: string) => void;
+  renderActions?: (row: T, index: number) => React.ReactNode
+  data: T[]
+  columns: Column[]
+  searchState: Record<string, string>
+  onSearchChange: (field: string, value: string) => void
   paginationState: {
-    page: number;
-    rowsPerPage: number;
-    totalRows: number;
-    totalPages: number;
-    startItem: number;
-    endItem: number;
-  };
-  onPageChange: (page: number) => void;
-  onRowsPerPageChange: (rowsPerPage: number) => void;
-  selectedRows: number[];
-  onRowSelectionChange: (selectedRows: number[]) => void;
-  expandedRows: number[];
-  onRowExpansionChange: (expandedRows: number[]) => void;
-  renderExpandedContent?: (row: T, index: number) => React.ReactNode;
-  statusOptions?: string[];
-  className?: string;
+    page: number
+    rowsPerPage: number
+    totalRows: number
+    totalPages: number
+    startItem: number
+    endItem: number
+  }
+  onPageChange: (page: number) => void
+  onRowsPerPageChange: (rowsPerPage: number) => void
+  selectedRows: number[]
+  onRowSelectionChange: (selectedRows: number[]) => void
+  expandedRows: number[]
+  onRowExpansionChange: (expandedRows: number[]) => void
+  renderExpandedContent?: (row: T, index: number) => React.ReactNode
+  statusOptions?: string[]
+  className?: string
   onDataChange?: (
     rowIndex: number,
     field: string,
     value: string | string[]
-  ) => void;
-  renderCustomCell?: (column: string, value: unknown) => React.ReactNode;
-  onRowDelete?: (row: T, index: number) => void;
-  onRowView?: (row: T, index: number) => void;
-  showDeleteAction?: boolean;
-  showViewAction?: boolean;
-  onRowClick?: (row: T, index: number) => void;
-  showAllSearch?: boolean;
+  ) => void
+  renderCustomCell?: (
+    column: string,
+    value: unknown,
+    row: T,
+    index: number
+  ) => React.ReactNode
+  onRowDelete?: (row: T, index: number) => void
+  onRowView?: (row: T, index: number) => void
+  onRowEdit?: (row: T, index: number) => void
+  showDeleteAction?: boolean
+  showViewAction?: boolean
+  showEditAction?: boolean
+  onRowClick?: (row: T, index: number) => void
+  onRowGallery?: (row: T, index: number) => void
+  onRowTransaction?: (row: T, index: number) => void
+  showGalleryAction?: boolean
+  showTransactionAction?: boolean
+  sortConfig?: {
+    key: string
+    direction: 'asc' | 'desc'
+  } | null
+  onSort?: (key: string) => void
 }
 
-export const ExpandableDataTable = <T extends Record<string, unknown>>({
+const ExpandableDataTableComponent = <T extends Record<string, unknown>>({
   data,
   columns,
   searchState,
@@ -83,87 +102,124 @@ export const ExpandableDataTable = <T extends Record<string, unknown>>({
   onRowExpansionChange,
   renderExpandedContent,
   statusOptions = [],
-  className = "",
+  className = '',
   onDataChange,
   renderCustomCell,
   onRowDelete,
   onRowView,
+  onRowEdit,
+  renderActions,
+  onRowGallery,
+  onRowTransaction,
   showDeleteAction = true,
   showViewAction = true,
+  showEditAction = true,
+  showGalleryAction = true,
+  showTransactionAction = true,
   onRowClick,
-  showAllSearch,
+  sortConfig,
+  onSort,
 }: ExpandableDataTableProps<T>) => {
   const { page, rowsPerPage, totalRows, totalPages, startItem, endItem } =
-    paginationState;
+    paginationState
 
-  // Selection logic
+  // Memoize selection logic
+  const toggleRow = useCallback(
+    (index: number) => {
+      const newSelected = selectedRows.includes(index)
+        ? selectedRows.filter((i) => i !== index)
+        : [...selectedRows, index]
+      onRowSelectionChange(newSelected)
+    },
+    [selectedRows, onRowSelectionChange]
+  )
 
-  const toggleRow = (index: number) => {
-    const newSelected = selectedRows.includes(index)
-      ? selectedRows.filter((i) => i !== index)
-      : [...selectedRows, index];
-    onRowSelectionChange(newSelected);
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedRows.length === data.length) {
-      onRowSelectionChange([]);
+  const toggleSelectAll = useCallback(() => {
+    if (selectedRows.length === data.length && data.length > 0) {
+      onRowSelectionChange([])
     } else {
-      onRowSelectionChange(data.map((_, index) => index));
+      onRowSelectionChange(data.map((_, index) => index))
     }
-  };
+  }, [selectedRows.length, data.length, onRowSelectionChange])
 
-  const toggleExpandedRow = (index: number) => {
-    const newExpanded = expandedRows.includes(index)
-      ? expandedRows.filter((i) => i !== index)
-      : [...expandedRows, index];
-    onRowExpansionChange(newExpanded);
-  };
+  const toggleExpandedRow = useCallback(
+    (index: number) => {
+      const newExpanded = expandedRows.includes(index)
+        ? expandedRows.filter((i) => i !== index)
+        : [...expandedRows, index]
+      onRowExpansionChange(newExpanded)
+    },
+    [expandedRows, onRowExpansionChange]
+  )
 
-  const generatePageNumbers = () => {
-    const pages = [];
-    const maxVisible = 5;
-    let start = Math.max(1, page - Math.floor(maxVisible / 2));
-    const end = Math.min(totalPages, start + maxVisible - 1);
+  // Memoize page numbers generation
+  const generatePageNumbers = useCallback(() => {
+    const pages = []
+    const maxVisible = 5
+    let start = Math.max(1, page - Math.floor(maxVisible / 2))
+    const end = Math.min(totalPages, start + maxVisible - 1)
 
     if (end - start < maxVisible - 1) {
-      start = Math.max(1, end - maxVisible + 1);
+      start = Math.max(1, end - maxVisible + 1)
     }
 
     for (let i = start; i <= end; i++) {
-      pages.push(i);
+      pages.push(i)
     }
-    return pages;
-  };
+    return pages
+  }, [page, totalPages])
+
+  // Memoize page numbers
+  const pageNumbers = useMemo(
+    () => generatePageNumbers(),
+    [generatePageNumbers]
+  )
 
   return (
     <div className={`${className} flex flex-col h-full`}>
       <div className="flex-1 overflow-auto">
-        <div className="overflow-x-auto">
+        <div className="overflow-auto w-full">
           <table className="w-full min-w-[1200px] table-fixed">
-            <thead className="sticky top-0 z-20 ">
-              <tr className="border-b border-gray-200">
+            <thead className="sticky top-0 z-20 bg-[#FFFFFF]">
+              <tr className="border-gray-200">
                 {columns.map((column) => (
                   <th
                     key={column.key}
-                    className={`${column.width || "w-auto"} text-xs font-semibold px-4 py-3.5 text-[#1E2939] ${column.type === "checkbox" ? "border-r border-[#CAD5E2] text-center" : "text-left"}`}
+                    className={`${column.width || 'w-auto'} text-xs font-semibold px-4 py-3.5 text-[#1E2939] ${column.type === 'checkbox' ? 'border-r border-[#CAD5E2] text-center w-4 h-4' : 'text-left'}`}
                   >
-                    {column.type === "checkbox" ? (
+                    {column.type === 'checkbox' ? (
                       <div className="flex items-center justify-center w-4 h-4">
                         <Checkbox
                           checked={
-                            selectedRows.length === data.length &&
-                            data.length > 0
+                            data.length > 0 &&
+                            selectedRows.length === data.length
                           }
                           onChange={toggleSelectAll}
                           className="w-4 h-4"
                         />
                       </div>
                     ) : (
-                      <div className="flex items-center  gap-1 font-sans font-normal leading-[16px] tracking-normal">
+                      <div
+                        className={`flex items-center gap-1 font-sans font-normal leading-[16px] tracking-normal ${
+                          column.sortable
+                            ? 'cursor-pointer hover:text-[#155DFC]'
+                            : ''
+                        }`}
+                        onClick={() => column.sortable && onSort?.(column.key)}
+                      >
                         {column.label}
                         {column.sortable && (
-                          <img src="/arrow-down.svg" alt="sort icon" />
+                          <>
+                            {sortConfig?.key === column.key ? (
+                              sortConfig.direction === 'asc' ? (
+                                <ArrowUp className="w-[16px] h-[16px] text-[#155DFC]" />
+                              ) : (
+                                <ArrowDown className="w-[16px] h-[16px] text-[#155DFC]" />
+                              )
+                            ) : (
+                              <ArrowDownUp className="w-[16px] h-[16px] text-[#90A1B9]" />
+                            )}
+                          </>
                         )}
                       </div>
                     )}
@@ -171,14 +227,12 @@ export const ExpandableDataTable = <T extends Record<string, unknown>>({
                 ))}
               </tr>
               {/* Search Row */}
-              {showAllSearch && (
-                <TableSearchRow
-                  columns={columns}
-                  search={searchState}
-                  onSearchChange={onSearchChange}
-                  statusOptions={statusOptions}
-                />
-              )} 
+              <TableSearchRow
+                columns={columns}
+                search={searchState}
+                onSearchChange={onSearchChange}
+                statusOptions={statusOptions}
+              />
             </thead>
             <tbody className="divide-y divide-[#E2E8F0]">
               {data.map((row, index) => (
@@ -186,15 +240,15 @@ export const ExpandableDataTable = <T extends Record<string, unknown>>({
                   <tr
                     className={`transition-colors min-h-[64px] ${
                       selectedRows.includes(index)
-                        ? "bg-blue-50 border-l-4 border-blue-500"
-                        : ""
-                    } ${onRowClick ? "cursor-pointer hover:bg-gray-50" : ""}`}
+                        ? 'bg-blue-50 border-l-4 border-blue-500'
+                        : ''
+                    } ${onRowClick ? ' hover:bg-gray-50' : ''}`}
                     onClick={
                       onRowClick ? () => onRowClick(row, index) : undefined
                     }
                   >
                     {columns.map((column) => {
-                      if (column.type === "expand") {
+                      if (column.type === 'expand') {
                         return (
                           <td
                             key={column.key}
@@ -217,200 +271,169 @@ export const ExpandableDataTable = <T extends Record<string, unknown>>({
                               )}
                             </button>
                           </td>
-                        );
+                        )
                       }
 
-                      if (column.type === "checkbox") {
+                      if (column.type === 'checkbox') {
                         return (
                           <td
                             key={column.key}
-                            className="whitespace-nowrap text-center border-r border-[#CAD5E2]"
+                            className="w-8 px-2.5 py-1.5 whitespace-nowrap justify-center items-center"
                           >
-                            <div className="flex items-center justify-center">
-                              <Checkbox
-                                checked={selectedRows.includes(index)}
-                                onChange={() => toggleRow(index)}
-                                className="w-4 h-4"
+                            <Checkbox
+                              checked={selectedRows.includes(index)}
+                              onChange={() => toggleRow(index)}
+                              className="w-4 h-4"
+                            />
+                          </td>
+                        )
+                      }
+
+                      if (column.type === 'actions') {
+                        return (
+                          <td
+                            key={column.key}
+                            className="w-20 px-2.5 py-1.5 whitespace-nowrap"
+                          >
+                            {renderActions ? (
+                              renderActions(row, index)
+                            ) : (
+                              <ActionDropdown
+                                {...(onRowDelete && {
+                                  onDelete: () => onRowDelete(row, index),
+                                })}
+                                {...(onRowView && {
+                                  onView: () => onRowView(row, index),
+                                })}
+                                {...(onRowEdit && {
+                                  onEdit: () => onRowEdit(row, index),
+                                })}
+                                {...(onRowGallery && {
+                                  onGallery: () => onRowGallery(row, index),
+                                })}
+                                {...(onRowTransaction && {
+                                  onTransaction: () =>
+                                    onRowTransaction(row, index),
+                                })}
+                                showDelete={showDeleteAction}
+                                showView={showViewAction}
+                                showEdit={showEditAction}
+                                showGallery={showGalleryAction}
+                                showTransaction={showTransactionAction}
                               />
-                            </div>
+                            )}
                           </td>
-                        );
+                        )
                       }
+                      const value = row[column.key]
+                      const displayValue = value
 
-                      if (column.type === "status") {
-                        const status = String(
-                          (row as Record<string, unknown>)[column.key] || ""
-                        );
+                      if (column.type === 'date' && value) {
+                        const formattedDate = formatDateForDisplay(
+                          value as string
+                        )
                         return (
                           <td
                             key={column.key}
-                            className="items-center justify-center p-4 whitespace-nowrap"
-                          >
-                            <StatusBadge status={status} />
-                          </td>
-                        );
-                      }
-
-                      if (column.type === "actions") {
-                        return (
-                          <td
-                            key={column.key}
-                            className="flex items-center justify-center p-4 text-right whitespace-nowrap"
-                          >
-                            <ActionDropdown
-                              onDelete={
-                                onRowDelete
-                                  ? () => onRowDelete(row, index)
-                                  : undefined
-                              }
-                              onView={
-                                onRowView
-                                  ? () => onRowView(row, index)
-                                  : undefined
-                              }
-                              showDelete={showDeleteAction}
-                              showView={showViewAction}
-                            />
-                          </td>
-                        );
-                      }
-
-                      if (column.type === "user") {
-                        const userName = String(
-                          (row as Record<string, unknown>)[column.key] || ""
-                        );
-                        const initials = userName
-                          .split(" ")
-                          .map((name) => name[0])
-                          .join("")
-                          .toUpperCase();
-                        return (
-                          <td
-                            key={column.key}
-                            className="p-4 whitespace-nowrap text-sm font-normal not-italic text-[#1E2939] font-sans leading-4"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center justify-center w-8 h-8 text-xs font-medium text-white bg-blue-500 rounded-full">
-                                {initials}
-                              </div>
-                              <span>{userName}</span>
-                            </div>
-                          </td>
-                        );
-                      }
-
-                      if (column.type === "select") {
-                        const currentValue = (row as Record<string, unknown>)[
-                          column.key
-                        ];
-                        const valueArray = Array.isArray(currentValue)
-                          ? currentValue
-                          : [String(currentValue || "")];
-                        const options = column.options || [];
-                        return (
-                          <td
-                            key={column.key}
-                            className="p-4 whitespace-nowrap text-sm font-normal not-italic text-[#1E2939] font-sans leading-4"
-                          >
-                            <MultiSelect
-                              value={valueArray}
-                              onChange={(value) => {
-                                if (onDataChange) {
-                                  onDataChange(index, column.key, value);
-                                }
-                              }}
-                              options={options}
-                              className="w-full h-8 min-w-0 text-xs not-italic font-normal font-outfit"
-                            />
-                          </td>
-                        );
-                      }
-
-                      // Handle custom cell rendering
-                      if (column.type === "custom" && renderCustomCell) {
-                        const value = (row as Record<string, unknown>)[
-                          column.key
-                        ];
-                        return (
-                          <td
-                            key={column.key}
-                            className="p-4 whitespace-nowrap text-sm font-normal not-italic text-[#1E2939] font-sans leading-4"
-                          >
-                            {renderCustomCell(column.key, value)}
-                          </td>
-                        );
-                      }
-
-                      // Handle comment cells as clickable links
-                      if (column.type === "comment") {
-                        const commentValue = String(
-                          (row as Record<string, unknown>)[column.key] || ""
-                        );
-                        return (
-                          <td
-                            key={column.key}
-                            className="p-4 whitespace-nowrap text-sm font-normal not-italic text-[#1E2939] font-sans leading-4"
-                          >
-                            <button
-                              className="font-medium text-blue-600 underline cursor-pointer hover:text-blue-800"
-                              onClick={() => {
-                                // This will be handled by the parent component
-                                if (renderCustomCell) {
-                                  renderCustomCell(column.key, {
-                                    comment: commentValue,
-                                    row,
-                                  });
-                                }
-                              }}
-                            >
-                              {commentValue}
-                            </button>
-                          </td>
-                        );
-                      }
-
-                      // Handle date columns (createdDate, updatedDate, approvedDate)
-                      if (
-                        column.key === "createdDate" ||
-                        column.key === "updatedDate" ||
-                        column.key === "approvedDate"
-                      ) {
-                        const dateValue = String(
-                          (row as Record<string, unknown>)[column.key] || ""
-                        );
-                        const { date, time } = formatDateForDisplay(dateValue);
-                        return (
-                          <td
-                            key={column.key}
-                            className="p-4 text-sm font-normal not-italic text-[#1E2939] font-sans leading-4"
+                            className={`${column.width || 'w-auto'} px-4 py-3.5 text-sm text-[#1E2939]`}
                           >
                             <div className="flex flex-col">
                               <span className="font-sans font-normal text-[14px] leading-[16px] align-middle tracking-[0] text-[#1E2939]">
-                                {date}
+                                {formattedDate.date}
                               </span>
                               <span className="font-sans font-normal text-[14px] leading-[16px] align-middle tracking-[0] text-[#1E2939]">
-                                {time}
+                                {formattedDate.time}
                               </span>
                             </div>
                           </td>
-                        );
+                        )
                       }
 
+                      if (column.type === 'status' && value) {
+                        return (
+                          <td
+                            key={column.key}
+                            className={`${column.width || 'w-auto'} px-4 py-3.5 text-sm text-[#1E2939]`}
+                          >
+                            <StatusBadge status={value as string} />
+                          </td>
+                        )
+                      }
+
+                      if (column.type === 'select' && column.options) {
+                        return (
+                          <td
+                            key={column.key}
+                            className={`${column.width || 'w-auto'} px-4 py-3.5 text-sm text-[#1E2939]`}
+                          >
+                            <MultiSelect
+                              options={column.options}
+                              value={Array.isArray(value) ? value : [value]}
+                              onChange={(newValue) =>
+                                onDataChange?.(index, column.key, newValue)
+                              }
+                            />
+                          </td>
+                        )
+                      }
+
+                      if (column.type === 'custom' && renderCustomCell) {
+                        return (
+                          <td
+                            key={column.key}
+                            className={`${column.width || 'w-auto'} px-4 py-3.5 text-sm text-[#1E2939] max-w-0`}
+                          >
+                            <div className="truncate">
+                              {renderCustomCell(column.key, value, row, index)}
+                            </div>
+                          </td>
+                        )
+                      }
+
+                      if (
+                        column.type === 'comment' &&
+                        typeof value === 'object' &&
+                        value !== null
+                      ) {
+                        return (
+                          <td
+                            key={column.key}
+                            className={`${column.width || 'w-auto'} px-4 py-3.5 text-sm text-[#1E2939]`}
+                          >
+                            <button
+                              className="text-blue-600 underline hover:text-blue-800"
+                              onClick={() => {
+                                // Handle comment click
+                              }}
+                            >
+                              View Comment
+                            </button>
+                          </td>
+                        )
+                      }
+
+                      // Default cell for all other types
                       return (
                         <td
                           key={column.key}
-                          className="p-4 whitespace-nowrap text-sm font-normal not-italic text-[#1E2939] font-sans leading-4"
+                          className={`${column.width || 'w-auto'} px-4 py-3.5 text-sm text-[#1E2939] max-w-0`}
                         >
-                          {String(
-                            (row as Record<string, unknown>)[column.key] || ""
-                          )}
+                          <div
+                            className="truncate"
+                            title={displayValue as string}
+                          >
+                            {displayValue as string}
+                          </div>
                         </td>
-                      );
+                      )
                     })}
                   </tr>
                   {expandedRows.includes(index) && renderExpandedContent && (
-                    <tr className="border-b border-gray-200 bg-gray-50">
-                      <td colSpan={columns.length} className="px-6 py-6">
+                    <tr>
+                      <td
+                        colSpan={columns.length}
+                        className="px-4 py-4 bg-gray-50"
+                      >
                         {renderExpandedContent(row, index)}
                       </td>
                     </tr>
@@ -423,12 +446,12 @@ export const ExpandableDataTable = <T extends Record<string, unknown>>({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between pl-6 pr-4 pt-3.5 bg-[#FFFFFFBF] border-t border-t-[#E2E8F0] mt-auto">
-        <div className="flex items-center gap-6">
-          <span className="text-sm text-[#4A5565] font-sans font-normal leading-4 align-bottom">
+      <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-700">
             {startItem}-{endItem} of {totalRows} row(s)
           </span>
-          <div className="flex items-center gap-2">
+          {/* <div className="flex items-center gap-2">
             <span className="text-sm text-gray-700">Rows per page:</span>
             <select
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none [&>option]:text-gray-900 shadow-sm"
@@ -441,34 +464,34 @@ export const ExpandableDataTable = <T extends Record<string, unknown>>({
                 </option>
               ))}
             </select>
-          </div>
+          </div> */}
         </div>
+
         <div className="flex items-center gap-1">
           <button
-            disabled={page === 1}
             onClick={() => onPageChange(1)}
-            className="p-2 text-gray-400 transition-colors rounded-lg hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100"
+            className="p-2 text-gray-600 transition-colors border border-gray-300 rounded-lg shadow-sm hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100"
             title="First page"
           >
             <ChevronsLeft className="w-4 h-4" />
           </button>
           <button
-            disabled={page === 1}
             onClick={() => onPageChange(Math.max(1, page - 1))}
-            className="p-2 text-gray-400 transition-colors rounded-lg hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100"
+            disabled={page === 1}
+            className="p-2 text-gray-600 transition-colors border border-gray-300 rounded-lg shadow-sm hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100"
             title="Previous page"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
 
-          {generatePageNumbers().map((pageNum) => (
+          {pageNumbers.map((pageNum) => (
             <button
               key={pageNum}
               onClick={() => onPageChange(pageNum)}
-              className={`px-2.5 py-1.5 text-xs font-medium rounded-md font-sans leading-3.5 transition-colors ${
+              className={`px-2.5 py-1.5 text-xs font-medium rounded-md font-sans leading-3.5 border border-gray-300 shadow-sm transition-colors ${
                 page === pageNum
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-100"
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
               {pageNum}
@@ -476,23 +499,59 @@ export const ExpandableDataTable = <T extends Record<string, unknown>>({
           ))}
 
           <button
-            disabled={page === totalPages}
             onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-            className="p-2 text-gray-400 transition-colors rounded-lg hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100"
+            disabled={page === totalPages}
+            className="p-2 text-gray-600 transition-colors border border-gray-300 rounded-lg shadow-sm hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100"
             title="Next page"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
           <button
-            disabled={page === totalPages}
             onClick={() => onPageChange(totalPages)}
-            className="p-2 text-gray-400 transition-colors rounded-lg hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100"
+            className="p-2 text-gray-600 transition-colors border border-gray-300 rounded-lg shadow-sm hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100"
             title="Last page"
           >
             <ChevronsRight className="w-4 h-4" />
           </button>
+          <div className="relative w-full">
+            <select
+              className="block w-full py-2 pl-2 pr-6 font-sans text-sm text-gray-900 transition bg-white border border-gray-300 rounded-md shadow-sm appearance-none focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={rowsPerPage}
+              onChange={(e) => onRowsPerPageChange(Number(e.target.value))}
+            >
+              {[10, 20, 50, 100].map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+
+            {/* Dropdown icon */}
+            <div className="absolute inset-y-0 flex items-center font-sans text-gray-500 pointer-events-none right-2">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
+
+// Memoize the component to prevent unnecessary re-renders
+export const ExpandableDataTable = React.memo(ExpandableDataTableComponent) as <
+  T extends Record<string, unknown>,
+>(
+  props: ExpandableDataTableProps<T>
+) => React.ReactElement

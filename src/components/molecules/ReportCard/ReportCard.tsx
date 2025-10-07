@@ -15,8 +15,8 @@ export const ReportCard: React.FC<ReportCardProps> = ({
 }) => {
   return (
     <div 
-      className={`flex h-[124px] p-4 flex-col items-end gap-2 flex-1 min-w-0 rounded-2xl border border-white backdrop-blur-[5px] hover:bg-[#DBEAFE] transition-colors duration-200 cursor-pointer ${
-        isSelected ? 'bg-[#DBEAFE]' : 'bg-white/80'
+      className={`flex h-[124px] p-4 flex-col items-end gap-2 flex-1 min-w-0 rounded-2xl border border-gray-200 shadow-sm backdrop-blur-[5px] hover:bg-[#DBEAFE] hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer ${
+        isSelected ? 'bg-[#DBEAFE] border-blue-300 shadow-md' : 'bg-white/90'
       }`}
       onClick={onClick}
     >

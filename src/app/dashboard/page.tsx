@@ -1,808 +1,1148 @@
 'use client'
 
-import React from 'react'
-import Image from 'next/image'
-import { DashboardLayout } from '../../components/templates/DashboardLayout'
-import { TrendingUp, TrendingDown } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import Highcharts from 'highcharts'
+import HighchartsReact from 'highcharts-react-official'
+import { DateRangePicker } from './components/filters/DateRangePicker'
+import { Header } from '@/components/organisms/Header'
+import { Autocomplete } from '@/components/atoms/Autocomplete'
+import { useSidebarConfig } from '@/hooks/useSidebarConfig'
+import { useDashboardSummary } from '@/hooks/useDashboard'
+import { useBuildPartnerAutocomplete } from '@/hooks/useBuildPartnerAutocomplete'
+import { useRealEstateAssetAutocomplete } from '@/hooks/useRealEstateAssetAutocomplete'
+import type { BuildPartner } from '@/services/api/buildPartnerService'
+import type { RealEstateAsset } from '@/services/api/realEstateAssetService'
 
-const DashboardPage: React.FC = () => {
+const formatIndianCurrency = (amount: string | number): string => {
+  // Handle null, undefined, or empty values
+  if (amount === null || amount === undefined || amount === '') {
+    return '0'
+  }
+
+  const numStr = amount.toString()
+
+  // If it's already formatted (contains commas), return as is
+  if (numStr.includes(',')) {
+    return numStr
+  }
+
+  // Handle non-numeric strings
+  if (isNaN(Number(numStr))) {
+    return '0'
+  }
+
+  const lastThree = numStr.substring(numStr.length - 3)
+  const otherNumbers = numStr.substring(0, numStr.length - 3)
+  if (otherNumbers !== '') {
+    return otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + ',' + lastThree
+  }
+  return lastThree
+}
+
+const kpiData = {
+  deposits: [
+    { name: 'Equity Fund', y: 35, color: '#0d9488' },
+    { name: 'Investor Fund', y: 25, color: '#14b8a6' },
+    { name: 'DLD', y: 20, color: '#2dd4bf' },
+    { name: 'Unit Installment', y: 15, color: '#5eead4' },
+    { name: 'VAT', y: 5, color: '#99f6e4' },
+  ],
+  payments: [
+    { name: 'Equity Fund', y: 30, color: '#86198f' },
+    { name: 'Investor Fund', y: 25, color: '#a21caf' },
+    { name: 'DLD', y: 20, color: '#c026d3' },
+    { name: 'Unit Installment', y: 15, color: '#d946ef' },
+    { name: 'VAT', y: 10, color: '#e879f9' },
+  ],
+  fees: [
+    { name: 'Equity Fund', y: 40, color: '#4c1d95' },
+    { name: 'Investor Fund', y: 30, color: '#6d28d9' },
+    { name: 'DLD', y: 15, color: '#7c3aed' },
+    { name: 'Unit Installment', y: 10, color: '#8b5cf6' },
+    { name: 'VAT', y: 5, color: '#a78bfa' },
+  ],
+}
+
+const statusData = [
+  { name: 'Sold', y: 60, color: '#8b5cf6' },
+  { name: 'Unsold', y: 60, color: '#a78bfa' },
+  { name: 'Freeze', y: 76, color: '#8b5cf6' },
+  { name: 'Resold', y: 44, color: '#8b5cf6' },
+  { name: 'Cancelled', y: 56, color: '#8b5cf6' },
+]
+
+const guaranteeData = [
+  { name: 'Advanced Guarantee', y: 35, color: '#8b5cf6' },
+  { name: 'Retention Guarantee', y: 28, color: '#a78bfa' },
+  { name: 'Performance Guarantee', y: 12, color: '#c4b5fd' },
+]
+
+const developersData = [
+  { name: 'In Review', y: 312, color: '#c4b5fd' },
+  { name: 'Active', y: 342, color: '#8b5cf6' },
+  { name: 'Approved', y: 468, color: '#6d28d9' },
+]
+
+const getDonutChartOptions = (
+  data: Array<{ name: string; y: number; color: string }>
+) => ({
+  chart: {
+    type: 'pie',
+    backgroundColor: 'transparent',
+    height: 200,
+  },
+  title: {
+    text: null,
+  },
+  plotOptions: {
+    pie: {
+      innerSize: '60%',
+      dataLabels: {
+        enabled: false,
+      },
+      showInLegend: false,
+    },
+  },
+  legend: {
+    enabled: false,
+  },
+  series: [
+    {
+      name: 'Data',
+      data: data,
+    },
+  ],
+  credits: {
+    enabled: false,
+  },
+})
+
+const DateRangeDisplay = ({
+  startDate,
+  endDate,
+  onDateChange,
+}: {
+  startDate: string
+  endDate: string
+  onDateChange: (start: string, end: string) => void
+}) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const [prevStartDate, setPrevStartDate] = useState(startDate)
+  const [prevEndDate, setPrevEndDate] = useState(endDate)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Auto-close when both dates are selected (only when end date is selected after start date)
+  useEffect(() => {
+    const endDateChanged = endDate !== prevEndDate
+    const startDateWasAlreadySelected = prevStartDate && prevStartDate !== ''
+
+    // Only auto-close if:
+    // 1. End date was just selected (changed)
+    // 2. Start date was already selected before this change
+    // 3. Both dates now exist
+    // 4. Picker is currently open
+    if (
+      endDateChanged &&
+      startDateWasAlreadySelected &&
+      startDate &&
+      endDate &&
+      isOpen
+    ) {
+      setIsOpen(false)
+    }
+
+    setPrevStartDate(startDate)
+    setPrevEndDate(endDate)
+  }, [startDate, endDate, isOpen, prevStartDate, prevEndDate])
+
+  // Close when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false)
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen])
+
   return (
-    <DashboardLayout
-      title="Dashboard"
-      subtitle="Description tex"
-      showFilters={true}
-    >
-      <div className="flex flex-col gap-4">
-        {/* Main Trust Account Summary */}
-        <div className="pt-10">
-          <div className="flex items-center gap-4 mb-10">
-            <div className="w-[85px] text-gray-600 text-sm font-normal uppercase leading-normal">
-              Main Trust Account summary
-            </div>
-            <div className="flex items-start">
-              <svg
-                className="h-20 mr-2 w-7"
-                viewBox="0 0 28 80"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M13.6008 47.4463C13.9447 47.8018 13.9447 48.378 13.6008 48.7334C13.257 49.0889 12.6995 49.0889 12.3557 48.7334L13.6008 47.4463ZM17.8696 31L17.8923 31.0003C18.368 31.0128 18.75 31.4153 18.75 31.9101C18.75 32.4049 18.368 32.8075 17.8923 32.8199L17.8696 32.8202H14.47C15.1211 33.5721 15.5735 34.5116 15.7421 35.5506H17.8696L17.8923 35.5509C18.368 35.5633 18.75 35.9659 18.75 36.4607C18.75 36.9555 18.368 37.358 17.8923 37.3705L17.8696 37.3708H15.7421C15.323 39.9534 13.1502 41.9213 10.5326 41.9213H8.256L13.6008 47.4463L12.3557 48.7334L5.50791 41.6548C5.25611 41.3945 5.18077 41.003 5.31704 40.6629C5.45331 40.3229 5.77436 40.1011 6.13046 40.1011H10.5326C12.1736 40.1011 13.5524 38.9409 13.9434 37.3708H6.13046C5.64421 37.3708 5.25003 36.9633 5.25003 36.4607C5.25003 35.958 5.64421 35.5506 6.13046 35.5506H13.9434C13.5524 33.9804 12.1736 32.8202 10.5326 32.8202H6.13046C5.64421 32.8202 5.25003 32.4128 5.25003 31.9101C5.25003 31.4075 5.64421 31 6.13046 31H17.8696Z"
-                  fill="#4A5565"
-                />
-              </svg>
-              <div className="text-gray-900 text-[64px] font-normal leading-normal tracking-[-0.64px]">
-                7,20,10,60,80,97,20,10
-              </div>
-              <div className="flex flex-col justify-center gap-1 ml-4">
-                <div className="text-base font-normal text-gray-600 uppercase">
-                  CRORE
-                </div>
-                <div className="flex items-center gap-1">
-                  <TrendingUp className="w-3.5 h-3.5 text-green-600" />
-                  <span className="text-xs font-bold text-green-600">12%</span>
-                  <span className="text-xs text-green-600"> vs last month</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* All Accounts Section */}
-        <div className="flex gap-4">
-          {/* Sum AC Section */}
-          <div className="flex gap-4">
-            {/* Total Deposits */}
-            <div className="w-[272px] h-[420px] p-4 flex flex-col gap-8 rounded-2xl border border-white bg-white/75 backdrop-blur-md">
-              <div className="flex flex-col gap-4">
-                <div className="text-sm font-normal text-gray-600 uppercase">
-                  Total Deposits (Main A/c)
-                </div>
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-start">
-                    <svg
-                      className="w-5 h-8 mr-1"
-                      viewBox="0 0 20 33"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M9.06723 21.9642C9.29645 22.2012 9.29645 22.5853 9.06723 22.8223C8.83801 23.0592 8.46636 23.0592 8.23714 22.8223L9.06723 21.9642ZM11.913 11L11.9282 11.0002C12.2454 11.0085 12.5 11.2769 12.5 11.6067C12.5 11.9366 12.2454 12.205 11.9282 12.2133L11.913 12.2135H9.64668C10.0807 12.7148 10.3823 13.3411 10.4948 14.0337H11.913L11.9282 14.0339C12.2454 14.0422 12.5 14.3106 12.5 14.6404C12.5 14.9703 12.2454 15.2387 11.9282 15.247L11.913 15.2472H10.4948C10.2153 16.969 8.76678 18.2809 7.02175 18.2809H5.504L9.06723 21.9642L8.23714 22.8223L3.67194 18.1032C3.50407 17.9297 3.45384 17.6687 3.54469 17.442C3.63554 17.2152 3.84957 17.0674 4.08698 17.0674H7.02175C8.11575 17.0674 9.03496 16.294 9.29559 15.2472H4.08698C3.76281 15.2472 3.50002 14.9755 3.50002 14.6404C3.50002 14.3054 3.76281 14.0337 4.08698 14.0337H9.29559C9.03496 12.9869 8.11575 12.2135 7.02175 12.2135H4.08698C3.76281 12.2135 3.50002 11.9418 3.50002 11.6067C3.50002 11.2716 3.76281 11 4.08698 11H11.913Z"
-                        fill="#4A5565"
-                      />
-                    </svg>
-                    <div className="text-gray-900 text-[28px] font-normal tracking-[-0.56px]">
-                      2,04,10,60,800
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="w-3.5 h-3.5 text-green-600" />
-                    <span className="text-xs font-bold text-green-600">
-                      12%
-                    </span>
-                    <span className="text-xs text-green-600">
-                      {' '}
-                      vs last month
-                    </span>
-                  </div>
-                </div>
-              </div>
-              {/* Nested Pie Chart */}
-              <div className="flex flex-col gap-4">
-                <Image
-                  src="https://cdn.builder.io/api/v1/image/assets/TEMP/9a099a045feb0b039e9e83da4bc93f0e50a5aa8b?width=304"
-                  alt="Deposits Pie Chart"
-                  width={152}
-                  height={152}
-                  className="w-[152px] h-[152px]"
-                />
-                <div className="flex gap-4">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#00BBA7]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        Equity Fund
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#009689]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        Investor Fund
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#00786F]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        DLD
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#005F5A]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        Unit Instalment
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#0B4F4A]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        VAT
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#CCFBF1]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        DLD
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#96F7E4]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        Unit Instalment
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#46ECD5]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        VAT
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#00D5BE]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        Unit Instalment
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Total Payments */}
-            <div className="w-[272px] h-[420px] p-4 flex flex-col gap-8 rounded-2xl border border-white bg-white/50 backdrop-blur-md">
-              <div className="flex flex-col gap-4">
-                <div className="text-sm font-normal text-gray-600 uppercase">
-                  Total Payments (Main A/c)
-                </div>
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-start">
-                    <svg
-                      className="w-5 h-8 mr-1"
-                      viewBox="0 0 20 33"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M9.06723 21.9642C9.29645 22.2012 9.29645 22.5853 9.06723 22.8223C8.83801 23.0592 8.46636 23.0592 8.23714 22.8223L9.06723 21.9642ZM11.913 11L11.9282 11.0002C12.2454 11.0085 12.5 11.2769 12.5 11.6067C12.5 11.9366 12.2454 12.205 11.9282 12.2133L11.913 12.2135H9.64668C10.0807 12.7148 10.3823 13.3411 10.4948 14.0337H11.913L11.9282 14.0339C12.2454 14.0422 12.5 14.3106 12.5 14.6404C12.5 14.9703 12.2454 15.2387 11.9282 15.247L11.913 15.2472H10.4948C10.2153 16.969 8.76678 18.2809 7.02175 18.2809H5.504L9.06723 21.9642L8.23714 22.8223L3.67194 18.1032C3.50407 17.9297 3.45384 17.6687 3.54469 17.442C3.63554 17.2152 3.84957 17.0674 4.08698 17.0674H7.02175C8.11575 17.0674 9.03496 16.294 9.29559 15.2472H4.08698C3.76281 15.2472 3.50002 14.9755 3.50002 14.6404C3.50002 14.3054 3.76281 14.0337 4.08698 14.0337H9.29559C9.03496 12.9869 8.11575 12.2135 7.02175 12.2135H4.08698C3.76281 12.2135 3.50002 11.9418 3.50002 11.6067C3.50002 11.2716 3.76281 11 4.08698 11H11.913Z"
-                        fill="#4A5565"
-                      />
-                    </svg>
-                    <div className="text-gray-900 text-[28px] font-normal tracking-[-0.56px]">
-                      2,04,10,60,800
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <TrendingDown className="w-3.5 h-3.5 text-red-600" />
-                    <span className="text-xs font-bold text-red-600">8 %</span>
-                    <span className="text-xs text-red-600"> vs last month</span>
-                  </div>
-                </div>
-              </div>
-              {/* Nested Pie Chart */}
-              <div className="flex flex-col gap-4">
-                <Image
-                  src="https://cdn.builder.io/api/v1/image/assets/TEMP/729d6e608cde6844e89c2ee39d669d1e2950c723?width=304"
-                  alt="Payments Pie Chart"
-                  width={152}
-                  height={152}
-                  className="w-[152px] h-[152px]"
-                />
-                <div className="flex gap-4">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#F8EDF4]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        Equity Fund
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#F2DCE9]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        Investor Fund
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#E4B9D3]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        DLD
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#D796BC]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        Unit Instalment
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#C973A6]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        VAT
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#C973A6]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        DLD
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#BC5090]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        Unit Instalment
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#964073]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        VAT
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#713056]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        Unit Instalment
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#4B203A]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        VAT
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Total Fees Collected */}
-            <div className="w-[272px] h-[420px] p-4 flex flex-col gap-8 rounded-2xl border border-white bg-white/50 backdrop-blur-md">
-              <div className="flex flex-col gap-4">
-                <div className="text-sm font-normal text-gray-600 uppercase">
-                  Total Fees Collected (Main A/c)
-                </div>
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-start">
-                    <svg
-                      className="w-5 h-8 mr-1"
-                      viewBox="0 0 20 33"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M9.06723 21.9642C9.29645 22.2012 9.29645 22.5853 9.06723 22.8223C8.83801 23.0592 8.46636 23.0592 8.23714 22.8223L9.06723 21.9642ZM11.913 11L11.9282 11.0002C12.2454 11.0085 12.5 11.2769 12.5 11.6067C12.5 11.9366 12.2454 12.205 11.9282 12.2133L11.913 12.2135H9.64668C10.0807 12.7148 10.3823 13.3411 10.4948 14.0337H11.913L11.9282 14.0339C12.2454 14.0422 12.5 14.3106 12.5 14.6404C12.5 14.9703 12.2454 15.2387 11.9282 15.247L11.913 15.2472H10.4948C10.2153 16.969 8.76678 18.2809 7.02175 18.2809H5.504L9.06723 21.9642L8.23714 22.8223L3.67194 18.1032C3.50407 17.9297 3.45384 17.6687 3.54469 17.442C3.63554 17.2152 3.84957 17.0674 4.08698 17.0674H7.02175C8.11575 17.0674 9.03496 16.294 9.29559 15.2472H4.08698C3.76281 15.2472 3.50002 14.9755 3.50002 14.6404C3.50002 14.3054 3.76281 14.0337 4.08698 14.0337H9.29559C9.03496 12.9869 8.11575 12.2135 7.02175 12.2135H4.08698C3.76281 12.2135 3.50002 11.9418 3.50002 11.6067C3.50002 11.2716 3.76281 11 4.08698 11H11.913Z"
-                        fill="#4A5565"
-                      />
-                    </svg>
-                    <div className="text-gray-900 text-[28px] font-normal tracking-[-0.56px]">
-                      2,04,10,60,800
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="w-3.5 h-3.5 text-green-600" />
-                    <span className="text-xs font-bold text-green-600">
-                      12%
-                    </span>
-                    <span className="text-xs text-green-600">
-                      {' '}
-                      vs last month
-                    </span>
-                  </div>
-                </div>
-              </div>
-              {/* Nested Pie Chart */}
-              <div className="flex flex-col gap-4">
-                <Image
-                  src="https://cdn.builder.io/api/v1/image/assets/TEMP/e134a806062039eee3b3b910d83cf2539fb5eb64?width=304"
-                  alt="Fees Pie Chart"
-                  width={152}
-                  height={152}
-                  className="w-[152px] h-[152px]"
-                />
-                <div className="flex gap-4">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#EDE9FE]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        Equity Fund
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#DDD6FE]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        Investor Fund
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#C4B4FF]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        DLD
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#A684FF]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        Unit Instalment
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#8E51FF]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        DLD
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#7F22FE]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        Unit Instalment
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#7008E7]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        VAT
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#5D0EC0]"></div>
-                      <span className="text-gray-600 text-xs tracking-[0.24px]">
-                        Unit Instalment
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Child AC Section */}
-          <div className="w-[271px] flex flex-col gap-4">
-            {/* Retention Account */}
-            <div className="h-[129px] p-4 flex items-start rounded-2xl border border-white bg-white/50 backdrop-blur-md">
-              <div className="w-[238px] flex flex-col gap-6">
-                <div className="flex items-center gap-2">
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M11.875 20C11.9417 20 12.0083 19.9833 12.075 19.95C12.1417 19.9167 12.1917 19.8833 12.225 19.85L20.425 11.65C20.625 11.45 20.7708 11.225 20.8625 10.975C20.9542 10.725 21 10.475 21 10.225C21 9.95833 20.9542 9.70417 20.8625 9.4625C20.7708 9.22083 20.625 9.00833 20.425 8.825L16.175 4.575C15.9917 4.375 15.7792 4.22917 15.5375 4.1375C15.2958 4.04583 15.0417 4 14.775 4C14.525 4 14.275 4.04583 14.025 4.1375C13.775 4.22917 13.55 4.375 13.35 4.575L13.075 4.85L14.925 6.725C15.175 6.95833 15.3583 7.225 15.475 7.525C15.5917 7.825 15.65 8.14167 15.65 8.475C15.65 9.175 15.4125 9.7625 14.9375 10.2375C14.4625 10.7125 13.875 10.95 13.175 10.95C12.8417 10.95 12.5208 10.8917 12.2125 10.775C11.9042 10.6583 11.6333 10.4833 11.4 10.25L9.52499 8.4L5.14999 12.775C5.09999 12.825 5.06249 12.8792 5.03749 12.9375C5.01249 12.9958 4.99999 13.0583 4.99999 13.125C4.99999 13.2583 5.04999 13.3792 5.14999 13.4875C5.24999 13.5958 5.36666 13.65 5.49999 13.65C5.56666 13.65 5.63332 13.6333 5.69999 13.6C5.76666 13.5667 5.81666 13.5333 5.84999 13.5L9.24999 10.1L10.65 11.5L7.27499 14.9C7.22499 14.95 7.18749 15.0042 7.16249 15.0625C7.13749 15.1208 7.12499 15.1833 7.12499 15.25C7.12499 15.3833 7.17499 15.5 7.27499 15.6C7.37499 15.7 7.49166 15.75 7.62499 15.75C7.69166 15.75 7.75832 15.7333 7.82499 15.7C7.89166 15.6667 7.94166 15.6333 7.97499 15.6L11.375 12.225L12.775 13.625L9.39999 17.025C9.34999 17.0583 9.31249 17.1083 9.28749 17.175C9.26249 17.2417 9.24999 17.3083 9.24999 17.375C9.24999 17.5083 9.29999 17.625 9.39999 17.725C9.49999 17.825 9.61666 17.875 9.74999 17.875C9.81666 17.875 9.87916 17.8625 9.93749 17.8375C9.99582 17.8125 10.05 17.775 10.1 17.725L13.5 14.35L14.9 15.75L11.5 19.15C11.45 19.2 11.4125 19.2542 11.3875 19.3125C11.3625 19.3708 11.35 19.4333 11.35 19.5C11.35 19.6333 11.4042 19.75 11.5125 19.85C11.6208 19.95 11.7417 20 11.875 20ZM11.85 22C11.2333 22 10.6875 21.7958 10.2125 21.3875C9.73749 20.9792 9.45832 20.4667 9.37499 19.85C8.80832 19.7667 8.33332 19.5333 7.94999 19.15C7.56666 18.7667 7.33332 18.2917 7.24999 17.725C6.68332 17.6417 6.21249 17.4042 5.83749 17.0125C5.46249 16.6208 5.23332 16.15 5.14999 15.6C4.51666 15.5167 3.99999 15.2417 3.59999 14.775C3.19999 14.3083 2.99999 13.7583 2.99999 13.125C2.99999 12.7917 3.06249 12.4708 3.18749 12.1625C3.31249 11.8542 3.49166 11.5833 3.72499 11.35L9.52499 5.575L12.8 8.85C12.8333 8.9 12.8833 8.9375 12.95 8.9625C13.0167 8.9875 13.0833 9 13.15 9C13.3 9 13.425 8.95417 13.525 8.8625C13.625 8.77083 13.675 8.65 13.675 8.5C13.675 8.43333 13.6625 8.36667 13.6375 8.3C13.6125 8.23333 13.575 8.18333 13.525 8.15L9.94999 4.575C9.76666 4.375 9.55416 4.22917 9.31249 4.1375C9.07082 4.04583 8.81666 4 8.54999 4C8.29999 4 8.04999 4.04583 7.79999 4.1375C7.54999 4.22917 7.32499 4.375 7.12499 4.575L3.59999 8.125C3.44999 8.275 3.32499 8.45 3.22499 8.65C3.12499 8.85 3.05832 9.05 3.02499 9.25C2.99166 9.45 2.99166 9.65417 3.02499 9.8625C3.05832 10.0708 3.12499 10.2667 3.22499 10.45L1.77499 11.9C1.49166 11.5167 1.28332 11.0958 1.14999 10.6375C1.01666 10.1792 0.966657 9.71667 0.99999 9.25C1.03332 8.78333 1.14999 8.32917 1.34999 7.8875C1.54999 7.44583 1.82499 7.05 2.17499 6.7L5.69999 3.175C6.09999 2.79167 6.54582 2.5 7.03749 2.3C7.52916 2.1 8.03332 2 8.54999 2C9.06666 2 9.57082 2.1 10.0625 2.3C10.5542 2.5 10.9917 2.79167 11.375 3.175L11.65 3.45L11.925 3.175C12.325 2.79167 12.7708 2.5 13.2625 2.3C13.7542 2.1 14.2583 2 14.775 2C15.2917 2 15.7958 2.1 16.2875 2.3C16.7792 2.5 17.2167 2.79167 17.6 3.175L21.825 7.4C22.2083 7.78333 22.5 8.225 22.7 8.725C22.9 9.225 23 9.73333 23 10.25C23 10.7667 22.9 11.2708 22.7 11.7625C22.5 12.2542 22.2083 12.6917 21.825 13.075L13.625 21.25C13.3917 21.4833 13.1208 21.6667 12.8125 21.8C12.5042 21.9333 12.1833 22 11.85 22Z"
-                      fill="#90A1B9"
-                    />
-                  </svg>
-                  <span className="text-sm font-normal text-gray-600 uppercase">
-                    Retention Account
-                  </span>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-start">
-                    <svg
-                      className="w-5 h-8 mr-1"
-                      viewBox="0 0 20 32"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M9.06723 20.9642C9.29645 21.2012 9.29645 21.5853 9.06723 21.8223C8.83801 22.0592 8.46636 22.0592 8.23714 21.8223L9.06723 20.9642ZM11.913 10L11.9282 10.0002C12.2454 10.0085 12.5 10.2769 12.5 10.6067C12.5 10.9366 12.2454 11.205 11.9282 11.2133L11.913 11.2135H9.64668C10.0807 11.7148 10.3823 12.3411 10.4948 13.0337H11.913L11.9282 13.0339C12.2454 13.0422 12.5 13.3106 12.5 13.6404C12.5 13.9703 12.2454 14.2387 11.9282 14.247L11.913 14.2472H10.4948C10.2153 15.969 8.76678 17.2809 7.02175 17.2809H5.504L9.06723 20.9642L8.23714 21.8223L3.67194 17.1032C3.50407 16.9297 3.45384 16.6687 3.54469 16.442C3.63554 16.2152 3.84957 16.0674 4.08698 16.0674H7.02175C8.11575 16.0674 9.03496 15.294 9.29559 14.2472H4.08698C3.76281 14.2472 3.50002 13.9755 3.50002 13.6404C3.50002 13.3054 3.76281 13.0337 4.08698 13.0337H9.29559C9.03496 11.9869 8.11575 12.2135 7.02175 12.2135H4.08698C3.76281 12.2135 3.50002 11.9418 3.50002 11.6067C3.50002 11.2716 3.76281 11 4.08698 11H11.913Z"
-                        fill="#4A5565"
-                      />
-                    </svg>
-                    <div className="text-gray-900 text-[32px] font-normal tracking-[-0.64px]">
-                      2,42,10,60,800
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="w-3.5 h-3.5 text-green-600" />
-                    <span className="text-xs font-bold text-green-600">
-                      12%
-                    </span>
-                    <span className="text-xs text-green-600">
-                      {' '}
-                      vs last month
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Wakala Account */}
-            <div className="h-[129px] p-4 flex items-start rounded-2xl border border-white bg-white/50 backdrop-blur-md">
-              <div className="w-[238px] flex flex-col gap-6">
-                <div className="flex items-center gap-2">
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M19 14V7.5L14 4L9 7.5V9H7V6.5L14 1.5L21 6.5V14H19ZM14.5 8H15.5V7H14.5V8ZM12.5 8H13.5V7H12.5V8ZM14.5 10H15.5V9H14.5V10ZM12.5 10H13.5V9H12.5V10ZM7 18.5L13.95 20.4L19.9 18.55C19.8167 18.4 19.6958 18.2708 19.5375 18.1625C19.3792 18.0542 19.2 18 19 18H13.95C13.5 18 13.1417 17.9833 12.875 17.95C12.6083 17.9167 12.3333 17.85 12.05 17.75L9.725 16.975L10.275 15.025L12.3 15.7C12.5833 15.7833 12.9167 15.85 13.3 15.9C13.6833 15.95 14.25 15.9833 15 16C15 15.8167 14.9458 15.6417 14.8375 15.475C14.7292 15.3083 14.6 15.2 14.45 15.15L8.6 13H7V18.5ZM1 22V11H8.6C8.71667 11 8.83333 11.0125 8.95 11.0375C9.06667 11.0625 9.175 11.0917 9.275 11.125L15.15 13.3C15.7 13.5 16.1458 13.85 16.4875 14.35C16.8292 14.85 17 15.4 17 16H19C19.8333 16 20.5417 16.275 21.125 16.825C21.7083 17.375 22 18.1 22 19V20L14 22.5L7 20.55V22H1ZM3 20H5V13H3V20Z"
-                      fill="#90A1B9"
-                    />
-                  </svg>
-                  <span className="text-sm font-normal text-gray-600 uppercase">
-                    Wakala Account
-                  </span>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-start">
-                    <svg
-                      className="w-5 h-8 mr-1"
-                      viewBox="0 0 20 32"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M9.06723 20.9642C9.29645 21.2012 9.29645 21.5853 9.06723 21.8223C8.83801 22.0592 8.46636 22.0592 8.23714 21.8223L9.06723 20.9642ZM11.913 10L11.9282 10.0002C12.2454 10.0085 12.5 10.2769 12.5 10.6067C12.5 10.9366 12.2454 11.205 11.9282 11.2133L11.913 11.2135H9.64668C10.0807 11.7148 10.3823 12.3411 10.4948 13.0337H11.913L11.9282 13.0339C12.2454 13.0422 12.5 13.3106 12.5 13.6404C12.5 13.9703 12.2454 14.2387 11.9282 14.247L11.913 14.2472H10.4948C10.2153 15.969 8.76678 17.2809 7.02175 17.2809H5.504L9.06723 20.9642L8.23714 21.8223L3.67194 17.1032C3.50407 16.9297 3.45384 16.6687 3.54469 16.442C3.63554 16.2152 3.84957 16.0674 4.08698 16.0674H7.02175C8.11575 16.0674 9.03496 15.294 9.29559 14.2472H4.08698C3.76281 14.2472 3.50002 13.9755 3.50002 13.6404C3.50002 13.3054 3.76281 13.0337 4.08698 13.0337H9.29559C9.03496 11.9869 8.11575 12.2135 7.02175 12.2135H4.08698C3.76281 12.2135 3.50002 11.9418 3.50002 11.6067C3.50002 11.2716 3.76281 11 4.08698 11H11.913Z"
-                        fill="#4A5565"
-                      />
-                    </svg>
-                    <div className="text-gray-900 text-[32px] font-normal tracking-[-0.64px]">
-                      6,42,10,60,800
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="w-3.5 h-3.5 text-green-600" />
-                    <span className="text-xs font-bold text-green-600">
-                      14%
-                    </span>
-                    <span className="text-xs text-green-600">
-                      {' '}
-                      vs last month
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Corporate Account */}
-            <div className="h-[129px] p-4 flex items-start rounded-2xl border border-white bg-white/50 backdrop-blur-md">
-              <div className="w-[238px] flex flex-col gap-6">
-                <div className="flex items-center gap-2">
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M2 21V3H12V7H22V21H2ZM4 19H10V17H4V19ZM4 15H10V13H4V15ZM4 11H10V9H4V11ZM4 7H10V5H4V7ZM12 19H20V9H12V19ZM14 13V11H18V13H14ZM14 17V15H18V17H14Z"
-                      fill="#90A1B9"
-                    />
-                  </svg>
-                  <span className="text-sm font-normal text-gray-600 uppercase">
-                    Corporate Account
-                  </span>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-start">
-                    <svg
-                      className="w-5 h-8 mr-1"
-                      viewBox="0 0 20 32"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M9.06723 20.9642C9.29645 21.2012 9.29645 21.5853 9.06723 21.8223C8.83801 22.0592 8.46636 22.0592 8.23714 21.8223L9.06723 20.9642ZM11.913 10L11.9282 10.0002C12.2454 10.0085 12.5 10.2769 12.5 10.6067C12.5 10.9366 12.2454 11.205 11.9282 11.2133L11.913 11.2135H9.64668C10.0807 11.7148 10.3823 12.3411 10.4948 13.0337H11.913L11.9282 13.0339C12.2454 13.0422 12.5 13.3106 12.5 13.6404C12.5 13.9703 12.2454 14.2387 11.9282 14.247L11.913 14.2472H10.4948C10.2153 15.969 8.76678 17.2809 7.02175 17.2809H5.504L9.06723 20.9642L8.23714 21.8223L3.67194 17.1032C3.50407 16.9297 3.45384 16.6687 3.54469 16.442C3.63554 16.2152 3.84957 16.0674 4.08698 16.0674H7.02175C8.11575 16.0674 9.03496 15.294 9.29559 14.2472H4.08698C3.76281 14.2472 3.50002 13.9755 3.50002 13.6404C3.50002 13.3054 3.76281 13.0337 4.08698 13.0337H9.29559C9.03496 11.9869 8.11575 12.2135 7.02175 12.2135H4.08698C3.76281 12.2135 3.50002 11.9418 3.50002 11.6067C3.50002 11.2716 3.76281 11 4.08698 11H11.913Z"
-                        fill="#4A5565"
-                      />
-                    </svg>
-                    <div className="text-gray-900 text-[32px] font-normal tracking-[-0.64px]">
-                      3,42,10,60,800
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <TrendingDown className="w-3.5 h-3.5 text-red-600" />
-                    <span className="text-xs font-bold text-red-600">8%</span>
-                    <span className="text-xs text-red-600"> vs last month</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Mid Section */}
-        <div className="flex gap-4">
-          {/* Unit Status Count */}
-          <div className="w-[561px] h-[300px] p-6 flex flex-col items-center gap-6 rounded-2xl border border-white bg-white/50 backdrop-blur-md">
-            <div className="flex flex-col self-stretch gap-1">
-              <div className="text-sm font-normal text-gray-600 uppercase">
-                Unit Status Count
-              </div>
-              <div className="text-gray-900 text-[32px] font-normal">20678</div>
-            </div>
-            <div className="w-[400px] h-[180px] flex flex-col gap-1">
-              {[
-                { label: 'Sold', value: 98, color: '#DDD6FE' },
-                { label: 'Unsold', value: 60, color: '#BE95FF' },
-                { label: 'Freeze', value: 76, color: '#A56EFF' },
-                { label: 'Resold', value: 44, color: '#8A3FFC' },
-                { label: 'Cancelled', value: 56, color: '#6929C4' },
-              ].map((item, index) => (
-                <div key={index} className="flex items-start self-stretch h-8">
-                  <div className="w-20 h-[30px] flex justify-center items-center text-gray-600 text-xs text-center font-normal leading-[14px] tracking-[0.24px]">
-                    {item.label}
-                  </div>
-                  <div className="relative flex-1">
-                    <div className="w-full h-8 bg-gray-200 rounded-r-lg"></div>
-                    <div
-                      className="absolute top-0 left-0 flex items-center justify-center h-8 rounded-r-lg"
-                      style={{
-                        backgroundColor: item.color,
-                        width: `${Math.min(item.value, 80)}%`,
-                      }}
-                    >
-                      <span className="text-base font-semibold text-white">
-                        {item.value}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Guarantee Status */}
-          <div className="w-[559px] h-[300px] p-6 flex flex-col gap-6 rounded-2xl border border-white bg-white/50 backdrop-blur-md">
-            <div className="flex flex-col self-stretch gap-1">
-              <div className="text-sm font-normal text-gray-600 uppercase">
-                Guarantee Status
-              </div>
-              <div className="text-gray-900 text-[32px] font-normal">14679</div>
-            </div>
-            <div className="w-[510px] h-[166px] relative">
-              {/* Y-axis labels */}
-              <div className="absolute left-0 top-0 w-[73px] h-[166px] flex flex-col justify-between">
-                <div className="text-gray-600 text-[11px] text-right leading-[13px]">
-                  40 Cr INR
-                </div>
-                <div className="text-gray-600 text-[11px] text-right leading-[13px]">
-                  30 Cr INR
-                </div>
-                <div className="text-gray-600 text-[11px] text-right leading-[13px]">
-                  20 Cr INR
-                </div>
-                <div className="text-gray-600 text-[11px] text-right leading-[13px]">
-                  10 Cr INR
-                </div>
-                <div className="text-gray-600 text-[11px] text-right leading-[13px]">
-                  0 Cr INR
-                </div>
-              </div>
-
-              {/* Grid lines */}
-              <div className="absolute left-[101px] top-[4px] w-[366px] h-[120px] flex flex-col justify-between">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="w-full h-px bg-gray-300"></div>
-                ))}
-              </div>
-
-              {/* Chart bars */}
-               <div className="absolute left-[140px] bottom-[140px] w-[284px] h-[500px] flex items-end gap-6">
-                {[
-                  { value: 35, color: '#A56EFF' },
-                  { value: 28, color: '#8A3FFC' },
-                  { value: 12, color: '#7008E7' },
-                ].map((item, index) => (
-                  <div key={index} className="relative w-20">
-                    <div className="w-20 h-[120px] bg-gray-200 rounded-t-lg absolute top-[-9px]"></div>
-                    <div
-                      className="absolute flex items-center justify-center w-20 text-base font-semibold text-white rounded-t-lg"
-                      style={{
-                        backgroundColor: item.color,
-                        height: `${(item.value / 40) * 111}px`,
-                        top: `${9 + 111 - (item.value / 40) * 111}px`,
-                      }}
-                    >
-                      {item.value}
-                    </div>
-                  </div>
-                ))}
-              </div> 
-
-              {/* X-axis labels */}
-              <div className="absolute left-[101px] top-35 w-[368px] h-6 flex justify-center items-center gap-[27px]">
-                <div className="w-20 text-gray-600 text-xs text-center font-normal leading-[14px] tracking-[0.24px]">
-                  Advanced
-                  <br />
-                  Guarantee
-                </div>
-                <div className="w-20 text-gray-600 text-xs text-center font-normal leading-[14px] tracking-[0.24px]">
-                  Retention
-                  <br />
-                  Guarantee
-                </div>
-                <div className="w-20 text-gray-600 text-xs text-center font-normal leading-[14px] tracking-[0.24px]">
-                  Performance
-                  <br />
-                  Guarantee
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer Stats */}
-        <div className="flex gap-4">
-          {/* Total Developers */}
-          <div className="w-[368px] h-[256px] p-6 flex flex-col gap-10 rounded-2xl border border-white bg-white/50 backdrop-blur-md">
-            <div className="flex flex-col self-stretch gap-1">
-              <div className="text-sm font-normal text-gray-600 uppercase">
-                Total Developers
-              </div>
-              <div className="text-gray-900 text-[32px] font-normal">12048</div>
-            </div>
-            
-            <div className="w-[325px] h-[109px] flex flex-col justify-end gap-1">
-              <div className="h-[62px] flex items-center gap-4">
-                <div className="w-[63px] flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#BE95FF]"></div>
-                  <span className="w-[49px] text-gray-600 text-xs text-center font-normal leading-[14px] tracking-[0.24px]">
-                    Rejected
-                  </span>
-                </div>
-                <div className="w-[75px] flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#8A3FFC]"></div>
-                  <span className="text-gray-600 text-xs text-center font-normal leading-[14px] tracking-[0.24px]">
-                    Incomplete
-                  </span>
-                </div>
-                <div className="w-[67px] flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#8A3FFC]"></div>
-                  <span className="text-gray-600 text-xs text-center font-normal leading-[14px] tracking-[0.24px]">
-                    In Review
-                  </span>
-                </div>
-                <div className="w-[69px] flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#6929C4]"></div>
-                  <span className="text-gray-600 text-xs text-center font-normal leading-[14px] tracking-[0.24px]">
-                    Approved
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-12 h-12 p-2 bg-[#BE95FF] rounded-lg flex items-center text-white text-base font-semibold leading-[29px]">
-                  374
-                </div>
-                <div className="w-[81px] h-12 p-2 bg-[#A56EFF] rounded-lg flex items-center text-white text-base font-semibold leading-[29px]">
-                  81
-                </div>
-                <div className="w-[111px] h-12 p-2 bg-[#8A3FFC] rounded-lg flex items-center text-white text-base font-semibold leading-[29px]">
-                  432
-                </div>
-                <div className="w-[75px] h-12 p-2 bg-[#6929C4] rounded-lg flex items-center text-white text-base font-semibold leading-[29px]">
-                  242
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Total Projects */}
-          <div className="w-[368px] h-[256px] p-6 flex flex-col gap-12 rounded-2xl border border-white bg-white/50 backdrop-blur-md">
-            <div className="flex flex-col self-stretch gap-1">
-              <div className="text-sm font-normal text-gray-600 uppercase">
-                Total Projects
-              </div>
-              <div className="text-gray-900 text-[32px] font-normal">13824</div>
-            </div>
-            <div className="w-[325px] h-[109px] flex gap-6">
-              <div className="flex items-end gap-1">
-                <div className="w-[100px] h-[108px] p-2 bg-[#A56EFF] rounded-lg flex items-start">
-                  <div className="w-10 text-white text-base font-semibold leading-[29px]">
-                    162
-                  </div>
-                </div>
-                <div className="flex flex-col justify-center gap-1">
-                  <div className="w-[100px] h-[65px] p-2 bg-[#8A3FFC] rounded-lg flex items-start">
-                    <div className="w-10 text-white text-base font-semibold leading-[29px]">
-                      328
-                    </div>
-                  </div>
-                  <div className="w-[100px] h-[39px] p-2 bg-[#7008E7] rounded-lg flex items-start">
-                    <div className="w-10 text-white text-base font-semibold leading-[29px]">
-                      624
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="w-[90px] h-[108px] flex flex-col justify-center gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#C4B4FF]"></div>
-                  <span className="text-gray-600 text-xs tracking-[0.24px]">
-                    In Review
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#7F22FE]"></div>
-                  <span className="text-gray-600 text-xs tracking-[0.24px]">
-                    Active
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#7008E7]"></div>
-                  <span className="text-gray-600 text-xs tracking-[0.24px]">
-                    Approved
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Total Activities */}
-          <div className="w-[368px] h-[256px] p-6 flex flex-col gap-12 rounded-2xl border border-white bg-white/50 backdrop-blur-md">
-            <div className="flex flex-col self-stretch gap-1">
-              <div className="text-sm font-normal text-gray-600 uppercase">
-                Total Activities
-              </div>
-              <div className="text-gray-900 text-[32px] font-normal">824</div>
-            </div>
-            <div className="w-[325px] h-[109px] flex flex-col justify-end gap-1">
-              <div className="h-[62px] flex items-center gap-4">
-                <div className="w-[63px] flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#BE95FF]"></div>
-                  <span className="w-[49px] text-gray-600 text-xs text-center font-normal leading-[14px] tracking-[0.24px]">
-                    Rejected
-                  </span>
-                </div>
-                <div className="w-[75px] flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#8A3FFC]"></div>
-                  <span className="text-gray-600 text-xs text-center font-normal leading-[14px] tracking-[0.24px]">
-                    Incomplete
-                  </span>
-                </div>
-                <div className="w-[67px] flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#8A3FFC]"></div>
-                  <span className="text-gray-600 text-xs text-center font-normal leading-[14px] tracking-[0.24px]">
-                    In Review
-                  </span>
-                </div>
-                <div className="w-[69px] flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#6929C4]"></div>
-                  <span className="text-gray-600 text-xs text-center font-normal leading-[14px] tracking-[0.24px]">
-                    Approved
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-12 h-12 p-2 bg-[#BE95FF] rounded-lg flex items-center text-white text-base font-semibold leading-[29px]">
-                  62
-                </div>
-                <div className="w-[81px] h-12 p-2 bg-[#A56EFF] rounded-lg flex items-center text-white text-base font-semibold leading-[29px]">
-                  281
-                </div>
-                <div className="w-[111px] h-12 p-2 bg-[#8A3FFC] rounded-lg flex items-center text-white text-base font-semibold leading-[29px]">
-                  743
-                </div>
-                <div className="w-[75px] h-12 p-2 bg-[#6929C4] rounded-lg flex items-center text-white text-base font-semibold leading-[29px]">
-                  564
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div ref={containerRef} className="relative">
+      <div
+        className="px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 min-w-[200px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer flex items-center gap-3"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <svg
+          className="w-4 h-4 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+          />
+        </svg>
+        <span className="flex-1">
+          {startDate} | {endDate}
+        </span>
       </div>
-    </DashboardLayout>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 mt-1 z-50 w-96 max-w-[90vw] right-0">
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onChange={onDateChange}
+            className="w-full p-4 bg-white border border-gray-300 rounded-lg shadow-lg"
+          />
+        </div>
+      )}
+    </div>
   )
 }
 
-export default DashboardPage
+const FiltersRow = ({ onSubmit }: { onSubmit?: () => void }) => {
+  const [selectedDeveloper, setSelectedDeveloper] = useState('')
+  const [selectedBuildPartner, setSelectedBuildPartner] =
+    useState<BuildPartner | null>(null)
+  const [selectedBuildPartnerOption, setSelectedBuildPartnerOption] =
+    useState<any>(null)
+  const [selectedProject, setSelectedProject] = useState('')
+  const [selectedRealEstateAsset, setSelectedRealEstateAsset] =
+    useState<RealEstateAsset | null>(null)
+  const [selectedRealEstateAssetOption, setSelectedRealEstateAssetOption] =
+    useState<any>(null)
+  const [dateRange, setDateRange] = useState({
+    startDate: '10-05-2025',
+    endDate: '25-05-2025',
+  })
+
+  // Use the build partner autocomplete hook
+  const { searchBuildPartners, isLoading: isSearchingBuildPartners } =
+    useBuildPartnerAutocomplete({
+      debounceMs: 300,
+      minSearchLength: 1,
+    })
+
+  // Use the real estate asset autocomplete hook
+  const { searchRealEstateAssets, isLoading: isSearchingRealEstateAssets } =
+    useRealEstateAssetAutocomplete({
+      debounceMs: 300,
+      minSearchLength: 1,
+    })
+
+  const handleDateRangeChange = (start: string, end: string) => {
+    setDateRange({ startDate: start, endDate: end })
+  }
+
+  // Handle build partner selection
+  const handleBuildPartnerChange = (value: string) => {
+    setSelectedDeveloper(value)
+  }
+
+  // Handle build partner option selection (gets the complete object)
+  const handleBuildPartnerOptionSelect = (option: any) => {
+    setSelectedBuildPartnerOption(option)
+    if (option.buildPartner) {
+      setSelectedBuildPartner(option.buildPartner)
+      // Here you can use the complete build partner object for other API calls
+      // For example: option.buildPartner.id, option.buildPartner.bpName, etc.
+    }
+  }
+
+  // Handle real estate asset selection
+  const handleRealEstateAssetChange = (value: string) => {
+    setSelectedProject(value)
+  }
+
+  // Handle real estate asset option selection (gets the complete object)
+  const handleRealEstateAssetOptionSelect = (option: any) => {
+    setSelectedRealEstateAssetOption(option)
+    if (option.realEstateAsset) {
+      setSelectedRealEstateAsset(option.realEstateAsset)
+      // Here you can use the complete real estate asset object for other API calls
+      // For example: option.realEstateAsset.id, option.realEstateAsset.reaName, etc.
+    }
+  }
+
+  // Log selected build partner for debugging (remove in production)
+  React.useEffect(() => {
+    if (selectedBuildPartner) {
+      // Example of accessing build partner data for other API calls:
+      // const partnerId = selectedBuildPartner.id
+      // const partnerName = selectedBuildPartner.bpName
+      // const developerId = selectedBuildPartner.bpDeveloperId
+      // const cif = selectedBuildPartner.bpCifrera
+      // const email = selectedBuildPartner.bpEmail
+      // const mobile = selectedBuildPartner.bpMobile
+      // You can use these values to call other APIs that need build partner information
+    }
+  }, [selectedBuildPartner])
+
+  // Log selected real estate asset for debugging (remove in production)
+  React.useEffect(() => {
+    if (selectedRealEstateAsset) {
+      // Example of accessing real estate asset data for other API calls:
+      // const assetId = selectedRealEstateAsset.id
+      // const assetName = selectedRealEstateAsset.reaName
+      // const assetLocation = selectedRealEstateAsset.reaLocation
+      // const buildPartnerId = selectedRealEstateAsset.buildPartnerDTO?.id
+      // You can use these values to call other APIs that need real estate asset information
+    }
+  }, [selectedRealEstateAsset])
+
+  return (
+    <div className="flex flex-col gap-4 mt-8 mb-6 lg:flex-row lg:justify-between lg:items-end">
+      <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col">
+          <label className="text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+            Build Partner
+          </label>
+          <Autocomplete
+            value={selectedDeveloper}
+            onChange={handleBuildPartnerChange}
+            onOptionSelect={handleBuildPartnerOptionSelect}
+            selectedOption={selectedBuildPartnerOption}
+            options={[]}
+            onSearch={searchBuildPartners}
+            placeholder="Search build partners..."
+            loading={isSearchingBuildPartners}
+            className="min-w-[150px]"
+            clearable={true}
+            minSearchLength={1}
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+            Build Partner Assets
+          </label>
+          <Autocomplete
+            value={selectedProject}
+            onChange={handleRealEstateAssetChange}
+            onOptionSelect={handleRealEstateAssetOptionSelect}
+            selectedOption={selectedRealEstateAssetOption}
+            options={[]}
+            onSearch={searchRealEstateAssets}
+            placeholder="Search real estate assets..."
+            loading={isSearchingRealEstateAssets}
+            className="min-w-[150px]"
+            clearable={true}
+            minSearchLength={1}
+          />
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
+            Date
+          </label>
+          <DateRangeDisplay
+            startDate={dateRange.startDate}
+            endDate={dateRange.endDate}
+            onDateChange={handleDateRangeChange}
+          />
+        </div>
+        <div className="flex flex-col items-center justify-end mb-[2px]">
+          <button
+            className="px-4 py-2 text-white transition-colors bg-blue-500 rounded-lg cursor-pointer hover:bg-blue-600"
+            onClick={onSubmit}
+          >
+            Submit
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const MainBalance = ({ dashboardData }: { dashboardData: any }) => (
+  <div className="pb-8 mt-8 mb-8 border-b border-gray-200">
+    <h1 className="mb-2 text-2xl font-semibold leading-tight text-gray-900 lg:text-3xl">
+      Available balance in account's
+    </h1>
+    <div className="mb-6 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+      MAIN TRUST ACCOUNT SUMMARY
+    </div>
+    <div className="flex gap-6">
+      <div className="text-4xl font-bold leading-none tracking-tight text-gray-900 lg:text-5xl">
+        ₹
+        {formatIndianCurrency(
+          dashboardData?.mainTrustSummary?.availableBalance
+        )}
+      </div>
+      <div className="flex flex-col">
+        <div className="text-xl font-semibold leading-tight text-gray-900 lg:text-2xl">
+          CRORE
+        </div>
+        <TrendBadge value="12% vs last month" isPositive />
+      </div>
+    </div>
+  </div>
+)
+
+const TrendBadge = ({
+  value,
+  isPositive = true,
+}: {
+  value: string
+  isPositive?: boolean
+}) => (
+  <div
+    className={`inline-flex items-center gap-1.5 text-sm font-semibold ${
+      isPositive ? 'text-green-600' : 'text-red-600'
+    }`}
+  >
+    <span className="text-sm">{isPositive ? '↗' : '↘'}</span>
+    {value}
+  </div>
+)
+
+const CustomLegend = ({
+  data,
+}: {
+  data: Array<{ name: string; color: string }>
+}) => (
+  <div className="flex flex-col gap-2">
+    {data.map((entry, i) => (
+      <div key={i} className="flex items-center gap-2">
+        <div
+          className="flex-shrink-0 w-3 h-3 rounded-sm"
+          style={{ backgroundColor: entry.color }}
+        />
+        <span className="text-sm font-medium leading-relaxed text-gray-600">
+          {entry.name}
+        </span>
+      </div>
+    ))}
+  </div>
+)
+
+const KpiCard = ({
+  title,
+  amount,
+  trend,
+  data,
+  className = '',
+}: {
+  title: string
+  amount: string
+  trend: { value: string; isPositive: boolean }
+  data: Array<{ name: string; y: number; color: string }>
+  className?: string
+}) => (
+  <div
+    className={`bg-white rounded-xl shadow-sm border border-gray-200 h-full p-6 ${className}`}
+  >
+    <div className="mb-4 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+      {title}
+    </div>
+    <div className="flex flex-col items-baseline gap-1 mb-8">
+      <div className="text-2xl font-bold leading-tight text-gray-900 lg:text-3xl">
+        ₹{formatIndianCurrency(amount)}
+      </div>
+      <div className="-mt-1 -mb-1">
+        <TrendBadge {...trend} />
+      </div>
+    </div>
+    <div className="flex flex-col items-center justify-between h-80">
+      <div className="flex justify-center flex-1">
+        <div className="w-40 h-40">
+          <HighchartsReact
+            highcharts={Highcharts}
+            options={getDonutChartOptions(data)}
+          />
+        </div>
+      </div>
+      <div className="flex items-center justify-start flex-1 pl-6 mt-4">
+        <CustomLegend data={data} />
+      </div>
+    </div>
+  </div>
+)
+
+const AccountCard = ({
+  type,
+  title,
+  amount,
+  trend,
+}: {
+  type: 'retention' | 'wakala' | 'corporate' | 'trust'
+  title: string
+  amount: string
+  trend: { value: string; isPositive: boolean }
+}) => {
+  const iconColors = {
+    retention: 'bg-blue-100 border-blue-400',
+    wakala: 'bg-green-100 border-green-400',
+    corporate: 'bg-pink-100 border-pink-400',
+    trust: 'bg-yellow-100 border-yellow-400',
+  }
+
+  return (
+    <div className="w-full p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
+      <div className="flex items-center gap-3 mb-4">
+        <div className={`w-3 h-3 rounded-full border-2 ${iconColors[type]}`} />
+        <div className="text-xs font-semibold tracking-wider text-gray-500 uppercase">
+          {title}
+        </div>
+      </div>
+      <div className="flex flex-col items-baseline gap-1">
+        <div className="text-xl font-bold leading-tight text-gray-900">
+          ₹{formatIndianCurrency(amount)}
+        </div>
+        <div className="-mt-1 -mb-1">
+          <TrendBadge {...trend} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const StatusBars = ({
+  data,
+  total,
+}: {
+  data: Array<{ name: string; y: number; color: string }>
+  total: string
+}) => {
+  // Dynamic chart configuration based on actual data
+  const maxValue = Math.max(...data.map((item) => item.y), 100)
+  const hasData = data && data.length > 0
+  const chartHeight = Math.max(200, data.length * 40 + 100) // Dynamic height based on data items
+
+  const statusChartOptions = {
+    chart: {
+      type: 'bar',
+      backgroundColor: 'transparent',
+      height: chartHeight,
+    },
+    title: {
+      text: null,
+    },
+    xAxis: {
+      categories: hasData ? data.map((item) => item.name) : [],
+      labels: {
+        style: {
+          fontSize: '10px',
+        },
+        rotation: data.length > 4 ? -45 : 0, // Rotate labels if many items
+      },
+    },
+    yAxis: {
+      title: {
+        text: null,
+      },
+      labels: {
+        style: {
+          fontSize: '10px',
+        },
+        formatter: function (this: any) {
+          return this.value + '%'
+        },
+      },
+      max: Math.min(maxValue * 1.1, 100), // Dynamic max based on data, cap at 100%
+      min: 0,
+    },
+    plotOptions: {
+      bar: {
+        dataLabels: {
+          enabled: true,
+          format: '{y}%',
+          style: {
+            fontSize: data.length > 4 ? '8px' : '10px',
+            fontWeight: 'bold',
+            color: 'white',
+            textOutline: '1px contrast',
+          },
+        },
+        colorByPoint: true, // Use different colors for each bar
+      },
+    },
+    series: [
+      {
+        name: 'Percentage',
+        data: hasData
+          ? data.map((item) => ({
+              y: item.y,
+              color: item.color,
+              name: item.name,
+            }))
+          : [],
+      },
+    ],
+    credits: {
+      enabled: false,
+    },
+    // Add responsive design
+    responsive: {
+      rules: [
+        {
+          condition: {
+            maxWidth: 500,
+          },
+          chartOptions: {
+            plotOptions: {
+              bar: {
+                dataLabels: {
+                  enabled: false,
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
+  }
+
+  return (
+    <div className="h-full p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
+      <div className="mb-4 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+        UNIT STATUS COUNT
+      </div>
+      <div className="mb-8 text-3xl font-bold leading-tight text-gray-900">
+        {total}
+      </div>
+      <div className="h-48">
+        <HighchartsReact highcharts={Highcharts} options={statusChartOptions} />
+      </div>
+    </div>
+  )
+}
+
+const GuaranteeChart = ({
+  data,
+  total,
+}: {
+  data: Array<{ name: string; y: number; color: string }>
+  total: string
+}) => {
+  // Dynamic chart configuration based on actual data
+  const maxValue = Math.max(...data.map((item) => item.y), 1)
+  const hasData = data && data.length > 0
+  const chartHeight = Math.max(200, data.length * 50 + 100) // Dynamic height based on data items
+
+  const guaranteeChartOptions = {
+    chart: {
+      type: 'column',
+      backgroundColor: 'transparent',
+      height: chartHeight,
+    },
+    title: {
+      text: null,
+    },
+    xAxis: {
+      categories: hasData ? data.map((item) => item.name) : [],
+      labels: {
+        style: {
+          fontSize: '10px',
+        },
+        rotation: data.length > 3 ? -45 : 0, // Rotate labels if many items
+      },
+    },
+    yAxis: {
+      title: {
+        text: 'Cr INR',
+        style: {
+          fontSize: '10px',
+        },
+      },
+      labels: {
+        style: {
+          fontSize: '10px',
+        },
+        formatter: function (this: any) {
+          return (this.value / 10000000).toFixed(1) + ' Cr' // Convert to crores
+        },
+      },
+      max: Math.max(maxValue * 1.2, 10), // Dynamic max based on data, minimum 10
+      min: 0,
+    },
+    plotOptions: {
+      column: {
+        dataLabels: {
+          enabled: true,
+          format: '{y:,.0f}',
+          style: {
+            fontSize: data.length > 3 ? '8px' : '10px',
+            fontWeight: 'bold',
+            color: 'white',
+            textOutline: '1px contrast',
+          },
+        },
+        colorByPoint: true, // Use different colors for each column
+      },
+    },
+    series: [
+      {
+        name: 'Amount',
+        data: hasData
+          ? data.map((item) => ({
+              y: item.y,
+              color: item.color,
+              name: item.name,
+            }))
+          : [],
+      },
+    ],
+    credits: {
+      enabled: false,
+    },
+    // Add responsive design
+    responsive: {
+      rules: [
+        {
+          condition: {
+            maxWidth: 500,
+          },
+          chartOptions: {
+            plotOptions: {
+              column: {
+                dataLabels: {
+                  enabled: false,
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
+  }
+
+  return (
+    <div className="h-full p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
+      <div className="mb-4 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+        GUARANTEE STATUS
+      </div>
+      <div className="mb-8 text-3xl font-bold leading-tight text-gray-900">
+        {total}
+      </div>
+      <div className="h-48">
+        <HighchartsReact
+          highcharts={Highcharts}
+          options={guaranteeChartOptions}
+        />
+      </div>
+    </div>
+  )
+}
+
+const Dashboard = () => {
+  const { getLabelResolver } = useSidebarConfig()
+  const dashboardTitle = getLabelResolver
+    ? getLabelResolver('dashboard', 'Dashboard')
+    : 'Dashboard'
+
+  // Use the dashboard hook with authentication
+  const {
+    data: dashboardData,
+    isLoading,
+    error,
+    refetch,
+  } = useDashboardSummary(true)
+
+  // Handle submit button click - refresh dashboard data
+  const handleSubmit = async () => {
+    try {
+      // Refetch dashboard data with current selections
+      await refetch()
+    } catch (error) {}
+  }
+
+  // Transform API data to chart format
+  // Real API response structure:
+  // {
+  //   "mainTrustSummary": {
+  //     "availableBalance": 4.0E7,
+  //     "totalDeposits": 6.0E7,
+  //     "totalPayments": 2.0E7,
+  //     "totalFeesCollected": 3000000.0,
+  //     "depositVsLastPeriodPercent": -8.0,
+  //     "paymentVsLastPeriodPercent": 6.0,
+  //     "feesVsLastPeriodPercent": 2.0,
+  //     "depositBreakdown": [...],
+  //     "expenseBreakdown": [...],
+  //     "feesBreakdown": [...]
+  //   },
+  //   "otherAccounts": [...],
+  //   "unitStatus": {
+  //     "totalUnitsCount": 20678,
+  //     "items": [
+  //       { "unitStatus": "Sold", "count": 12407 },
+  //       { "unitStatus": "Unsold", "count": 15715 },
+  //       { "unitStatus": "Freeze", "count": 15715 },
+  //       { "unitStatus": "Resold", "count": 9256 },
+  //       { "unitStatus": "Cancelled", "count": 11586 }
+  //     ]
+  //   },
+  //   "guaranteeStatus": {
+  //     "totalGuaranteesCount": 3,
+  //     "totalGuaranteedAmount": 14267900.0,
+  //     "items": [
+  //       { "guaranteeType": "Advanced Guarantee", "amount": 3500000.0 },
+  //       { "guaranteeType": "Retention Guarantee", "amount": 2700000.0 },
+  //       { "guaranteeType": "Performance Guarantee", "amount": 8067900.0 }
+  //     ]
+  //   }
+  // }
+  const transformApiDataToCharts = (data: any) => {
+    // Debug: Log the actual API response structure
+    if (data) {
+    }
+
+    // Return static data only if API data is completely missing
+    if (
+      !data ||
+      (!data.mainTrustSummary && !data.unitStatus && !data.guaranteeStatus)
+    )
+      return {
+        kpiData: {
+          deposits: kpiData.deposits,
+          payments: kpiData.payments,
+          fees: kpiData.fees,
+        },
+        statusData: statusData,
+        guaranteeData: guaranteeData,
+        developersData: developersData,
+        totals: {
+          deposits: '0',
+          payments: '0',
+          fees: '0',
+          status: '0',
+          guarantee: '0',
+          projects: '0',
+          activities: '0',
+        },
+        accountData: {
+          retention: '0',
+          wakala: '0',
+          corporate: '0',
+          trust: '0',
+        },
+        trends: {
+          deposits: { value: '12% vs last month', isPositive: true },
+          payments: { value: '8% vs last month', isPositive: false },
+          fees: { value: '12% vs last month', isPositive: true },
+          retention: { value: '12% vs last month', isPositive: true },
+          wakala: { value: '14% vs last month', isPositive: true },
+          corporate: { value: '8% vs last month', isPositive: false },
+          trust: { value: '12% vs last month', isPositive: true },
+        },
+      }
+
+    // Extract data from API response and transform to chart format
+    const mainTrust = data.mainTrustSummary || {}
+    const otherAccounts = data.otherAccounts || []
+    const unitStatus = data.unitStatus || {}
+    const guaranteeStatus = data.guaranteeStatus || {}
+
+    // Helper function to format currency
+    const formatCurrency = (amount: number) => {
+      if (!amount || amount === 0) return null
+      return Math.round(amount).toLocaleString('en-IN')
+    }
+
+    // Helper function to format percentage
+    const formatPercentage = (percent: number) => {
+      const sign = percent >= 0 ? '+' : ''
+      return `${sign}${percent.toFixed(1)}% vs last period`
+    }
+
+    // Transform deposit breakdown to chart format
+    const transformDepositBreakdown = (breakdown: any[]) => {
+      if (!breakdown) return kpiData.deposits
+      const colors = ['#0d9488', '#14b8a6', '#2dd4bf', '#5eead4', '#99f6e4']
+      return breakdown.map((item, index) => ({
+        name: item.bucketTypeName || 'Unknown',
+        y: Math.round((item.amount / mainTrust.totalDeposits) * 100),
+        color: colors[index % colors.length] || '#0d9488',
+      }))
+    }
+
+    // Transform expense breakdown to chart format (for payments)
+    const transformExpenseBreakdown = (breakdown: any[]) => {
+      if (!breakdown) return kpiData.payments
+      const colors = ['#86198f', '#a21caf', '#c026d3', '#d946ef', '#e879f9']
+      return breakdown.map((item, index) => ({
+        name: item.expenseTypeName || 'Unknown',
+        y: Math.round((item.amount / mainTrust.totalPayments) * 100),
+        color: colors[index % colors.length] || '#86198f',
+      }))
+    }
+
+    // Transform fees breakdown to chart format
+    const transformFeesBreakdown = (breakdown: any[]) => {
+      if (!breakdown) return kpiData.fees
+      const colors = ['#4c1d95', '#6d28d9', '#7c3aed', '#8b5cf6', '#a78bfa']
+      return breakdown.map((item, index) => ({
+        name: item.expenseTypeName || 'Unknown',
+        y: Math.round((item.amount / mainTrust.totalFeesCollected) * 100),
+        color: colors[index % colors.length] || '#4c1d95',
+      }))
+    }
+
+    // Transform unit status data to chart format
+    const transformUnitStatus = (_unitStatusData: any) => {
+      // For now, let's use static data to ensure the chart displays something
+      // TODO: Replace with real API data once the structure is confirmed
+      return statusData
+    }
+
+    // Transform guarantee status data to chart format
+    const transformGuaranteeStatus = (apiGuaranteeData: any) => {
+      if (!apiGuaranteeData || !apiGuaranteeData.items) {
+        return guaranteeData
+      }
+
+      // Log the structure of the first item to understand the field names
+      if (apiGuaranteeData.items.length > 0) {
+      }
+
+      const colors = ['#8b5cf6', '#a78bfa', '#c4b5fd']
+      const transformed = apiGuaranteeData.items.map(
+        (item: any, index: number) => {
+          // Try different possible field names for guarantee type and amount
+          const typeName =
+            item.guaranteeType ||
+            item.type ||
+            item.name ||
+            item.guaranteeTypeName ||
+            'Unknown'
+          const amountValue =
+            item.amount || item.value || item.total || item.guaranteeAmount || 0
+
+          return {
+            name: typeName,
+            y: amountValue,
+            color: colors[index % colors.length] || '#8b5cf6',
+          }
+        }
+      )
+      return transformed
+    }
+
+    // Get account data from otherAccounts array
+    const getAccountData = (accountType: string) => {
+      const account = otherAccounts.find(
+        (acc: any) => acc.accountType === accountType
+      )
+      return account ? formatCurrency(account.balance) : null
+    }
+
+    // Get account trend from otherAccounts array
+    const getAccountTrend = (accountType: string) => {
+      const account = otherAccounts.find(
+        (acc: any) => acc.accountType === accountType
+      )
+      if (!account) return { value: '0% vs last period', isPositive: true }
+      return {
+        value: formatPercentage(account.changeVsLastPeriodPercent),
+        isPositive: account.changeVsLastPeriodPercent >= 0,
+      }
+    }
+
+    const transformedData = {
+      kpiData: {
+        deposits: transformDepositBreakdown(mainTrust.depositBreakdown),
+        payments: transformExpenseBreakdown(mainTrust.expenseBreakdown),
+        fees: transformFeesBreakdown(mainTrust.feesBreakdown),
+      },
+      statusData: transformUnitStatus(unitStatus),
+      guaranteeData: transformGuaranteeStatus(guaranteeStatus),
+      developersData: developersData, // Keep static for now
+      totals: {
+        deposits: formatCurrency(mainTrust.totalDeposits || 0) || '0',
+        payments: formatCurrency(mainTrust.totalPayments || 0) || '0',
+        fees: formatCurrency(mainTrust.totalFeesCollected || 0) || '0',
+        status:
+          formatCurrency(
+            unitStatus.totalUnitsCount ||
+              unitStatus.totalCount ||
+              unitStatus.total ||
+              0
+          ) || '20,678',
+        guarantee:
+          formatCurrency(
+            guaranteeStatus.totalGuaranteedAmount ||
+              guaranteeStatus.totalAmount ||
+              guaranteeStatus.total ||
+              0
+          ) || '14,679',
+        projects: '13,824', // Keep static for now
+        activities: '824', // Keep static for now
+      },
+      accountData: {
+        retention: getAccountData('RETENTION') || '0',
+        wakala: getAccountData('WAKALA') || '0',
+        corporate: getAccountData('CORPORATE') || '0',
+        trust: getAccountData('TRUST') || '0',
+      },
+      trends: {
+        deposits: {
+          value: formatPercentage(mainTrust.depositVsLastPeriodPercent || 0),
+          isPositive: (mainTrust.depositVsLastPeriodPercent || 0) >= 0,
+        },
+        payments: {
+          value: formatPercentage(mainTrust.paymentVsLastPeriodPercent || 0),
+          isPositive: (mainTrust.paymentVsLastPeriodPercent || 0) >= 0,
+        },
+        fees: {
+          value: formatPercentage(mainTrust.feesVsLastPeriodPercent || 0),
+          isPositive: (mainTrust.feesVsLastPeriodPercent || 0) >= 0,
+        },
+        retention: getAccountTrend('RETENTION'),
+        wakala: getAccountTrend('WAKALA'),
+        corporate: getAccountTrend('CORPORATE'),
+        trust: getAccountTrend('TRUST'),
+      },
+    }
+
+    return transformedData
+  }
+
+  // Get transformed data
+  const chartData = transformApiDataToCharts(dashboardData)
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="h-full min-h-screen p-4 overflow-auto bg-gray-100 lg:p-6">
+        <Header title={dashboardTitle} subtitle="" className="!p-0" />
+        <div className="flex items-center justify-center w-full h-64">
+          <div className="text-lg text-gray-600">Loading...</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="h-full min-h-screen p-4 overflow-auto bg-gray-100 lg:p-6">
+        <Header title={dashboardTitle} subtitle="" className="!p-0" />
+        <div className="flex items-center justify-center w-full h-64">
+          <div className="text-lg text-red-600">
+            Error loading dashboard data. Please try again.
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="h-full min-h-screen p-6 overflow-auto bg-gray-50 lg:p-8">
+      <Header title={dashboardTitle} subtitle="" className="!p-0" />
+      <div className="w-full mx-auto max-w-7xl">
+        <FiltersRow onSubmit={handleSubmit} />
+
+        <MainBalance dashboardData={dashboardData} />
+
+        <div className="flex justify-between gap-6 mt-8 mb-8">
+          <AccountCard
+            type="retention"
+            title="RETENTION ACCOUNT"
+            amount={chartData.accountData.retention}
+            trend={chartData.trends.retention}
+          />
+          <AccountCard
+            type="wakala"
+            title="WAKALA ACCOUNT"
+            amount={chartData.accountData.wakala}
+            trend={chartData.trends.wakala}
+          />
+          <AccountCard
+            type="corporate"
+            title="CORPORATE ACCOUNT"
+            amount={chartData.accountData.corporate}
+            trend={chartData.trends.corporate}
+          />
+          <AccountCard
+            type="trust"
+            title="TRUST ACCOUNT"
+            amount={chartData.accountData.trust}
+            trend={chartData.trends.trust}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-12">
+          <div className="xl:col-span-12">
+            <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-3">
+              <KpiCard
+                title="TOTAL DEPOSITS (MAIN A/C)"
+                amount={chartData.totals.deposits}
+                trend={chartData.trends.deposits}
+                data={chartData.kpiData.deposits}
+              />
+              <KpiCard
+                title="TOTAL PAYMENTS (MAIN A/C)"
+                amount={chartData.totals.payments}
+                trend={chartData.trends.payments}
+                data={chartData.kpiData.payments}
+              />
+              <KpiCard
+                title="TOTAL FEES COLLECTED (MAIN A/C)"
+                amount={chartData.totals.fees}
+                trend={chartData.trends.fees}
+                data={chartData.kpiData.fees}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+              <div>
+                <StatusBars
+                  data={chartData.statusData}
+                  total={chartData.totals.status}
+                />
+              </div>
+              <div>
+                <GuaranteeChart
+                  data={chartData.guaranteeData}
+                  total={chartData.totals.guarantee}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* <div className="space-y-6 xl:col-span-3">
+            <AccountCard
+              type="retention"
+              title="RETENTION ACCOUNT"
+              amount={chartData.accountData.retention}
+              trend={chartData.trends.retention}
+            />
+            <AccountCard
+              type="wakala"
+              title="WAKALA ACCOUNT"
+              amount={chartData.accountData.wakala}
+              trend={chartData.trends.wakala}
+            />
+            <AccountCard
+              type="corporate"
+              title="CORPORATE ACCOUNT"
+              amount={chartData.accountData.corporate}
+              trend={chartData.trends.corporate}
+            />
+            <AccountCard
+              type="trust"
+              title="TRUST ACCOUNT"
+              amount={chartData.accountData.trust}
+              trend={chartData.trends.trust}
+            />
+          </div> */}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default Dashboard

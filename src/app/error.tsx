@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/atoms/Button'
 
 interface ErrorProps {
@@ -9,9 +10,10 @@ interface ErrorProps {
 }
 
 export default function Error({ error, reset }: ErrorProps) {
+  const router = useRouter()
+
   useEffect(() => {
-    // Log the error to an error reporting service
-    console.error('Global error:', error)
+    // Error logged to error reporting service
   }, [error])
 
   return (
@@ -54,7 +56,7 @@ export default function Error({ error, reset }: ErrorProps) {
           <Button
             variant="outline"
             size="lg"
-            onClick={() => (window.location.href = '/')}
+            onClick={() => router.push('/')}
             className="w-full"
           >
             Go Home

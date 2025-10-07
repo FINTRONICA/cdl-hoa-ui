@@ -1,41 +1,51 @@
-import type { Metadata, Viewport } from 'next'
+import type { Metadata } from 'next'
 import { Outfit } from 'next/font/google'
 import './globals.css'
-import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { ThemeProvider } from '@/components/ThemeProvider'
-import { StoreHydration } from '@/components/StoreHydration'
+import { QueryProvider } from '../components/QueryProvider'
+import { ThemeProvider } from '../components/ThemeProvider'
+import { StoreHydration } from '../components/StoreHydration'
+import { LayoutContent } from '../components/LayoutContent'
+import { ComplianceProvider } from '../components/ComplianceProvider'
+import { ReactivePermissionsProvider } from '../components/ReactivePermissionsProvider'
+import { SessionTracker } from '../components/SessionTracker'
+import { GlobalConfirmationDialog } from '../components/providers/GlobalConfirmationDialog'
+import { GlobalNotificationProvider } from '../components/providers/GlobalNotificationProvider'
 
-const outfit = Outfit({
-  subsets: ['latin'],
-  variable: '--font-outfit',
-})
+
+const outfit = Outfit({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Escrow Central',
-  description: 'Financial escrow management system',
-  keywords: ['escrow', 'financial', 'management', 'real estate'],
-  authors: [{ name: 'Escrow Central Team' }],
-  robots: 'index, follow',
-}
-
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
+  title: 'Escrow Application',
+  description: 'Secure escrow management system',
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${outfit.variable} font-sans antialiased bg-gray-50`} suppressHydrationWarning={true}>
-        <ErrorBoundary>
-          <StoreHydration>
-            <ThemeProvider>{children}</ThemeProvider>
-          </StoreHydration>
-        </ErrorBoundary>
+    <html lang="en">
+      <body className={outfit.className}>
+        <StoreHydration>
+          <QueryProvider>
+            <ComplianceProvider 
+              showLoadingUI={true}
+              enableDetailedLogging={process.env.NODE_ENV === 'development'}
+            >
+              <ReactivePermissionsProvider>
+                <ThemeProvider>
+                  <LayoutContent>
+                    {children}
+                  </LayoutContent>
+                  <SessionTracker />
+                  <GlobalConfirmationDialog />
+                  <GlobalNotificationProvider />
+                </ThemeProvider>
+              </ReactivePermissionsProvider>
+            </ComplianceProvider>
+          </QueryProvider>
+        </StoreHydration>
       </body>
     </html>
   )

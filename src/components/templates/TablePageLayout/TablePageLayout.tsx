@@ -11,8 +11,8 @@ interface TablePageLayoutProps {
   tabs: Tab[]
   activeTab: string
   onTabChange: (tabId: string) => void
-  statusCards: StatusCardData[]
-  actionButtons: Array<{
+  statusCards?: StatusCardData[]
+  actionButtons?: Array<{
     label: string
     onClick: () => void
     disabled?: boolean
@@ -41,7 +41,7 @@ export const TablePageLayout: React.FC<TablePageLayoutProps> = ({
         className={`bg-[#FFFFFFBF] border border-[#FFFFFF] rounded-2xl flex flex-col h-full ${className}`}
       >
         {/* Sticky Header Section */}
-        <div className="sticky top-0 z-10 bg-[#FFFFFFBF] border-b border-gray-200 rounded-t-2xl">
+        <div className="sticky top-0 z-10 rounded-t-2xl">
           {/* Tabs */}
           <TabNavigation
             tabs={tabs}
@@ -57,13 +57,15 @@ export const TablePageLayout: React.FC<TablePageLayoutProps> = ({
           )}
           
           {/* Action Buttons */}
-          <div>
-            <ActionButtons buttons={actionButtons} />
-          </div>
+          {actionButtons && actionButtons.length > 0 && (
+            <div>
+              <ActionButtons buttons={actionButtons} />
+            </div>
+          )}
         </div>
 
         {/* Table Container with Fixed Pagination */}
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 overflow-auto">
             {children}
           </div>

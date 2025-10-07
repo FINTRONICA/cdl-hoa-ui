@@ -115,7 +115,12 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
 
   // Define columns for TableSearchRow
   const columns = [
-    { key: 'checkbox', label: 'Checkbox', type: 'checkbox' as const, width: 'w-12' },
+    {
+      key: 'checkbox',
+      label: 'Checkbox',
+      type: 'checkbox' as const,
+      width: 'w-12',
+    },
     { key: 'expand', label: 'Expand', type: 'expand' as const, width: 'w-8' },
     { key: 'developer', label: 'Developer', width: 'w-40' },
     { key: 'maker', label: 'Maker', width: 'w-32' },
@@ -124,7 +129,12 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
     { key: 'createdDate', label: 'Created Date', width: 'w-40' },
     { key: 'updatedDate', label: 'Updated Date', width: 'w-40' },
     { key: 'status', label: 'Status', type: 'status' as const, width: 'w-28' },
-    { key: 'actions', label: 'Actions', type: 'actions' as const, width: 'w-20' },
+    {
+      key: 'actions',
+      label: 'Actions',
+      type: 'actions' as const,
+      width: 'w-20',
+    },
   ]
 
   return (
@@ -133,7 +143,7 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
     >
       <div className="overflow-x-auto w-full">
         <table className="w-full min-w-[1200px] table-fixed">
-          <thead>
+          <thead className="sticky top-0 z-10">
             <tr className="bg-gray-50 border-b border-gray-200">
               <th className="w-12 px-6 py-4 text-left">
                 <Checkbox checked={allSelected} onChange={toggleAll} />
@@ -234,7 +244,9 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
                   </td>
                   <td className="w-40 px-6 py-4 text-sm text-gray-500">
                     {(() => {
-                      const { date, time } = formatDateForDisplay(row.createdDate)
+                      const { date, time } = formatDateForDisplay(
+                        row.createdDate
+                      )
                       return (
                         <div className="flex flex-col">
                           <span className="font-medium">{date}</span>
@@ -245,7 +257,9 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
                   </td>
                   <td className="w-40 px-6 py-4 text-sm text-gray-500">
                     {(() => {
-                      const { date, time } = formatDateForDisplay(row.updatedDate)
+                      const { date, time } = formatDateForDisplay(
+                        row.updatedDate
+                      )
                       return (
                         <div className="flex flex-col">
                           <span className="font-medium">{date}</span>

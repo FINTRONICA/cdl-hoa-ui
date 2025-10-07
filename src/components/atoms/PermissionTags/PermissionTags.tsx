@@ -13,17 +13,17 @@ export const PermissionTags: React.FC<PermissionTagsProps> = ({
   const remainingCount = permissions.length - maxVisible
 
   return (
-    <div className="flex flex-wrap items-center gap-1">
+    <div className="flex items-center gap-1 flex-wrap">
       {visiblePermissions.map((permission, index) => (
         <span
           key={index}
-          className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-800 transition-colors bg-blue-100 rounded-md cursor-pointer hover:bg-blue-200"
+          className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200 transition-colors"
         >
           {permission}
         </span>
       ))}
       {remainingCount > 0 && (
-        <span className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-md">
+        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600">
           +{remainingCount}
         </span>
       )}

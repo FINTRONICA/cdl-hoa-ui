@@ -51,44 +51,35 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
     <div
       className={`flex items-center justify-between px-6 py-4 bg-white border-t border-gray-200 ${className}`}
     >
-      <div className="flex items-center gap-6">
+      {/* Left side - Row count info */}
+      <div className="flex items-center">
         <span className="text-sm text-gray-500">
           {startItem}-{endItem} of {totalRows} row(s)
         </span>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-700">Rows per page:</span>
-          <Select
-            value={rowsPerPage.toString()}
-            onChange={(value) => onRowsPerPageChange(Number(value))}
-            options={[10, 20, 50, 100].map((opt) => ({
-              value: opt.toString(),
-              label: opt.toString(),
-            }))}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none [&>option]:text-gray-900 shadow-sm"
-          />
-        </div>
       </div>
+
+      {/* Center - Page navigation */}
       <div className="flex items-center gap-1">
         <IconButton
           icon={ChevronsLeft}
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
           title="First page"
-          className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-gray-100"
+          className="p-2 h-[36px] w-[36px] text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-gray-100"
         />
         <IconButton
           icon={ChevronLeft}
           onClick={() => onPageChange(Math.max(1, currentPage - 1))}
           disabled={currentPage === 1}
           title="Previous page"
-          className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-gray-100"
+          className="p-2 h-[36px] w-[36px] text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-gray-100"
         />
 
         {generatePageNumbers().map((pageNum) => (
           <button
             key={pageNum}
             onClick={() => onPageChange(pageNum)}
-            className={`min-w-[36px] h-9 px-3 text-sm font-medium rounded-full transition-colors ${
+            className={`min-w-[36px] h-9 px-3 text-sm font-medium rounded-lg transition-colors ${
               currentPage === pageNum
                 ? 'bg-blue-600 text-white shadow-sm'
                 : 'text-gray-600 hover:bg-gray-100'
@@ -103,14 +94,28 @@ export const TablePagination: React.FC<TablePaginationProps> = ({
           onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
           disabled={currentPage === totalPages}
           title="Next page"
-          className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-gray-100"
+          className="p-2 h-[36px] w-[36px] text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-gray-100"
         />
         <IconButton
           icon={ChevronsRight}
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage === totalPages}
           title="Last page"
-          className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-gray-100"
+          className="p-2 h-[36px] w-[36px] text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors rounded-lg hover:bg-gray-100"
+        />
+      </div>
+
+      {/* Right side - Rows per page dropdown */}
+      <div className="flex items-center gap-2">
+        <Select
+          value={rowsPerPage.toString()}
+          onChange={(value) => onRowsPerPageChange(Number(value))}
+          options={[10, 20, 50, 100].map((opt) => ({
+            value: opt.toString(),
+            label: opt.toString(),
+          }))}
+          placeholder=""
+          className=" w-[70px] border border-gray-300 rounded-lg pl-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none [&>option]:text-gray-900 shadow-sm"
         />
       </div>
     </div>

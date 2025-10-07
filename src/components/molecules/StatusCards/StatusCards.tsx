@@ -16,7 +16,7 @@ interface StatusCardsProps {
   className?: string
 }
 
-export const StatusCards: React.FC<StatusCardsProps> = ({
+const StatusCardsComponent: React.FC<StatusCardsProps> = ({
   cards,
   className = '',
 }) => {
@@ -36,3 +36,6 @@ export const StatusCards: React.FC<StatusCardsProps> = ({
     </div>
   )
 }
+
+// Memoize the component to prevent unnecessary re-renders
+export const StatusCards = React.memo(StatusCardsComponent)

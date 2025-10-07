@@ -1,468 +1,493 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DashboardLayout } from '../../../components/templates/DashboardLayout'
-import { ExpandableDataTable } from '../../../components/organisms/ExpandableDataTable'
+import { PermissionAwareDataTable } from '../../../components/organisms/PermissionAwareDataTable'
 import { useTableState } from '../../../hooks/useTableState'
 import LeftSlidePanel from '@/components/organisms/LeftSlidePanel/LeftSlidePanel'
+import { usePendingTransactionsUI } from '@/hooks'
+import { usePendingTransactionLabelApi } from '@/hooks/usePendingTransactionLabelApi'
+import { useDeletePendingTransaction } from '@/hooks/usePendingTransactions'
+import { getPendingTransactionLabel } from '@/constants/mappings/pendingTransactionMapping'
+import { useSidebarConfig } from '@/hooks/useSidebarConfig'
+import { useTemplateDownload } from '@/hooks/useRealEstateDocumentTemplate'
+import { TEMPLATE_FILES } from '@/constants'
+import { useDeleteConfirmation } from '@/store/confirmationDialogStore'
+import { PageActionButtons } from '@/components/molecules/PageActionButtons'
 
-// Define the transaction data structure
 interface TransactionData extends Record<string, unknown> {
-  date: string
-  transId: string
-  projectAccountId: string
-  developerName: string
+  id: number
   projectName: string
   projectRegulatorId: string
-  unitNo: string
-  amount: number
-  status: string
   tranReference: string
+  tranDesc: string
+  tranAmount: number
+  tranDate: string
+  narration: string
+  tasMatch: string
+  approvalStatus: string
 }
 
-// Sample unallocated transaction data
-const transactionsData: TransactionData[] = [
-  {
-    date: '15-12-2024 10:30:00',
-    transId: 'TRANS123456',
-    tranReference: 'TRANS123456',
-    projectAccountId: 'L009349934343434',
-    developerName: 'Blue Horizon',
-    projectName: 'Marina Heights',
-    projectRegulatorId: '445566778',
-    unitNo: 'A-1501',
-    amount: 2500000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '14-12-2024 14:22:00',
-    transId: 'TRANS123457',
-    tranReference: 'TRANS123457',
-    projectAccountId: 'L009349934343435',
-    developerName: 'Red Stone',
-    projectName: 'Palm Gardens',
-    projectRegulatorId: '445566779',
-    unitNo: 'B-2203',
-    amount: 1800000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '13-12-2024 09:15:00',
-    transId: 'TRANS123458',
-    tranReference: 'TRANS123458',
-    projectAccountId: 'L009349934343436',
-    developerName: 'Golden Sands',
-    projectName: 'Desert Oasis',
-    projectRegulatorId: '445566780',
-    unitNo: 'C-0805',
-    amount: 3200000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '12-12-2024 16:45:00',
-    transId: 'TRANS123459',
-    tranReference: 'TRANS123459',
-    projectAccountId: 'L009349934343437',
-    developerName: 'Silver Tower',
-    projectName: 'Skyline Plaza',
-    projectRegulatorId: '445566781',
-    unitNo: 'D-1207',
-    amount: 4100000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '11-12-2024 11:30:00',
-    transId: 'TRANS123460',
-    tranReference: 'TRANS123460',
-    projectAccountId: 'L009349934343438',
-    developerName: 'Green Group',
-    projectName: 'Pro Extention New test',
-    projectRegulatorId: '333499334',
-    unitNo: 'E-0902',
-    amount: 1950000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '10-12-2024 13:20:00',
-    transId: 'TRANS123461',
-    tranReference: 'TRANS123461',
-    projectAccountId: 'L009349934343439',
-    developerName: 'Blue Horizon',
-    projectName: 'Marina Heights',
-    projectRegulatorId: '445566778',
-    unitNo: 'A-1602',
-    amount: 2750000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '09-12-2024 08:45:00',
-    transId: 'TRANS123462',
-    tranReference: 'TRANS123462',
-    projectAccountId: 'L009349934343440',
-    developerName: 'Red Stone',
-    projectName: 'Palm Gardens',
-    projectRegulatorId: '445566779',
-    unitNo: 'B-2301',
-    amount: 2100000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '08-12-2024 15:10:00',
-    transId: 'TRANS123463',
-    tranReference: 'TRANS123463',
-    projectAccountId: 'L009349934343441',
-    developerName: 'Golden Sands',
-    projectName: 'Desert Oasis',
-    projectRegulatorId: '445566780',
-    unitNo: 'C-0906',
-    amount: 2800000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '07-12-2024 12:30:00',
-    transId: 'TRANS123464',
-    tranReference: 'TRANS123464',
-    projectAccountId: 'L009349934343442',
-    developerName: 'Silver Tower',
-    projectName: 'Skyline Plaza',
-    projectRegulatorId: '445566781',
-    unitNo: 'D-1308',
-    amount: 3600000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '06-12-2024 10:15:00',
-    transId: 'TRANS123465',
-    tranReference: 'TRANS123465',
-    projectAccountId: 'L009349934343443',
-    developerName: 'Green Group',
-    projectName: 'Pro Extention New test',
-    projectRegulatorId: '333499334',
-    unitNo: 'E-1003',
-    amount: 2300000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '05-12-2024 14:50:00',
-    transId: 'TRANS123466',
-    tranReference: 'TRANS123466',
-    projectAccountId: 'L009349934343444',
-    developerName: 'Blue Horizon',
-    projectName: 'Marina Heights',
-    projectRegulatorId: '445566778',
-    unitNo: 'A-1703',
-    amount: 2900000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '04-12-2024 09:25:00',
-    transId: 'TRANS123467',
-    tranReference: 'TRANS123467',
-    projectAccountId: 'L009349934343445',
-    developerName: 'Red Stone',
-    projectName: 'Palm Gardens',
-    projectRegulatorId: '445566779',
-    unitNo: 'B-2402',
-    amount: 1700000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '03-12-2024 16:40:00',
-    transId: 'TRANS123468',
-    tranReference: 'TRANS123468',
-    projectAccountId: 'L009349934343446',
-    developerName: 'Golden Sands',
-    projectName: 'Desert Oasis',
-    projectRegulatorId: '445566780',
-    unitNo: 'C-1007',
-    amount: 3400000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '02-12-2024 11:55:00',
-    transId: 'TRANS123469',
-    tranReference: 'TRANS123469',
-    projectAccountId: 'L009349934343447',
-    developerName: 'Silver Tower',
-    projectName: 'Skyline Plaza',
-    projectRegulatorId: '445566781',
-    unitNo: 'D-1409',
-    amount: 4500000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '01-12-2024 13:15:00',
-    transId: 'TRANS123470',
-    tranReference: 'TRANS123470',
-    projectAccountId: 'L009349934343448',
-    developerName: 'Green Group',
-    projectName: 'Pro Extention New test',
-    projectRegulatorId: '333499334',
-    unitNo: 'E-1104',
-    amount: 2150000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '30-11-2024 10:45:00',
-    transId: 'TRANS123471',
-    tranReference: 'TRANS123471',
-    projectAccountId: 'L009349934343449',
-    developerName: 'Blue Horizon',
-    projectName: 'Marina Heights',
-    projectRegulatorId: '445566778',
-    unitNo: 'A-1804',
-    amount: 3100000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '29-11-2024 15:30:00',
-    transId: 'TRANS123472',
-    tranReference: 'TRANS123472',
-    projectAccountId: 'L009349934343450',
-    developerName: 'Red Stone',
-    projectName: 'Palm Gardens',
-    projectRegulatorId: '445566779',
-    unitNo: 'B-2503',
-    amount: 1900000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '28-11-2024 08:20:00',
-    transId: 'TRANS123473',
-    tranReference: 'TRANS123473',
-    projectAccountId: 'L009349934343451',
-    developerName: 'Golden Sands',
-    projectName: 'Desert Oasis',
-    projectRegulatorId: '445566780',
-    unitNo: 'C-1108',
-    amount: 2600000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '27-11-2024 12:10:00',
-    transId: 'TRANS123474',
-    tranReference: 'TRANS123474',
-    projectAccountId: 'L009349934343452',
-    developerName: 'Silver Tower',
-    projectName: 'Skyline Plaza',
-    projectRegulatorId: '445566781',
-    unitNo: 'D-1510',
-    amount: 3800000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '26-11-2024 14:35:00',
-    transId: 'TRANS123475',
-    tranReference: 'TRANS123475',
-    projectAccountId: 'L009349934343453',
-    developerName: 'Green Group',
-    projectName: 'Pro Extention New test',
-    projectRegulatorId: '333499334',
-    unitNo: 'E-1205',
-    amount: 2450000,
-    status: 'Pending Allocation',
-  },
-  {
-    date: '25-11-2024 09:50:00',
-    transId: 'TRANS123476',
-    tranReference: 'TRANS123476',
-    projectAccountId: 'L009349934343454',
-    developerName: 'Blue Horizon',
-    projectName: 'Marina Heights',
-    projectRegulatorId: '445566778',
-    unitNo: 'A-1905',
-    amount: 2700000,
-    status: 'Pending Allocation',
-  },
-]
+const usePendingRows = (page: number, size: number) => {
+  const filters = React.useMemo(() => ({ isAllocated: false }), [])
+  const { data, isLoading, error } = usePendingTransactionsUI(
+    Math.max(0, page - 1),
+    size,
+    filters
+  )
 
-const tableColumns = [
-  {
-    key: 'date',
-    label: 'Date',
-    type: 'text' as const,
-    width: 'w-40',
-    sortable: true,
-  },
-  {
-    key: 'transId',
-    label: 'Tran Id',
-    type: 'text' as const,
-    width: 'w-40',
-    sortable: true,
-  },
-  {
-    key: 'projectAccountId',
-    label: 'Project Account (CIF)',
-    type: 'text' as const,
-    width: 'w-48',
-    sortable: true,
-  },
-  {
-    key: 'developerName',
-    label: 'Developer Name',
-    type: 'text' as const,
-    width: 'w-48',
-    sortable: true,
-  },
-  {
-    key: 'projectName',
-    label: 'Project Name',
-    type: 'text' as const,
-    width: 'w-48',
-    sortable: true,
-  },
-  {
-    key: 'projectRegulatorId',
-    label: 'Project Regulator ID',
-    type: 'text' as const,
-    width: 'w-40',
-    sortable: true,
-  },
-  {
-    key: 'unitNo',
-    label: 'Unit No. Oqood Format',
-    type: 'text' as const,
-    width: 'w-40',
-    sortable: true,
-  },
-  {
-    key: 'amount',
-    label: 'Amount',
-    type: 'custom' as const,
-    width: 'w-40',
-    sortable: true,
-  },
-  { key: 'actions', label: 'Action', type: 'actions' as const, width: 'w-20' },
-]
+  const rows: TransactionData[] = useMemo(() => {
+    if (!data?.content) {
+      return []
+    }
+
+    const items = data.content as any[]
+
+    return items.map((ui: any) => {
+      return {
+        id: Number(ui.id),
+        projectName: ui.projectName || '—',
+        projectRegulatorId: ui.projectRegulatorId || '—',
+        tranReference: ui.referenceId || '—',
+        tranDesc: ui.description || 'TRANSFER',
+        tranAmount: Number(ui.amount || '0'),
+        tranDate: ui.transactionDate
+          ? new Date(ui.transactionDate).toLocaleDateString('en-GB')
+          : '',
+        narration: ui.narration || '—',
+        tasMatch: ui.tasUpdate || '—',
+        approvalStatus:
+          ui.taskStatusDTO?.name ||
+          mapPaymentStatusToApprovalStatus(ui.paymentStatus),
+      }
+    })
+  }, [data])
+
+  const total = data?.page?.totalElements || 0
+  const totalPages = data?.page?.totalPages || 1
+
+  return { rows, total, totalPages, isLoading, error }
+}
+
+const mapPaymentStatusToApprovalStatus = (paymentStatus: string): string => {
+  // Fallback mapping when taskStatusDTO is not available
+  switch (paymentStatus?.toUpperCase()) {
+    case 'PENDING':
+      return 'PENDING'
+    case 'INCOMPLETE':
+      return 'INITIATED'
+    case 'IN_REVIEW':
+    case 'REVIEW':
+      return 'IN_PROGRESS'
+    case 'REJECTED':
+    case 'FAILED':
+      return 'REJECTED'
+    case 'APPROVED':
+    case 'SUCCESS':
+      return 'APPROVED'
+    default:
+      return 'INITIATED'
+  }
+}
 
 const UnallocatedTransactionPage: React.FC = () => {
   const router = useRouter()
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false)
 
-  const formatNumber = (num: number) => {
-    return num.toLocaleString('en-US')
+  // Template download hook
+  const { downloadTemplate, isLoading: isDownloading } = useTemplateDownload()
+
+  // Template download handler
+  const handleDownloadTemplate = async () => {
+    try {
+      await downloadTemplate(TEMPLATE_FILES.SPLIT)
+    } catch (error) {}
   }
 
-  // Use the generic table state hook
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const { getLabelResolver } = useSidebarConfig()
+  const unallocatedTitle = getLabelResolver
+    ? getLabelResolver('unallocated', 'Unallocated')
+    : 'Unallocated'
+  const {
+    getLabel: getLabelFromApi,
+    isLoading: labelsLoading,
+    error: labelsError,
+  } = usePendingTransactionLabelApi()
+
+  const getTransactionLabelDynamic = React.useCallback(
+    (configId: string): string => {
+      const apiLabel = getLabelFromApi(configId, 'EN')
+
+      if (apiLabel !== configId) {
+        return apiLabel
+      }
+
+      const fallbackLabel = getPendingTransactionLabel(configId)
+      return fallbackLabel
+    },
+    [getLabelFromApi]
+  )
+
+  const [currentApiPage, setCurrentApiPage] = useState(1)
+  const [currentApiSize, setCurrentApiSize] = useState(20)
+
+  const {
+    rows: apiRows,
+    total: apiTotal,
+    totalPages: apiTotalPages,
+    isLoading,
+    error,
+  } = usePendingRows(currentApiPage, currentApiSize)
+
+  const deleteMutation = useDeletePendingTransaction()
+  const confirmDelete = useDeleteConfirmation()
+
   const {
     search,
     paginated,
-    totalRows,
-    totalPages,
+    totalRows: localTotalRows,
+    totalPages: localTotalPages,
     startItem,
     endItem,
-    page,
+    page: localPage,
     rowsPerPage,
     selectedRows,
     expandedRows,
     handleSearchChange,
-    handlePageChange,
-    handleRowsPerPageChange,
+    handlePageChange: localHandlePageChange,
+    handleRowsPerPageChange: localHandleRowsPerPageChange,
     handleRowSelectionChange,
     handleRowExpansionChange,
+    handleSort,
+    sortConfig,
   } = useTableState({
-    data: transactionsData,
+    data: apiRows,
     searchFields: [
-      'date',
-      'transId',
-      'projectAccountId',
-      'developerName',
       'projectName',
       'projectRegulatorId',
-      'unitNo',
+      'tranReference',
+      'tranDesc',
+      'narration',
     ],
-    initialRowsPerPage: 20,
+    initialRowsPerPage: currentApiSize,
   })
 
-  // Handle row view action - navigate to details page
+  const handlePageChange = (newPage: number) => {
+    const hasActiveSearch = Object.values(search).some((value) => value.trim())
+
+    if (hasActiveSearch) {
+      localHandlePageChange(newPage)
+    } else {
+      setCurrentApiPage(newPage)
+    }
+  }
+
+  const handleRowsPerPageChange = (newRowsPerPage: number) => {
+    setCurrentApiSize(newRowsPerPage)
+    setCurrentApiPage(1)
+    localHandleRowsPerPageChange(newRowsPerPage)
+  }
+
+  const effectiveTotalRows = Object.values(search).some((value) => value.trim())
+    ? localTotalRows
+    : apiTotal
+  const effectiveTotalPages = Object.values(search).some((value) =>
+    value.trim()
+  )
+    ? localTotalPages
+    : apiTotalPages
+  const effectivePage = Object.values(search).some((value) => value.trim())
+    ? localPage
+    : currentApiPage
+
+  const tableColumns = [
+    {
+      key: 'projectName',
+      label: getTransactionLabelDynamic('CDL_TRANS_BPA_NAME'),
+      type: 'text' as const,
+      width: 'w-48',
+      sortable: true,
+    },
+    {
+      key: 'projectRegulatorId',
+      label: getTransactionLabelDynamic('CDL_TRANS_BPA_REGULATOR'),
+      type: 'text' as const,
+      width: 'w-40',
+      sortable: true,
+    },
+    {
+      key: 'tranReference',
+      label: getTransactionLabelDynamic('CDL_TRAN_REFNO'),
+      type: 'text' as const,
+      width: 'w-40',
+      sortable: true,
+    },
+    {
+      key: 'tranDesc',
+      label: getTransactionLabelDynamic('CDL_TRAN_DESC'),
+      type: 'text' as const,
+      width: 'w-40',
+      sortable: true,
+    },
+    {
+      key: 'tranAmount',
+      label: getTransactionLabelDynamic('CDL_TRAN_AMOUNT'),
+      type: 'custom' as const,
+      width: 'w-40',
+      sortable: true,
+    },
+    {
+      key: 'tranDate',
+      label: getTransactionLabelDynamic('CDL_TRAN_DATE'),
+      type: 'text' as const,
+      width: 'w-40',
+      sortable: true,
+    },
+    {
+      key: 'narration',
+      label: getTransactionLabelDynamic('CDL_TRAN_NOTES'),
+      type: 'text' as const,
+      width: 'w-48',
+      sortable: true,
+    },
+    {
+      key: 'tasMatch',
+      label: getTransactionLabelDynamic('CDL_TRAN_TAS_STATUS'),
+      type: 'text' as const,
+      width: 'w-32',
+      sortable: true,
+    },
+    {
+      key: 'approvalStatus',
+      label: getTransactionLabelDynamic('CDL_TRAN_STATUS'),
+      type: 'status' as const,
+      width: 'w-40',
+      sortable: true,
+    },
+    {
+      key: 'actions',
+      label: getTransactionLabelDynamic('CDL_TRAN_ACTION'),
+      type: 'actions' as const,
+      width: 'w-20',
+    },
+  ]
+
+  const formatNumber = (num: number) => {
+    return num.toLocaleString('en-US')
+  }
+
+  const statusOptions = [
+    'PENDING',
+    'APPROVED',
+    'REJECTED',
+    'IN_PROGRESS',
+    'DRAFT',
+    'INITIATED',
+  ]
+
   const handleRowView = (row: TransactionData) => {
-    console.log('row', row)
-    router.push(`/transactions/unallocated/${row.tranReference}`)
+    router.push(`/transactions/unallocated/${row.id}`)
   }
 
-  // Handle row click - navigate to details page
+  const handleRowDelete = (row: TransactionData) => {
+    if (isDeleting) {
+      return
+    }
+
+    confirmDelete({
+      itemName: `transaction: ${row.tranReference}`,
+      itemId: row.id.toString(),
+      onConfirm: async () => {
+        try {
+          setIsDeleting(true)
+          await deleteMutation.mutateAsync(String(row.id))
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error occurred'
+          throw error // Re-throw to keep dialog open on error
+        } finally {
+          setIsDeleting(false)
+        }
+      },
+    })
+  }
+
   const handleRowClick = (row: TransactionData) => {
-    console.log('row', row)
-    router.push(`/transactions/unallocated/${row.tranReference}`)
+    router.push(`/transactions/unallocated/${row.id}`)
   }
 
-  // Custom cell renderer for amount column
   const renderCustomCell = (column: string, value: unknown) => {
-    if (column === 'amount' && typeof value === 'number') {
-      return `AED ${formatNumber(value)}`
+    if (column === 'tranAmount' && typeof value === 'number') {
+      return `${formatNumber(value)}`
     }
     return String(value || '')
   }
 
-  // Render expanded content for transaction details
   const renderExpandedContent = (row: TransactionData) => (
     <div className="grid grid-cols-2 gap-8">
       <div className="space-y-4">
-        <h4 className="mb-4 text-sm font-semibold text-gray-900">
+        <h4 className="text-sm font-semibold text-gray-900 mb-4">
           Transaction Information
         </h4>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <span className="text-gray-600">Date:</span>
-            <span className="ml-2 font-medium text-gray-800">{row.date}</span>
-          </div>
-          <div>
-            <span className="text-gray-600">Transaction ID:</span>
-            <span className="ml-2 font-medium text-gray-800">{row.transId}</span>
-          </div>
-          <div>
-            <span className="text-gray-600">Project Account (CIF):</span>
-            <span className="ml-2 font-medium text-gray-800">{row.projectAccountId}</span>
-          </div>
-          <div>
-            <span className="text-gray-600">Developer Name:</span>
-            <span className="ml-2 font-medium text-gray-800">{row.developerName}</span>
-          </div>
-          <div>
             <span className="text-gray-600">Project Name:</span>
-            <span className="ml-2 font-medium text-gray-800">{row.projectName}</span>
+            <span className="ml-2 text-gray-800 font-medium">
+              {row.projectName}
+            </span>
           </div>
           <div>
             <span className="text-gray-600">Project Regulator ID:</span>
-            <span className="ml-2 font-medium text-gray-800">{row.projectRegulatorId}</span>
+            <span className="ml-2 text-gray-800 font-medium">
+              {row.projectRegulatorId}
+            </span>
           </div>
           <div>
-            <span className="text-gray-600">Unit No. Oqood Format:</span>
-            <span className="ml-2 font-medium text-gray-800">{row.unitNo}</span>
+            <span className="text-gray-600">Transaction Reference:</span>
+            <span className="ml-2 text-gray-800 font-medium">
+              {row.tranReference}
+            </span>
           </div>
           <div>
-            <span className="text-gray-600">Amount:</span>
-            <span className="ml-2 font-medium text-gray-800">AED {formatNumber(row.amount)}</span>
+            <span className="text-gray-600">Transaction Description:</span>
+            <span className="ml-2 text-gray-800 font-medium">
+              {row.tranDesc}
+            </span>
           </div>
           <div>
-            <span className="text-gray-600">Status:</span>
-            <span className="ml-2 font-medium text-gray-800">{row.status}</span>
+            <span className="text-gray-600">Transaction Amount:</span>
+            <span className="ml-2 text-gray-800 font-medium">
+              {formatNumber(row.tranAmount)}
+            </span>
+          </div>
+          <div>
+            <span className="text-gray-600">Transaction Date:</span>
+            <span className="ml-2 text-gray-800 font-medium">
+              {row.tranDate}
+            </span>
+          </div>
+          <div>
+            <span className="text-gray-600">Narration:</span>
+            <span className="ml-2 text-gray-800 font-medium">
+              {row.narration}
+            </span>
+          </div>
+          <div>
+            <span className="text-gray-600">TAS Match:</span>
+            <span className="ml-2 text-gray-800 font-medium">
+              {row.tasMatch}
+            </span>
+          </div>
+          <div>
+            <span className="text-gray-600">Approval Status:</span>
+            <span className="ml-2 text-gray-800 font-medium">
+              {row.approvalStatus}
+            </span>
           </div>
         </div>
       </div>
       <div className="space-y-4">
-        <h4 className="mb-4 text-sm font-semibold text-gray-900">
+        <h4 className="text-sm font-semibold text-gray-900 mb-4">
           Transaction Actions
         </h4>
         <div className="space-y-3">
-          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
+          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
             View Transaction Details
           </button>
-          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
+          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
             Allocate Transaction
           </button>
-          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
+          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
             Download Transaction Report
           </button>
-          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
+          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
             Export Transaction Data
           </button>
         </div>
       </div>
     </div>
   )
+
+  if (isLoading || labelsLoading) {
+    return (
+      <DashboardLayout title={unallocatedTitle}>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">
+              {isLoading && labelsLoading
+                ? 'Loading transactions and labels...'
+                : isLoading
+                  ? 'Loading transactions...'
+                  : 'Loading labels...'}
+            </p>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (error || labelsError) {
+    return (
+      <DashboardLayout title={unallocatedTitle}>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-red-600 mb-4">
+              <svg
+                className="w-12 h-12 mx-auto"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {error && labelsError
+                ? 'Error Loading Transactions and Labels'
+                : error
+                  ? 'Error Loading Transactions'
+                  : 'Error Loading Labels'}
+            </h3>
+            <p className="text-gray-600 mb-4">Please try refreshing the page</p>
+            <div className="text-left text-xs bg-red-50 p-4 rounded border max-w-md mx-auto">
+              <p>
+                <strong>Error Details:</strong>
+              </p>
+              {error && (
+                <div className="mb-2">
+                  <p>
+                    <strong>Transactions:</strong>{' '}
+                    {error.message || 'Unknown error'}
+                  </p>
+                </div>
+              )}
+              {labelsError && (
+                <div className="mb-2">
+                  <p>
+                    <strong>Labels:</strong> {labelsError}
+                  </p>
+                </div>
+              )}
+              {process.env.NODE_ENV === 'development' && (
+                <pre className="mt-2 text-xs">
+                  {JSON.stringify({ error, labelsError }, null, 2)}
+                </pre>
+              )}
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   return (
     <>
@@ -473,53 +498,56 @@ const UnallocatedTransactionPage: React.FC = () => {
         />
       )}
 
-      <DashboardLayout title="Unallocated Transaction">
-        <div className="bg-[#FFFFFFBF] border rounded-2xl flex flex-col h-full">
-          {/* Sticky Header Section */}
+      <DashboardLayout title={unallocatedTitle}>
+        <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
           <div className="sticky top-0 z-10 bg-[#FFFFFFBF] border-b border-gray-200 rounded-t-2xl">
-            {/* Action Buttons */}
             <div className="flex justify-end gap-2 py-3.5 px-4">
-              <button className="flex items-center h-8 py-1.5 px-2.5 gap-1.5 text-[#155DFC] font-sans font-medium text-sm hover:bg-blue-50 rounded-md transition-colors">
-                <img src="/download icon.svg" alt="download icon" />
-                Download Template
-              </button>
-              <button className="flex items-center h-8 py-1.5 bg-[#DBEAFE] rounded-md px-2.5 gap-1.5 text-[#155DFC] font-sans font-medium text-sm hover:bg-blue-100 transition-colors">
-                <img src="/upload.svg" alt="upload icon" />
-                Upload
-              </button>
-            </div>
-          </div>
-          
-          {/* Table Container with Fixed Pagination */}
-          <div className="flex flex-col flex-1 min-h-0">
-            <div className="flex-1 overflow-auto">
-              <ExpandableDataTable<TransactionData>
-                data={paginated}
-                columns={tableColumns}
-                searchState={search}
-                onSearchChange={handleSearchChange}
-                paginationState={{
-                  page,
-                  rowsPerPage,
-                  totalRows,
-                  totalPages,
-                  startItem,
-                  endItem,
+              <PageActionButtons
+                entityType="pendingPayment"
+                onDownloadTemplate={handleDownloadTemplate}
+                isDownloading={isDownloading}
+                showButtons={{
+                  downloadTemplate: true,
+                  uploadDetails: true,
+                  addNew: false,
                 }}
-                onPageChange={handlePageChange}
-                onRowsPerPageChange={handleRowsPerPageChange}
-                selectedRows={selectedRows}
-                onRowSelectionChange={handleRowSelectionChange}
-                expandedRows={expandedRows}
-                onRowExpansionChange={handleRowExpansionChange}
-                renderExpandedContent={renderExpandedContent}
-                onRowView={handleRowView}
-                onRowClick={handleRowClick}
-                renderCustomCell={renderCustomCell}
-                showViewAction={true}
               />
             </div>
           </div>
+
+          <PermissionAwareDataTable<TransactionData>
+            data={paginated}
+            columns={tableColumns}
+            searchState={search}
+            onSearchChange={handleSearchChange}
+            paginationState={{
+              page: effectivePage,
+              rowsPerPage: rowsPerPage,
+              totalRows: effectiveTotalRows,
+              totalPages: effectiveTotalPages,
+              startItem,
+              endItem,
+            }}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+            selectedRows={selectedRows}
+            onRowSelectionChange={handleRowSelectionChange}
+            expandedRows={expandedRows}
+            onRowExpansionChange={handleRowExpansionChange}
+            renderExpandedContent={renderExpandedContent}
+            statusOptions={statusOptions}
+            onRowView={handleRowView}
+            onRowDelete={handleRowDelete}
+            onRowClick={handleRowClick}
+            renderCustomCell={renderCustomCell}
+            deletePermissions={['pending_tran_delete']}
+            viewPermissions={['pending_tran_view']}
+            updatePermissions={['pending_tran_update']}
+            showDeleteAction={true}
+            showViewAction={true}
+            sortConfig={sortConfig}
+            onSort={handleSort}
+          />
         </div>
       </DashboardLayout>
     </>

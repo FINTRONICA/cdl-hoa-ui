@@ -2,6 +2,10 @@
 
 // Export bank types
 export * from './bank'
+export * from './labelConfig'
+
+// Export label configuration types
+export * from './labelConfig'
 
 export interface User {
   id: string
@@ -29,13 +33,24 @@ export interface Project {
 export interface Transaction {
   id: string
   projectId: string
-  type: 'deposit' | 'withdrawal' | 'fee'
+  type: 'deposit' | 'withdrawal' | 'fee' | 'transfer'
   amount: number
   currency: string
   status: 'pending' | 'completed' | 'failed'
   description: string
   createdAt: string
   updatedAt: string
+}
+
+export interface CreateTransactionRequest {
+  projectId: string
+  type: 'deposit' | 'withdrawal' | 'fee' | 'transfer'
+  amount: number
+  currency: string
+  description: string
+  recipientAccountId?: string
+  senderAccountId?: string
+  metadata?: Record<string, unknown>
 }
 
 export interface Activity {
@@ -81,11 +96,11 @@ export interface ApiResponse<T> {
 }
 
 export interface PaginatedResponse<T> {
-  data: T[]
-  pagination: {
-    page: number
-    limit: number
-    total: number
+  content: T[]
+  page: {
+    size: number
+    number: number
+    totalElements: number
     totalPages: number
   }
 }

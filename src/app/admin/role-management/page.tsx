@@ -1,235 +1,157 @@
 'use client'
 
 import React, { useState } from 'react'
+import { toast } from 'react-hot-toast'
 import { DashboardLayout } from '../../../components/templates/DashboardLayout'
 import { ExpandableDataTable } from '../../../components/organisms/ExpandableDataTable'
 import { useTableState } from '../../../hooks/useTableState'
 import { PageActionButtons } from '../../../components/molecules/PageActionButtons'
 import LeftSlidePanel from '@/components/organisms/LeftSlidePanel/LeftSlidePanel'
-import { UserAvatarGroup } from '../../../components/atoms/UserAvatarGroup'
-import { PermissionTags } from '../../../components/atoms/PermissionTags'
+import { RightSlideRolePanel } from '../../../components/organisms/RightSlidePanel/RightSlideRolePanel'
+import { Trash2, Eye } from 'lucide-react'
+import { IconButton } from '@mui/material'
+import { useSidebarConfig } from '@/hooks/useSidebarConfig'
+import { useRoles, useRoleManager } from '@/hooks/useRoles'
+import { useRoleManagementLabelApi } from '@/hooks/useRoleManagementLabelApi'
+import { getRoleManagementLabel } from '@/constants/mappings/roleManagementMapping'
+import { useAppStore } from '@/store'
 
 // Define the role management data structure
+interface User {
+  id: string
+  name: string
+  initials?: string
+}
+
 interface RoleManagementData extends Record<string, unknown> {
   roleName: string
   roleId: string
-  usersAssigned: Array<{
-    id: string
-    name: string
-    avatar?: string
-    initials?: string
-  }>
+  usersAssigned: User[]
   activeUsers: number
   inactiveUsers: number
   permissions: string[]
   status: string
 }
 
-// Sample role management data matching the screenshot
-const roleManagementData: RoleManagementData[] = [
-  {
-    roleName: 'Admin',
-    roleId: '#ABA002',
-    usersAssigned: [
-      { id: '1', name: 'Admin User 1', initials: 'AU' },
-      { id: '2', name: 'Admin User 2', initials: 'AU' },
-      { id: '3', name: 'Admin User 3', initials: 'AU' },
-      { id: '4', name: 'Admin User 4', initials: 'AU' },
-    ],
-    activeUsers: 3,
-    inactiveUsers: 1,
-    permissions: ['Admin Report View', 'ADMIN_SEC', 'User Management', 'Role Management'],
-    status: 'ACTIVE',
-  },
-  {
-    roleName: 'Sr. Admin',
-    roleId: '#ABA001',
-    usersAssigned: [
-      { id: '5', name: 'AB User', initials: 'AB' },
-      { id: '6', name: 'Sr Admin 1', initials: 'SA' },
-      { id: '7', name: 'Sr Admin 2', initials: 'SA' },
-      { id: '8', name: 'Sr Admin 3', initials: 'SA' },
-      { id: '9', name: 'Sr Admin 4', initials: 'SA' },
-    ],
-    activeUsers: 2,
-    inactiveUsers: 2,
-    permissions: ['Admin Report View', 'ADMIN_SEC', 'System Settings', 'Audit Logs'],
-    status: 'ACTIVE',
-  },
-  {
-    roleName: 'Manager',
-    roleId: '#ABA003',
-    usersAssigned: [
-      { id: '10', name: 'Manager 1', initials: 'M1' },
-      { id: '11', name: 'Manager 2', initials: 'M2' },
-      { id: '12', name: 'Manager 3', initials: 'M3' },
-      { id: '13', name: 'Manager 4', initials: 'M4' },
-      { id: '14', name: 'Manager 5', initials: 'M5' },
-      { id: '15', name: 'Manager 6', initials: 'M6' },
-      { id: '16', name: 'Manager 7', initials: 'M7' },
-    ],
-    activeUsers: 5,
-    inactiveUsers: 3,
-    permissions: ['Admin Report View', 'ADMIN_SEC', 'Project Management', 'Team Management', 'Reports'],
-    status: 'CLOSED',
-  },
-  {
-    roleName: 'Checker',
-    roleId: '#ABA004',
-    usersAssigned: [
-      { id: '17', name: 'KR User', initials: 'KR' },
-      { id: '18', name: 'Checker 1', initials: 'C1' },
-      { id: '19', name: 'Checker 2', initials: 'C2' },
-      { id: '20', name: 'Checker 3', initials: 'C3' },
-      { id: '21', name: 'Checker 4', initials: 'C4' },
-      { id: '22', name: 'Checker 5', initials: 'C5' },
-      { id: '23', name: 'Checker 6', initials: 'C6' },
-      { id: '24', name: 'Checker 7', initials: 'C7' },
-      { id: '25', name: 'Checker 8', initials: 'C8' },
-      { id: '26', name: 'Checker 9', initials: 'C9' },
-      { id: '27', name: 'Checker 10', initials: 'C10' },
-      { id: '28', name: 'Checker 11', initials: 'C11' },
-      { id: '29', name: 'Checker 12', initials: 'C12' },
-    ],
-    activeUsers: 12,
-    inactiveUsers: 4,
-    permissions: ['Admin Report View', 'ADMIN_SEC', 'Data Validation', 'Quality Check', 'Approval Process', 'Audit Trail'],
-    status: 'CLOSED',
-  },
-  {
-    roleName: 'Assigner',
-    roleId: '#ABA005',
-    usersAssigned: [
-      { id: '30', name: 'Assigner 1', initials: 'A1' },
-      { id: '31', name: 'Assigner 2', initials: 'A2' },
-      { id: '32', name: 'Assigner 3', initials: 'A3' },
-      { id: '33', name: 'Assigner 4', initials: 'A4' },
-      { id: '34', name: 'Assigner 5', initials: 'A5' },
-      { id: '35', name: 'Assigner 6', initials: 'A6' },
-      { id: '36', name: 'Assigner 7', initials: 'A7' },
-      { id: '37', name: 'Assigner 8', initials: 'A8' },
-      { id: '38', name: 'Assigner 9', initials: 'A9' },
-      { id: '39', name: 'Assigner 10', initials: 'A10' },
-      { id: '40', name: 'Assigner 11', initials: 'A11' },
-      { id: '41', name: 'Assigner 12', initials: 'A12' },
-      { id: '42', name: 'Assigner 13', initials: 'A13' },
-      { id: '43', name: 'Assigner 14', initials: 'A14' },
-      { id: '44', name: 'Assigner 15', initials: 'A15' },
-      { id: '45', name: 'Assigner 16', initials: 'A16' },
-      { id: '46', name: 'Assigner 17', initials: 'A17' },
-      { id: '47', name: 'Assigner 18', initials: 'A18' },
-    ],
-    activeUsers: 13,
-    inactiveUsers: 5,
-    permissions: ['Admin Report View', 'ADMIN_SEC', 'Task Assignment', 'Resource Allocation', 'Workflow Management', 'Priority Setting', 'Deadline Management', 'Team Coordination'],
-    status: 'ACTIVE',
-  },
-  {
-    roleName: 'Reviewer',
-    roleId: '#ABA006',
-    usersAssigned: [
-      { id: '48', name: 'Reviewer 1', initials: 'R1' },
-      { id: '49', name: 'Reviewer 2', initials: 'R2' },
-      { id: '50', name: 'Reviewer 3', initials: 'R3' },
-      { id: '51', name: 'Reviewer 4', initials: 'R4' },
-      { id: '52', name: 'Reviewer 5', initials: 'R5' },
-      { id: '53', name: 'Reviewer 6', initials: 'R6' },
-      { id: '54', name: 'Reviewer 7', initials: 'R7' },
-      { id: '55', name: 'Reviewer 8', initials: 'R8' },
-      { id: '56', name: 'Reviewer 9', initials: 'R9' },
-      { id: '57', name: 'Reviewer 10', initials: 'R10' },
-      { id: '58', name: 'Reviewer 11', initials: 'R11' },
-    ],
-    activeUsers: 5,
-    inactiveUsers: 6,
-    permissions: ['Admin Report View', 'ADMIN_SEC', 'Content Review'],
-    status: 'CLOSED',
-  },
-  // Add more roles to match the 204 total mentioned in pagination
-  ...Array.from({ length: 198 }, (_, i) => {
-    const roleNames = ['Admin', 'Sr. Admin', 'Manager', 'Checker', 'Assigner', 'Reviewer'] as const
-    const roleIndex = i % roleNames.length
-    const statusIndex = i % 2 // Alternate between ACTIVE and CLOSED
-    // Use deterministic values instead of Math.random() to prevent hydration mismatch
-    const userCount = (i % 8) + 2 // 2-9 users per role
-    const activeCount = (i % 12) + 3 // 3-14 active users
-    const inactiveCount = (i % 8) + 1 // 1-8 inactive users
-    return {
-      roleName: roleNames[roleIndex]!,
-      roleId: `#ABA${String(i + 7).padStart(3, '0')}`,
-      usersAssigned: Array.from({ length: userCount }, (_, j) => ({
-        id: `${i + 59}-${j}`,
-        name: `User ${i + 59}-${j}`,
-        initials: `U${i + 59}-${j}`,
-      })),
-      activeUsers: activeCount,
-      inactiveUsers: inactiveCount,
-      permissions: ['Admin Report View', 'ADMIN_SEC', 'Custom Permission'],
-      status: statusIndex === 0 ? 'ACTIVE' : 'CLOSED',
-    }
-  }),
-]
-
-const statusOptions = ['ACTIVE', 'CLOSED']
-
-const tableColumns = [
-  
-  { key: 'checkbox', label: '', type: 'checkbox' as const, width: 'w-8' },
-  {
-    key: 'roleName',
-    label: 'Role Name',
-    type: 'text' as const,
-    width: 'w-48',
-    sortable: true,
-  },
-  {
-    key: 'roleId',
-    label: 'Role ID',
-    type: 'text' as const,
-    width: 'w-40',
-    sortable: true,
-  },
-  {
-    key: 'usersAssigned',
-    label: "User's Assigned",
-    type: 'custom' as const,
-    width: 'w-48',
-    sortable: false,
-  },
-  {
-    key: 'activeUsers',
-    label: 'Active Users',
-    type: 'text' as const,
-    width: 'w-32',
-    sortable: true,
-  },
-  {
-    key: 'inactiveUsers',
-    label: 'Inactive Users',
-    type: 'text' as const,
-    width: 'w-32',
-    sortable: true,
-  },
-  {
-    key: 'permissions',
-    label: 'Permissions',
-    type: 'custom' as const,
-    width: 'w-48',
-    sortable: false,
-  },
-  {
-    key: 'status',
-    label: 'Status',
-    type: 'status' as const,
-    width: 'w-32',
-    sortable: true,
-  },
-  { key: 'actions', label: 'Actions', type: 'actions' as const, width: 'w-20' },
-]
-
 const RoleManagementPage: React.FC = () => {
+  const { getLabelResolver } = useSidebarConfig()
+  const roleManagementTitle = getLabelResolver
+    ? getLabelResolver('role', 'Entitlement')
+    : 'Role Management'
+
+  // Get current language from store
+  const currentLanguage = useAppStore((state) => state.language) || 'EN'
+
+  // Role Management Label API
+  const {
+    getLabel: getLabelFromApi,
+    isLoading: labelsLoading,
+    error: labelsError
+  } = useRoleManagementLabelApi()
+
+  // Dynamic label function
+  const getRoleManagementLabelDynamic = React.useCallback(
+    (configId: string): string => {
+      const apiLabel = getLabelFromApi(configId, currentLanguage)
+
+      if (apiLabel !== configId) {
+        return apiLabel
+      }
+
+      const fallbackLabel = getRoleManagementLabel(configId)
+      return fallbackLabel
+    },
+    [getLabelFromApi, currentLanguage]
+  )
+
+  // Table columns with dynamic labels
+  const tableColumns = React.useMemo(() => [
+    {
+      key: 'roleName',
+      label: getRoleManagementLabelDynamic('CDL_ROLE_NAME'),
+      type: 'text' as const,
+      width: 'w-full',
+      sortable: true,
+    },
+    {
+      key: 'actions',
+      label: getRoleManagementLabelDynamic('CDL_ROLE_ACTION'),
+      type: 'custom' as const,
+      width: 'w-20',
+    },
+  ], [getRoleManagementLabelDynamic])
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false)
-  const [roleData] = useState(roleManagementData)
+  const [isRolePanelOpen, setIsRolePanelOpen] = useState(false)
+  const [currentRole, setCurrentRole] = useState<RoleManagementData | null>(
+    null
+  )
+  const [panelMode, setPanelMode] = useState<'add' | 'edit' | 'view'>('add')
+
+  // Use the roles query hook
+  const {
+    data = [], // ← Use data directly
+    isLoading: fetching,
+    error,
+    refetch: refreshRoles,
+  } = useRoles(0, 20)
+
+  // Use the role manager hook for CRUD operations
+  const { createRole, deleteRole, createError, deleteError } = useRoleManager()
+
+  // Transform API data to match table structure
+  const roleData: RoleManagementData[] = data.map((role) => ({
+    roleName: role.name || 'N/A',
+    roleId: role.id || 'N/A',
+    usersAssigned: [],
+    activeUsers: 0,
+    inactiveUsers: 0,
+    permissions: [],
+    status: 'Active',
+  }))
+
+  const handleDeleteRole = async (roleName: string) => {
+    if (
+      window.confirm(`Are you sure you want to delete the role "${roleName}"?`)
+    ) {
+      try {
+        await deleteRole(roleName)
+        toast.success(`Role "${roleName}" deleted successfully`)
+      } catch (error) {
+       
+        toast.error(`Failed to delete role "${roleName}"`)
+      }
+    }
+  }
+
+  // Handler for adding a new role
+  const handleAddRole = async (roleName: string) => {
+    try {
+      await createRole({ name: roleName })
+      toast.success(`Role "${roleName}" created successfully`)
+    } catch (error) {
+     
+      toast.error(`Failed to create role "${roleName}"`)
+    }
+  }
+
+  // Handler for viewing a role
+  const handleViewRole = (role: RoleManagementData) => {
+    setCurrentRole(role)
+    setPanelMode('view')
+    setIsRolePanelOpen(true)
+  }
+
+  // Handler for adding a new role (opens panel)
+  const handleAddNewRole = () => {
+    setCurrentRole(null)
+    setPanelMode('add')
+    setIsRolePanelOpen(true)
+  }
+
+  // Handler for switching from view to edit mode
+  const handleSwitchToEdit = () => {
+    setPanelMode('edit')
+  }
 
   // Use the generic table state hook
   const {
@@ -261,73 +183,102 @@ const RoleManagementPage: React.FC = () => {
   })
 
   // Render expanded content
-  const renderExpandedContent = (row: RoleManagementData) => (
-    <div className="grid grid-cols-2 gap-8">
-      <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-4">
-          Role Information
-        </h4>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-gray-600">Role Name:</span>
-            <span className="ml-2 text-gray-800 font-medium">{row.roleName as string}</span>
+  const renderExpandedContent = (row: RoleManagementData) => {
+    // Find the corresponding role from API data
+    const apiRole = data.find((role) => role.name === row.roleName)
+
+    return (
+      <div className="grid grid-cols-2 gap-8">
+        <div className="space-y-4">
+          <h4 className="text-sm font-semibold text-gray-900 mb-4">
+            Role Information
+          </h4>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-gray-600">Role Name:</span>
+              <span className="ml-2 text-gray-800 font-medium">
+                {apiRole?.name || 'N/A'}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-600">Role ID:</span>
+              <span className="ml-2 text-gray-800 font-medium">
+                {apiRole?.id || 'N/A'}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-600">Description:</span>
+              <span className="ml-2 text-gray-800 font-medium">
+                {apiRole?.description || 'N/A'}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-600">Client Role:</span>
+              <span className="ml-2 text-gray-800 font-medium">
+                {apiRole?.clientRole !== undefined
+                  ? apiRole.clientRole
+                    ? 'Yes'
+                    : 'No'
+                  : 'N/A'}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-600">Composite:</span>
+              <span className="ml-2 text-gray-800 font-medium">
+                {apiRole?.composite !== undefined
+                  ? apiRole.composite
+                    ? 'Yes'
+                    : 'No'
+                  : 'N/A'}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-600">Container ID:</span>
+              <span className="ml-2 text-gray-800 font-medium">
+                {apiRole?.containerId || 'N/A'}
+              </span>
+            </div>
           </div>
-          <div>
-            <span className="text-gray-600">Role ID:</span>
-            <span className="ml-2 text-gray-800 font-medium">{row.roleId as string}</span>
-          </div>
-          <div>
-            <span className="text-gray-600">Active Users:</span>
-            <span className="ml-2 text-gray-800 font-medium">{row.activeUsers as number}</span>
-          </div>
-          <div>
-            <span className="text-gray-600">Inactive Users:</span>
-            <span className="ml-2 text-gray-800 font-medium">{row.inactiveUsers as number}</span>
-          </div>
-          <div>
-            <span className="text-gray-600">Status:</span>
-            <span className="ml-2 text-gray-800 font-medium">{row.status as string}</span>
+        </div>
+        <div className="space-y-4">
+          <h4 className="text-sm font-semibold text-gray-900 mb-4">
+            Role Actions
+          </h4>
+          <div className="space-y-3">
+            <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
+              Edit Role
+            </button>
+            <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
+              View Permissions
+            </button>
+            <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
+              Manage Users
+            </button>
+            <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
+              Deactivate Role
+            </button>
           </div>
         </div>
       </div>
-      <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-4">
-          Role Actions
-        </h4>
-        <div className="space-y-3">
-          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
-            Edit Role
-          </button>
-          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
-            View Permissions
-          </button>
-          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
-            Manage Users
-          </button>
-          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
-            Deactivate Role
-          </button>
-        </div>
-      </div>
-    </div>
-  )
+    )
+  }
 
   // Action buttons for bulk operations
   const actionButtons = [
     {
-      label: 'Deactivate',
+      label: getRoleManagementLabelDynamic('CDL_DEACTIVATE'),
       onClick: () => console.log('Deactivate selected roles'),
       disabled: selectedRows.length === 0,
       variant: 'secondary' as const,
     },
     {
-      label: 'Activate',
+      label: getRoleManagementLabelDynamic('CDL_ACTIVATE'),
       onClick: () => console.log('Activate selected roles'),
       disabled: selectedRows.length === 0,
       variant: 'primary' as const,
     },
     {
-      label: 'Download',
+      label: getRoleManagementLabelDynamic('CDL_DOWNLOAD'),
       onClick: () => console.log('Download selected roles'),
       icon: '/download.svg',
       disabled: selectedRows.length === 0,
@@ -336,22 +287,46 @@ const RoleManagementPage: React.FC = () => {
   ]
 
   // Custom cell renderer for the table
-  const renderCustomCell = (column: string, value: unknown) => {
+  const renderCustomCell = (
+    column: string,
+    value: unknown,
+    row: RoleManagementData
+  ) => {
     switch (column) {
-      case 'usersAssigned':
+      case 'actions':
         return (
-          <UserAvatarGroup
-            users={value as Array<{ id: string; name: string; avatar?: string; initials?: string }>}
-            maxVisible={3}
-            size="sm"
-          />
-        )
-      case 'permissions':
-        return (
-          <PermissionTags
-            permissions={value as string[]}
-            maxVisible={2}
-          />
+          <div className="flex space-x-2">
+            <IconButton
+              aria-label="view"
+              onClick={() => handleViewRole(row)}
+              size="small"
+              sx={{
+                color: '#155DFC',
+                backgroundColor: '#EFF6FF',
+                borderRadius: '6px',
+                '&:hover': {
+                  backgroundColor: '#DBEAFE',
+                },
+              }}
+            >
+              <Eye size={16} />
+            </IconButton>
+            <IconButton
+              aria-label="delete"
+              onClick={() => handleDeleteRole(row.roleName)}
+              size="small"
+              sx={{
+                color: '#DC2626',
+                backgroundColor: '#FEE2E2',
+                borderRadius: '6px',
+                '&:hover': {
+                  backgroundColor: '#FECACA',
+                },
+              }}
+            >
+              <Trash2 size={16} />
+            </IconButton>
+          </div>
         )
       default:
         return <span>{String(value)}</span>
@@ -367,13 +342,68 @@ const RoleManagementPage: React.FC = () => {
         />
       )}
 
-      <DashboardLayout title="Role Management">
-        <div className="bg-[#FFFFFFBF] py-4 border rounded-2xl">
+      {/* Role Panel */}
+      <RightSlideRolePanel
+        isOpen={isRolePanelOpen}
+        onClose={() => {
+          setIsRolePanelOpen(false)
+          setCurrentRole(null)
+          setPanelMode('add')
+        }}
+        onSave={handleAddRole}
+        mode={panelMode}
+        userData={
+          currentRole
+            ? { id: currentRole.roleId, name: currentRole.roleName }
+            : undefined
+        }
+        onSuccess={(role) => {
+          toast.success(
+            `Role "${role.name}" ${panelMode === 'edit' ? 'updated' : 'created'} successfully`
+          )
+          refreshRoles()
+        }}
+        onError={(error) => {
+          toast.error(error)
+        }}
+        onSwitchToEdit={handleSwitchToEdit}
+      />
+
+      <DashboardLayout title={roleManagementTitle}>
+        <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
           {/* Action Buttons - positioned above status cards */}
-          <PageActionButtons 
-            entityType="roleManagement" 
+          <PageActionButtons
+            entityType="roleManagement"
             showButtons={{ addNew: true }}
+            onAddNew={handleAddNewRole}
           />
+
+          {/* Loading State */}
+          {(fetching || labelsLoading) && (
+            <div className="flex justify-center items-center py-8">
+              <div className="flex flex-col items-center gap-2">
+                <div className="text-gray-500 text-sm">
+                  {fetching && labelsLoading
+                    ? 'Loading roles and labels...'
+                    : fetching
+                    ? 'Loading roles...'
+                    : 'Loading labels...'}
+                </div>
+                <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+              </div>
+            </div>
+          )}
+
+          {/* Error Display */}
+          {(error || createError || deleteError || labelsError) && (
+            <div className="mx-4 mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+              <div className="font-semibold mb-2">Error Details:</div>
+              {error && <div>Roles: {error.message}</div>}
+              {createError && <div>Create: {createError.message}</div>}
+              {deleteError && <div>Delete: {deleteError.message}</div>}
+              {labelsError && <div>Labels: {labelsError}</div>}
+            </div>
+          )}
 
           {/* Bulk Action Buttons - shown when rows are selected */}
           {selectedRows.length > 0 && (
@@ -389,37 +419,42 @@ const RoleManagementPage: React.FC = () => {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   } ${button.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  {button.icon && <img src={button.icon} alt={button.iconAlt} />}
+                  {button.icon && (
+                    <img src={button.icon} alt={button.iconAlt} />
+                  )}
                   {button.label}
                 </button>
               ))}
             </div>
           )}
-
-          {/* Table Content */}
-          <ExpandableDataTable<RoleManagementData>
-            data={paginated}
-            columns={tableColumns}
-            searchState={search}
-            onSearchChange={handleSearchChange}
-            paginationState={{
-              page,
-              rowsPerPage,
-              totalRows,
-              totalPages,
-              startItem,
-              endItem,
-            }}
-            onPageChange={handlePageChange}
-            onRowsPerPageChange={handleRowsPerPageChange}
-            selectedRows={selectedRows}
-            onRowSelectionChange={handleRowSelectionChange}
-            expandedRows={expandedRows}
-            onRowExpansionChange={handleRowExpansionChange}
-            renderExpandedContent={renderExpandedContent}
-            statusOptions={statusOptions}
-            renderCustomCell={renderCustomCell}
-          />
+          {/* Table Container with Fixed Pagination */}
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 overflow-auto">
+              {/* Table Content */}
+              <ExpandableDataTable<RoleManagementData>
+                data={paginated}
+                columns={tableColumns}
+                searchState={search}
+                onSearchChange={handleSearchChange}
+                paginationState={{
+                  page,
+                  rowsPerPage,
+                  totalRows,
+                  totalPages,
+                  startItem,
+                  endItem,
+                }}
+                onPageChange={handlePageChange}
+                onRowsPerPageChange={handleRowsPerPageChange}
+                selectedRows={selectedRows}
+                onRowSelectionChange={handleRowSelectionChange}
+                expandedRows={expandedRows}
+                onRowExpansionChange={handleRowExpansionChange}
+                renderExpandedContent={renderExpandedContent}
+                renderCustomCell={renderCustomCell}
+              />
+            </div>
+          </div>
         </div>
       </DashboardLayout>
     </>

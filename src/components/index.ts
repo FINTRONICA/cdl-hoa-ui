@@ -1,4 +1,5 @@
 // Atoms
+export { Autocomplete } from './atoms/Autocomplete'
 export { Button } from './atoms/Button'
 export { Input } from './atoms/Input'
 export { Select } from './atoms/Select'

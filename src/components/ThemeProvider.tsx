@@ -1,13 +1,9 @@
 'use client'
 
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-} from 'react'
-import { useUI, useUIActions } from '@/hooks'
+import React, { createContext, useContext, useMemo } from 'react'
+import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles'
+import { CssBaseline } from '@mui/material'
+import { useUI, useUIActions } from '../store'
 import { type Theme } from '@/types'
 
 interface ThemeContextType {
@@ -20,7 +16,115 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { theme } = useUI()
   const { setTheme } = useUIActions()
-  const previousTheme = useRef<Theme>(theme)
+
+  // Create Material-UI theme
+  const muiTheme = useMemo(() => {
+    return createTheme({
+      palette: {
+        mode: theme === 'dark' ? 'dark' : 'light',
+        primary: {
+          main: '#2563EB',
+        },
+        secondary: {
+          main: '#2F80ED',
+        },
+        background: {
+          default: theme === 'dark' ? '#121212' : '#ffffff',
+          paper: theme === 'dark' ? '#1e1e1e' : '#ffffff',
+        },
+        text: {
+          primary: theme === 'dark' ? '#ffffff' : '#1E2939',
+          secondary: theme === 'dark' ? '#b0b0b0' : '#6A7282',
+        },
+      },
+      typography: {
+        fontFamily: 'Outfit, Roboto, Helvetica, Arial, sans-serif',
+        h1: {
+          fontFamily: 'Outfit, sans-serif',
+          fontWeight: 600,
+        },
+        h2: {
+          fontFamily: 'Outfit, sans-serif',
+          fontWeight: 600,
+        },
+        h3: {
+          fontFamily: 'Outfit, sans-serif',
+          fontWeight: 600,
+        },
+        h4: {
+          fontFamily: 'Outfit, sans-serif',
+          fontWeight: 600,
+        },
+        h5: {
+          fontFamily: 'Outfit, sans-serif',
+          fontWeight: 600,
+        },
+        h6: {
+          fontFamily: 'Outfit, sans-serif',
+          fontWeight: 600,
+        },
+        body1: {
+          fontFamily: 'Outfit, sans-serif',
+        },
+        body2: {
+          fontFamily: 'Outfit, sans-serif',
+        },
+        button: {
+          fontFamily: 'Outfit, sans-serif',
+          textTransform: 'none',
+        },
+      },
+      components: {
+        MuiTextField: {
+          defaultProps: {
+            variant: 'outlined',
+          },
+          styleOverrides: {
+            root: {
+              '& .MuiOutlinedInput-root': {
+                height: '46px',
+                borderRadius: '8px',
+                '& fieldset': {
+                  borderColor: '#CAD5E2',
+                  borderWidth: '1px',
+                },
+                '&:hover fieldset': {
+                  borderColor: '#CAD5E2',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: '#2563EB',
+                },
+              },
+            },
+          },
+        },
+        MuiButton: {
+          styleOverrides: {
+            root: {
+              textTransform: 'none',
+              fontFamily: 'Outfit, sans-serif',
+              fontWeight: 500,
+              borderRadius: '8px',
+            },
+            contained: {
+              borderRadius: '24px',
+              height: '48px',
+            },
+          },
+        },
+        MuiSelect: {
+          styleOverrides: {
+            root: {
+              borderRadius: '8px',
+              '& fieldset': {
+                border: 'none',
+              },
+            },
+          },
+        },
+      },
+    })
+  }, [theme])
 
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue = useMemo(
@@ -31,47 +135,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     [theme, setTheme]
   )
 
-  useEffect(() => {
-    // Only apply theme if it has actually changed
-    if (previousTheme.current === theme) return
-
-    // Apply theme to document on mount and theme change
-    const root = document.documentElement
-    root.classList.remove('light', 'dark')
-
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
-        .matches
-        ? 'dark'
-        : 'light'
-      root.classList.add(systemTheme)
-    } else {
-      root.classList.add(theme)
-    }
-
-    previousTheme.current = theme
-  }, [theme])
-
-  useEffect(() => {
-    // Only set up system theme listener if theme is 'system'
-    if (theme !== 'system') return
-
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-
-    const handleChange = () => {
-      const root = document.documentElement
-      root.classList.remove('light', 'dark')
-      const systemTheme = mediaQuery.matches ? 'dark' : 'light'
-      root.classList.add(systemTheme)
-    }
-
-    mediaQuery.addEventListener('change', handleChange)
-    return () => mediaQuery.removeEventListener('change', handleChange)
-  }, [theme])
-
   return (
     <ThemeContext.Provider value={contextValue}>
-      {children}
+      <MuiThemeProvider theme={muiTheme}>
+        <CssBaseline />
+        {children}
+      </MuiThemeProvider>
     </ThemeContext.Provider>
   )
 }

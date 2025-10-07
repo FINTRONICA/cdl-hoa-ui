@@ -6,6 +6,7 @@ import { ExpandableDataTable } from '../../../components/organisms/ExpandableDat
 import { useTableState } from '../../../hooks/useTableState'
 import { BankData } from '../../../types/bank'
 import LeftSlidePanel from '@/components/organisms/LeftSlidePanel/LeftSlidePanel'
+import { useSidebarConfig } from '@/hooks/useSidebarConfig'
 
 // Mock bank data based on the screenshot
 const bankData: BankData[] = [
@@ -101,7 +102,6 @@ const bankData: BankData[] = [
 ]
 
 const tableColumns = [
- 
   {
     key: 'bankName',
     label: 'Bank Name',
@@ -148,7 +148,10 @@ const tableColumns = [
 
 const BankManagementPage: React.FC = () => {
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false)
-
+  const { getLabelResolver } = useSidebarConfig()
+  const bankManagementTitle = getLabelResolver
+    ? getLabelResolver('bank', 'Bank Management')
+    : 'Bank Management'
   // Use the generic table state hook
   const {
     search,
@@ -246,14 +249,24 @@ const BankManagementPage: React.FC = () => {
         </h4>
         <div className="space-y-3">
           <div className="p-3 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 shadow-sm">
-            <div className="font-medium text-gray-900 mb-2">Contact Information</div>
+            <div className="font-medium text-gray-900 mb-2">
+              Contact Information
+            </div>
             <div className="text-gray-600">Phone: +91-XXX-XXXXXXX</div>
-            <div className="text-gray-600">Email: info@{row.bankName.toLowerCase().replace(/\s+/g, '')}.com</div>
-            <div className="text-gray-600">Address: Main Branch, {row.bankName}</div>
+            <div className="text-gray-600">
+              Email: info@{row.bankName.toLowerCase().replace(/\s+/g, '')}.com
+            </div>
+            <div className="text-gray-600">
+              Address: Main Branch, {row.bankName}
+            </div>
           </div>
           <div className="p-3 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 shadow-sm">
-            <div className="font-medium text-gray-900 mb-2">Operating Hours</div>
-            <div className="text-gray-600">Monday - Friday: 9:00 AM - 5:00 PM</div>
+            <div className="font-medium text-gray-900 mb-2">
+              Operating Hours
+            </div>
+            <div className="text-gray-600">
+              Monday - Friday: 9:00 AM - 5:00 PM
+            </div>
             <div className="text-gray-600">Saturday: 9:00 AM - 1:00 PM</div>
             <div className="text-gray-600">Sunday: Closed</div>
           </div>
@@ -272,7 +285,7 @@ const BankManagementPage: React.FC = () => {
       )}
 
       <TablePageLayout
-        title="Bank Management"
+        title={bankManagementTitle}
         tabs={[]}
         activeTab=""
         onTabChange={() => {}}

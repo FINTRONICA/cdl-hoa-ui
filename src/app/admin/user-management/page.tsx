@@ -1,368 +1,379 @@
-"use client";
+'use client'
 
-import React, { useState } from "react";
-import { DashboardLayout } from "../../../components/templates/DashboardLayout";
-import { ExpandableDataTable } from "../../../components/organisms/ExpandableDataTable";
-import { useTableState } from "../../../hooks/useTableState";
-import { PageActionButtons } from "../../../components/molecules/PageActionButtons";
-import { RightSlideUserPanel } from "../../../components/organisms/RightSlidePanel";
-import LeftSlidePanel from "@/components/organisms/LeftSlidePanel/LeftSlidePanel";
+import React, { useState } from 'react'
+import { DashboardLayout } from '../../../components/templates/DashboardLayout'
+import { ExpandableDataTable } from '../../../components/organisms/ExpandableDataTable'
+import { useTableState } from '../../../hooks/useTableState'
+import { PageActionButtons } from '../../../components/molecules/PageActionButtons'
+import { RightSlideUserPanel } from '../../../components/organisms/RightSlidePanel'
+import LeftSlidePanel from '@/components/organisms/LeftSlidePanel/LeftSlidePanel'
+import { useAuthAdminUsers } from '@/hooks/useAuthUser'
+import { useUserManagementLabelApi } from '@/hooks/useUserManagementLabelApi'
+import { getUserManagementLabel } from '@/constants/mappings/userManagementMapping'
+import { Pencil } from 'lucide-react'
+import { useSidebarConfig } from '@/hooks/useSidebarConfig'
+import { UserManagementData } from '@/services/api/authAdminUserService'
+import { useAppStore } from '@/store'
 
-// Define the user management data structure
-interface UserManagementData extends Record<string, unknown> {
-  userName: string;
-  userId: string;
-  emailId: string;
-  roleName: string[]; // Changed to array to support multiple roles
-  status: string;
+// ---------------- Interfaces ----------------
+interface Permission {
+  id: string
+  name: string
+  description: string
+  enabled: boolean
 }
 
-// Define the edit user data structure for the panel
 interface EditUserData {
-  firstName: string;
-  lastName: string;
-  emailId: string;
-  status: string;
-  username: string;
-  userId: string;
-  selectedRoles: string[];
-  rolePermissions: Record<string, any>;
-  roleEnabled: Record<string, boolean>;
+  firstName: string
+  lastName: string
+  emailId: string
+  status: string
+  username: string
+  userId: string
+  selectedRoles: string[]
+  rolePermissions: Record<string, Permission[]>
+  roleEnabled: Record<string, boolean>
 }
 
-// Sample user management data matching the screenshot
-const userManagementData: UserManagementData[] = [
-  {
-    userName: "Pradeep Kumar",
-    userId: "Prad87900",
-    emailId: "pradeep.kumar@email.com",
-    roleName: ["Admin"],
-    status: "ACTIVE",
-  },
-  {
-    userName: "Aniket Shetty",
-    userId: "ShettyS9879",
-    emailId: "ani.shetty@email.com",
-    roleName: ["Checker", "Assigner"],
-    status: "ACTIVE",
-  },
-  {
-    userName: "Sayali Shinde",
-    userId: "Sayali793",
-    emailId: "sshinde@email.com",
-    roleName: ["Assigner"],
-    status: "CLOSED",
-  },
-  {
-    userName: "Raksha Trivedi",
-    userId: "RakshalBANA",
-    emailId: "rtrivedi@email.com",
-    roleName: ["Reviewer"],
-    status: "CLOSED",
-  },
-  {
-    userName: "Tanmay Joshi",
-    userId: "Joshi09IBAN",
-    emailId: "Jotanmay@email.com",
-    roleName: ["Admin"],
-    status: "ACTIVE",
-  },
-  {
-    userName: "Pradip Trivedi",
-    userId: "PradipANS9879",
-    emailId: "pradip.tri@email.com",
-    roleName: ["Manager", "Reviewer"],
-    status: "CLOSED",
-  },
-  {
-    userName: "Manoj Gupte",
-    userId: "GupteNMIBA",
-    emailId: "manoj.gupte@email.com",
-    roleName: ["Reviewer"],
-    status: "ACTIVE",
-  },
-  {
-    userName: "Rahul Sutar",
-    userId: "SutarRA887",
-    emailId: "sutar.rahul@email.com",
-    roleName: ["Checker"],
-    status: "CLOSED",
-  },
-  {
-    userName: "Dinesh Gupta",
-    userId: "Dinesh78761B",
-    emailId: "gupta.dinesh@email.com",
-    roleName: ["Reviewer"],
-    status: "ACTIVE",
-  },
-  {
-    userName: "Rakesh Varma",
-    userId: "Varma87661B",
-    emailId: "rakesh.varma@email.com",
-    roleName: ["Assigner"],
-    status: "CLOSED",
-  },
-  // Add more users to match the 204 total mentioned in pagination
-  ...Array.from({ length: 194 }, (_, i) => {
-    const roles = [
-      "Admin",
-      "Checker",
-      "Assigner",
-      "Reviewer",
-      "Manager",
-    ] as const;
-    // Use deterministic selection based on index to avoid hydration issues
-    const roleIndex = i % roles.length;
-    const statusIndex = i % 2; // Alternate between ACTIVE and CLOSED
-    return {
-      userName: `User ${i + 11}`,
-      userId: `UserID${String(i + 11).padStart(5, "0")}`,
-      emailId: `user${i + 11}@email.com`,
-      roleName: [roles[roleIndex]!],
-      status: statusIndex === 0 ? "ACTIVE" : "CLOSED",
-    };
-  }),
-];
+// ---------------- Table Columns ----------------
 
-const statusOptions = ["ACTIVE", "CLOSED"];
-
-const tableColumns = [
-  {
-    key: "userName",
-    label: "User Name",
-    type: "user" as const,
-    width: "w-48",
-    sortable: true,
-  },
-  {
-    key: "userId",
-    label: "User ID",
-    type: "text" as const,
-    width: "w-40",
-    sortable: true,
-  },
-  {
-    key: "emailId",
-    label: "Email ID",
-    type: "text" as const,
-    width: "w-56",
-    sortable: true,
-  },
-  {
-    key: "roleName",
-    label: "Role Name",
-    type: "select" as const,
-    width: "w-48",
-    sortable: true,
-    options: [
-      { value: "Sr. Admin", label: "Sr. Admin" },
-      { value: "Checker", label: "Checker" },
-      { value: "Assigner", label: "Assigner" },
-      { value: "Reviewer", label: "Reviewer" },
-      { value: "Admin", label: "Admin" },
-      { value: "Manager", label: "Manager" },
-    ],
-  },
-  {
-    key: "status",
-    label: "Status",
-    type: "status" as const,
-    width: "w-32",
-    sortable: true,
-  },
-  { key: "actions", label: "Actions", type: "actions" as const, width: "w-20" },
-];
-
+// ---------------- Component ----------------
 const UserManagementPage: React.FC = () => {
-  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
-  const [isUserPanelOpen, setIsUserPanelOpen] = useState(false);
-  const [userData, setUserData] = useState(userManagementData);
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false)
+  const [isUserPanelOpen, setIsUserPanelOpen] = useState(false)
   const [selectedUserForEdit, setSelectedUserForEdit] =
-    useState<EditUserData | null>(null);
-  const [showAllSearch, setShowAllSearch] = useState(false);
+    useState<EditUserData | null>(null)
+  const { getLabelResolver } = useSidebarConfig()
+  const userManagementTitle = getLabelResolver
+    ? getLabelResolver('user', 'User Management')
+    : 'User Management'
 
-  // Function to update user data
-  const handleDataChange = (
-    rowIndex: number,
-    field: string,
-    value: string | string[]
-  ) => {
-    if (field === "roleName") {
-      const user = userData[rowIndex];
-      if (user) {
-        const userId = user.userId;
-        setUserData((prevData) =>
-          prevData.map((u) =>
-            u.userId === userId
-              ? { ...u, roleName: Array.isArray(value) ? value : [value] }
-              : u
-          )
-        );
+  // Get current language from store
+  const currentLanguage = useAppStore((state) => state.language) || 'EN'
+
+  // User Management Label API
+  const {
+    getLabel: getLabelFromApi,
+    isLoading: labelsLoading,
+    error: labelsError,
+  } = useUserManagementLabelApi()
+
+  // Dynamic label function
+  const getUserManagementLabelDynamic = React.useCallback(
+    (configId: string): string => {
+      const apiLabel = getLabelFromApi(configId, currentLanguage)
+
+      if (apiLabel !== configId) {
+        return apiLabel
       }
-    }
-  };
 
-  // Function to handle row click for editing
-  const handleRowClick = (user: UserManagementData) => {
-    // Convert user data to the format expected by RightSlideUserPanel
-    const userForEdit = {
-      firstName: user.userName.split(" ")[0] || "",
-      lastName: user.userName.split(" ").slice(1).join(" ") || "",
-      emailId: user.emailId,
-      status: user.status.toLowerCase(),
-      username: user.userName,
-      userId: user.userId,
-      selectedRoles: user.roleName,
-      rolePermissions: {
-        // Initialize with default permissions for selected roles
-        ...user.roleName.reduce(
-          (acc, role) => {
-            const roleId = role.toLowerCase().replace(" ", "-");
-            acc[roleId] = [
-              {
-                id: "permission_1",
-                name: "Permission 1",
-                description: "General permission 1",
-                enabled: true,
-              },
-              {
-                id: "permission_2",
-                name: "Permission 2",
-                description: "General permission 2",
-                enabled: false,
-              },
-            ];
-            return acc;
-          },
-          {} as Record<string, any>
-        ),
+      const fallbackLabel = getUserManagementLabel(configId)
+      return fallbackLabel
+    },
+    [getLabelFromApi, currentLanguage]
+  )
+
+  // Table columns with dynamic labels
+  const tableColumns = React.useMemo(
+    () => [
+      {
+        key: 'userName',
+        label: getUserManagementLabelDynamic('CDL_USER_NAME'),
+        type: 'user' as const,
+        width: 'w-48',
+        sortable: true,
       },
-      roleEnabled: {
-        // Enable all selected roles by default
-        ...user.roleName.reduce(
-          (acc, role) => {
-            const roleId = role.toLowerCase().replace(" ", "-");
-            acc[roleId] = true;
-            return acc;
-          },
-          {} as Record<string, boolean>
-        ),
+
+      {
+        key: 'emailId',
+        label: getUserManagementLabelDynamic('CDL_EMAIL_ID'),
+        type: 'text' as const,
+        width: 'w-56',
+        sortable: true,
       },
-    };
+      {
+        key: 'roleName',
+        label: getUserManagementLabelDynamic('CDL_ROLES'),
+        type: 'custom' as const,
+        width: 'w-48',
+        sortable: true,
+      },
+      {
+        key: 'status',
+        label: getUserManagementLabelDynamic('CDL_STATUS'),
+        type: 'status' as const,
+        width: 'w-32',
+        sortable: true,
+      },
+      {
+        key: 'actions',
+        label: getUserManagementLabelDynamic('CDL_ACTION'),
+        type: 'actions' as const,
+        width: 'w-20',
+      },
+    ],
+    [getUserManagementLabelDynamic]
+  )
+  // Hook for API data with proper server-side pagination
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(20)
 
-    setSelectedUserForEdit(userForEdit);
-    setIsUserPanelOpen(true);
-  };
+  const { data, isLoading, error } = useAuthAdminUsers(page, rowsPerPage)
+  const userData = data?.content || []
+  const totalRows = data?.page?.totalElements || 0
+  const totalPages = data?.page?.totalPages || 1
 
-  // Use the generic table state hook
+  const statusOptions = ['ACTIVE', 'CLOSED']
+
+  // Table state hook for search and selection (not pagination)
   const {
     search,
-    paginated,
-    totalRows,
-    totalPages,
-    startItem,
-    endItem,
-    page,
-    rowsPerPage,
     selectedRows,
     expandedRows,
     handleSearchChange,
-    handlePageChange,
-    handleRowsPerPageChange,
     handleRowSelectionChange,
     handleRowExpansionChange,
   } = useTableState({
     data: userData,
-    searchFields: ["userName", "userId", "emailId", "roleName", "status"],
-    initialRowsPerPage: 20,
-  });
+    searchFields: ['userName', 'userId', 'emailId', 'roleName', 'status'],
+    initialRowsPerPage: rowsPerPage,
+  })
 
-  // Render expanded content
-  const renderExpandedContent = (row: UserManagementData) => (
-    <div className="grid grid-cols-2 gap-8">
-      <div className="space-y-4">
-        <h4 className="mb-4 text-sm font-semibold text-gray-900">
-          User Information
-        </h4>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-gray-600">User Name:</span>
-            <span className="ml-2 font-medium text-gray-800">
-              {row.userName as string}
-            </span>
-          </div>
-          <div>
-            <span className="text-gray-600">User ID:</span>
-            <span className="ml-2 font-medium text-gray-800">
-              {row.userId as string}
-            </span>
-          </div>
-          <div>
-            <span className="text-gray-600">Email ID:</span>
-            <span className="ml-2 font-medium text-gray-800">
-              {row.emailId as string}
-            </span>
-          </div>
-          <div>
-            <span className="text-gray-600">Role Name:</span>
-            <span className="ml-2 font-medium text-gray-800">
-              {Array.isArray(row.roleName)
-                ? row.roleName.join(", ")
-                : row.roleName}
-            </span>
-          </div>
-          <div>
-            <span className="text-gray-600">Status:</span>
-            <span className="ml-2 font-medium text-gray-800">
-              {row.status as string}
-            </span>
+  // Calculate pagination display values
+  const startItem = totalRows > 0 ? page * rowsPerPage + 1 : 0
+  const endItem = Math.min((page + 1) * rowsPerPage, totalRows)
+
+  // Handle page changes
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage)
+  }
+
+  // Handle rows per page changes
+  const handleRowsPerPageChange = (newRowsPerPage: number) => {
+    setRowsPerPage(newRowsPerPage)
+    setPage(0) // Reset to first page when changing page size
+  }
+
+  // Wrapper functions for table handlers
+  const handleTableRowSelectionChange = (newSelectedRows: number[]) => {
+    // Convert array-based selection to individual calls
+    // Clear current selection first
+    selectedRows.forEach(rowIndex => {
+      if (!newSelectedRows.includes(rowIndex)) {
+        handleRowSelectionChange(rowIndex, false)
+      }
+    })
+    // Add new selections
+    newSelectedRows.forEach(rowIndex => {
+      if (!selectedRows.includes(rowIndex)) {
+        handleRowSelectionChange(rowIndex, true)
+      }
+    })
+  }
+
+  const handleTableRowExpansionChange = (newExpandedRows: number[]) => {
+    // Convert array-based expansion to individual calls
+    // Clear current expansion first
+    expandedRows.forEach(rowIndex => {
+      if (!newExpandedRows.includes(rowIndex)) {
+        handleRowExpansionChange(rowIndex, false)
+      }
+    })
+    // Add new expansions
+    newExpandedRows.forEach(rowIndex => {
+      if (!expandedRows.includes(rowIndex)) {
+        handleRowExpansionChange(rowIndex, true)
+      }
+    })
+  }
+
+  if (isLoading || labelsLoading) {
+    return (
+      <DashboardLayout title={userManagementTitle}>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">
+              {isLoading && labelsLoading
+                ? 'Loading...'
+                : isLoading
+                  ? 'Loading...'
+                  : 'Loading...'}
+            </p>
           </div>
         </div>
-      </div>
-      <div className="space-y-4">
-        <h4 className="mb-4 text-sm font-semibold text-gray-900">
-          User Actions
-        </h4>
-        <div className="space-y-3">
-          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
-            Edit User
-          </button>
-          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
-            View Profile
-          </button>
-          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
-            Reset Password
-          </button>
-          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
-            Deactivate User
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+      </DashboardLayout>
+    )
+  }
 
-  // Action buttons for bulk operations
+  if (error || labelsError) {
+    return (
+      <DashboardLayout title={userManagementTitle}>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-red-600 mb-4">
+              <svg
+                className="w-12 h-12 mx-auto"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {error && labelsError
+                ? 'Error Loading Users and Labels'
+                : error
+                  ? 'Error Loading Users'
+                  : 'Error Loading Labels'}
+            </h3>
+            <p className="text-gray-600 mb-4">Please try refreshing the page</p>
+            <div className="text-left text-xs bg-red-50 p-4 rounded border max-w-md mx-auto">
+              <p>
+                <strong>Error Details:</strong>
+              </p>
+              {error && (
+                <div className="mb-2">
+                  <p>
+                    <strong>Users:</strong> {error.message || 'Unknown error'}
+                  </p>
+                </div>
+              )}
+              {labelsError && (
+                <div className="mb-2">
+                  <p>
+                    <strong>Labels:</strong> {labelsError}
+                  </p>
+                </div>
+              )}
+              {process.env.NODE_ENV === 'development' && (
+                <pre className="mt-2 text-xs">
+                  {JSON.stringify({ error, labelsError }, null, 2)}
+                </pre>
+              )}
+            </div>
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+  // inside UserManagementPage.tsx (before return)
+
+  const renderUserActions = (
+    row: UserManagementData,
+    _index: number,
+    handleRowClick: (row: UserManagementData) => void
+  ) => {
+    return (
+      <div className="flex gap-2">
+        {/* Edit button only */}
+        <button
+          className="p-1 hover:bg-gray-100 rounded transition-colors"
+          aria-label="Edit"
+          title="Edit"
+          onClick={(e) => {
+            e.stopPropagation()
+            handleRowClick(row)
+          }}
+        >
+          <Pencil className="w-4 h-4 text-blue-600 hover:text-blue-800" />
+        </button>
+      </div>
+    )
+  }
+
+  // Handle row click → prepare RightSlideUserPanel data
+  const handleRowClick = (user: UserManagementData) => {
+    const userForEdit: EditUserData = {
+      firstName: user.userName.split(' ')[0] || '',
+      lastName: user.userName.split(' ').slice(1).join(' ') || '',
+      emailId: user.emailId,
+      status: user.status.toLowerCase(),
+      username: user.username, // Use the actual username for display
+      userId: user.userId, // Use the actual UUID for API calls
+      selectedRoles: user.roleName,
+      rolePermissions: user.roleName.reduce(
+        (acc, role) => {
+          const roleId = role.toLowerCase().replace(' ', '-')
+          acc[roleId] = [
+            {
+              id: 'permission_1',
+              name: 'Permission 1',
+              description: 'General permission 1',
+              enabled: true,
+            },
+            {
+              id: 'permission_2',
+              name: 'Permission 2',
+              description: 'General permission 2',
+              enabled: false,
+            },
+          ]
+          return acc
+        },
+        {} as Record<string, Permission[]>
+      ),
+      roleEnabled: user.roleName.reduce(
+        (acc, role) => {
+          const roleId = role.toLowerCase().replace(' ', '-')
+          acc[roleId] = true
+          return acc
+        },
+        {} as Record<string, boolean>
+      ),
+    }
+
+    setSelectedUserForEdit(userForEdit)
+    setIsUserPanelOpen(true)
+  }
+
+  // Custom cell renderer for role names
+  const renderCustomCell = (column: string, value: unknown) => {
+    if (column === 'roleName' && Array.isArray(value)) {
+      return (
+        <div className="flex flex-wrap gap-1">
+          {value.map((role, idx) => (
+            <span
+              key={idx}
+              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+            >
+              {role}
+            </span>
+          ))}
+        </div>
+      )
+    }
+    return value as string
+  }
+
+  // Bulk action buttons
   const actionButtons = [
     {
-      label: "Deactivate",
-      onClick: () => console.log("Deactivate selected users"),
+      label: getUserManagementLabelDynamic('CDL_DEACTIVATE'),
+      onClick: () => console.log('Deactivate users'),
       disabled: selectedRows.length === 0,
-      variant: "secondary" as const,
+      variant: 'secondary' as const,
     },
     {
-      label: "Activate",
-      onClick: () => console.log("Activate selected users"),
+      label: getUserManagementLabelDynamic('CDL_ACTIVATE'),
+      onClick: () => console.log('Activate users'),
       disabled: selectedRows.length === 0,
-      variant: "primary" as const,
+      variant: 'primary' as const,
     },
     {
-      label: "Download",
-      onClick: () => console.log("Download selected users"),
-      icon: "/download.svg",
+      label: getUserManagementLabelDynamic('CDL_DOWNLOAD'),
+      onClick: () => console.log('Download users'),
       disabled: selectedRows.length === 0,
-      iconAlt: "download icon",
+      icon: '/download.svg',
+      iconAlt: 'download icon',
     },
-  ];
+  ]
 
   return (
     <>
@@ -372,32 +383,28 @@ const UserManagementPage: React.FC = () => {
           onClose={() => setIsSidePanelOpen(false)}
         />
       )}
-
       <RightSlideUserPanel
         isOpen={isUserPanelOpen}
-        onClose={() => setIsUserPanelOpen(false)}
-        mode={selectedUserForEdit ? "edit" : "add"}
+        onClose={() => {
+          setIsUserPanelOpen(false)
+          setSelectedUserForEdit(null) // Clear selected user when closing
+        }}
+        mode={selectedUserForEdit ? 'edit' : 'add'}
         userData={selectedUserForEdit}
       />
 
-      <DashboardLayout title="User Management">
-        <div className="bg-[#FFFFFFBF] border rounded-2xl flex flex-col h-full">
-          {/* Sticky Header Section */}
+      <DashboardLayout title={userManagementTitle}>
+        <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
+          {/* Header with actions */}
           <div className="sticky top-0 z-10 bg-[#FFFFFFBF] border-b border-gray-200 rounded-t-2xl">
-            {/* Action Buttons */}
-            {/* <PageActionButtons
-              entityType="userManagement"
-              showButtons={{ addNew: true }}
-              onAddNew={() => setIsUserPanelOpen(true)}
-            /> */}
             <PageActionButtons
               entityType="userManagement"
-              showButtons={{ addNew: true, showAllSearch: true }}
-              showAllSearch={showAllSearch}
-              onToggleAllSearch={() => setShowAllSearch((prev) => !prev)}
-              onAddNew={() => setIsUserPanelOpen(true)}
-            />{" "}
-            {/* Bulk Action Buttons - shown when rows are selected */}
+              showButtons={{ addNew: true }}
+              onAddNew={() => {
+                setSelectedUserForEdit(null) // Clear any selected user data
+                setIsUserPanelOpen(true)
+              }}
+            />
             {selectedRows.length > 0 && (
               <div className="flex justify-end gap-2 py-3.5 px-4 border-b border-gray-200">
                 {actionButtons.map((button, index) => (
@@ -405,11 +412,7 @@ const UserManagementPage: React.FC = () => {
                     key={index}
                     onClick={button.onClick}
                     disabled={button.disabled}
-                    className={`flex items-center h-8 py-1.5 px-2.5 gap-1.5 font-sans font-medium text-sm rounded-md transition-colors ${
-                      button.variant === "primary"
-                        ? "bg-[#155DFC] text-[#FAFAF9] hover:bg-blue-700"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    } ${button.disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                    className={`flex items-center h-8 py-1.5 px-2.5 gap-1.5 font-medium text-sm rounded-md ${button.variant === 'primary' ? 'bg-[#155DFC] text-white' : 'bg-gray-100 text-gray-700'} ${button.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {button.icon && (
                       <img src={button.icon} alt={button.iconAlt} />
@@ -421,40 +424,39 @@ const UserManagementPage: React.FC = () => {
             )}
           </div>
 
-          {/* Table Container with Fixed Pagination */}
-          <div className="flex flex-col flex-1 min-h-0">
-            <div className="flex-1 overflow-auto">
-              <ExpandableDataTable<UserManagementData>
-                data={paginated}
-                columns={tableColumns}
-                searchState={search}
-                onSearchChange={handleSearchChange}
-                showAllSearch={showAllSearch}
-                paginationState={{
-                  page,
-                  rowsPerPage,
-                  totalRows,
-                  totalPages,
-                  startItem,
-                  endItem,
-                }}
-                onPageChange={handlePageChange}
-                onRowsPerPageChange={handleRowsPerPageChange}
-                selectedRows={selectedRows}
-                onRowSelectionChange={handleRowSelectionChange}
-                expandedRows={expandedRows}
-                onRowExpansionChange={handleRowExpansionChange}
-                renderExpandedContent={renderExpandedContent}
-                statusOptions={statusOptions}
-                onDataChange={handleDataChange}
-                onRowClick={handleRowClick}
-              />
-            </div>
+          {/* Table */}
+          <div className="flex-1 overflow-auto">
+            <ExpandableDataTable<UserManagementData>
+              data={userData}
+              columns={tableColumns}
+              searchState={search}
+              onSearchChange={handleSearchChange}
+              paginationState={{
+                page: page + 1, // Convert 0-based to 1-based for display
+                rowsPerPage,
+                totalRows,
+                totalPages,
+                startItem,
+                endItem,
+              }}
+              onPageChange={(newPage) => handlePageChange(newPage - 1)} // Convert 1-based to 0-based for API
+              onRowsPerPageChange={handleRowsPerPageChange}
+              selectedRows={selectedRows}
+              onRowSelectionChange={handleTableRowSelectionChange}
+              expandedRows={expandedRows}
+              onRowExpansionChange={handleTableRowExpansionChange}
+              onRowClick={handleRowClick}
+              statusOptions={statusOptions}
+              renderCustomCell={renderCustomCell}
+              renderActions={(row, index) =>
+                renderUserActions(row, index, handleRowClick)
+              }
+            />
           </div>
         </div>
       </DashboardLayout>
     </>
-  );
-};
+  )
+}
 
-export default UserManagementPage;
+export default UserManagementPage

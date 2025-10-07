@@ -17,7 +17,6 @@ export const RightSlidePanel: React.FC<RightSlidePanelProps> = ({
   isOpen,
   onClose,
   title,
-  reportData = {},
 }) => {
   return (
     <>
@@ -94,7 +93,7 @@ export const RightSlidePanel: React.FC<RightSlidePanelProps> = ({
               <input
                 type="text"
                 value="10-06-2025"
-                onChange={(e) => {}}
+                onChange={() => {}}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"
               />
               <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />

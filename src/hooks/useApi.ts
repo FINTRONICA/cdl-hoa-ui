@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import axios, { type AxiosRequestConfig, type AxiosResponse } from 'axios'
 import { type ApiResponse } from '@/types'
+import { API_CONFIG } from '@/constants'
 
 interface UseApiOptions {
   baseURL?: string
@@ -32,7 +33,7 @@ export function useApi<T = unknown>(options: UseApiOptions = {}): UseApiReturn<T
 
       try {
         const response: AxiosResponse<ApiResponse<T>> = await axios({
-          baseURL: options.baseURL || process.env.NEXT_PUBLIC_API_URL || '',
+          baseURL: options.baseURL || API_CONFIG.BASE_URL,
           timeout: options.timeout || 10000,
           headers: {
             'Content-Type': 'application/json',

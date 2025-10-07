@@ -1,11 +1,14 @@
 import React from 'react'
+import { useRouter } from 'next/navigation'
 import { UserProfile } from '../../molecules/UserProfile'
+import { useAuthStore } from '@/store/authStore'
 
 interface HeaderProps {
   title: string
   subtitle?: string
   showActions?: boolean
   showFilters?: boolean
+  className?: string
   actions?: {
     label: string
     icon?: React.ComponentType<{ className?: string }>
@@ -17,9 +20,22 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   title,
   subtitle = 'Description text',
+  className = '',
 }) => {
+  const router = useRouter()
+  const { user, logout } = useAuthStore()
+
+  const handleLogout = () => {
+    logout()
+    router.push('/login')
+  }
+
+  // Fallback user data if user is not available
+  const displayName = user?.name || 'User'
+  const displayEmail = user?.email
+
   return (
-    <header className="bg-white/0 px-5 py-4">
+    <header className={`bg-white/0 px-5 py-4 ${className}`}>
       <div className="flex items-center justify-between">
         {/* Left side - Title and description */}
         <div className="flex flex-col justify-center">
@@ -34,7 +50,11 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right side - Controls */}
         <div className="flex items-center gap-6">
-          <UserProfile name="Rakesh Raushan" />
+          <UserProfile
+            name={displayName}
+            {...(displayEmail && { email: displayEmail })}
+            onLogout={handleLogout}
+          />
         </div>
       </div>
     </header>

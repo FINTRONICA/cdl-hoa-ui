@@ -10,7 +10,7 @@ interface ActionButton {
 }
 
 interface ActionButtonsProps {
-  buttons: ActionButton[]
+  buttons?: ActionButton[]
   className?: string
 }
 
@@ -23,7 +23,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
     disabled: boolean = false
   ) => {
     const baseClasses =
-      'px-[10px] py-[6px] w-[80px] justify-center items-center text-sm font-sans font-medium leading-5 rounded-md transition-colors shadow-sm'
+      'px-[10px] py-[6px] w-[80px] justify-center items-center text-sm font-sans font-medium leading-5 rounded-md transition-colors'
 
     if (disabled) {
       return `${baseClasses} text-[#99A1AF] bg-[#E5E7EB] cursor-not-allowed`
@@ -46,6 +46,11 @@ export const ActionButtons: React.FC<ActionButtonsProps> = ({
     return disabled
       ? `${baseClasses}  cursor-not-allowed`
       : baseClasses
+  }
+
+  // Safety check for buttons array
+  if (!buttons || !Array.isArray(buttons) || buttons.length === 0) {
+    return null
   }
 
   return (

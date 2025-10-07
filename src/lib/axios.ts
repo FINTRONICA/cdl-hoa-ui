@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getAuthCookies } from '../utils/cookieUtils'
 
 const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://api.example.com',
@@ -11,8 +12,8 @@ const axiosInstance = axios.create({
 // Request interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
-    // Add auth token if available
-    const token = localStorage.getItem('token')
+    // Add auth token if available using existing utility
+    const { token } = getAuthCookies()
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -21,15 +22,11 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Response interceptor
+// Response interceptor - Let apiClient.ts handle errors
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Handle common errors
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      window.location.href = '/login'
-    }
+    // Just pass the error through - apiClient.ts will handle it
     return Promise.reject(error)
   }
 )

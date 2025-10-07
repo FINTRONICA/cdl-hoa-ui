@@ -4,11 +4,17 @@ import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import timezone from 'dayjs/plugin/timezone'
+import utc from 'dayjs/plugin/utc'
+import { JWTParser } from '@/utils/jwtParser';
+import { JWTPayload } from '@/types/auth';
 
 // Status utilities
 export * from './statusUtils'
 
 dayjs.extend(relativeTime)
+dayjs.extend(timezone)
+dayjs.extend(utc)
 
 /**
  * Combines class names with Tailwind CSS class merging
@@ -46,6 +52,37 @@ export function formatDate(
  */
 export function formatDateForInput(date: string | Date): string {
   return dayjs(date).format('YYYY-MM-DD')
+}
+
+/**
+ * Formats a date for Java ZonedDateTime (ISO 8601 with timezone)
+ */
+export function formatDateForZonedDateTime(date: string | Date): string {
+  return dayjs(date).format('YYYY-MM-DDTHH:mm:ssZ')
+}
+
+/**
+ * Formats a date for Java ZonedDateTime with specific timezone
+ */
+export function formatDateForZonedDateTimeWithTimezone(date: string | Date, timezone: string = 'Asia/Kolkata'): string {
+  return dayjs(date).tz(timezone).format('YYYY-MM-DDTHH:mm:ssZ')
+}
+
+/**
+ * Converts date picker format (YYYY-MM-DD) to Java ZonedDateTime format
+ * This function takes a date string from date picker and adds time and timezone
+ */
+export function convertDatePickerToZonedDateTime(dateString: string, time: string = '00:00:00'): string {
+  if (!dateString) return '';
+  
+  // If already in ISO format, return as is
+  if (dateString.includes('T')) {
+    return dateString;
+  }
+  
+  // Convert YYYY-MM-DD to YYYY-MM-DDTHH:mm:ssZ
+  const dateTimeString = `${dateString}T${time}`;
+  return dayjs(dateTimeString).format('YYYY-MM-DDTHH:mm:ssZ');
 }
 
 /**
@@ -131,12 +168,6 @@ export function throttle<T extends (...args: unknown[]) => unknown>(
   }
 }
 
-/**
- * Generates a random ID
- */
-export function generateId(): string {
-  return Math.random().toString(36).substr(2, 9)
-}
 
 /**
  * Capitalizes the first letter of a string
@@ -330,4 +361,78 @@ export const formatDateForDisplay = (dateString: string) => {
   
   // Fallback: return as is
   return { date: dateString, time: '' }
+}
+
+// JWT Utilities
+export { JWTParser } from '@/utils/jwtParser';
+
+/**
+ * Utility function to decode JWT token from storage
+ * @returns Decoded JWT payload or null if not found/invalid
+ */
+export const decodeStoredJWT = (): JWTPayload | null => {
+  const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+  if (!token) return null;
+  
+  const parsed = JWTParser.parseToken(token);
+  return parsed ? parsed.payload : null;
+};
+
+/**
+ * Utility function to get current user info from JWT
+ * @returns User info from JWT or null if not found/invalid
+ */
+export const getCurrentUserFromJWT = (): { name: any; email: any; role: string; issuedAt: Date; expiresAt: Date } | null => {
+  const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+  if (!token) return null;
+  
+  const userInfo = JWTParser.extractUserInfo(token);
+  return userInfo;
+};
+
+/**
+ * Utility function to check if current JWT is expired
+ * @returns True if expired or invalid, false otherwise
+ */
+export const isCurrentJWTExpired = (): boolean => {
+  const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+  if (!token) return true;
+  
+  return JWTParser.isExpired(token);
+};
+
+/**
+ * Utility function to check if current JWT is expiring soon
+ * @param minutes - Minutes before expiration to consider "soon" (default: 5)
+ * @returns True if expiring soon, false otherwise
+ */
+export const isCurrentJWTExpiringSoon = (minutes: number = 5): boolean => {
+  const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+  if (!token) return true;
+  
+  return JWTParser.isExpiringSoon(token, minutes);
+};
+
+
+export function generateId(prefix: string = 'DEV'): string {
+  const now = new Date();
+  const timestamp = now.getFullYear().toString() +
+    (now.getMonth() + 1).toString().padStart(2, '0') +
+    now.getDate().toString().padStart(2, '0') + '-' +
+    now.getHours().toString().padStart(2, '0') +
+    now.getMinutes().toString().padStart(2, '0') +
+    now.getSeconds().toString().padStart(2, '0');
+
+  const randomPart = Math.random().toString(36).substr(2, 5).toUpperCase();
+
+  return `${prefix}-${timestamp}-${randomPart}`;
+}
+
+// Backward compatibility functions
+export function generateDeveloperId(): string {
+  return generateId('DEV');
+}
+
+export function generateReaId(): string {
+  return generateId('REA');
 }

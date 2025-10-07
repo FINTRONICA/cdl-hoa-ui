@@ -39,9 +39,7 @@ export const Select: React.FC<SelectProps> = ({
         className={cn(baseClasses, errorClasses, disabledClasses, className)}
         {...props}
       >
-        <option value="" disabled>
-          {placeholder}
-        </option>
+        {placeholder && <option value="">{placeholder}</option>}
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}

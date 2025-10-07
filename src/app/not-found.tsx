@@ -32,11 +32,6 @@ export default function NotFound() {
         </div>
 
         <div className="space-y-4">
-          <Link href="/">
-            <Button variant="primary" size="lg" className="w-full">
-              Go Home
-            </Button>
-          </Link>
           <Link href="/dashboard">
             <Button variant="outline" size="lg" className="w-full">
               Go to Dashboard

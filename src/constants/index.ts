@@ -11,17 +11,29 @@ export const APP_CONFIG = {
 
 export const ROUTES = {
   dashboard: '/dashboard',
-  propertyManagementCompany: '/property-management-company',
+  projects: '/projects',
   transactions: '/transactions',
   activities: '/activities',
   reports: '/reports',
   admin: '/admin',
-  owners: '/owners',
-  properts: '/properts',
-  payments: '/payments',
+  investors: '/investors',
+  developers: '/developers',
+  payments: '/transactions',
+  workflowAction: '/admin/workflow/action',
+  workfloDifinition: '/admin/workflow/definition',
+  workfloStageTemplate: '/admin/workflow/stage-template',
+  workflowAmountRule: '/admin/workflow/amount-rule',
+  workflowAmountStage: '/admin/workflow/amount-rule',
+  workflowRequest: '/admin/workflow/request',
+  // payments: '/payments',
+
 } as const
 
-export const API_ENDPOINTS = {
+// Import the new API endpoints
+export { API_ENDPOINTS, API_CONFIG, buildApiUrl, buildApiUrlWithParams, buildFilterParams, buildPaginationParams, API_QUERY_PARAMS, FILTER_OPERATORS } from './apiEndpoints'
+
+// Legacy API endpoints for backward compatibility
+export const LEGACY_API_ENDPOINTS = {
   auth: {
     login: '/auth/login',
     logout: '/auth/logout',
@@ -34,12 +46,12 @@ export const API_ENDPOINTS = {
     update: (id: string) => `/users/${id}`,
     delete: (id: string) => `/users/${id}`,
   },
-  propertyManagementCompany: {
-    list: '/property-management-company',
-    create: '/property-management-company',
-    update: (id: string) => `/property-management-company/${id}`,
-    delete: (id: string) => `/property-management-company/${id}`,
-    details: (id: string) => `/property-management-company/${id}`,
+  projects: {
+    list: '/projects',
+    create: '/projects',
+    update: (id: string) => `/projects/${id}`,
+    delete: (id: string) => `/projects/${id}`,
+    details: (id: string) => `/projects/${id}`,
   },
   transactions: {
     list: '/transactions',
@@ -59,7 +71,7 @@ export const API_ENDPOINTS = {
 } as const
 
 export const STATUS_OPTIONS = {
-  propertyManagementCompany: [
+  project: [
     { value: 'draft', label: 'Draft' },
     { value: 'active', label: 'Active' },
     { value: 'completed', label: 'Completed' },
@@ -79,7 +91,7 @@ export const STATUS_OPTIONS = {
 export const USER_ROLES = {
   admin: 'admin',
   user: 'user',
-  owner: 'owners',
+  investor: 'investor',
 } as const
 
 export const CURRENCIES = [
@@ -209,4 +221,17 @@ export const THEME_COLORS = {
     900: '#7f1d1d',
     950: '#450a0a',
   },
+} as const
+
+// Template file names for document downloads
+export const TEMPLATE_FILES = {
+  BUILD_PARTNER: 'BuildPartnerTemplate.xlsx',
+  BUILD_PARTNER_ASSET: 'BuildPartnerAssestTemplate.xlsx',
+  BUILD_PARTNER_BENEFICIARY: 'BuildPartnerBeneficiaryTemplate.xlsx',
+  BUILD_PARTNER_ASSET_BENEFICIARY: 'BuildPartnerAssestBeneficiaryTemplate.xlsx',
+  INVESTOR: 'InvesterUpload.xlsx',
+  UNIT_PLAN: 'OffUnitPlanTemplate.xlsx',
+  SPLIT: 'SplitUploadTemplate.xlsx',
+  STAFF: 'STAFF_FILE_TEMPLATE.xlsx',
+  GUARANTEE: 'SuretyBondTemplate copy.xlsx',
 } as const 

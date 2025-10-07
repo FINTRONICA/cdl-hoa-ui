@@ -31,24 +31,24 @@ export const statusCards = [
 
 export const tabs = [
   { id: 'developer', label: 'Developer' },
-  { id: 'property-management-company', label: 'Property Management Cmpany' },
-  { id: 'owner', label: 'owner' },
+  { id: 'projects', label: 'Projects' },
+  { id: 'investor', label: 'Investor' },
   { id: 'guarantee', label: 'Guarantee' },
-  { id: 'payment', label: 'Payment' },
+  { id: 'deposits', label: 'Deposits' },
   { id: 'partialPayments', label: 'Partial Payments' },
   { id: 'splitAllocate', label: 'Split & Allocate' },
   { id: 'tasDeposit', label: 'TAS Deposit' },
   { id: 'fundRollback', label: 'Fund Rollback' },
 ]
 
-export const statusOptions = ['Incomplete', 'In Review', 'Rejected', 'Approved']
+export const statusOptions = ['PENDING', 'APPROVED', 'REJECTED', 'IN_PROGRESS', 'DRAFT', 'INITIATED']
 
 export const activitiesData = [
   {
     developer: 'LnT Ultra',
     maker: 'Admin',
     recentActor: 'Admin',
-    comment: 'Romaguera croma orkery',
+    comment: '2',
     createdDate: '3 June 2025 19:45 PM',
     updatedDate: '4 June 2025 19:45 PM',
     status: 'In Review',
@@ -85,7 +85,7 @@ export const activitiesData = [
     developer: 'Ambhuja',
     maker: 'Admin',
     recentActor: 'Admin',
-    comment: 'Romaguera croma orkery',
+    comment: '2',
     createdDate: '5 June 2025 10:24 AM',
     updatedDate: '5 June 2025 12:38 PM',
     status: 'Incomplete',
@@ -117,7 +117,7 @@ export const activitiesData = [
     developer: 'DLF Infra',
     maker: 'Sr Admin',
     recentActor: 'Sr Admin',
-    comment: 'Review is in progress',
+    comment: '4',
     createdDate: '1 June 2025 19:45 PM',
     updatedDate: '2 June 2025 19:45 PM',
     status: 'Incomplete',
@@ -149,7 +149,7 @@ export const activitiesData = [
     developer: 'Bharat Infra',
     maker: 'Maker ENBD',
     recentActor: 'Maker ENBD',
-    comment: 'Few documents are incomplete',
+    comment: '6',
     createdDate: '25 May 2025 19:45 PM',
     updatedDate: '26 May 2025 19:45 PM',
     status: 'Incomplete',
@@ -181,7 +181,7 @@ export const activitiesData = [
     developer: 'Lodha Buildcom',
     maker: 'Checker ENBD',
     recentActor: 'Checker ENBD',
-    comment: 'Romaguera croma orkery',
+    comment: '2',
     createdDate: '22 May 2025 19:45 PM',
     updatedDate: '23 May 2025 19:45 PM',
     status: 'Approved',
@@ -218,7 +218,7 @@ export const activitiesData = [
     developer: 'Reliance infra',
     maker: 'Checker ENBD',
     recentActor: 'Checker ENBD',
-    comment: 'Romaguera croma orkery',
+    comment: '2',
     createdDate: '21 May 2025 19:45 PM',
     updatedDate: '22 May 2025 19:45 PM',
     status: 'Incomplete',
@@ -250,7 +250,7 @@ export const activitiesData = [
     developer: 'Godrej Properties',
     maker: 'Admin',
     recentActor: 'Admin',
-    comment: 'Romaguera croma orkery',
+    comment: '2',
     createdDate: '3 June 2025 19:45 PM',
     updatedDate: '4 June 2025 19:45 PM',
     status: 'In Review',
@@ -282,7 +282,7 @@ export const activitiesData = [
     developer: 'Mahindra Lifespaces',
     maker: 'Maker ENBD',
     recentActor: 'Maker ENBD',
-    comment: 'Romaguera croma orkery',
+    comment: '2',
     createdDate: '1 June 2025 19:45 PM',
     updatedDate: '2 June 2025 19:45 PM',
     status: 'In Review',
@@ -314,7 +314,7 @@ export const activitiesData = [
     developer: 'Tata Infra',
     maker: 'Maker ENBD',
     recentActor: 'Maker ENBD',
-    comment: 'Romaguera croma orkery',
+    comment: '2',
     createdDate: '25 May 2025 19:45 PM',
     updatedDate: '26 May 2025 19:45 PM',
     status: 'Incomplete',
@@ -346,7 +346,7 @@ export const activitiesData = [
     developer: 'Sobha Developers',
     maker: 'Admin',
     recentActor: 'Admin',
-    comment: 'Romaguera croma orkery',
+    comment: '2',
     createdDate: '20 May 2025 14:30 PM',
     updatedDate: '21 May 2025 09:15 AM',
     status: 'Approved',
@@ -379,4 +379,7 @@ export const activitiesData = [
       },
     ],
   },
-] 
+]
+
+// Data loader function for useDataLoader hook
+export const activitiesDataLoader = () => Promise.resolve(activitiesData) 
