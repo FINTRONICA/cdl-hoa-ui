@@ -92,7 +92,7 @@ const Step4: React.FC<Step4Props> = ({ beneficiaries, onBeneficiariesChange, bui
   // Template download handler
   const handleDownloadTemplate = async () => {
     try {
-      await downloadTemplate(TEMPLATE_FILES.BUILD_PARTNER_BENEFICIARY)
+      await downloadTemplate(TEMPLATE_FILES.ASSET_REGISTER_BENEFICIARY)
     } catch (error) {
       
     }

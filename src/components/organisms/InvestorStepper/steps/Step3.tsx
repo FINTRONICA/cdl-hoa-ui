@@ -131,7 +131,7 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
       data: existingPaymentPlanData,
       isLoading: isLoadingExistingPaymentPlan,
     } = useGetEnhanced<PaymentPlanResponse[]>(
-      `${API_ENDPOINTS.CAPITAL_PARTNER_PAYMENT_PLAN.GET_ALL}?capitalPartnerId.equals=${capitalPartnerId || 0}`,
+      `${API_ENDPOINTS.OWNER_REGISTRY_PAYMENT_PLAN.GET_ALL}?capitalPartnerId.equals=${capitalPartnerId || 0}`,
       {},
       {
         enabled: Boolean(isEditMode && capitalPartnerId),

@@ -49,7 +49,7 @@ export const API_ENDPOINTS = {
     NAV_MENU: '/app-language-translation/nav-menu',
     BUILD_PARTNER: '/app-language-translation/build-partner',
     BUILD_PARTNER_ASSET: '/app-language-translation/build-partner-assests',
-    CAPITAL_PARTNER: '/app-language-translation/capital-partner',
+    OWNER_REGISTRY: '/app-language-translation/capital-partner',
     WORKFLOW_ACTIONS: '/app-language-translation/workflow-actions',
     WORKFLOW_DEFINITION: '/app-language-translation/workflow-definition',
     WORKFLOW_STAGE_TEMPLATE:
@@ -266,7 +266,16 @@ ASSET_REGISTER_FEES: {
     FIND_ALL: '//asset-register-fees/find-all',
 },
 
-
+  // Asset Register Create Stepper APIs
+  ASSET_REGISTER_CREATE: {
+    DETAILS_SAVE: '/asset-register',
+    CONTACT_SAVE: '/asset-register-contact',
+    FEES_SAVE: '/asset-register-fees',
+    BENEFICIARY_SAVE: '/asset-register-beneficiary',
+    REVIEW_SAVE: '/asset-register-review',
+    GET_STEP_DATA: (step: number) => `/asset-register/create/${step}/data`,
+    VALIDATE_STEP: (step: number) => `/asset-register/create/${step}/validate`,
+  },
   // MANAGEMENT_FIRMS HOA
   MANAGEMENT_FIRMS: { 
     GET_BY_ID: (id: string) => `/management-firms/${id}`,
@@ -431,107 +440,117 @@ ASSET_REGISTER_FEES: {
 
 
   // Build Partner
-  BUILD_PARTNER_ACCOUNT: {
-    GET_BY_ID: (id: string) => `/build-partner-account/${id}`,
-    UPDATE: (id: string) => `/build-partner-account/${id}`,
-    DELETE: (id: string) => `/build-partner-account/${id}`,
-    SAVE: '/build-partner-account',
-    FIND_ALL: '/build-partner-account/find-all',
-  },
-   BUILD_PARTNER_BENEFICIARY: {
-    GET_BY_ID: (id: string) =>
-      `/build-partner-beneficiary?buildPartnerId.equals=${id}`,
-    UPDATE: (id: string) => `/build-partner-beneficiary/${id}`,
-    DELETE: (id: string) => `/build-partner-beneficiary/${id}`,
-    SAVE: '/build-partner-beneficiary',
-    FIND_ALL: '/build-partner-beneficiary/find-all',
-    UPLOAD: '/build-partner-beneficiary/upload',
-  },
+  // BUILD_PARTNER_ACCOUNT: {
+  //   GET_BY_ID: (id: string) => `/build-partner-account/${id}`,
+  //   UPDATE: (id: string) => `/build-partner-account/${id}`,
+  //   DELETE: (id: string) => `/build-partner-account/${id}`,
+  //   SAVE: '/build-partner-account',
+  //   FIND_ALL: '/build-partner-account/find-all',
+  // },
+  //  BUILD_PARTNER_BENEFICIARY: {
+  //   GET_BY_ID: (id: string) =>
+  //     `/build-partner-beneficiary?buildPartnerId.equals=${id}`,
+  //   UPDATE: (id: string) => `/build-partner-beneficiary/${id}`,
+  //   DELETE: (id: string) => `/build-partner-beneficiary/${id}`,
+  //   SAVE: '/build-partner-beneficiary',
+  //   FIND_ALL: '/build-partner-beneficiary/find-all',
+  //   UPLOAD: '/build-partner-beneficiary/upload',
+  // },
 
-  BUILD_PARTNER_CONTACT: {
-    GET_BY_ID: (id: string) =>
-      `/build-partner-contact?buildPartnerId.equals=${id}`,
-    UPDATE: (id: string) => `/build-partner-contact/${id}`,
-    DELETE: (id: string) => `/build-partner-contact/${id}`,
-    SAVE: '/build-partner-contact',
-    FIND_ALL: '/build-partner-contact/find-all',
-  },
-  BUILD_PARTNER_FEES: {
-    GET_BY_ID: (id: string) =>
-      `/build-partner-fees?buildPartnerId.equals=${id}`,
-    UPDATE: (id: string) => `/build-partner-fees/${id}`,
-    DELETE: (id: string) => `/build-partner-fees/${id}`,
-    GET_ALL: '/build-partner-fees',
-    SAVE: '/build-partner-fees',
-    FIND_ALL: '/build-partner-fees/find-all',
-  },
+  // BUILD_PARTNER_CONTACT: {
+  //   GET_BY_ID: (id: string) =>
+  //     `/build-partner-contact?buildPartnerId.equals=${id}`,
+  //   UPDATE: (id: string) => `/build-partner-contact/${id}`,
+  //   DELETE: (id: string) => `/build-partner-contact/${id}`,
+  //   SAVE: '/build-partner-contact',
+  //   FIND_ALL: '/build-partner-contact/find-all',
+  // },
+  // BUILD_PARTNER_FEES: {
+  //   GET_BY_ID: (id: string) =>
+  //     `/build-partner-fees?buildPartnerId.equals=${id}`,
+  //   UPDATE: (id: string) => `/build-partner-fees/${id}`,
+  //   DELETE: (id: string) => `/build-partner-fees/${id}`,
+  //   GET_ALL: '/build-partner-fees',
+  //   SAVE: '/build-partner-fees',
+  //   FIND_ALL: '/build-partner-fees/find-all',
+  // },
 
+  // // Build Partner Stepper APIs
+  // BUILD_PARTNER_CREATE: {
+  //   DETAILS_SAVE: '/build-partner',
+  //   CONTACT_SAVE: '/build-partner-contact',
+  //   FEES_SAVE: '/build-partner-fees',
+  //   BENEFICIARY_SAVE: '/build-partner-beneficiary',
+  //   REVIEW_SAVE: '/build-partner-review',
+  //   GET_STEP_DATA: (step: number) => `/build-partner/create/${step}/data`,
+  //   VALIDATE_STEP: (step: number) => `/build-partner/create/${step}/validate`,
+  // },
 
   
-  // Capital Partner
-  CAPITAL_PARTNER: {
-    GET_BY_ID: (id: string) => `/capital-partner/${id}`,
-    UPDATE: (id: string) => `/capital-partner/${id}`,
-    DELETE: (id: string) => `/capital-partner/${id}`,
-    SOFT_DELETE: (id: string) => `/capital-partner/soft/${id}`,
-    GET_ALL: '/capital-partner?deleted.equals=false&enabled.equals=true',
-    SAVE: '/capital-partner',
-    FIND_ALL: '/capital-partner/find-all',
-  },
+  // // Capital Partner
+  // CAPITAL_PARTNER: {
+  //   GET_BY_ID: (id: string) => `/capital-partner/${id}`,
+  //   UPDATE: (id: string) => `/capital-partner/${id}`,
+  //   DELETE: (id: string) => `/capital-partner/${id}`,
+  //   SOFT_DELETE: (id: string) => `/capital-partner/soft/${id}`,
+  //   GET_ALL: '/capital-partner?deleted.equals=false&enabled.equals=true',
+  //   SAVE: '/capital-partner',
+  //   FIND_ALL: '/capital-partner/find-all',
+  // },
 
-  CAPITAL_PARTNER_BANK_INFO: {
-    GET_BY_ID: (id: string) => `/capital-partner-bank-info/${id}`,
-    UPDATE: (id: string) => `/capital-partner-bank-info/${id}`,
-    DELETE: (id: string) => `/capital-partner-bank-info/${id}`,
-    GET_ALL: '/capital-partner-bank-info',
-    SAVE: '/capital-partner-bank-info',
-    FIND_ALL: '/capital-partner-bank-info/find-all',
-  },
+  // CAPITAL_PARTNER_BANK_INFO: {
+  //   GET_BY_ID: (id: string) => `/capital-partner-bank-info/${id}`,
+  //   UPDATE: (id: string) => `/capital-partner-bank-info/${id}`,
+  //   DELETE: (id: string) => `/capital-partner-bank-info/${id}`,
+  //   GET_ALL: '/capital-partner-bank-info',
+  //   SAVE: '/capital-partner-bank-info',
+  //   FIND_ALL: '/capital-partner-bank-info/find-all',
+  // },
 
-  CAPITAL_PARTNER_UNIT_BOOKING: {
-    GET_BY_ID: (id: string) => `/capital-partner-unit-booking/${id}`,
-    UPDATE: (id: string) => `/capital-partner-unit-booking/${id}`,
-    DELETE: (id: string) => `/capital-partner-unit-booking/${id}`,
-    GET_ALL: '/capital-partner-unit-booking',
-    SAVE: '/capital-partner-unit-booking',
-    FIND_ALL: '/capital-partner-unit-booking/find-all',
-  },
+  // CAPITAL_PARTNER_UNIT_BOOKING: {
+  //   GET_BY_ID: (id: string) => `/capital-partner-unit-booking/${id}`,
+  //   UPDATE: (id: string) => `/capital-partner-unit-booking/${id}`,
+  //   DELETE: (id: string) => `/capital-partner-unit-booking/${id}`,
+  //   GET_ALL: '/capital-partner-unit-booking',
+  //   SAVE: '/capital-partner-unit-booking',
+  //   FIND_ALL: '/capital-partner-unit-booking/find-all',
+  // },
 
-  CAPITAL_PARTNER_PAYMENT_PLAN: {
-    GET_BY_ID: (id: string) => `/capital-partner-payment-plan/${id}`,
-    UPDATE: (id: string) => `/capital-partner-payment-plan/${id}`,
-    DELETE: (id: string) => `/capital-partner-payment-plan/${id}`,
-    GET_ALL: '/capital-partner-payment-plan',
-    SAVE: '/capital-partner-payment-plan',
-    FIND_ALL: '/capital-partner-payment-plan/find-all',
-  },
+  // CAPITAL_PARTNER_PAYMENT_PLAN: {
+  //   GET_BY_ID: (id: string) => `/capital-partner-payment-plan/${id}`,
+  //   UPDATE: (id: string) => `/capital-partner-payment-plan/${id}`,
+  //   DELETE: (id: string) => `/capital-partner-payment-plan/${id}`,
+  //   GET_ALL: '/capital-partner-payment-plan',
+  //   SAVE: '/capital-partner-payment-plan',
+  //   FIND_ALL: '/capital-partner-payment-plan/find-all',
+  // },
 
-  CAPITAL_PARTNER_UNIT: {
-    GET_BY_ID: (id: string) => `/capital-partner-unit/${id}`,
-    UPDATE: (id: string) => `/capital-partner-unit/${id}`,
-    DELETE: (id: string) => `/capital-partner-unit/${id}`,
-    GET_ALL: '/capital-partner-unit',
-    SAVE: '/capital-partner-unit',
-    FIND_ALL: '/capital-partner-unit/find-all',
-  },
+  // CAPITAL_PARTNER_UNIT: {
+  //   GET_BY_ID: (id: string) => `/capital-partner-unit/${id}`,
+  //   UPDATE: (id: string) => `/capital-partner-unit/${id}`,
+  //   DELETE: (id: string) => `/capital-partner-unit/${id}`,
+  //   GET_ALL: '/capital-partner-unit',
+  //   SAVE: '/capital-partner-unit',
+  //   FIND_ALL: '/capital-partner-unit/find-all',
+  // },
 
-  CAPITAL_PARTNER_UNIT_PURCHASE: {
-    GET_BY_ID: (id: string) => `/capital-partner-unit-purchase/${id}`,
-    UPDATE: (id: string) => `/capital-partner-unit-purchase/${id}`,
-    DELETE: (id: string) => `/capital-partner-unit-purchase/${id}`,
-    GET_ALL: '/capital-partner-unit-purchase',
-    SAVE: '/capital-partner-unit-purchase',
-    FIND_ALL: '/capital-partner-unit-purchase/find-all',
-  },
+  // CAPITAL_PARTNER_UNIT_PURCHASE: {
+  //   GET_BY_ID: (id: string) => `/capital-partner-unit-purchase/${id}`,
+  //   UPDATE: (id: string) => `/capital-partner-unit-purchase/${id}`,
+  //   DELETE: (id: string) => `/capital-partner-unit-purchase/${id}`,
+  //   GET_ALL: '/capital-partner-unit-purchase',
+  //   SAVE: '/capital-partner-unit-purchase',
+  //   FIND_ALL: '/capital-partner-unit-purchase/find-all',
+  // },
 
-  CAPITAL_PARTNER_UNIT_TYPE: {
-    GET_BY_ID: (id: string) => `/capital-partner-unit-type/${id}`,
-    UPDATE: (id: string) => `/capital-partner-unit-type/${id}`,
-    DELETE: (id: string) => `/capital-partner-unit-type/${id}`,
-    GET_ALL: '/capital-partner-unit-type',
-    SAVE: '/capital-partner-unit-type',
-    FIND_ALL: '/capital-partner-unit-type/find-all',
-  },
+  // CAPITAL_PARTNER_UNIT_TYPE: {
+  //   GET_BY_ID: (id: string) => `/capital-partner-unit-type/${id}`,
+  //   UPDATE: (id: string) => `/capital-partner-unit-type/${id}`,
+  //   DELETE: (id: string) => `/capital-partner-unit-type/${id}`,
+  //   GET_ALL: '/capital-partner-unit-type',
+  //   SAVE: '/capital-partner-unit-type',
+  //   FIND_ALL: '/capital-partner-unit-type/find-all',
+  // },
 
   // Configuration
   CONFIGURATION_STORE: {
@@ -626,100 +645,100 @@ ASSET_REGISTER_FEES: {
   },
 
   // Real Estate Assets
-  REAL_ESTATE_ASSET: {
-    GET_BY_ID: (id: string) => `/real-estate-assest/${id}`,
-    UPDATE: (id: string) => `/real-estate-assest/${id}`,
-    DELETE: (id: string) => `/real-estate-assest/${id}`,
-    SOFT_DELETE: (id: string) => `/real-estate-assest/soft/${id}`,
-    GET_ALL: '/real-estate-assest?deleted.equals=false&enabled.equals=true',
-    SAVE: '/real-estate-assest',
-    FIND_ALL:
-      '/real-estate-assest/find-all?deleted.equals=false&enabled.equals=true',
-  },
+  // REAL_ESTATE_ASSET: {
+  //   GET_BY_ID: (id: string) => `/real-estate-assest/${id}`,
+  //   UPDATE: (id: string) => `/real-estate-assest/${id}`,
+  //   DELETE: (id: string) => `/real-estate-assest/${id}`,
+  //   SOFT_DELETE: (id: string) => `/real-estate-assest/soft/${id}`,
+  //   GET_ALL: '/real-estate-assest?deleted.equals=false&enabled.equals=true',
+  //   SAVE: '/real-estate-assest',
+  //   FIND_ALL:
+  //     '/real-estate-assest/find-all?deleted.equals=false&enabled.equals=true',
+  // },
 
-  REAL_ESTATE_ASSET_BENEFICIARY: {
-    GET_BY_ID: (id: string) => `/real-estate-assest-beneficiary/${id}`,
-    UPDATE: (id: string) => `/real-estate-assest-beneficiary/${id}`,
-    DELETE: (id: string) => `/real-estate-assest-beneficiary/${id}`,
-    GET_ALL: '/real-estate-assest-beneficiary',
-    SAVE: '/real-estate-assest-beneficiary',
-    FIND_ALL: '/real-estate-assest-beneficiary/find-all',
-    GET_BY_PROJECT_ID: (projectId: string) => `/real-estate-assest-beneficiary?realEstateAssestId.equals=${projectId}`,
-  },
+  // REAL_ESTATE_ASSET_BENEFICIARY: {
+  //   GET_BY_ID: (id: string) => `/real-estate-assest-beneficiary/${id}`,
+  //   UPDATE: (id: string) => `/real-estate-assest-beneficiary/${id}`,
+  //   DELETE: (id: string) => `/real-estate-assest-beneficiary/${id}`,
+  //   GET_ALL: '/real-estate-assest-beneficiary',
+  //   SAVE: '/real-estate-assest-beneficiary',
+  //   FIND_ALL: '/real-estate-assest-beneficiary/find-all',
+  //   GET_BY_PROJECT_ID: (projectId: string) => `/real-estate-assest-beneficiary?realEstateAssestId.equals=${projectId}`,
+  // },
 
-  REAL_ESTATE_ASSET_CLOSURE: {
-    GET_BY_ID: (id: string) => `/real-estate-assest-closure/${id}`,
-    UPDATE: (id: string) => `/real-estate-assest-closure/${id}`,
-    DELETE: (id: string) => `/real-estate-assest-closure/${id}`,
-    GET_ALL: '/real-estate-assest-closure',
-    SAVE: '/real-estate-assest-closure',
-    FIND_ALL: '/real-estate-assest-closure/find-all',
-    GET_BY_PROJECT_ID: (projectId: string) => `/real-estate-assest-closure?realEstateAssestId.equals=${projectId}`,
-  },
+  // REAL_ESTATE_ASSET_CLOSURE: {
+  //   GET_BY_ID: (id: string) => `/real-estate-assest-closure/${id}`,
+  //   UPDATE: (id: string) => `/real-estate-assest-closure/${id}`,
+  //   DELETE: (id: string) => `/real-estate-assest-closure/${id}`,
+  //   GET_ALL: '/real-estate-assest-closure',
+  //   SAVE: '/real-estate-assest-closure',
+  //   FIND_ALL: '/real-estate-assest-closure/find-all',
+  //   GET_BY_PROJECT_ID: (projectId: string) => `/real-estate-assest-closure?realEstateAssestId.equals=${projectId}`,
+  // },
 
-  REAL_ESTATE_ASSET_FEE: {
-    GET_BY_ID: (id: string) => `/real-estate-asset-fee/${id}`,
-    UPDATE: (id: string) => `/real-estate-asset-fee/${id}`,
-    DELETE: (id: string) => `/real-estate-asset-fee/${id}`,
-    GET_ALL: '/real-estate-asset-fee',
-    SAVE: '/real-estate-asset-fee',
-    FIND_ALL: '/real-estate-asset-fee/find-all',
-    GET_BY_PROJECT_ID: (projectId: string) => `/real-estate-asset-fee?realEstateAssestId.equals=${projectId}`,
-  },
+  // REAL_ESTATE_ASSET_FEE: {
+  //   GET_BY_ID: (id: string) => `/real-estate-asset-fee/${id}`,
+  //   UPDATE: (id: string) => `/real-estate-asset-fee/${id}`,
+  //   DELETE: (id: string) => `/real-estate-asset-fee/${id}`,
+  //   GET_ALL: '/real-estate-asset-fee',
+  //   SAVE: '/real-estate-asset-fee',
+  //   FIND_ALL: '/real-estate-asset-fee/find-all',
+  //   GET_BY_PROJECT_ID: (projectId: string) => `/real-estate-asset-fee?realEstateAssestId.equals=${projectId}`,
+  // },
 
-  REAL_ESTATE_ASSET_FEE_HISTORY: {
-    GET_BY_ID: (id: string) => `/real-estate-asset-fee-history/${id}`,
-    UPDATE: (id: string) => `/real-estate-asset-fee-history/${id}`,
-    DELETE: (id: string) => `/real-estate-asset-fee-history/${id}`,
-    GET_ALL: '/real-estate-asset-fee-history',
-    SAVE: '/real-estate-asset-fee-history',
-    FIND_ALL: '/real-estate-asset-fee-history/find-all',
-    FEE_REPUSH: (id: string) => `/real-estate-asset-fee-history/fee-repush/${id}`,
-  },
+  // REAL_ESTATE_ASSET_FEE_HISTORY: {
+  //   GET_BY_ID: (id: string) => `/real-estate-asset-fee-history/${id}`,
+  //   UPDATE: (id: string) => `/real-estate-asset-fee-history/${id}`,
+  //   DELETE: (id: string) => `/real-estate-asset-fee-history/${id}`,
+  //   GET_ALL: '/real-estate-asset-fee-history',
+  //   SAVE: '/real-estate-asset-fee-history',
+  //   FIND_ALL: '/real-estate-asset-fee-history/find-all',
+  //   FEE_REPUSH: (id: string) => `/real-estate-asset-fee-history/fee-repush/${id}`,
+  // },
 
-  REAL_ESTATE_ASSET_FINANCIAL_SUMMARY: {
-    GET_BY_ID: (id: string) => `/real-estate-asset-financial-summary/${id}`,
-    UPDATE: (id: string) => `/real-estate-asset-financial-summary/${id}`,
-    DELETE: (id: string) => `/real-estate-asset-financial-summary/${id}`,
-    GET_ALL: '/real-estate-asset-financial-summary',
-    SAVE: '/real-estate-asset-financial-summary',
-    FIND_ALL: '/real-estate-asset-financial-summary/find-all',
-    DELETE_SOFT: '/real-estate-asset-financial-summary/soft/',
-    GET_BY_PROJECT_ID: (projectId: string) => `/real-estate-asset-financial-summary?realEstateAssestId.equals=${projectId}`,
-  },
+  // REAL_ESTATE_ASSET_FINANCIAL_SUMMARY: {
+  //   GET_BY_ID: (id: string) => `/real-estate-asset-financial-summary/${id}`,
+  //   UPDATE: (id: string) => `/real-estate-asset-financial-summary/${id}`,
+  //   DELETE: (id: string) => `/real-estate-asset-financial-summary/${id}`,
+  //   GET_ALL: '/real-estate-asset-financial-summary',
+  //   SAVE: '/real-estate-asset-financial-summary',
+  //   FIND_ALL: '/real-estate-asset-financial-summary/find-all',
+  //   DELETE_SOFT: '/real-estate-asset-financial-summary/soft/',
+  //   GET_BY_PROJECT_ID: (projectId: string) => `/real-estate-asset-financial-summary?realEstateAssestId.equals=${projectId}`,
+  // },
 
-  REAL_ESTATE_ASSET_PAYMENT_PLAN: {
-    GET_BY_ID: (id: string) => `/real-estate-assest-payment-plan/${id}`,
-    UPDATE: (id: string) => `/real-estate-assest-payment-plan/${id}`,
-    DELETE: (id: string) => `/real-estate-assest-payment-plan/${id}`,
-    GET_ALL: '/real-estate-assest-payment-plan',
-    SAVE: '/real-estate-assest-payment-plan',
-    FIND_ALL: '/real-estate-assest-payment-plan/find-all',
-    GET_BY_PROJECT_ID: (projectId: string) => `/real-estate-assest-payment-plan?realEstateAssestId.equals=${projectId}`,
-  },
+  // REAL_ESTATE_ASSET_PAYMENT_PLAN: {
+  //   GET_BY_ID: (id: string) => `/real-estate-assest-payment-plan/${id}`,
+  //   UPDATE: (id: string) => `/real-estate-assest-payment-plan/${id}`,
+  //   DELETE: (id: string) => `/real-estate-assest-payment-plan/${id}`,
+  //   GET_ALL: '/real-estate-assest-payment-plan',
+  //   SAVE: '/real-estate-assest-payment-plan',
+  //   FIND_ALL: '/real-estate-assest-payment-plan/find-all',
+  //   GET_BY_PROJECT_ID: (projectId: string) => `/real-estate-assest-payment-plan?realEstateAssestId.equals=${projectId}`,
+  // },
 
-  REAL_ESTATE_BANK_ACCOUNT: {
-    GET_BY_ID: (id: string) => `/real-estate-bank-account/${id}`,
-    SAVE: '/real-estate-bank-account',
-    UPDATE: (id: string) => `/real-estate-bank-account/${id}`,
-    DELETE: (id: string) => `/real-estate-bank-account/${id}`,
-    GET_ALL: '/real-estate-bank-account',
-    FIND_ALL: '/real-estate-bank-account/find-all',
-    GET_BY_PROJECT_ID: (projectId: string) => `/real-estate-bank-account?realEstateAssestId.equals=${projectId}`,
-  },
+  // REAL_ESTATE_BANK_ACCOUNT: {
+  //   GET_BY_ID: (id: string) => `/real-estate-bank-account/${id}`,
+  //   SAVE: '/real-estate-bank-account',
+  //   UPDATE: (id: string) => `/real-estate-bank-account/${id}`,
+  //   DELETE: (id: string) => `/real-estate-bank-account/${id}`,
+  //   GET_ALL: '/real-estate-bank-account',
+  //   FIND_ALL: '/real-estate-bank-account/find-all',
+  //   GET_BY_PROJECT_ID: (projectId: string) => `/real-estate-bank-account?realEstateAssestId.equals=${projectId}`,
+  // },
 
-  REAL_ESTATE_DOCUMENT: {
-    GET_BY_ID: (id: string) => `/real-estate-document/${id}`,
-    UPDATE: (id: string) => `/real-estate-document/${id}`,
-    DELETE: (id: string) => `/real-estate-document/${id}`,
-    GET_ALL: '/real-estate-document',
-    SAVE: '/real-estate-document',
-    FIND_ALL: '/real-estate-document/find-all',
-    UPLOAD: '/real-estate-document/upload',
-    DOWNLOAD: (id: string) => `/real-estate-document/download/${id}`,
-    DOWNLOAD_TEMPLATE: (fileName: string) =>
-      `/real-estate-document/download/templates/${fileName}`,
-  },
+  // REAL_ESTATE_DOCUMENT: {
+  //   GET_BY_ID: (id: string) => `/real-estate-document/${id}`,
+  //   UPDATE: (id: string) => `/real-estate-document/${id}`,
+  //   DELETE: (id: string) => `/real-estate-document/${id}`,
+  //   GET_ALL: '/real-estate-document',
+  //   SAVE: '/real-estate-document',
+  //   FIND_ALL: '/real-estate-document/find-all',
+  //   UPLOAD: '/real-estate-document/upload',
+  //   DOWNLOAD: (id: string) => `/real-estate-document/download/${id}`,
+  //   DOWNLOAD_TEMPLATE: (fileName: string) =>
+  //     `/real-estate-document/download/templates/${fileName}`,
+  // },
 
   // Secondary Bank Account
   SECONDARY_BANK_ACCOUNT: {
@@ -912,16 +931,7 @@ ASSET_REGISTER_FEES: {
     FIND_ALL: '/workflow-instance/find-all',
   },
 
-  // Build Partner Stepper APIs
-  BUILD_PARTNER_CREATE: {
-    DETAILS_SAVE: '/build-partner',
-    CONTACT_SAVE: '/build-partner-contact',
-    FEES_SAVE: '/build-partner-fees',
-    BENEFICIARY_SAVE: '/build-partner-beneficiary',
-    REVIEW_SAVE: '/build-partner-review',
-    GET_STEP_DATA: (step: number) => `/build-partner/create/${step}/data`,
-    VALIDATE_STEP: (step: number) => `/build-partner/create/${step}/validate`,
-  },
+  
 
   // Customer Details API
   CUSTOMER_DETAILS: {

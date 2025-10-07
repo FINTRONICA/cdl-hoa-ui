@@ -221,14 +221,14 @@ export class RealEstateAssetService {
     })
 
     return apiClient.get<PaginatedResponse<RealEstateAsset>>(
-      `${API_ENDPOINTS.REAL_ESTATE_ASSET.FIND_ALL}&${params.toString()}`
+      `${API_ENDPOINTS.MANAGEMENT_FIRMS.FIND_ALL}&${params.toString()}`
     )
   }
 
   // Get single project by ID
   async getProject(id: number): Promise<RealEstateAsset> {
     return apiClient.get<RealEstateAsset>(
-      API_ENDPOINTS.REAL_ESTATE_ASSET.GET_BY_ID(id.toString())
+      API_ENDPOINTS.MANAGEMENT_FIRMS.GET_BY_ID(id.toString())
     )
   }
 
@@ -238,7 +238,7 @@ export class RealEstateAssetService {
   ): Promise<RealEstateAsset> {
     try {
       const response = await apiClient.post<RealEstateAsset>(
-        API_ENDPOINTS.REAL_ESTATE_ASSET.SAVE,
+        API_ENDPOINTS.MANAGEMENT_FIRMS.SAVE,
         data
       )
 
@@ -254,7 +254,7 @@ export class RealEstateAssetService {
     data: UpdateRealEstateAssetRequest
   ): Promise<RealEstateAsset> {
     return apiClient.put<RealEstateAsset>(
-      API_ENDPOINTS.REAL_ESTATE_ASSET.UPDATE(id.toString()),
+      API_ENDPOINTS.MANAGEMENT_FIRMS.UPDATE(id.toString()),
       data
     )
   }
@@ -265,7 +265,7 @@ export class RealEstateAssetService {
       console.log('🔄 updateProjectDetails called with:', { projectId, data })
       
       const response = await apiClient.put(
-        API_ENDPOINTS.REAL_ESTATE_ASSET.UPDATE(projectId),
+        API_ENDPOINTS.MANAGEMENT_FIRMS.UPDATE(projectId),
         data
       )
       
@@ -312,7 +312,7 @@ export class RealEstateAssetService {
       for (const fee of fees) {
         if (fee.id) {
           const response = await apiClient.put(
-            `${API_ENDPOINTS.REAL_ESTATE_ASSET_FEE.UPDATE(fee.id)}`,
+            `${API_ENDPOINTS.MANAGEMENT_FIRMS_FEE.UPDATE(fee.id)}`,
             fee
           )
           results.push(response)
@@ -336,7 +336,7 @@ export class RealEstateAssetService {
       for (const beneficiary of beneficiaries) {
         if (beneficiary.id) {
           const response = await apiClient.put(
-            `${API_ENDPOINTS.REAL_ESTATE_ASSET_BENEFICIARY.UPDATE(beneficiary.id)}`,
+            `${API_ENDPOINTS.MANAGEMENT_FIRMS_BENEFICIARY.UPDATE(beneficiary.id)}`,
             beneficiary
           )
           results.push(response)
@@ -360,7 +360,7 @@ export class RealEstateAssetService {
       for (const plan of paymentPlans) {
         if (plan.id) {
           const response = await apiClient.put(
-            `${API_ENDPOINTS.REAL_ESTATE_ASSET_PAYMENT_PLAN.UPDATE(plan.id)}`,
+            `${API_ENDPOINTS.MANAGEMENT_FIRMS_PAYMENT_PLAN.UPDATE(plan.id)}`,
             plan
           )
           results.push(response)
@@ -382,7 +382,7 @@ export class RealEstateAssetService {
       
       if (financialData.id) {
         const response = await apiClient.put(
-          `${API_ENDPOINTS.REAL_ESTATE_ASSET_FINANCIAL_SUMMARY.UPDATE(financialData.id)}`,
+          `${API_ENDPOINTS.MANAGEMENT_FIRMS_FINANCIAL_SUMMARY.UPDATE(financialData.id)}`,
           financialData
         )
         
@@ -414,11 +414,11 @@ export class RealEstateAssetService {
         enabled: true
       }
       
-      console.log('🔄 Project Closure PUT request - Endpoint:', API_ENDPOINTS.REAL_ESTATE_ASSET_CLOSURE.UPDATE(closureId.toString()))
+      console.log('🔄 Project Closure PUT request - Endpoint:', API_ENDPOINTS.MANAGEMENT_FIRMS_CLOSURE.UPDATE(closureId.toString()))
       console.log('🔄 Project Closure PUT request - Payload:', transformedData)
       
       const response = await apiClient.put(
-        `${API_ENDPOINTS.REAL_ESTATE_ASSET_CLOSURE.UPDATE(closureId.toString())}`,
+        `${API_ENDPOINTS.MANAGEMENT_FIRMS_CLOSURE.UPDATE(closureId.toString())}`,
         transformedData
       )
       
@@ -434,7 +434,7 @@ export class RealEstateAssetService {
   async deleteProject(id: number): Promise<void> {
     try {
       await apiClient.delete<string>(
-        API_ENDPOINTS.REAL_ESTATE_ASSET.SOFT_DELETE(id.toString())
+        API_ENDPOINTS.MANAGEMENT_FIRMS.SOFT_DELETE(id.toString())
       )
     } catch (error) {
       throw error
@@ -444,9 +444,9 @@ export class RealEstateAssetService {
   // Save project fee
   async saveProjectFee(feeData: any): Promise<any> {
     try {
-      // const url = API_ENDPOINTS.REAL_ESTATE_ASSET_FEE.SAVE
+      // const url = API_ENDPOINTS.MANAGEMENT_FIRMS_FEE.SAVE
       const response = await apiClient.post(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_FEE.SAVE,
+        API_ENDPOINTS.MANAGEMENT_FIRMS_FEE.SAVE,
         feeData
       )
 
@@ -466,11 +466,11 @@ export class RealEstateAssetService {
       
       console.log("🔄 ===== POST REQUEST (Financial Summary) =====")
       console.log("🔄 Method: POST")
-      console.log("🔄 Endpoint:", API_ENDPOINTS.REAL_ESTATE_ASSET_FINANCIAL_SUMMARY.SAVE)
+      console.log("🔄 Endpoint:", API_ENDPOINTS.MANAGEMENT_FIRMS_FINANCIAL_SUMMARY.SAVE)
       console.log("🔄 Payload (transformedData):", transformedData)
       
       const response = await apiClient.post(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_FINANCIAL_SUMMARY.SAVE,
+        API_ENDPOINTS.MANAGEMENT_FIRMS_FINANCIAL_SUMMARY.SAVE,
         transformedData
       )
       console.log('🔄 POST Response:', response)
@@ -719,7 +719,7 @@ export class RealEstateAssetService {
     try {
       console.log('checkk', JSON.stringify(beneficiaryData, null, 2))
       const response = await apiClient.post(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_BENEFICIARY.SAVE,
+        API_ENDPOINTS.MANAGEMENT_FIRMS_BENEFICIARY.SAVE,
         beneficiaryData
       )
 
@@ -1016,7 +1016,7 @@ export class RealEstateAssetService {
   async saveFinancialSummary(data: any, projectId?: number): Promise<any> {
     const transformedData = this.transformFinancialData(data, projectId)
     return apiClient.post(
-      API_ENDPOINTS.REAL_ESTATE_ASSET_FINANCIAL_SUMMARY.SAVE,
+      API_ENDPOINTS.MANAGEMENT_FIRMS_FINANCIAL_SUMMARY.SAVE,
       transformedData
     )
   }
@@ -1037,11 +1037,11 @@ export class RealEstateAssetService {
     
     console.log("🔄 ===== PUT REQUEST (Financial Summary) =====")
     console.log("🔄 Method: PUT")
-    console.log("🔄 Endpoint:", API_ENDPOINTS.REAL_ESTATE_ASSET_FINANCIAL_SUMMARY.UPDATE(id.toString()))
+    console.log("🔄 Endpoint:", API_ENDPOINTS.MANAGEMENT_FIRMS_FINANCIAL_SUMMARY.UPDATE(id.toString()))
     console.log("🔄 Payload (with id):", payloadWithId)
     
     const response = await apiClient.put(
-      API_ENDPOINTS.REAL_ESTATE_ASSET_FINANCIAL_SUMMARY.UPDATE(id.toString()),
+      API_ENDPOINTS.MANAGEMENT_FIRMS_FINANCIAL_SUMMARY.UPDATE(id.toString()),
       payloadWithId
     )
     
@@ -1079,11 +1079,11 @@ export class RealEstateAssetService {
       
       console.log("🔄 ===== POST REQUEST =====")
       console.log("🔄 Method: POST")
-      console.log("🔄 Endpoint:", API_ENDPOINTS.REAL_ESTATE_ASSET_PAYMENT_PLAN.SAVE)
+      console.log("🔄 Endpoint:", API_ENDPOINTS.MANAGEMENT_FIRMS_PAYMENT_PLAN.SAVE)
       console.log("🔄 Payload (transformedData):", transformedData)
       
       const response = await apiClient.post(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_PAYMENT_PLAN.SAVE,
+        API_ENDPOINTS.MANAGEMENT_FIRMS_PAYMENT_PLAN.SAVE,
         transformedData
       )
       return response
@@ -1122,11 +1122,11 @@ export class RealEstateAssetService {
       
       console.log("🔄 ===== PUT REQUEST =====")
       console.log("🔄 Method: PUT")
-      console.log("🔄 Endpoint:", API_ENDPOINTS.REAL_ESTATE_ASSET_PAYMENT_PLAN.UPDATE(id.toString()))
+      console.log("🔄 Endpoint:", API_ENDPOINTS.MANAGEMENT_FIRMS_PAYMENT_PLAN.UPDATE(id.toString()))
       console.log("🔄 Payload (transformedData):", transformedData)
       
       const response = await apiClient.put(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_PAYMENT_PLAN.UPDATE(id.toString()),
+        API_ENDPOINTS.MANAGEMENT_FIRMS_PAYMENT_PLAN.UPDATE(id.toString()),
         transformedData
       )
 
@@ -1141,7 +1141,7 @@ export class RealEstateAssetService {
   async getPaymentPlansByProjectId(projectId: number): Promise<any[]> {
     try {
       console.log('🔄 getPaymentPlansByProjectId called with projectId:', projectId)
-      const endpoint = API_ENDPOINTS.REAL_ESTATE_ASSET_PAYMENT_PLAN.GET_BY_PROJECT_ID(projectId.toString())
+      const endpoint = API_ENDPOINTS.MANAGEMENT_FIRMS_PAYMENT_PLAN.GET_BY_PROJECT_ID(projectId.toString())
       console.log('🔄 API endpoint:', endpoint)
       
       const response = await apiClient.get(endpoint)
@@ -1180,7 +1180,7 @@ export class RealEstateAssetService {
       console.log('Transformed closure data:', transformedData)
       
       const response = await apiClient.post(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_CLOSURE.SAVE,
+        API_ENDPOINTS.MANAGEMENT_FIRMS_CLOSURE.SAVE,
         transformedData
       )
       return response
@@ -1193,7 +1193,7 @@ export class RealEstateAssetService {
   async getProjectClosure(projectId: string): Promise<any> {
     try {
       console.log('🔄 getProjectClosure called for projectId:', projectId)
-      const response = await apiClient.get(API_ENDPOINTS.REAL_ESTATE_ASSET_CLOSURE.GET_BY_PROJECT_ID(projectId))
+      const response = await apiClient.get(API_ENDPOINTS.MANAGEMENT_FIRMS_CLOSURE.GET_BY_PROJECT_ID(projectId))
       console.log('🔄 getProjectClosure response:', response)
       return response
     } catch (error) {
@@ -1246,7 +1246,7 @@ export class RealEstateAssetService {
   async getProjectDetails(projectId: string): Promise<any> {
     try {
       console.log('🔄 getProjectDetails called for projectId:', projectId)
-      const response = await apiClient.get(API_ENDPOINTS.REAL_ESTATE_ASSET.GET_BY_ID(projectId))
+      const response = await apiClient.get(API_ENDPOINTS.MANAGEMENT_FIRMS.GET_BY_ID(projectId))
       console.log('🔄 getProjectDetails response:', response)
       return response
     } catch (error) {
@@ -1279,7 +1279,7 @@ export class RealEstateAssetService {
   async getProjectFees(projectId: string): Promise<any[]> {
     try {
       console.log('🔄 getProjectFees called for projectId:', projectId)
-      const response = await apiClient.get(API_ENDPOINTS.REAL_ESTATE_ASSET_FEE.GET_BY_PROJECT_ID(projectId))
+      const response = await apiClient.get(API_ENDPOINTS.MANAGEMENT_FIRMS_FEE.GET_BY_PROJECT_ID(projectId))
       console.log('🔄 getProjectFees response:', response)
       
       // Handle different response formats
@@ -1299,7 +1299,7 @@ export class RealEstateAssetService {
   async getProjectBeneficiaries(projectId: string): Promise<any[]> {
     try {
       console.log('🔄 getProjectBeneficiaries called for projectId:', projectId)
-      const response = await apiClient.get(API_ENDPOINTS.REAL_ESTATE_ASSET_BENEFICIARY.GET_BY_PROJECT_ID(projectId))
+      const response = await apiClient.get(API_ENDPOINTS.MANAGEMENT_FIRMS_BENEFICIARY.GET_BY_PROJECT_ID(projectId))
       console.log('🔄 getProjectBeneficiaries response:', response)
       
       // Handle different response formats
@@ -1319,7 +1319,7 @@ export class RealEstateAssetService {
   async getProjectPaymentPlans(projectId: string): Promise<any[]> {
     try {
       console.log('🔄 getProjectPaymentPlans called for projectId:', projectId)
-      const response = await apiClient.get(API_ENDPOINTS.REAL_ESTATE_ASSET_PAYMENT_PLAN.GET_BY_PROJECT_ID(projectId))
+      const response = await apiClient.get(API_ENDPOINTS.MANAGEMENT_FIRMS_PAYMENT_PLAN.GET_BY_PROJECT_ID(projectId))
       console.log('🔄 getProjectPaymentPlans response:', response)
       
       // Handle different response formats
@@ -1339,7 +1339,7 @@ export class RealEstateAssetService {
   async getProjectFinancialSummary(projectId: string): Promise<any> {
     try {
       console.log('🔄 getProjectFinancialSummary called for projectId:', projectId)
-      const response = await apiClient.get(API_ENDPOINTS.REAL_ESTATE_ASSET_FINANCIAL_SUMMARY.GET_BY_PROJECT_ID(projectId))
+      const response = await apiClient.get(API_ENDPOINTS.MANAGEMENT_FIRMS_FINANCIAL_SUMMARY.GET_BY_PROJECT_ID(projectId))
       console.log('🔄 getProjectFinancialSummary response:', response)
       return response
     } catch (error) {
@@ -1353,7 +1353,7 @@ export class RealEstateAssetService {
     try {
       console.log('🔄 getProjectDocuments called for projectId:', projectId)
       const params = new URLSearchParams({
-        'module.equals': 'REAL_ESTATE_ASSET',
+        'module.equals': 'MANAGEMENT_FIRMS',
         'recordId.equals': projectId,
       })
       const response = await apiClient.get(`${API_ENDPOINTS.REAL_ESTATE_DOCUMENT.GET_ALL}?${params.toString()}`)

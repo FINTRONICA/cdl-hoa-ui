@@ -418,7 +418,7 @@ export class BuildPartnerService {
 
   async getBuildPartnerContact(id: string): Promise<unknown> {
     try {
-      const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER_CONTACT.GET_BY_ID(id))
+      const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_CONTACT.GET_BY_ID(id))
 
       const result = await apiClient.get(url)
 
@@ -430,7 +430,7 @@ export class BuildPartnerService {
 
   async getBuildPartnerFees(id: string): Promise<BuildPartnerFeeResponse[]> {
     try {
-      const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER_FEES.GET_BY_ID(id))
+      const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_FEES.GET_BY_ID(id))
       const result = await apiClient.get(url)
 
       // Handle different response formats
@@ -564,7 +564,7 @@ export class BuildPartnerService {
       return response
     } else {
       // Use POST for creating new details
-      const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER_CREATE.DETAILS_SAVE)
+      const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_CREATE.DETAILS_SAVE)
 
       const response = await apiClient.post<StepSaveResponse>(url, data)
       return response
@@ -579,7 +579,7 @@ export class BuildPartnerService {
 
     if (isEditing && developerId) {
       // Use POST for editing existing contact - add id to existing buildPartnerDTO structure
-      const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER_CREATE.CONTACT_SAVE)
+      const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_CREATE.CONTACT_SAVE)
       const requestData = {
         ...data,
         buildPartnerDTO: { id: parseInt(developerId) },
@@ -589,7 +589,7 @@ export class BuildPartnerService {
       return response
     } else {
       // Use POST for creating new contact
-      const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER_CREATE.CONTACT_SAVE)
+      const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_CREATE.CONTACT_SAVE)
 
       const response = await apiClient.post<StepSaveResponse>(url, data)
       return response
@@ -604,7 +604,7 @@ export class BuildPartnerService {
 
     if (isEditing && developerId) {
       // Use POST for editing existing fees - wrap data with isEditing and developerId
-      const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER_CREATE.FEES_SAVE)
+      const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_CREATE.FEES_SAVE)
       const requestData = {
         data: {
           ...data,
@@ -618,7 +618,7 @@ export class BuildPartnerService {
       return response
     } else {
       // Use POST for creating new fees - send data directly
-      const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER_CREATE.FEES_SAVE)
+      const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_CREATE.FEES_SAVE)
 
       const response = await apiClient.post<StepSaveResponse>(url, data)
       return response
@@ -644,7 +644,7 @@ export class BuildPartnerService {
         }
 
         const result = await apiClient.post(
-          buildApiUrl(API_ENDPOINTS.BUILD_PARTNER_FEES.SAVE),
+          buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_FEES.SAVE),
           requestData
         )
         return result
@@ -652,7 +652,7 @@ export class BuildPartnerService {
         // Use POST for creating new individual fee - send data directly
 
         const result = await apiClient.post(
-          buildApiUrl(API_ENDPOINTS.BUILD_PARTNER_FEES.SAVE),
+          buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_FEES.SAVE),
           data
         )
         return result
@@ -671,7 +671,7 @@ export class BuildPartnerService {
     if (isEditing && developerId) {
       // Use POST for editing existing beneficiary - add id to existing buildPartnerDTO structure
       const url = buildApiUrl(
-        API_ENDPOINTS.BUILD_PARTNER_CREATE.BENEFICIARY_SAVE
+        API_ENDPOINTS.ASSET_REGISTER_CREATE.BENEFICIARY_SAVE
       )
       const requestData = {
         ...data,
@@ -683,7 +683,7 @@ export class BuildPartnerService {
     } else {
       // Use POST for creating new beneficiary
       const url = buildApiUrl(
-        API_ENDPOINTS.BUILD_PARTNER_CREATE.BENEFICIARY_SAVE
+        API_ENDPOINTS.ASSET_REGISTER_CREATE.BENEFICIARY_SAVE
       )
 
       const response = await apiClient.post<StepSaveResponse>(url, data)
@@ -700,7 +700,7 @@ export class BuildPartnerService {
       }
 
       const url = buildApiUrl(
-        API_ENDPOINTS.BUILD_PARTNER_BENEFICIARY.GET_BY_ID(buildPartnerId)
+        API_ENDPOINTS.ASSET_REGISTER_BENEFICIARY.GET_BY_ID(buildPartnerId)
       )
 
       const response =
@@ -718,7 +718,7 @@ export class BuildPartnerService {
   ): Promise<BuildPartnerBeneficiaryResponse> {
     try {
       const url = buildApiUrl(
-        API_ENDPOINTS.BUILD_PARTNER_BENEFICIARY.GET_BY_ID(id)
+        API_ENDPOINTS.ASSET_REGISTER_BENEFICIARY.GET_BY_ID(id)
       )
       const response = await apiClient.get<BuildPartnerBeneficiaryResponse>(url)
 
@@ -735,7 +735,7 @@ export class BuildPartnerService {
   ): Promise<BuildPartnerBeneficiaryResponse> {
     try {
       const url = buildApiUrl(
-        API_ENDPOINTS.BUILD_PARTNER_BENEFICIARY.UPDATE(id)
+        API_ENDPOINTS.ASSET_REGISTER_BENEFICIARY.UPDATE(id)
       )
 
       const response = await apiClient.put<BuildPartnerBeneficiaryResponse>(
@@ -753,7 +753,7 @@ export class BuildPartnerService {
   async deleteBuildPartnerBeneficiary(id: string): Promise<void> {
     try {
       const url = buildApiUrl(
-        API_ENDPOINTS.BUILD_PARTNER_BENEFICIARY.DELETE(id)
+        API_ENDPOINTS.ASSET_REGISTER_BENEFICIARY.DELETE(id)
       )
 
       await apiClient.delete(url)
@@ -765,7 +765,7 @@ export class BuildPartnerService {
   async saveBuildPartnerReview(
     data: BuildPartnerReviewData
   ): Promise<StepSaveResponse> {
-    const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER_CREATE.REVIEW_SAVE)
+    const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_CREATE.REVIEW_SAVE)
     return apiClient.post<StepSaveResponse>(url, data)
   }
 
@@ -852,7 +852,7 @@ export class BuildPartnerService {
   // Step data retrieval and validation methods
   async getStepData(step: number, developerId?: string): Promise<unknown> {
     let url = buildApiUrl(
-      API_ENDPOINTS.BUILD_PARTNER_CREATE.GET_STEP_DATA(step)
+      API_ENDPOINTS.ASSET_REGISTER_CREATE.GET_STEP_DATA(step)
     )
 
     // Add developer ID as query parameter if provided
@@ -868,7 +868,7 @@ export class BuildPartnerService {
     data: unknown
   ): Promise<StepValidationResponse> {
     const url = buildApiUrl(
-      API_ENDPOINTS.BUILD_PARTNER_CREATE.VALIDATE_STEP(step)
+      API_ENDPOINTS.ASSET_REGISTER_CREATE.VALIDATE_STEP(step)
     )
     return apiClient.post<StepValidationResponse>(url, data)
   }
