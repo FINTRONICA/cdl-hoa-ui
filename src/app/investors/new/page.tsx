@@ -7,8 +7,8 @@ import { DashboardLayout } from '@/components/templates/DashboardLayout'
 function NewInvestorPageContent() {
   return (
     <DashboardLayout
-      title="Capital Partner Details"
-      subtitle="Register your investor step by step, non-mandatory fields and steps are easy to skip."
+      title="Owner Registey Details" 
+      subtitle="Register your Owner Registey step by step, non-mandatory fields and steps are easy to skip."
     >
       <div className="px-3">
         <InvestorsStepperWrapper />

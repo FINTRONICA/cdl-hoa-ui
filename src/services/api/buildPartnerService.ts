@@ -393,7 +393,7 @@ export class BuildPartnerService {
       ...apiFilters,
     }
     const queryString = new URLSearchParams(params).toString()
-    const url = `${buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.FIND_ALL)}&${queryString}`
+    const url = `${buildApiUrl(API_ENDPOINTS.ASSET_REGISTER.FIND_ALL)}&${queryString}`
 
     try {
       const result = await apiClient.get<PaginatedResponse<BuildPartner>>(url)
@@ -406,7 +406,7 @@ export class BuildPartnerService {
 
   async getBuildPartner(id: string): Promise<BuildPartner> {
     try {
-      const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.GET_BY_ID(id))
+      const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER.GET_BY_ID(id))
 
       const result = await apiClient.get<BuildPartner>(url)
 
@@ -541,7 +541,7 @@ export class BuildPartnerService {
 
   async getBuildPartnerLabels(): Promise<BuildPartnerLabel[]> {
     return apiClient.get<BuildPartnerLabel[]>(
-      buildApiUrl(API_ENDPOINTS.APP_LANGUAGE_TRANSLATION.BUILD_PARTNER)
+      buildApiUrl(API_ENDPOINTS.APP_LANGUAGE_TRANSLATION.ASSET_REGISTER)
     )
   }
 
@@ -554,7 +554,7 @@ export class BuildPartnerService {
 
     if (isEditing && developerId) {
       // Use PUT for editing existing details - include buildPartnerDTO in data
-      const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.UPDATE(developerId))
+      const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER.UPDATE(developerId))
       const requestData = {
         ...data,
         id: parseInt(developerId),

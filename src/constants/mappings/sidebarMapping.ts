@@ -1,7 +1,7 @@
 // Manual mapping for sidebar IDs that don't follow the automatic pattern
 export const SIDEBAR_TO_CONFIG_MAPPING: Record<string, string> = {
   // Main sections
-  'dasboard': 'CDL_DASHBOARD',                    // "Command Center"
+  'dashboard': 'CDL_DASHBOARD',                    // "Command Center"
   'activity': 'CDL_TASK_NAVIGATOR',               // "Task Navigator"
   'deposits': 'CDL_TRANSACTIONS',                 // "Transactions"
   'payment': 'CDL_PAYMENTS',                      // "Payments"
@@ -10,9 +10,9 @@ export const SIDEBAR_TO_CONFIG_MAPPING: Record<string, string> = {
   'entities': 'CDL_BUSINESS_OBJECTS',             // "Business Objects"
   
   // Entities section
-  'developers': 'CDL_BUILD_PARTNER',              // "Build Partner"
-  'projects': 'CDL_BUILD_PARTNER_ASSEST',          // "Build Partner Asset"
-  'investors': 'CDL_CAPITAL_PARTNER',             // "Capital Partner"
+  'developers': 'CDL_ASSET_REGISTER',              // "Asset Register"
+  'projects': 'CDL_ASSET_REGISTER_',          // "Asset Register"
+  'investors': 'CDL_OWNER_REGISTRY',             // "Owner Registry"
   
 
   // Entities section For HOA

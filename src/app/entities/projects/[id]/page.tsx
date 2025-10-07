@@ -9,7 +9,7 @@ export default function NewProjectPage() {
       title="Build Partner Assest Details"
       subtitle="Register your project step by step, on-mandatory fields and steps are easy to skip."
     >
-      <div className="flex gap-7 items-start px-7 py-2">
+      <div className="flex items-start py-2 gap-7 px-7">
         <div className="flex flex-col min-w-[200px] gap-1">
           <label className="font-sans font-normal text-[12px] leading-[1] tracking-normal text-[#4A5565]">
             Project Name

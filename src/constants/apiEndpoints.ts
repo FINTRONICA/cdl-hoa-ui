@@ -47,9 +47,9 @@ export const API_ENDPOINTS = {
     SAVE: '/app-language-translation',
     FIND_ALL: '/app-language-translation/find-all',
     NAV_MENU: '/app-language-translation/nav-menu',
-    BUILD_PARTNER: '/app-language-translation/build-partner',
-    BUILD_PARTNER_ASSET: '/app-language-translation/build-partner-assests',
-    OWNER_REGISTRY: '/app-language-translation/capital-partner',
+    ASSET_REGISTER: '/app-language-translation/asset-register',
+    ASSET_REGISTER_: '/app-language-translation/asset-register-',
+    OWNER_REGISTRY: '/app-language-translation/owner-registry',
     WORKFLOW_ACTIONS: '/app-language-translation/workflow-actions',
     WORKFLOW_DEFINITION: '/app-language-translation/workflow-definition',
     WORKFLOW_STAGE_TEMPLATE:
@@ -149,15 +149,27 @@ export const API_ENDPOINTS = {
       `/core-bank-get/sbi/apis/validate-swift?swiftCode=${swiftCode}`,
   },
 
-  BUILD_PARTNER: {
-    GET_BY_ID: (id: string) => `/build-partner/${id}`,
-    UPDATE: (id: string) => `/build-partner/${id}`,
-    DELETE: (id: string) => `/build-partner/${id}`,
-    SOFT_DELETE: (id: string) => `/build-partner/soft/${id}`,
-    GET_ALL: '/build-partner?deleted.equals=false&enabled.equals=true',
-    SAVE: '/build-partner',
+  // BUILD_PARTNER: {
+  //   GET_BY_ID: (id: string) => `/build-partner/${id}`,
+  //   UPDATE: (id: string) => `/build-partner/${id}`,
+  //   DELETE: (id: string) => `/build-partner/${id}`,
+  //   SOFT_DELETE: (id: string) => `/build-partner/soft/${id}`,
+  //   GET_ALL: '/build-partner?deleted.equals=false&enabled.equals=true',
+  //   SAVE: '/build-partner',
+  //   FIND_ALL:
+  //     '/build-partner/find-all?deleted.equals=false&enabled.equals=true',
+  // },
+
+
+   ASSET_REGISTER: {
+    GET_BY_ID: (id: string) => `/asset-register/${id}`,
+    UPDATE: (id: string) => `/asset-register/${id}`,
+    DELETE: (id: string) => `/asset-register/${id}`,
+    SOFT_DELETE: (id: string) => `/asset-register/soft/${id}`,
+    GET_ALL: '/asset-register?deleted.equals=false&enabled.equals=true',
+    SAVE: '/asset-register',
     FIND_ALL:
-      '/build-partner/find-all?deleted.equals=false&enabled.equals=true',
+      '/asset-register/find-all?deleted.equals=false&enabled.equals=true',
   },
 
   APPLICATION_TABLE_DESIGN: {

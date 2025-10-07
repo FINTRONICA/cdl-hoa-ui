@@ -237,7 +237,7 @@ const ProjectsPage: React.FC = () => {
   if (projectsLoading || statsLoading) {
     return (
       <DashboardLayout title="Projects">
-        <div className="fixed inset-0 flex items-center justify-center bg-gray-50 z-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50">
           <div className="text-lg">Loading...</div>
         </div>
       </DashboardLayout>
@@ -248,7 +248,7 @@ const ProjectsPage: React.FC = () => {
   if (projectsError) {
     return (
       <DashboardLayout title="Projects">
-        <div className="fixed inset-0 flex items-center justify-center bg-gray-50 z-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50">
           <div className="text-lg text-red-600">
             Error loading: {projectsError.message}
           </div>
@@ -275,7 +275,7 @@ const ProjectsPage: React.FC = () => {
             <PageActionButtons entityType="project" />
           </div>
 
-          <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex flex-col flex-1 min-h-0">
             <div className="flex-1 overflow-auto">
               <ExpandableDataTable<ProjectData>
                 data={paginated as ProjectData[]}

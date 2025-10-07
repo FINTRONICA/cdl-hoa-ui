@@ -278,8 +278,8 @@ const ProjectsPage: React.FC = () => {
 
   if (projectsLoading) {
     return (
-      <DashboardLayout title={projectsTitle}>
-        <div className="fixed inset-0 flex items-center justify-center bg-gray-50 z-50">
+      <DashboardLayout title={"Management Firms"}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50">
           <div className="text-lg">Loading...</div>
         </div>
       </DashboardLayout>
@@ -288,8 +288,8 @@ const ProjectsPage: React.FC = () => {
 
   if (projectsError) {
     return (
-      <DashboardLayout title={projectsTitle}>
-        <div className="fixed inset-0 flex items-center justify-center bg-gray-50 z-50">
+      <DashboardLayout title={"Management Firms"}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50">
           <div className="text-lg text-red-600">
             Error loading: {projectsError.message}
           </div>
@@ -309,7 +309,7 @@ const ProjectsPage: React.FC = () => {
 
       {/* Download Error Alert */}
       {downloadError && (
-        <div className="fixed top-4 right-4 z-50 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg">
+        <div className="fixed z-50 px-4 py-3 text-red-700 bg-red-100 border border-red-400 rounded shadow-lg top-4 right-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Download Error: {downloadError}</span>
             <button
@@ -322,7 +322,7 @@ const ProjectsPage: React.FC = () => {
         </div>
       )}
 
-      <DashboardLayout title={projectsTitle}>
+      <DashboardLayout title={"Management Firms"}>
         <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
           <div className="sticky top-0 z-10 bg-[#FFFFFFBF] border-b border-gray-200 rounded-t-2xl">
             <PageActionButtons 
@@ -332,7 +332,7 @@ const ProjectsPage: React.FC = () => {
             />
           </div>
 
-          <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex flex-col flex-1 min-h-0">
             <div className="flex-1 overflow-auto">
               <PermissionAwareDataTable<ProjectData>
                 key={`projects-table-${tableKey}`}

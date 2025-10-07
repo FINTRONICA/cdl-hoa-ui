@@ -6,8 +6,8 @@ import StepperWrapper from '@/components/organisms/ProjectStepper'
 export default function NewProjectPage() {
   return (
     <DashboardLayout
-      title="Build Partner Assest Details"
-      subtitle="Register your project step by step, non-mandatory fields and steps are easy to skip."
+      title="Management Firms Details"
+      subtitle="Register your Management Firm step by step, non-mandatory fields and steps are easy to skip."
     >
       <div className="px-3">
         <StepperWrapper />

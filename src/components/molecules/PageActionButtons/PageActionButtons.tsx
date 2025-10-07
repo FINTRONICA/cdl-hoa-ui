@@ -85,19 +85,19 @@ const PageActionButtonsComponent: React.FC<PageActionButtonsProps> = ({
   // Entity-specific configurations with permissions
   const entityConfig = {
     project: {
-      label: 'Add New Build Partner Assest',
+      label: 'Add New Management Firm',
       route: '/entities/projects/new',
-      permissions: ['bpa_create'], // Only users with bpa_create permission
+      permissions: ['*'], // Allow all users temporarily
     },
     investor: {
       label: 'Add New Capital Partner',
       route: '/investors/new',
-      permissions: ['cp_create'], // Only users with cp_create permission
+      permissions: ['*'], // Allow all users temporarily
     },
     developer: {
-      label: 'Add New Build Partner',
+      label: 'Add New Asset Register',
       route: '/entities/developers/new',
-      permissions: ['bp_create'], // Only users with bp_create permission
+      permissions: ['*'], // Allow all users temporarily
     },
     manualPayment: {
       label: 'Add New Payment',

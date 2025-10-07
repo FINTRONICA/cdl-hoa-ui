@@ -321,7 +321,7 @@ const InvestorsPage: React.FC = () => {
   const renderExpandedContent = (row: InvestorData) => (
     <div className="grid grid-cols-2 gap-8">
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-4">
+        <h4 className="mb-4 text-sm font-semibold text-gray-900">
           {getCapitalPartnerLabelDynamic('CDL_CP_BASIC_INFO')}
         </h4>
         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -352,7 +352,7 @@ const InvestorsPage: React.FC = () => {
         </div>
       </div>
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-4">
+        <h4 className="mb-4 text-sm font-semibold text-gray-900">
           Build Partner Details
         </h4>
         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -371,9 +371,9 @@ const InvestorsPage: React.FC = () => {
 
   if (loadingData) {
     return (
-      <DashboardLayout title={investorsTitle}>
+      <DashboardLayout title={"Owner Registey"}>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="w-8 h-8 border-b-2 border-blue-600 rounded-full animate-spin"></div>
         </div>
       </DashboardLayout>
     )
@@ -381,7 +381,7 @@ const InvestorsPage: React.FC = () => {
 
   if (errorData) {
     return (
-      <DashboardLayout title={investorsTitle}>
+      <DashboardLayout title={"Owner Registey"}>
         <div className="p-6 text-red-600">{errorData}</div>
       </DashboardLayout>
     )
@@ -398,7 +398,7 @@ const InvestorsPage: React.FC = () => {
 
       {/* Download Error Alert */}
       {downloadErrorInvestor && (
-        <div className="fixed top-4 right-4 z-50 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg">
+        <div className="fixed z-50 px-4 py-3 text-red-700 bg-red-100 border border-red-400 rounded shadow-lg top-4 right-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">
               Investor Template Error: {downloadErrorInvestor}
@@ -413,7 +413,7 @@ const InvestorsPage: React.FC = () => {
         </div>
       )}
 
-      <DashboardLayout title={investorsTitle}>
+      <DashboardLayout title={"Owner Registey"}>
         <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
           <div className="sticky top-0 z-10 bg-[#FFFFFFBF] border-b border-gray-200 rounded-t-2xl">
             <PageActionButtons
@@ -423,7 +423,7 @@ const InvestorsPage: React.FC = () => {
             />
           </div>
 
-          <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex flex-col flex-1 min-h-0">
             <div className="flex-1 overflow-auto">
               <PermissionAwareDataTable<InvestorData>
                 key={`investors-table-${tableKey}`}
