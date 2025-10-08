@@ -37,11 +37,11 @@ import { ProjectData } from './developerTypes'
 import { getBuildPartnerLabel } from '../../../constants/mappings/buildPartnerMapping'
 
 const steps = [
-  getBuildPartnerLabel('CDL_BP_DETAILS'),
+  getBuildPartnerLabel('CDL_AR_DETAILS'),
   'Documents (Optional)',
-  getBuildPartnerLabel('CDL_BP_CONTACT'),
-  getBuildPartnerLabel('CDL_BP_FEES'),
-  getBuildPartnerLabel('CDL_BP_BENE_INFO'),
+  getBuildPartnerLabel('CDL_AR_CONTACT'),
+  getBuildPartnerLabel('CDL_AR_FEES'),
+  getBuildPartnerLabel('CDL_AR_BENE_INFO'),
   'Review',
 ]
 

@@ -4,11 +4,11 @@ import { ProjectData } from './developerTypes'
 
 
 export const STEP_LABELS = [
-  getBuildPartnerLabel('CDL_BP_DETAILS'),
+  getBuildPartnerLabel('CDL_AR_DETAILS'),
   'Documents (Optional)',
-  getBuildPartnerLabel('CDL_BP_CONTACT'),
-  getBuildPartnerLabel('CDL_BP_FEES'),
-  getBuildPartnerLabel('CDL_BP_BENE_INFO'),
+  getBuildPartnerLabel('CDL_AR_CONTACT'),
+  getBuildPartnerLabel('CDL_AR_FEES'),
+  getBuildPartnerLabel('CDL_AR_BENE_INFO'),
   'Review',
 ] as const
 

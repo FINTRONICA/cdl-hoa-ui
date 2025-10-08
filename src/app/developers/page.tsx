@@ -198,42 +198,42 @@ const DevelopersPageImpl: React.FC = () => {
   const tableColumns = [
     {
       key: 'name',
-      label: getBuildPartnerLabelDynamic('CDL_BP_NAME'),
+      label: getBuildPartnerLabelDynamic('CDL_AR_NAME'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
       key: 'developerId',
-      label: getBuildPartnerLabelDynamic('CDL_BP_ID'),
+      label: getBuildPartnerLabelDynamic('CDL_AR_ID'),
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
     },
     {
       key: 'developerCif',
-      label: getBuildPartnerLabelDynamic('CDL_BP_CIF'),
+      label: getBuildPartnerLabelDynamic('CDL_AR_CIF'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
       key: 'localeNames',
-      label: getBuildPartnerLabelDynamic('CDL_BP_NAME_LOCALE'),
+      label: getBuildPartnerLabelDynamic('CDL_AR_NAME_LOCALE'),
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
     },
     {
       key: 'status',
-      label: getBuildPartnerLabelDynamic('CDL_BP_STATUS'),
+      label: getBuildPartnerLabelDynamic('CDL_AR_STATUS'),
       type: 'status' as const,
       width: 'w-32',
       sortable: true,
     },
     {
       key: 'actions',
-      label: getBuildPartnerLabelDynamic('CDL_BP_DOC_ACTION'),
+      label: getBuildPartnerLabelDynamic('CDL_AR_DOC_ACTION'),
       type: 'actions' as const,
       width: 'w-20',
     },
@@ -344,23 +344,23 @@ const DevelopersPageImpl: React.FC = () => {
     <div className="grid grid-cols-2 gap-8">
       {/* <div className="space-y-4">
         <h4 className="mb-4 text-sm font-semibold text-gray-900">
-          {getBuildPartnerLabel('CDL_BP_DETAILS')}
+          {getBuildPartnerLabel('CDL_AR_DETAILS')}
         </h4>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <span className="text-gray-600">{getBuildPartnerLabel('CDL_BP_NAME')}:</span>
+            <span className="text-gray-600">{getBuildPartnerLabel('CDL_AR_NAME')}:</span>
             <span className="ml-2 font-medium text-gray-800">
               {row.name as string}
             </span>
           </div>
           <div>
-            <span className="text-gray-600">{getBuildPartnerLabel('CDL_BP_ID')}:</span>
+            <span className="text-gray-600">{getBuildPartnerLabel('CDL_AR_ID')}:</span>
             <span className="ml-2 font-medium text-gray-800">
               {row.developerId as string}
             </span>
           </div>
           <div>
-            <span className="text-gray-600">{getBuildPartnerLabel('CDL_BP_CIF')}:</span>
+            <span className="text-gray-600">{getBuildPartnerLabel('CDL_AR_CIF')}:</span>
             <span className="ml-2 font-medium text-gray-800">
               {row.developerCif as string}
             </span>
@@ -370,14 +370,14 @@ const DevelopersPageImpl: React.FC = () => {
             <span className="ml-2 font-medium text-gray-800">20 Mar 2024</span>
           </div>
           <div>
-            <span className="text-gray-600">{getBuildPartnerLabel('CDL_BP_AUTH_NAME')}:</span>
+            <span className="text-gray-600">{getBuildPartnerLabel('CDL_AR_AUTH_NAME')}:</span>
             <span className="ml-2 font-medium text-gray-800">John Doe</span>
           </div>
         </div>
       </div>
       <div className="space-y-4">
         <h4 className="mb-4 text-sm font-semibold text-gray-900">
-          {getBuildPartnerLabel('CDL_BP_DOC_MANAGEMENT')}
+          {getBuildPartnerLabel('CDL_AR_DOC_MANAGEMENT')}
         </h4>
         <div className="space-y-3">
           <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
