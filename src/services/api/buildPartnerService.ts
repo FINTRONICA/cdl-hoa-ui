@@ -22,61 +22,64 @@ export interface TaskStatusDTO {
   enabled: boolean
 }
 
-// Build Partner types - Updated to match API response structure
+// Asset Register (Management Firm) types - NEW API uses 'ar' prefix
+// Properties map to Asset Register/Management Firm data
 export interface BuildPartner {
   id: number
-  bpDeveloperId: string
-  bpCifrera: string | null
-  bpDeveloperRegNo: string
-  bpName: string | null
-  bpMasterName: string | null
-  bpNameLocal: string | null
-  bpOnboardingDate: string | null
-  bpContactAddress: string | null
-  bpContactTel: string | null
-  bpPoBox: string | null
-  bpMobile: string | null
-  bpFax: string | null
-  bpEmail: string | null
-  bpLicenseNo: string | null
-  bpLicenseExpDate: string | null
-  bpWorldCheckFlag: string | null
-  bpWorldCheckRemarks: string | null
-  bpMigratedData: boolean | null
-  bpremark: string | null
-  bpRegulatorDTO: unknown | null
-  bpActiveStatusDTO: unknown | null
-  buildPartnerBeneficiaryDTOS: unknown[] | null
-  buildPartnerContactDTOS: unknown[] | null
-  taskStatusDTO: TaskStatusDTO | null
+  arDeveloperId: string // Management Firm ID
+  arCifrera: string | null // Management Firm CIF
+  arDeveloperRegNo: string // Registration Number
+  arName: string | null // Management Firm Name
+  arMasterName: string | null // Master Management Firm
+  arNameLocal: string | null // Local Name
+  arOnboardingDate: string | null // Onboarding Date
+  arContactAddress: string | null // Contact Address
+  arContactTel: string | null // Contact Telephone
+  arPoBox: string | null // PO Box
+  arMobile: string | null // Mobile Number
+  arFax: string | null // Fax Number
+  arEmail: string | null // Email Address
+  arLicenseNo: string | null // License Number
+  arLicenseExpDate: string | null // License Expiry Date
+  arWorldCheckFlag: string | null // World Check Status
+  arWorldCheckRemarks: string | null // World Check Remarks
+  arMigratedData: boolean | null // Migrated Data Flag
+  arremark: string | null // Additional Notes
+  arRegulatorDTO: unknown | null // Regulatory Authority
+  arActiveStatusDTO: unknown | null // Active Status
+  assetRegisterBeneficiaryDTOS: unknown[] | null // Beneficiaries
+  assetRegisterContactDTOS: unknown[] | null // Contacts
+  taskStatusDTO: TaskStatusDTO | null // Task Status
 }
 
+// Create Management Firm request - NEW API uses 'ar' prefix
 export interface CreateBuildPartnerRequest {
-  bpName: string
-  bpDeveloperId: string
-  bpCifrera: string
-  bpNameLocal?: string
-  bpWorldCheckFlag?: string
-  bpContactAddress?: string
-  bpContactTel?: string
-  bpEmail?: string
-  bpMobile?: string
-  bpLicenseNo?: string
-  bpLicenseExpDate?: string
+  arName: string // Management Firm Name
+  arDeveloperId: string // Management Firm ID
+  arCifrera: string // Management Firm CIF
+  arNameLocal?: string // Local Name
+  arWorldCheckFlag?: string // World Check Status
+  arContactAddress?: string // Contact Address
+  arContactTel?: string // Contact Telephone
+  arEmail?: string // Email Address
+  arMobile?: string // Mobile Number
+  arLicenseNo?: string // License Number
+  arLicenseExpDate?: string // License Expiry Date
 }
 
+// Update Management Firm request - NEW API uses 'ar' prefix
 export interface UpdateBuildPartnerRequest {
-  bpName?: string
-  bpDeveloperId?: string
-  bpCifrera?: string
-  bpNameLocal?: string
-  bpWorldCheckFlag?: string
-  bpContactAddress?: string
-  bpContactTel?: string
-  bpEmail?: string
-  bpMobile?: string
-  bpLicenseNo?: string
-  bpLicenseExpDate?: string
+  arName?: string // Management Firm Name
+  arDeveloperId?: string // Management Firm ID
+  arCifrera?: string // Management Firm CIF
+  arNameLocal?: string // Local Name
+  arWorldCheckFlag?: string // World Check Status
+  arContactAddress?: string // Contact Address
+  arContactTel?: string // Contact Telephone
+  arEmail?: string // Email Address
+  arMobile?: string // Mobile Number
+  arLicenseNo?: string // License Number
+  arLicenseExpDate?: string // License Expiry Date
 }
 
 export interface BuildPartnerFilters {
@@ -114,13 +117,14 @@ export interface StepValidationResponse {
   warnings?: string[]
 }
 
-// Build Partner form data types
+// Asset Register (Management Firm) form data types
+// NEW API uses 'ar' prefix
 export interface BuildPartnerDetailsData {
-  bpName: string
-  bpDeveloperId: string
-  bpCifrera: string
-  bpNameLocal: string
-  bpWorldCheckFlag?: string
+  arName: string // Management Firm Name
+  arDeveloperId: string // Management Firm ID
+  arCifrera: string // Management Firm CIF
+  arNameLocal: string // Local Name
+  arWorldCheckFlag?: string // World Check Status
 }
 
 // UI-friendly BuildPartner interface for table display
@@ -158,62 +162,65 @@ export const mapBuildPartnerToUIData = (
 
   return {
     id: apiData.id.toString(),
-    name: apiData.bpName || 'N/A',
-    developerId: apiData.bpDeveloperId || 'N/A',
-    developerCif: apiData.bpCifrera || 'N/A',
-    localeNames: apiData.bpNameLocal || '---',
+    name: apiData.arName || 'N/A',
+    developerId: apiData.arDeveloperId || 'N/A',
+    developerCif: apiData.arCifrera || 'N/A',
+    localeNames: apiData.arNameLocal || '---',
     status: mapApiStatus(apiData.taskStatusDTO),
-    registrationDate: apiData.bpOnboardingDate || undefined,
-    lastUpdated: apiData.bpOnboardingDate || undefined,
-    contactPerson: apiData.bpContactAddress || undefined,
+    registrationDate: apiData.arOnboardingDate || undefined,
+    lastUpdated: apiData.arOnboardingDate || undefined,
+    contactPerson: apiData.arContactAddress || undefined,
   }
 }
 
+// Management Firm contact data - NEW API uses 'arc' prefix (Asset Register Contact)
 export interface BuildPartnerContactData {
-  bpcFirstName: string
-  bpcLastName: string
-  bpcContactEmail: string
-  bpcContactAddressLine1: string
-  bpcContactAddressLine2: string
-  bpcContactPoBox: string
-  bpcCountryMobCode: string
-  bpcContactTelNo: string
-  bpcContactMobNo: string
-  bpcContactFaxNo: string
+  arcFirstName: string // Contact First Name
+  arcLastName: string // Contact Last Name
+  arcContactEmail: string // Contact Email
+  arcContactAddressLine1: string // Address Line 1
+  arcContactAddressLine2: string // Address Line 2
+  arcContactPoBox: string // PO Box
+  arcCountryMobCode: string // Country Mobile Code
+  arcContactTelNo: string // Telephone Number
+  arcContactMobNo: string // Mobile Number
+  arcContactFaxNo: string // Fax Number
 }
 
+// Management Firm fees structure data
 export interface BuildPartnerFeesData {
   feeStructure: {
-    setupFee: number
-    transactionFee: number
-    monthlyFee: number
+    setupFee: number // Setup Fee
+    transactionFee: number // Transaction Fee
+    monthlyFee: number // Monthly Fee
   }
-  collectionMethod: 'automatic' | 'manual'
-  paymentTerms: string
+  collectionMethod: 'automatic' | 'manual' // Collection Method
+  paymentTerms: string // Payment Terms
 }
 
+// Management Firm individual fee data - NEW API uses 'ar' prefix
 export interface BuildPartnerIndividualFeeData {
-  bpFeeCategoryDTO: {
-    id: number
+  arFeeCategoryDTO: {
+    id: number // Fee Category ID
   }
-  bpFeeFrequencyDTO: {
-    id: number
+  arFeeFrequencyDTO: {
+    id: number // Fee Frequency ID
   }
-  bpAccountTypeDTO: {
-    id: number
+  arAccountTypeDTO: {
+    id: number // Account Type ID
   }
-  debitAmount: number
-  totalAmount: number
-  feeCollectionDate: string
-  feeNextRecoveryDate: string
-  feePercentage: number
-  vatPercentage: number
-  bpFeeCurrencyDTO: {
-    id: number
+  debitAmount: number // Debit Amount
+  totalAmount: number // Total Amount
+  feeCollectionDate: string // Fee Collection Date
+  feeNextRecoveryDate: string // Next Recovery Date
+  feePercentage: number // Fee Percentage
+  vatPercentage: number // VAT Percentage
+  arFeeCurrencyDTO: {
+    id: number // Currency ID
   }
 }
 
-// API Response interface for fee data
+// API Response interface for fee data - NEW API uses 'ar' prefix
 export interface BuildPartnerFeeResponse {
   id: number
   debitAmount?: number
@@ -223,7 +230,7 @@ export interface BuildPartnerFeeResponse {
   feePercentage?: number
   vatPercentage?: number
   feeCollected?: any
-  bpFeeCategoryDTO?: {
+  arFeeCategoryDTO?: {
     id?: number
     settingKey?: string
     settingValue?: string
@@ -241,7 +248,7 @@ export interface BuildPartnerFeeResponse {
     enabled?: boolean
     deleted?: boolean | null
   }
-  bpFeeFrequencyDTO?: {
+  arFeeFrequencyDTO?: {
     id?: number
     settingKey?: string
     settingValue?: string
@@ -259,7 +266,7 @@ export interface BuildPartnerFeeResponse {
     enabled?: boolean
     deleted?: boolean | null
   }
-  bpFeeCurrencyDTO?: {
+  arFeeCurrencyDTO?: {
     id?: number
     settingKey?: string
     settingValue?: string
@@ -293,48 +300,50 @@ export interface FeeUIData extends Record<string, unknown> {
   currency: string
 }
 
+// Management Firm beneficiary data - NEW API uses 'arb' prefix (Asset Register Beneficiary)
 export interface BuildPartnerBeneficiaryData {
-  bpbBeneficiaryId: string
-  bpbBeneficiaryType: string
-  bpbName: string
-  bpbBankName: string
-  bpbSwiftCode: string
-  bpbRoutingCode: string
-  bpbAccountNumber: string
-  enabled: boolean
+  arbBeneficiaryId: string // Beneficiary Reference ID
+  arbBeneficiaryType: string // Payment Transfer Mode
+  arbName: string // Beneficiary Full Name
+  arbBankName: string // Beneficiary Bank Name
+  arbSwiftCode: string // SWIFT / BIC Code
+  arbRoutingCode: string // Bank Routing Number
+  arbAccountNumber: string // Bank Account Number
+  enabled: boolean // Active Status
 }
 
-// API Response interface for beneficiary data
+// Management Firm beneficiary API response - NEW API uses 'arb' prefix
 export interface BuildPartnerBeneficiaryResponse {
-  id: number
-  bpbBeneficiaryId: string
-  bpbBeneficiaryType: string
-  bpbName: string
-  bpbBankName: string
-  bpbSwiftCode: string
-  bpbRoutingCode?: string
-  bpbAccountNumber: string
-  buildPartnerId?: number
-  createdAt?: string
-  updatedAt?: string
-  status?: string
-  enabled?: boolean
+  id: number // Beneficiary ID
+  arbBeneficiaryId: string // Beneficiary Reference ID
+  arbBeneficiaryType: string // Payment Transfer Mode
+  arbName: string // Beneficiary Full Name
+  arbBankName: string // Beneficiary Bank Name
+  arbSwiftCode: string // SWIFT / BIC Code
+  arbRoutingCode?: string // Bank Routing Number
+  arbAccountNumber: string // Bank Account Number
+  assetRegisterId?: number // Management Firm ID
+  createdAt?: string // Created Date
+  updatedAt?: string // Updated Date
+  status?: string // Status
+  enabled?: boolean // Active Status
 }
 
-// Update request interface for beneficiary
+// Update Management Firm beneficiary request - NEW API uses 'arb' prefix
 export interface UpdateBuildPartnerBeneficiaryData {
-  bpbBeneficiaryId?: string
-  bpbBeneficiaryType?: string
-  bpbName?: string
-  bpbBankName?: string
-  bpbSwiftCode?: string
-  bpbRoutingCode?: string
-  bpbAccountNumber?: string
+  arbBeneficiaryId?: string // Beneficiary Reference ID
+  arbBeneficiaryType?: string // Payment Transfer Mode
+  arbName?: string // Beneficiary Full Name
+  arbBankName?: string // Beneficiary Bank Name
+  arbSwiftCode?: string // SWIFT / BIC Code
+  arbRoutingCode?: string // Bank Routing Number
+  arbAccountNumber?: string // Bank Account Number
 }
 
+// Management Firm review/submission data
 export interface BuildPartnerReviewData {
-  reviewData: unknown
-  termsAccepted: boolean
+  reviewData: unknown // Review Data
+  termsAccepted: boolean // Terms Accepted Flag
 }
 
 // Customer Details API Response Types
@@ -377,14 +386,14 @@ export class BuildPartnerService {
           Rejected: 'REJECTED',
           Incomplete: 'INCOMPLETE',
         }
-        apiFilters.bpWorldCheckFlag =
+        apiFilters.arWorldCheckFlag =
           statusMapping[filters.status] || filters.status
       }
       if (filters.name) {
-        apiFilters.bpName = filters.name
+        apiFilters.arName = filters.name
       }
       if (filters.developerId) {
-        apiFilters.bpDeveloperId = filters.developerId
+        apiFilters.arDeveloperId = filters.developerId
       }
     }
 
@@ -463,9 +472,9 @@ export class BuildPartnerService {
 
   async getBuildPartnerByCif(cif: string): Promise<BuildPartner> {
     try {
-      const params = { bpCifrera: cif }
+      const params = { arCifrera: cif }
       const queryString = new URLSearchParams(params).toString()
-      const url = `${buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.FIND_ALL)}?${queryString}`
+      const url = `${buildApiUrl(API_ENDPOINTS.ASSET_REGISTER.FIND_ALL)}&${queryString}`
 
       const result = await apiClient.get<PaginatedResponse<BuildPartner>>(url)
 
@@ -475,7 +484,7 @@ export class BuildPartnerService {
           return buildPartner
         }
       }
-      throw new Error(`No build partner found with CIF: ${cif}`)
+      throw new Error(`No management firm found with CIF: ${cif}`)
     } catch (error) {
       throw error
     }
@@ -502,7 +511,7 @@ export class BuildPartnerService {
   ): Promise<BuildPartner> {
     try {
       const result = await apiClient.post<BuildPartner>(
-        buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.SAVE),
+        buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_CREATE.DETAILS_SAVE),
         data
       )
 
@@ -518,7 +527,7 @@ export class BuildPartnerService {
   ): Promise<BuildPartner> {
     try {
       const result = await apiClient.put<BuildPartner>(
-        buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.UPDATE(id)),
+        buildApiUrl(API_ENDPOINTS.ASSET_REGISTER.UPDATE(id)),
         updates
       )
 
@@ -532,7 +541,7 @@ export class BuildPartnerService {
     try {
 
       await apiClient.delete<string>(
-        buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.SOFT_DELETE(id))
+        buildApiUrl(API_ENDPOINTS.ASSET_REGISTER.SOFT_DELETE(id))
       )
     } catch (error) {
       throw error
@@ -899,14 +908,14 @@ export class BuildPartnerService {
   ): Record<string, unknown> {
     return {
       id: apiData.id.toString(),
-      bpbBeneficiaryId: apiData.bpbBeneficiaryId,
-      bpbBeneficiaryType: apiData.bpbBeneficiaryType,
-      bpbName: apiData.bpbName,
-      bpbBankName: apiData.bpbBankName,
-      bpbSwiftCode: apiData.bpbSwiftCode,
-      bpbRoutingCode: apiData.bpbRoutingCode || '',
-      bpbAccountNumber: apiData.bpbAccountNumber,
-      buildPartnerId: apiData.buildPartnerId,
+      arbBeneficiaryId: apiData.arbBeneficiaryId,
+      arbBeneficiaryType: apiData.arbBeneficiaryType,
+      arbName: apiData.arbName,
+      arbBankName: apiData.arbBankName,
+      arbSwiftCode: apiData.arbSwiftCode,
+      arbRoutingCode: apiData.arbRoutingCode || '',
+      arbAccountNumber: apiData.arbAccountNumber,
+      assetRegisterId: apiData.assetRegisterId,
       createdAt: apiData.createdAt,
       updatedAt: apiData.updatedAt,
       status: apiData.status,
@@ -918,22 +927,13 @@ export class BuildPartnerService {
     uiData: Record<string, unknown>
   ): UpdateBuildPartnerBeneficiaryData {
     return {
-      bpbBeneficiaryId: uiData.bpbBeneficiaryId as string,
-      bpbBeneficiaryType: uiData.bpbBeneficiaryType as string,
-      bpbName: uiData.bpbName as string,
-      bpbBankName: uiData.bpbBankName as string,
-      bpbSwiftCode: uiData.bpbSwiftCode as string,
-      bpbRoutingCode: uiData.bpbRoutingCode as string,
-      bpbAccountNumber: uiData.bpbAccountNumber as string,
-
-      // bpbBeneficiaryId: uiData.bpbBeneficiaryId as string,
-      // bpbBeneficiaryType: uiData.bpbBeneficiaryType as string,
-      // bpbName: uiData.bpbName as string,
-      // bpbBankName: uiData.bpbBankName as string,
-      // bpbSwiftCode: uiData.bpbSwiftCode as string,
-      // bpbRoutingCode: uiData.bpbRoutingCode as string,
-      // bpbAccountNumber: uiData.bpbAccountNumber as string,
-
+      arbBeneficiaryId: uiData.arbBeneficiaryId as string,
+      arbBeneficiaryType: uiData.arbBeneficiaryType as string,
+      arbName: uiData.arbName as string,
+      arbBankName: uiData.arbBankName as string,
+      arbSwiftCode: uiData.arbSwiftCode as string,
+      arbRoutingCode: uiData.arbRoutingCode as string,
+      arbAccountNumber: uiData.arbAccountNumber as string,
     }
   }
 
@@ -941,19 +941,19 @@ export class BuildPartnerService {
     formData: Record<string, unknown>
   ): BuildPartnerBeneficiaryData {
     return {
-      bpbBeneficiaryId: (formData.bpbBeneficiaryId as string) || '',
-      bpbBeneficiaryType: (formData.bpbBeneficiaryType as string) || 'RTGS',
-      bpbName: (formData.bpbName as string) || '',
-      bpbBankName: (formData.bpbBankName as string) || '',
-      bpbSwiftCode: (formData.bpbSwiftCode as string) || '',
-      bpbRoutingCode: (formData.bpbRoutingCode as string) || '',
-      bpbAccountNumber: (formData.bpbAccountNumber as string) || '',
+      arbBeneficiaryId: (formData.arbBeneficiaryId as string) || '',
+      arbBeneficiaryType: (formData.arbBeneficiaryType as string) || 'RTGS',
+      arbName: (formData.arbName as string) || '',
+      arbBankName: (formData.arbBankName as string) || '',
+      arbSwiftCode: (formData.arbSwiftCode as string) || '',
+      arbRoutingCode: (formData.arbRoutingCode as string) || '',
+      arbAccountNumber: (formData.arbAccountNumber as string) || '',
       enabled: true,
     }
   }
 
   /**
-   * Search build partners by name with pagination
+   * Search management firms by name with pagination
    * Used for autocomplete functionality
    */
   async searchBuildPartners(
@@ -968,11 +968,11 @@ export class BuildPartnerService {
 
       const params = {
         ...buildPaginationParams(page, size),
-        'bpName.contains': query.trim(),
+        'arName.contains': query.trim(),
         'deleted.equals': 'false',
         'enabled.equals': 'true',
       }
-      const url = `${buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.SAVE)}?${new URLSearchParams(params).toString()}`
+      const url = `${buildApiUrl(API_ENDPOINTS.ASSET_REGISTER.FIND_ALL)}&${new URLSearchParams(params).toString()}`
       const response = await apiClient.get(url)
       // Handle both single object and paginated response formats
       let buildPartners: BuildPartner[] = []
@@ -984,15 +984,15 @@ export class BuildPartnerService {
         if ('content' in response && Array.isArray(response.content)) {
           // Paginated response format
           buildPartners = response.content
-        } else if ('id' in response || 'bpName' in response) {
+        } else if ('id' in response || 'arName' in response) {
           // Single object response - wrap in array
           buildPartners = [response as BuildPartner]
         }
       }
       
       return buildPartners
-    } catch (error) {
-      throw new Error('Failed to search build partners')
+    } catch {
+      throw new Error('Failed to search management firms')
     }
   }
   // Data mapping functions for fees
@@ -1002,12 +1002,12 @@ export class BuildPartnerService {
     const mapped = {
       id: apiData.id.toString(),
       feeType:
-        apiData.bpFeeCategoryDTO?.languageTranslationId?.configValue ||
-        apiData.bpFeeCategoryDTO?.settingValue ||
+        apiData.arFeeCategoryDTO?.languageTranslationId?.configValue ||
+        apiData.arFeeCategoryDTO?.settingValue ||
         '',
       frequency:
-        apiData.bpFeeFrequencyDTO?.languageTranslationId?.configValue ||
-        apiData.bpFeeFrequencyDTO?.settingValue ||
+        apiData.arFeeFrequencyDTO?.languageTranslationId?.configValue ||
+        apiData.arFeeFrequencyDTO?.settingValue ||
         '',
       debitAmount: apiData.debitAmount?.toString() || '',
       feeToBeCollected: apiData.feeCollectionDate || '',
@@ -1016,8 +1016,8 @@ export class BuildPartnerService {
       amount: apiData.totalAmount?.toString() || '',
       vatPercentage: apiData.vatPercentage?.toString() || '',
       currency:
-        apiData.bpFeeCurrencyDTO?.languageTranslationId?.configValue ||
-        apiData.bpFeeCurrencyDTO?.settingValue ||
+        apiData.arFeeCurrencyDTO?.languageTranslationId?.configValue ||
+        apiData.arFeeCurrencyDTO?.settingValue ||
         '',
     }
 

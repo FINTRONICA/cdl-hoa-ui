@@ -2,15 +2,16 @@ import { apiClient } from '@/lib/apiClient'
 import { buildApiUrl, API_ENDPOINTS } from '@/constants/apiEndpoints'
 
 // ---------- Request DTO ----------
+// Owner Registry Bank Info Request
 export interface CapitalPartnerBankInfoRequest {
-  cpbiPayeeName?: string
-  cpbiPayeeAddress?: string
-  cpbiBankName?: string
-  cpbiBankAddress?: string
-  cpbiBicCode?: string
-  cpbiBeneRoutingCode?: string
-  cpbiAccountNumber?: string
-  cpbiIban?: string
+  owrbiPayeeName?: string
+  owrbiPayeeAddress?: string
+  owrbiBankName?: string
+  owrbiBankAddress?: string
+  owrbiBicCode?: string
+  owrbiBeneRoutingCode?: string
+  owrbiAccountNumber?: string
+  owrbiIban?: string
   capitalPartnerDTO?: { id: string }
   payModeDTO?: {
     id: number
@@ -21,14 +22,14 @@ export interface CapitalPartnerBankInfoRequest {
 // ---------- Response DTO ----------
 export interface CapitalPartnerBankInfoResponse {
   id: number
-  cpbiPayeeName?: string
-  cpbiPayeeAddress?: string
-  cpbiBankName?: string
-  cpbiBankAddress?: string
-  cpbiBicCode?: string
-  cpbiBeneRoutingCode?: string
-  cpbiAccountNumber?: string
-  cpbiIban?: string
+  owrbiPayeeName?: string
+  owrbiPayeeAddress?: string
+  owrbiBankName?: string
+  owrbiBankAddress?: string
+  owrbiBicCode?: string
+  owrbiBeneRoutingCode?: string
+  owrbiAccountNumber?: string
+  owrbiIban?: string
   capitalPartnerDTO?: { id: string }
   payModeDTO?: {
     id: number

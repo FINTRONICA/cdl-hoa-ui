@@ -394,7 +394,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
       )
     }
 
-    const renderInvestorIdField = (
+    const renderOwnerRegistryIdField = (
       name: string,
       label: string,
       gridSize: number = 6
@@ -523,9 +523,9 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
       switch (key) {
         case 'investorType':
           return [
-            { id: 1, displayName: 'Individual', settingValue: 'CP_INDIVIDUAL' },
-            { id: 2, displayName: 'Company', settingValue: 'CP_COMPANY' },
-            { id: 3, displayName: 'Joint', settingValue: 'CP_JOINT' },
+            { id: 1, displayName: 'Individual', settingValue: 'OWR_INDIVIDUAL' },
+            { id: 2, displayName: 'Company', settingValue: 'OWR_COMPANY' },
+            { id: 3, displayName: 'Joint', settingValue: 'OWR_JOINT' },
           ]
         case 'investorIdType':
           return [
@@ -599,8 +599,8 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
             <Grid container rowSpacing={4} columnSpacing={2}>
               {renderApiSelectField(
                 'investorType',
-                'CDL_CP_TYPE',
-                'Investor Type*',
+                'CDL_OWR_TYPE',
+                'Owner Registry Type*',
                 investorTypes?.length
                   ? investorTypes
                   : getFallbackOptions('investorType'),
@@ -608,39 +608,39 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                 true,
                 loadingInvestorTypes
               )}
-              {renderInvestorIdField(
+              {renderOwnerRegistryIdField(
                 'investorId',
-                getLabel('CDL_CP_REFID', currentLanguage, 'Investor ID*')
+                getLabel('CDL_OWR_REFID', currentLanguage, 'Owner Registry ID*')
               )}
               {renderTextField(
                 'investorFirstName',
-                'CDL_CP_FIRSTNAME',
-                'Investor Name*'
+                'CDL_OWR_FIRSTNAME',
+                'Owner Registry Name*'
               )}
               {renderTextField(
                 'investorMiddleName',
-                'CDL_CP_MIDDLENAME',
+                'CDL_OWR_MIDDLENAME',
                 'Middle Name*'
               )}
               {renderTextField(
                 'investorLastName',
-                'CDL_CP_LASTNAME',
+                'CDL_OWR_LASTNAME',
                 'Last Name*'
               )}
               {renderTextField(
                 'arabicName',
-                'CDL_CP_LOCALE_NAME',
+                'CDL_OWR_LOCALE_NAME',
                 'Arabic Name'
               )}
               {renderTextField(
                 'ownership',
-                'CDL_CP_OWNERSHIP',
+                'CDL_OWR_OWNERSHIP',
                 'Ownership Percentage'
               )}
               {renderApiSelectField(
                 'investorIdType',
-                'CDL_CP_ID_TYPE',
-                'Investor ID Type*',
+                'CDL_OWR_ID_TYPE',
+                'Owner Registry ID Type*',
                 idTypes?.length
                   ? idTypes
                   : getFallbackOptions('investorIdType'),
@@ -648,7 +648,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                 true,
                 loadingIdTypes
               )}
-              {renderTextField('idNumber', 'CDL_CP_DOC_NO', 'ID No.')}
+              {renderTextField('idNumber', 'CDL_OWR_DOC_NO', 'ID No.')}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="idExpiryDate"
@@ -657,7 +657,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                   render={({ field }) => (
                     <DatePicker
                       label={getLabel(
-                        'CDL_CP_ID_EXP',
+                        'CDL_OWR_ID_EXP',
                         currentLanguage,
                         'ID Expiry Date'
                       )}
@@ -686,7 +686,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
               </Grid>
               {renderApiSelectField(
                 'nationality',
-                'CDL_CP_NATIONALITY',
+                'CDL_OWR_NATIONALITY',
                 'Nationality*',
                 countries?.length
                   ? countries
@@ -697,17 +697,17 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
               )}
               {renderTextField(
                 'accountContact',
-                'CDL_CP_TELEPHONE',
+                'CDL_OWR_TELEPHONE',
                 'Account Contact Number',
                 ''
               )}
               {renderTextField(
                 'mobileNumber',
-                'CDL_CP_MOBILE',
+                'CDL_OWR_MOBILE',
                 'Mobile Number',
                 ''
               )}
-              {renderTextField('email', 'CDL_CP_EMAIL', 'Email Address', '')}
+              {renderTextField('email', 'CDL_OWR_EMAIL', 'Email Address', '')}
             </Grid>
           </CardContent>
         </Card>

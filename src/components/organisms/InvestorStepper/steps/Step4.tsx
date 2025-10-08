@@ -407,7 +407,7 @@ const Step4 = forwardRef<Step4Ref, Step4Props>(
             <Grid container rowSpacing={4} columnSpacing={2}>
               {renderApiSelectField(
                 'payMode',
-                'CDL_CP_PAY_MODE',
+                'CDL_OWR_PAY_MODE',
                 'Pay Mode*',
                 paymentModes?.length
                   ? paymentModes
@@ -418,27 +418,27 @@ const Step4 = forwardRef<Step4Ref, Step4Props>(
               )}
               {renderTextField(
                 'accountNumber',
-                'CDL_CP_ACCOUNT_NUMBER',
+                'CDL_OWR_ACCOUNT_NUMBER',
                 'Account Number'
               )}
-              {renderTextField('payeeName', 'CDL_CP_PAYEE_NAME', 'Payee Name')}
+              {renderTextField('payeeName', 'CDL_OWR_PAYEE_NAME', 'Payee Name')}
               {renderTextField(
                 'payeeAddress',
-                'CDL_CP_PAYEE_ADDRESS',
+                'CDL_OWR_PAYEE_ADDRESS',
                 'Payee Address'
               )}
-              {renderTextField('bankName', 'CDL_CP_BANK_NAME', 'Bank Name')}
+              {renderTextField('bankName', 'CDL_OWR_BANK_NAME', 'Bank Name')}
               {renderTextField(
                 'bankAddress',
-                'CDL_CP_BANK_ADDRESS',
+                'CDL_OWR_BANK_ADDRESS',
                 'Bank Address'
               )}
               {renderTextField(
                 'beneficiaryRoutingCode',
-                'CDL_CP_ROUTING_CODE',
+                'CDL_OWR_ROUTING_CODE',
                 'Beneficiary Routing Code'
               )}
-              {renderTextField('bic', 'DL_CP_BIC_CODE', 'BIC')}
+              {renderTextField('bic', 'CDL_OWR_BIC_CODE', 'BIC')}
             </Grid>
           </CardContent>
         </Card>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { CapitalPartnerLabelsService, ProcessedCapitalPartnerLabels } from '@/services/api/capitalPartnerLabelsService'
+import { CAPITAL_PARTNER_LABELS } from '@/constants/mappings/capitalPartnerMapping'
 
 export function useCapitalPartnerLabelsApi() {
   const [labels, setLabels] = useState<ProcessedCapitalPartnerLabels | null>(null)
@@ -29,10 +30,22 @@ export function useCapitalPartnerLabelsApi() {
 
   const getLabel = useCallback(
     (configId: string, language: string = 'EN', fallback?: string): string => {
-      if (!labels) {
-        return fallback || configId
+      // First try to get from API labels
+      if (labels) {
+        const apiLabel = CapitalPartnerLabelsService.getLabel(labels, configId, language, fallback || configId)
+        if (apiLabel && apiLabel !== configId) {
+          return apiLabel
+        }
       }
-      return CapitalPartnerLabelsService.getLabel(labels, configId, language, fallback || configId)
+      
+      // Fallback to local mapping
+      const localLabel = CAPITAL_PARTNER_LABELS[configId]
+      if (localLabel) {
+        return localLabel
+      }
+      
+      // Final fallback
+      return fallback || configId
     },
     [labels]
   )

@@ -1,24 +1,24 @@
 import { z } from 'zod';
 import { BaseSchemas } from './baseSchemas';
 
-// Developer Stepper validation schemas
+// Developer Stepper validation schemas - NEW API uses 'ar' prefix
 export const DeveloperStepperSchemas = {
   step1Details: z.object({
 
     // CIF from Core Banking - up to 8-digit numerical, mandatory
-    bpCifrera: z.string()
+    arCifrera: z.string()
       .min(1, 'CIF is required')
       .max(8, 'CIF must be 8 digits or less')
       .regex(/^\d+$/, 'CIF must be numerical'),
     
     // Developer ID - required
-    bpDeveloperId: z.string().min(1, 'Developer ID is required'),
+    arDeveloperId: z.string().min(1, 'Developer ID is required'),
 
-    bpDeveloperRegNo: z.string()
+    arDeveloperRegNo: z.string()
       .min(1, 'Developer Registration number is required')
       .max(14, 'Developer Registration number must be 14 characters or less'),
     
-    bpOnboardingDate: z.union([
+    arOnboardingDate: z.union([
       z.string().min(1, 'RERA Registration date is required'),
       z.date(),
       z.null(),
@@ -41,29 +41,29 @@ export const DeveloperStepperSchemas = {
       return dateRegex.test(date) || isoRegex.test(date);
     }, 'Date must be in YYYY-MM-DD format or ISO 8601 format with timezone'),
     
-    bpName: z.string()
+    arName: z.string()
       .min(1, 'Developer name is required')
       .max(35, 'Developer name must be 35 characters or less'),
     
-    bpNameLocal: z.string()
+    arNameLocal: z.string()
       .max(35, 'Developer name (Hindi) must be 35 characters or less')
       // .regex(/^[\u0900-\u097F\s]*$/, 'Only Hindi text is permitted')
       .optional(),
     
-    bpMasterName: z.string()
+    arMasterName: z.string()
       .max(35, 'Parent Developer name must be 35 characters or less')
       .optional(),
     
-    bpRegulatorDTO: z.object({
+    arRegulatorDTO: z.object({
       id: z.number().min(1, 'Please select a regulator'),
     }),
     
-    bpLicenseNo: z.string()
+    arLicenseNo: z.string()
       .min(1, 'License number is required')
       .max(50, 'License number must be 50 characters or less')
       .regex(/^[a-zA-Z0-9]*$/, 'License number can only contain alphanumeric characters'),
     
-    bpLicenseExpDate: z.union([
+    arLicenseExpDate: z.union([
       z.string().min(1, 'License expiry date is required'),
       z.date(),
       z.null(),
@@ -86,7 +86,7 @@ export const DeveloperStepperSchemas = {
       return dateRegex.test(date) || isoRegex.test(date);
     }, 'Date must be in YYYY-MM-DD format or ISO 8601 format with timezone'),
     
-    bpWorldCheckFlag: z.union([
+    arWorldCheckFlag: z.union([
       z.boolean(),
       z.string(),
       z.undefined(),
@@ -97,7 +97,7 @@ export const DeveloperStepperSchemas = {
       return Boolean(val);
     }),
     
-    bpWorldCheckRemarks: z.string()
+    arWorldCheckRemarks: z.string()
       .max(100, 'World Check Flag remarks must be 100 characters or less')
       .regex(/^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?\s]*$/, 'Remarks can contain alphanumeric and special characters')
       .optional(),

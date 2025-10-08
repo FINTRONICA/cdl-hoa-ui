@@ -3,13 +3,13 @@ import { buildApiUrl, API_ENDPOINTS } from '@/constants/apiEndpoints'
 
 // ---------- Request DTO ----------
 export interface CapitalPartnerUnitBookingRequest {
-  cpubAmountPaid?: number
-  cpubAreaSize?: number
-  cpubForFeitAmount?: number
-  cpubDldAmount?: number
-  cpubRefundAmount?: number
-  cpubRemarks?: string
-  cpubTransferredAmount?: number
+  owrubAmountPaid?: number
+  owrubAreaSize?: number
+  owrubForFeitAmount?: number
+  owrubDldAmount?: number
+  owrubRefundAmount?: number
+  owrubRemarks?: string
+  owrubTransferredAmount?: number
   capitalPartnerUnitDTOS?: Array<{ id: number }>
   deleted?: boolean
 }
@@ -17,13 +17,13 @@ export interface CapitalPartnerUnitBookingRequest {
 // ---------- Response DTO ----------
 export interface CapitalPartnerUnitBookingResponse {
   id: number
-  cpubAmountPaid?: number
-  cpubAreaSize?: number
-  cpubForFeitAmount?: number
-  cpubDldAmount?: number
-  cpubRefundAmount?: number
-  cpubRemarks?: string
-  cpubTransferredAmount?: number
+  owrubAmountPaid?: number
+  owrubAreaSize?: number
+  owrubForFeitAmount?: number
+  owrubDldAmount?: number
+  owrubRefundAmount?: number
+  owrubRemarks?: string
+  owrubTransferredAmount?: number
   capitalPartnerUnitDTOS?: Array<{ id: number }>
   deleted: boolean
   createdAt?: string

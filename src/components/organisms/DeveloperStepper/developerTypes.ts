@@ -69,29 +69,30 @@ export interface PaginatedDocumentResponse {
   }
 }
 
+// Management Firm Data - NEW API uses 'ar' prefix
 export interface BuildPartnerData {
   id: number
-  bpDeveloperId: string
-  bpCifrera: string | null
-  bpDeveloperRegNo: string
-  bpName: string | null
-  bpMasterName: string | null
-  bpNameLocal: string | null
-  bpOnboardingDate: string | null
-  bpContactAddress: string | null
-  bpContactTel: string | null
-  bpPoBox: string | null
-  bpMobile: string | null
-  bpFax: string | null
-  bpEmail: string | null
-  bpLicenseNo: string | null
-  bpLicenseExpDate: string | null
-  bpWorldCheckFlag: boolean | null
-  bpWorldCheckRemarks: string | null
-  bpMigratedData: boolean | null
-  bpremark: string | null
-  bpRegulatorDTO: unknown | null
-  bpActiveStatusDTO: unknown | null
+  arDeveloperId: string // Management Firm ID
+  arCifrera: string | null // Management Firm CIF
+  arDeveloperRegNo: string // Registration Number
+  arName: string | null // Management Firm Name
+  arMasterName: string | null // Master Management Firm
+  arNameLocal: string | null // Local Name
+  arOnboardingDate: string | null // Onboarding Date
+  arContactAddress: string | null // Contact Address
+  arContactTel: string | null // Contact Telephone
+  arPoBox: string | null // PO Box
+  arMobile: string | null // Mobile Number
+  arFax: string | null // Fax Number
+  arEmail: string | null // Email Address
+  arLicenseNo: string | null // License Number
+  arLicenseExpDate: string | null // License Expiry Date
+  arWorldCheckFlag: boolean | null // World Check Status
+  arWorldCheckRemarks: string | null // World Check Remarks
+  arMigratedData: boolean | null // Migrated Data Flag
+  arremark: string | null // Additional Notes
+  arRegulatorDTO: unknown | null // Regulatory Authority
+  arActiveStatusDTO: unknown | null // Active Status
 }
 
 export interface ProjectDetailsData {
@@ -192,28 +193,28 @@ export interface FinancialData {
 }
 
 export interface ProjectData extends ProjectDetailsData {
-  // Step 1: Build Partner Details
-  bpDeveloperId: string
-  bpCifrera: string
-  bpDeveloperRegNo: string
-  bpName: string
-  bpMasterName: string
-  bpNameLocal: string
-  bpOnboardingDate: Dayjs | null
-  bpContactAddress: string
-  bpContactTel: string
-  bpPoBox: string
-  bpMobile: string
-  bpFax: string
-  bpEmail: string
-  bpLicenseNo: string
-  bpLicenseExpDate: Dayjs | null
-  bpWorldCheckFlag: boolean
-  bpWorldCheckRemarks: string
-  bpMigratedData: boolean
-  bpremark: string
-  bpRegulatorDTO: {
-    id: number
+  // Step 1: Management Firm Details (NEW API uses 'ar' prefix)
+  arDeveloperId: string // Management Firm ID
+  arCifrera: string // Management Firm CIF
+  arDeveloperRegNo: string // Registration Number
+  arName: string // Management Firm Name
+  arMasterName: string // Master Management Firm
+  arNameLocal: string // Local Name
+  arOnboardingDate: Dayjs | null // Onboarding Date
+  arContactAddress: string // Contact Address
+  arContactTel: string // Contact Telephone
+  arPoBox: string // PO Box
+  arMobile: string // Mobile Number
+  arFax: string // Fax Number
+  arEmail: string // Email Address
+  arLicenseNo: string // License Number
+  arLicenseExpDate: Dayjs | null // License Expiry Date
+  arWorldCheckFlag: boolean // World Check Status
+  arWorldCheckRemarks: string // World Check Remarks
+  arMigratedData: boolean // Migrated Data Flag
+  arremark: string // Additional Notes
+  arRegulatorDTO: {
+    id: number // Regulatory Authority ID
   }
 
   // Step 2: Documents (Optional)

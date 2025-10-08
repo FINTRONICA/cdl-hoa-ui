@@ -419,12 +419,12 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
                 }}
               >
                 {getLabel(
-                  'CDL_CP_ADD_PAYMENT_PLAN',
+                  'CDL_OWR_ADD_PAYMENT_PLAN',
                   currentLanguage,
                   'Add Payment Plan'
                 )}
                 {getLabel(
-                  'CDL_CP_ADD_PAYMENT_PLAN',
+                  'CDL_OWR_ADD_PAYMENT_PLAN',
                   currentLanguage,
                   'Add Payment Plan'
                 )}
@@ -439,27 +439,27 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
                   <TableRow>
                     <TableCell sx={valueSx}>
                       {getLabel(
-                        'CDL_CP_INSTALLMENT_NUMBER',
+                        'CDL_OWR_INSTALLMENT_NUMBER',
                         currentLanguage,
                         'Installment Number'
                       )}
                     </TableCell>
                     <TableCell sx={valueSx}>
                       {getLabel(
-                        'CDL_CP_INSTALLMENT_DATE',
+                        'CDL_OWR_INSTALLMENT_DATE',
                         currentLanguage,
                         'Installment Date'
                       )}
                     </TableCell>
                     <TableCell sx={valueSx}>
                       {getLabel(
-                        'CDL_CP_BOOKING_AMOUNT',
+                        'CDL_OWR_BOOKING_AMOUNT',
                         currentLanguage,
                         'Booking Amount'
                       )}
                     </TableCell>
                     <TableCell sx={valueSx}>
-                      {getLabel('CDL_CP_ACTION', currentLanguage, 'Action')}
+                      {getLabel('CDL_OWR_ACTION', currentLanguage, 'Action')}
                     </TableCell>
                   </TableRow>
                 </TableHead>
@@ -504,7 +504,7 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
                           fullWidth
                           disabled={isViewMode}
                           placeholder={getLabel(
-                            'CDL_CP_AMOUNT',
+                            'CDL_OWR_AMOUNT',
                             currentLanguage,
                             'Amount'
                           )}

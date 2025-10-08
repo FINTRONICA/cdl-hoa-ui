@@ -29,12 +29,12 @@ import { useAppStore } from '@/store'
 
 // Step configuration with config IDs for dynamic labels
 const stepConfigs = [
-  { key: 'basic', configId: 'CDL_CP_BASIC_INFO' },
-  { key: 'documents', configId: 'CDL_CP_DOCUMENTS' },
-  { key: 'unit', configId: 'CDL_CP_UNIT_DETAILS' },
-  { key: 'payment', configId: 'CDL_CP_PAYMENT_PLAN' },
-  { key: 'bank', configId: 'CDL_CP_BANK_DETAILS' },
-  { key: 'review', configId: 'CDL_CP_REVIEW' },
+  { key: 'basic', configId: 'CDL_OWR_BASIC_INFO' },
+  { key: 'documents', configId: 'CDL_OWR_DOCUMENTS' },
+  { key: 'unit', configId: 'CDL_OWR_UNIT_DETAILS' },
+  { key: 'payment', configId: 'CDL_OWR_PAYMENT_PLAN' },
+  { key: 'bank', configId: 'CDL_OWR_BANK_DETAILS' },
+  { key: 'review', configId: 'CDL_OWR_REVIEW' },
 ]
 
 // Fallback step labels

@@ -7,8 +7,8 @@ import { DashboardLayout } from '@/components/templates/DashboardLayout'
 function NewInvestorPageContent() {
   return (
     <DashboardLayout
-      title="Owner Registey Details" 
-      subtitle="Register your Owner Registey step by step, non-mandatory fields and steps are easy to skip."
+      title="Owner Register Details" 
+      subtitle="Register your Owner Register step by step, non-mandatory fields and steps are easy to skip."
     >
       <div className="px-3">
         <InvestorsStepperWrapper />
@@ -21,7 +21,7 @@ export default function NewInvestorPage() {
   return (
     <Suspense
       fallback={
-        <DashboardLayout title="Capital Partner Details" subtitle="Loading...">
+        <DashboardLayout title="Owner Register Details" subtitle="Loading...">
           <div className="flex items-center justify-center h-64">
             <div className="text-lg">Loading...</div>
           </div>

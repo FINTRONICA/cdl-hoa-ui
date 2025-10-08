@@ -99,7 +99,7 @@ export function ComplianceTestPanel() {
       // Test 4: Label functionality
       try {
         const testLabel1 = buildPartnerHook.getLabel('CDL_AR_NAME', 'EN', 'Test Fallback')
-        const testLabel2 = capitalPartnerHook.getLabel('CDL_CP_FIRSTNAME', 'EN', 'Test Fallback')
+        const testLabel2 = capitalPartnerHook.getLabel('CDL_OWR_FIRSTNAME', 'EN', 'Test Fallback')
         const storeLabel = getLabel('sidebar', 'TEST_ID', 'EN', 'Store Fallback')
         
         results.push({

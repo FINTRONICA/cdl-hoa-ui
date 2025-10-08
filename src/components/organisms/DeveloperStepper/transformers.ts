@@ -7,35 +7,35 @@ import { safeParseInt } from './utils'
 export const useStepDataTransformers = () => {
   return useMemo(() => ({
     1: (formData: ProjectData) => ({
-      bpDeveloperId: formData.bpDeveloperId,
-      bpCifrera: formData.bpCifrera,
-      bpDeveloperRegNo: formData.bpDeveloperRegNo,
-      bpName: formData.bpName,
-      bpMasterName: formData.bpMasterName,
-      bpNameLocal: formData.bpNameLocal,
-      bpOnboardingDate: formData.bpOnboardingDate
-        ? typeof formData.bpOnboardingDate === 'string'
-          ? formData.bpOnboardingDate
-          : convertDatePickerToZonedDateTime(formData.bpOnboardingDate.format('YYYY-MM-DD'))
+      arDeveloperId: formData.arDeveloperId,
+      arCifrera: formData.arCifrera,
+      arDeveloperRegNo: formData.arDeveloperRegNo,
+      arName: formData.arName,
+      arMasterName: formData.arMasterName,
+      arNameLocal: formData.arNameLocal,
+      arOnboardingDate: formData.arOnboardingDate
+        ? typeof formData.arOnboardingDate === 'string'
+          ? formData.arOnboardingDate
+          : convertDatePickerToZonedDateTime(formData.arOnboardingDate.format('YYYY-MM-DD'))
         : null,
-      bpContactAddress: formData.bpContactAddress,
-      bpContactTel: formData.bpContactTel,
-      bpPoBox: formData.bpPoBox,
-      bpMobile: formData.bpMobile,
-      bpFax: formData.bpFax,
-      bpEmail: formData.bpEmail,
-      bpLicenseNo: formData.bpLicenseNo,
-      bpLicenseExpDate: formData.bpLicenseExpDate
-        ? typeof formData.bpLicenseExpDate === 'string'
-          ? formData.bpLicenseExpDate
-          : convertDatePickerToZonedDateTime(formData.bpLicenseExpDate.format('YYYY-MM-DD'))
+      arContactAddress: formData.arContactAddress,
+      arContactTel: formData.arContactTel,
+      arPoBox: formData.arPoBox,
+      arMobile: formData.arMobile,
+      arFax: formData.arFax,
+      arEmail: formData.arEmail,
+      arLicenseNo: formData.arLicenseNo,
+      arLicenseExpDate: formData.arLicenseExpDate
+        ? typeof formData.arLicenseExpDate === 'string'
+          ? formData.arLicenseExpDate
+          : convertDatePickerToZonedDateTime(formData.arLicenseExpDate.format('YYYY-MM-DD'))
         : null,
-      bpWorldCheckFlag: formData.bpWorldCheckFlag,
-      bpWorldCheckRemarks: formData.bpWorldCheckRemarks,
-      bpMigratedData: formData.bpMigratedData,
-      bpremark: formData.bpremark,
-      bpRegulatorDTO: {
-        id: safeParseInt(formData.bpRegulatorDTO?.id),
+      arWorldCheckFlag: formData.arWorldCheckFlag,
+      arWorldCheckRemarks: formData.arWorldCheckRemarks,
+      arMigratedData: formData.arMigratedData,
+      arremark: formData.arremark,
+      arRegulatorDTO: {
+        id: safeParseInt(formData.arRegulatorDTO?.id),
       },
     }),
     2: (formData: ProjectData) => {
@@ -45,18 +45,18 @@ export const useStepDataTransformers = () => {
       }
       
       return {
-        bpcFirstName: contact.name?.split(' ')[0] || '',
-        bpcLastName: contact.name?.split(' ').slice(1).join(' ') || '',
-        bpcContactEmail: contact.email || '',
-        bpcContactAddressLine1: contact.address || '',
-        bpcContactAddressLine2: '', 
-        bpcContactPoBox: contact.pobox || '',
-        bpcCountryMobCode: contact.countrycode || '',
-        bpcContactTelNo: contact.telephoneno || '',
-        bpcContactMobNo: contact.mobileno || '',
-        bpcContactFaxNo: contact.fax || '',
-        buildPartnerDTO: {
-          id: formData.bpDeveloperId ? parseInt(formData.bpDeveloperId) : undefined
+        arcFirstName: contact.name?.split(' ')[0] || '',
+        arcLastName: contact.name?.split(' ').slice(1).join(' ') || '',
+        arcContactEmail: contact.email || '',
+        arcContactAddressLine1: contact.address || '',
+        arcContactAddressLine2: '', 
+        arcContactPoBox: contact.pobox || '',
+        arcCountryMobCode: contact.countrycode || '',
+        arcContactTelNo: contact.telephoneno || '',
+        arcContactMobNo: contact.mobileno || '',
+        arcContactFaxNo: contact.fax || '',
+        assetRegisterDTO: {
+          id: formData.arDeveloperId ? parseInt(formData.arDeveloperId) : undefined
         }
       }
     },
@@ -70,13 +70,13 @@ export const useStepDataTransformers = () => {
       paymentTerms: formData.fees?.[0]?.frequency || '',
     }),
     4: (formData: ProjectData) => ({
-      bpbBeneficiaryId: formData.beneficiaries?.[0]?.id || '',
-      bpbBeneficiaryType: formData.beneficiaries?.[0]?.transferType || 'RTGS',
-      bpbName: formData.beneficiaries?.[0]?.name || '',
-      bpbBankName: formData.beneficiaries?.[0]?.bankName || '',
-      bpbSwiftCode: formData.beneficiaries?.[0]?.swiftCode || '',
-      bpbRoutingCode: formData.beneficiaries?.[0]?.routingCode || '',
-      bpbAccountNumber: formData.beneficiaries?.[0]?.account || '',
+      arbBeneficiaryId: formData.beneficiaries?.[0]?.id || '',
+      arbBeneficiaryType: formData.beneficiaries?.[0]?.transferType || 'RTGS',
+      arbName: formData.beneficiaries?.[0]?.name || '',
+      arbBankName: formData.beneficiaries?.[0]?.bankName || '',
+      arbSwiftCode: formData.beneficiaries?.[0]?.swiftCode || '',
+      arbRoutingCode: formData.beneficiaries?.[0]?.routingCode || '',
+      arbAccountNumber: formData.beneficiaries?.[0]?.account || '',
       enabled: true,
     }),
     5: (formData: ProjectData) => ({

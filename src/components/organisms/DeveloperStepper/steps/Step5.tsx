@@ -596,27 +596,27 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
                 'Developer ID (RERA)*',
-                buildPartnerDetails.bpDeveloperId
+                buildPartnerDetails.arDeveloperId
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
                 'Developer CIF (Core Banking)*',
-                buildPartnerDetails.bpCifrera
+                buildPartnerDetails.arCifrera
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
                 'Developer Registration No.',
-                buildPartnerDetails.bpDeveloperRegNo
+                buildPartnerDetails.arDeveloperRegNo
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
                 'RERA Registration Date*',
-                buildPartnerDetails.bpOnboardingDate
+                buildPartnerDetails.arOnboardingDate
                   ? formatDate(
-                      buildPartnerDetails.bpOnboardingDate,
+                      buildPartnerDetails.arOnboardingDate,
                       'MM/DD/YYYY'
                     )
                   : ' '
@@ -625,54 +625,54 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
                 'Developer Name (English)*',
-                buildPartnerDetails.bpName
+                buildPartnerDetails.arName
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
                 'Developer Name (Arabic)*',
-                buildPartnerDetails.bpNameLocal
+                buildPartnerDetails.arNameLocal
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
                 'Master Developer (if any)',
-                buildPartnerDetails.bpMasterName
+                buildPartnerDetails.arMasterName
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
                 'Regulator*',
-                buildPartnerDetails.bpRegulatorDTO ? ' ' : ' '
+                buildPartnerDetails.arRegulatorDTO ? ' ' : ' '
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 12 }}>
               {renderDisplayField(
                 'Address',
-                buildPartnerDetails.bpContactAddress
+                buildPartnerDetails.arContactAddress
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 3 }}>
-              {renderDisplayField('Mobile No.', buildPartnerDetails.bpMobile)}
+              {renderDisplayField('Mobile No.', buildPartnerDetails.arMobile)}
             </Grid>
             <Grid size={{ xs: 12, md: 3 }}>
-              {renderDisplayField('Email', buildPartnerDetails.bpEmail)}
+              {renderDisplayField('Email', buildPartnerDetails.arEmail)}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              {renderDisplayField('FAX No', buildPartnerDetails.bpFax)}
+              {renderDisplayField('FAX No', buildPartnerDetails.arFax)}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
                 'License Number (Trade License)*',
-                buildPartnerDetails.bpLicenseNo
+                buildPartnerDetails.arLicenseNo
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
                 'License Expiry Date*',
-                buildPartnerDetails.bpLicenseExpDate
+                buildPartnerDetails.arLicenseExpDate
                   ? formatDate(
-                      buildPartnerDetails.bpLicenseExpDate,
+                      buildPartnerDetails.arLicenseExpDate,
                       'MM/DD/YYYY'
                     )
                   : ' '
@@ -681,28 +681,28 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
             <Grid size={{ xs: 12, md: 3 }}>
               {renderCheckboxField(
                 'World Check Flag',
-                buildPartnerDetails.bpWorldCheckFlag === 'true'
+                buildPartnerDetails.arWorldCheckFlag === 'true'
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 3 }}>
               {renderCheckboxField(
                 'Migrated Data',
-                buildPartnerDetails.bpMigratedData === true
+                buildPartnerDetails.arMigratedData === true
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
                 'World Check Flag Remarks',
-                buildPartnerDetails.bpWorldCheckRemarks
+                buildPartnerDetails.arWorldCheckRemarks
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              {renderDisplayField('Remarks', buildPartnerDetails.bpremark)}
+              {renderDisplayField('Remarks', buildPartnerDetails.arremark)}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
                 'Account Contact Number',
-                buildPartnerDetails.bpContactTel
+                buildPartnerDetails.arContactTel
               )}
             </Grid>
           </Grid>

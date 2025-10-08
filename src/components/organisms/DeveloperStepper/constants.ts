@@ -15,26 +15,26 @@ export const STEP_LABELS = [
 
 export const DEFAULT_FORM_VALUES: ProjectData = {
 
-  bpDeveloperId: '',
-  bpCifrera: '',
-  bpDeveloperRegNo: '',
-  bpName: '',
-  bpMasterName: '',
-  bpNameLocal: '',
-  bpOnboardingDate: null,
-  bpContactAddress: '',
-  bpContactTel: '',
-  bpPoBox: '',
-  bpMobile: '',
-  bpFax: '',
-  bpEmail: '',
-  bpLicenseNo: '',
-  bpLicenseExpDate: null,
-  bpWorldCheckFlag: false,
-  bpWorldCheckRemarks: '',
-  bpMigratedData: false,
-  bpremark: '',
-  bpRegulatorDTO: { id: 0 },
+  arDeveloperId: '',
+  arCifrera: '',
+  arDeveloperRegNo: '',
+  arName: '',
+  arMasterName: '',
+  arNameLocal: '',
+  arOnboardingDate: null,
+  arContactAddress: '',
+  arContactTel: '',
+  arPoBox: '',
+  arMobile: '',
+  arFax: '',
+  arEmail: '',
+  arLicenseNo: '',
+  arLicenseExpDate: null,
+  arWorldCheckFlag: false,
+  arWorldCheckRemarks: '',
+  arMigratedData: false,
+  arremark: '',
+  arRegulatorDTO: { id: 0 },
 
   // Project Details
   sectionId: '',
@@ -123,16 +123,16 @@ export const DEFAULT_FORM_VALUES: ProjectData = {
 
 
 export const DATE_FIELDS = [
-  'bpOnboardingDate',
-  'bpLicenseExpDate', 
+  'arOnboardingDate',
+  'arLicenseExpDate', 
   'projectStartDate',
   'projectEndDate'
 ] as const
 
 
 export const BOOLEAN_FIELDS = [
-  'bpWorldCheckFlag', 
-  'bpMigratedData'
+  'arWorldCheckFlag', 
+  'arMigratedData'
 ] as const
 
 

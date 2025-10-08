@@ -3,39 +3,39 @@ import { buildApiUrl, API_ENDPOINTS } from '@/constants/apiEndpoints'
 
 // ---------- Request DTO ----------
 export interface CapitalPartnerUnitPurchaseRequest {
-  cpuPurchaseDate?: string
-  cpupSaleRate?: number
-  cpuPurchasePrice?: number
-  cpupUnitRegistrationFee?: number
-  cpupAgentName?: string
-  cpupAgentId?: string
-  cpupGrossSaleprice?: number
-  cpupVatApplicable?: boolean
-  cpupDeedNo?: string
-  cpupAgreementNo?: string
-  cpupAgreementDate?: string
-  cpupSalePurchaseAgreement?: boolean
-  cpupWorldCheck?: boolean
-  cpupAmtPaidToDevInEscorw?: number
-  cpupAmtPaidToDevOutEscorw?: number
-  cpupTotalAmountPaid?: number
-  cpupUnitIban?: string
-  cpupOqood?: boolean
-  cpupOqoodPaid?: boolean
-  cpupOqoodAmountPaid?: number
-  cpupUnitAreaSize?: number
-  cpupForfeitAmount?: number
-  cpupDldAmount?: number
-  cpupRefundAmount?: number
-  cpupRemarks?: string
-  cpupTransferredAmount?: number
-  cpupUnitNoOtherFormat?: string
-  cpupSalePrice?: number
-  cpupProjectPaymentPlan?: boolean
-  cpupReservationBookingForm?: boolean
-  cpupModificationFeeNeeded?: boolean
-  cpupCreditCurrencyDTO?: any
-  cpuPurchasePriceCurrencyDTO?: any
+  owruPurchaseDate?: string
+  owrupSaleRate?: number
+  owruPurchasePrice?: number
+  owrupUnitRegistrationFee?: number
+  owrupAgentName?: string
+  owrupAgentId?: string
+  owrupGrossSaleprice?: number
+  owrupVatApplicable?: boolean
+  owrupDeedNo?: string
+  owrupAgreementNo?: string
+  owrupAgreementDate?: string
+  owrupSalePurchaseAgreement?: boolean
+  owrupWorldCheck?: boolean
+  owrupAmtPaidToDevInEscorw?: number
+  owrupAmtPaidToDevOutEscorw?: number
+  owrupTotalAmountPaid?: number
+  owrupUnitIban?: string
+  owrupOqood?: boolean
+  owrupOqoodPaid?: boolean
+  owrupOqoodAmountPaid?: number
+  owrupUnitAreaSize?: number
+  owrupForfeitAmount?: number
+  owrupDldAmount?: number
+  owrupRefundAmount?: number
+  owrupRemarks?: string
+  owrupTransferredAmount?: number
+  owrupUnitNoOtherFormat?: string
+  owrupSalePrice?: number
+  owrupProjectPaymentPlan?: boolean
+  owrupReservationBookingForm?: boolean
+  owrupModificationFeeNeeded?: boolean
+  owrupCreditCurrencyDTO?: any
+  owruPurchasePriceCurrencyDTO?: any
   capitalPartnerUnitDTO?: {
     id: number
     capitalPartnerDTOS?: Array<{ id: number }>
@@ -46,39 +46,39 @@ export interface CapitalPartnerUnitPurchaseRequest {
 // ---------- Response DTO ----------
 export interface CapitalPartnerUnitPurchaseResponse {
   id: number
-  cpuPurchaseDate?: string
-  cpupSaleRate?: number
-  cpuPurchasePrice?: number
-  cpupUnitRegistrationFee?: number
-  cpupAgentName?: string
-  cpupAgentId?: string
-  cpupGrossSaleprice?: number
-  cpupVatApplicable?: boolean
-  cpupDeedNo?: string
-  cpupAgreementNo?: string
-  cpupAgreementDate?: string
-  cpupSalePurchaseAgreement?: boolean
-  cpupWorldCheck?: boolean
-  cpupAmtPaidToDevInEscorw?: number
-  cpupAmtPaidToDevOutEscorw?: number
-  cpupTotalAmountPaid?: number
-  cpupUnitIban?: string
-  cpupOqood?: boolean
-  cpupOqoodPaid?: boolean
-  cpupOqoodAmountPaid?: number
-  cpupUnitAreaSize?: number
-  cpupForfeitAmount?: number
-  cpupDldAmount?: number
-  cpupRefundAmount?: number
-  cpupRemarks?: string
-  cpupTransferredAmount?: number
-  cpupUnitNoOtherFormat?: string
-  cpupSalePrice?: number
-  cpupProjectPaymentPlan?: boolean
-  cpupReservationBookingForm?: boolean
-  cpupModificationFeeNeeded?: boolean
-  cpupCreditCurrencyDTO?: any
-  cpuPurchasePriceCurrencyDTO?: any
+  owruPurchaseDate?: string
+  owrupSaleRate?: number
+  owruPurchasePrice?: number
+  owrupUnitRegistrationFee?: number
+  owrupAgentName?: string
+  owrupAgentId?: string
+  owrupGrossSaleprice?: number
+  owrupVatApplicable?: boolean
+  owrupDeedNo?: string
+  owrupAgreementNo?: string
+  owrupAgreementDate?: string
+  owrupSalePurchaseAgreement?: boolean
+  owrupWorldCheck?: boolean
+  owrupAmtPaidToDevInEscorw?: number
+  owrupAmtPaidToDevOutEscorw?: number
+  owrupTotalAmountPaid?: number
+  owrupUnitIban?: string
+  owrupOqood?: boolean
+  owrupOqoodPaid?: boolean
+  owrupOqoodAmountPaid?: number
+  owrupUnitAreaSize?: number
+  owrupForfeitAmount?: number
+  owrupDldAmount?: number
+  owrupRefundAmount?: number
+  owrupRemarks?: string
+  owrupTransferredAmount?: number
+  owrupUnitNoOtherFormat?: string
+  owrupSalePrice?: number
+  owrupProjectPaymentPlan?: boolean
+  owrupReservationBookingForm?: boolean
+  owrupModificationFeeNeeded?: boolean
+  owrupCreditCurrencyDTO?: any
+  owruPurchasePriceCurrencyDTO?: any
   capitalPartnerUnitDTO?: {
     id: number
     capitalPartnerDTOS?: Array<{ id: number }>

@@ -17,27 +17,31 @@ export interface TaskStatusDTO {
 // Real Estate Asset types matching the actual API response structure
 export interface BuildPartnerDTO {
   id: number
-  bpDeveloperId: string
-  bpCifrera: string
-  bpDeveloperRegNo: string
-  bpName: string
-  bpMasterName: string
-  bpNameLocal?: string
-  bpOnboardingDate?: string
-  bpContactAddress?: string
-  bpContactTel?: string
-  bpPoBox?: string
-  bpMobile?: string
-  bpFax?: string
-  bpEmail?: string
-  bpLicenseNo?: string
-  bpLicenseExpDate?: string
-  bpWorldCheckFlag?: string
-  bpWorldCheckRemarks?: string
-  bpMigratedData?: string
-  bpremark?: string
-  bpRegulatorDTO?: any
-  bpActiveStatusDTO?: any
+  // Management Firm fields (replacing Build Partner fields)
+  mfDeveloperId: string
+  mfCifrera: string
+  mfDeveloperRegNo: string
+  mfName: string
+  mfMasterName: string
+  mfNameLocal?: string
+  mfOnboardingDate?: string
+  mfContactAddress?: string
+  mfContactTel?: string
+  mfPoBox?: string
+  mfMobile?: string
+  mfFax?: string
+  mfEmail?: string
+  mfLicenseNo?: string
+  mfLicenseExpDate?: string
+  mfWorldCheckFlag?: string
+  mfWorldCheckRemarks?: string
+  mfMigratedData?: string
+  mfRemark?: string
+  mfRegulatorDTO?: any
+  mfActiveStatusDTO?: any
+  // Additional Management Firm fields
+  mfRegNo?: string
+  mfCif?: string
 }
 
 export interface StatusDTO {
@@ -96,6 +100,9 @@ export interface RealEstateAsset {
   reaConstructionCostCurrencyDTO: StatusDTO
   status: string
   taskStatusDTO: TaskStatusDTO | null
+  // Management Firm fields (replica of Build Partner Assets)
+  mfRegNo?: string
+  mfCif?: string
 }
 
 // For backward compatibility with existing UI
@@ -116,6 +123,9 @@ export interface ProjectData extends Record<string, unknown> {
   currency: string
   totalUnits: number
   remarks?: string
+  // Management Firm fields (replica of Build Partner Assets)
+  mfRegNo?: string
+  mfCif?: string
 }
 
 export interface CreateRealEstateAssetRequest {
@@ -1484,9 +1494,9 @@ export function mapRealEstateAssetToProjectData(
   const result: ProjectData = {
     id: asset.id,
     name: asset.reaName,
-    developerId: asset.buildPartnerDTO.bpDeveloperId,
-    developerCif: asset.buildPartnerDTO.bpCifrera,
-    developerName: asset.buildPartnerDTO.bpName,
+    developerId: asset.buildPartnerDTO.mfDeveloperId,
+    developerCif: asset.buildPartnerDTO.mfCifrera,
+    developerName: asset.buildPartnerDTO.mfName,
     projectStatus: mapApiStatus(asset.taskStatusDTO),
     approvalStatus: asset.status,
     location: asset.reaLocation,
@@ -1499,6 +1509,9 @@ export function mapRealEstateAssetToProjectData(
       asset.reaConstructionCostCurrencyDTO?.languageTranslationId
         ?.configValue || 'N/A',
     totalUnits: asset.reaNoOfUnits,
+    // Management Firm fields (replica of Build Partner Assets)
+    mfRegNo: asset.mfRegNo || asset.buildPartnerDTO.mfRegNo,
+    mfCif: asset.mfCif || asset.buildPartnerDTO.mfCif,
   }
 
   if (asset.reaRemarks) {

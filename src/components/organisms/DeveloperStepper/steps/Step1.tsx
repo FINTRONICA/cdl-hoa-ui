@@ -59,7 +59,7 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
 
   // Initialize developer ID from form value
   useEffect(() => {
-    const currentId = watch('bpDeveloperId')
+    const currentId = watch('arDeveloperId')
     if (currentId && currentId !== developerId) {
       setDeveloperId(currentId)
     }
@@ -67,7 +67,7 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
 
   // Handle Fetch Details button click
   const handleFetchDetails = async () => {
-    const currentCif = watch('bpCifrera')
+    const currentCif = watch('arCifrera')
     if (!currentCif) {
       return
     }
@@ -78,8 +78,8 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
         await buildPartnerService.getCustomerDetailsByCif(currentCif)
 
       // Populate only the name fields from customer details
-      setValue('bpName', customerDetails.name.firstName)
-      setValue('bpNameLocal', customerDetails.name.shortName)
+      setValue('arName', customerDetails.name.firstName)
+      setValue('arNameLocal', customerDetails.name.shortName)
     } catch (error) {
       // You might want to show a user-friendly error message here
     }
@@ -91,7 +91,7 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
       setIsGeneratingId(true)
       const newIdResponse = developerIdService.generateNewId()
       setDeveloperId(newIdResponse.id)
-      setValue('bpDeveloperId', newIdResponse.id)
+      setValue('arDeveloperId', newIdResponse.id)
     } catch (error) {
       // Handle error silently
     } finally {
@@ -524,25 +524,25 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
 
           <Grid container rowSpacing={4} columnSpacing={2}>
             {renderDeveloperIdField(
-              'bpDeveloperId',
+              'arDeveloperId',
               `${getBuildPartnerLabel('CDL_AR_ID')}*`
             )}
             {renderTextFieldWithButton(
-              'bpCifrera',
+              'arCifrera',
               `${getBuildPartnerLabel('CDL_AR_CIF')}*`,
               'Fetch Details'
             )}
             {renderTextField(
-              'bpDeveloperRegNo',
+              'arDeveloperRegNo',
               getBuildPartnerLabel('CDL_AR_REGNO')
             )}
             {renderDatePickerField(
-              'bpOnboardingDate',
+              'arOnboardingDate',
               `${getBuildPartnerLabel('CDL_AR_REGDATE')}*`
             )}
             <Grid size={{ xs: 12, md: 6 }}>
               <Controller
-                name="bpName"
+                name="arName"
                 control={control}
                 render={({ field }) => (
                   <TextField
@@ -550,8 +550,8 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
                     label={`${getBuildPartnerLabel('CDL_AR_NAME')} (English)*`}
                     fullWidth
                     disabled={true}
-                    error={!!errors['bpName']}
-                    helperText={errors['bpName']?.message?.toString()}
+                    error={!!errors['arName']}
+                    helperText={errors['arName']?.message?.toString()}
                     InputLabelProps={{ sx: labelSx }}
                     InputProps={{ sx: valueSx }}
                     sx={{
@@ -572,7 +572,7 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <Controller
-                name="bpNameLocal"
+                name="arNameLocal"
                 control={control}
                 render={({ field }) => (
                   <TextField
@@ -580,8 +580,8 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
                     label={`${getBuildPartnerLabel('CDL_AR_NAME_LOCALE')} (Arabic)*`}
                     fullWidth
                     disabled={true}
-                    error={!!errors['bpNameLocal']}
-                    helperText={errors['bpNameLocal']?.message?.toString()}
+                    error={!!errors['arNameLocal']}
+                    helperText={errors['arNameLocal']?.message?.toString()}
                     InputLabelProps={{ sx: labelSx }}
                     InputProps={{ sx: valueSx }}
                     sx={{
@@ -601,11 +601,11 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
               />
             </Grid>
             {renderTextField(
-              'bpMasterName',
+              'arMasterName',
               getBuildPartnerLabel('CDL_AR_MASTER')
             )}
             {renderApiSelectField(
-              'bpRegulatorDTO.id',
+              'arRegulatorDTO.id',
               `${getBuildPartnerLabel('CDL_AR_REGULATORY_AUTHORITY')}*`,
               regulatoryAuthorities,
               6,
@@ -613,49 +613,49 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
               dropdownsLoading
             )}
             {renderTextField(
-              'bpContactAddress',
+              'arContactAddress',
               getBuildPartnerLabel('CDL_AR_ADDRESS'),
               '',
               12
             )}
             {renderTextField(
-              'bpMobile',
+              'arMobile',
               getBuildPartnerLabel('CDL_AR_MOBILE'),
               '',
               4
             )}
             {renderTextField(
-              'bpEmail',
+              'arEmail',
               getBuildPartnerLabel('CDL_AR_EMAIL'),
               '',
               4
             )}
             {renderTextField(
-              'bpFax',
+              'arFax',
               getBuildPartnerLabel('CDL_AR_FAX'),
               '',
               4
             )}
             {renderTextField(
-              'bpLicenseNo',
+              'arLicenseNo',
               `${getBuildPartnerLabel('CDL_AR_LICENSE')}*`
             )}
             {renderDatePickerField(
-              'bpLicenseExpDate',
+              'arLicenseExpDate',
               `${getBuildPartnerLabel('CDL_AR_LICENSE_VALID')}*`
             )}
             {renderCheckboxField(
-              'bpWorldCheckFlag',
+              'arWorldCheckFlag',
               getBuildPartnerLabel('CDL_AR_WORLD_STATUS'),
               3
             )}
-            {renderCheckboxField('bpMigratedData', 'Migrated Data', 3)}
+            {renderCheckboxField('arMigratedData', 'Migrated Data', 3)}
             {renderTextField(
-              'bpWorldCheckRemarks',
+              'arWorldCheckRemarks',
               getBuildPartnerLabel('CDL_AR_WORLD_REMARKS')
             )}
-            {renderTextField('bpremark', getBuildPartnerLabel('CDL_AR_NOTES'))}
-            {renderTextField('bpContactTel', 'Account Contact Number')}
+            {renderTextField('arremark', getBuildPartnerLabel('CDL_AR_NOTES'))}
+            {renderTextField('arContactTel', 'Account Contact Number')}
           </Grid>
         </CardContent>
       </Card>

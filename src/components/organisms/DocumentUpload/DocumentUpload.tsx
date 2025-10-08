@@ -198,7 +198,7 @@ const DocumentUpload = <
     } catch (error) {
       setDocumentTypeDialog((prev) => ({
         ...prev,
-        documentTypes: [{ id: 0, value: 'CP_OTHER', label: 'Other' }],
+        documentTypes: [{ id: 0, value: 'OWR_OTHER', label: 'Other' }],
         loading: false,
       }))
     }

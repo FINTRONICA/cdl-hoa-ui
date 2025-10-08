@@ -73,27 +73,27 @@ export default function DeveloperStepperWrapper({
 
   const methods = useForm<ProjectData>({
     defaultValues: {
-      // Step 1: Build Partner Details
-      bpDeveloperId: '',
-      bpCifrera: '',
-      bpDeveloperRegNo: '',
-      bpName: '',
-      bpMasterName: '',
-      bpNameLocal: '',
-      bpOnboardingDate: null,
-      bpContactAddress: '',
-      bpContactTel: '',
-      bpPoBox: '',
-      bpMobile: '',
-      bpFax: '',
-      bpEmail: '',
-      bpLicenseNo: '',
-      bpLicenseExpDate: null,
-      bpWorldCheckFlag: false,
-      bpWorldCheckRemarks: '',
-      bpMigratedData: false,
-      bpremark: '',
-      bpRegulatorDTO: {
+      // Step 1: Management Firm Details (NEW API uses 'ar' prefix)
+      arDeveloperId: '',
+      arCifrera: '',
+      arDeveloperRegNo: '',
+      arName: '',
+      arMasterName: '',
+      arNameLocal: '',
+      arOnboardingDate: null,
+      arContactAddress: '',
+      arContactTel: '',
+      arPoBox: '',
+      arMobile: '',
+      arFax: '',
+      arEmail: '',
+      arLicenseNo: '',
+      arLicenseExpDate: null,
+      arWorldCheckFlag: false,
+      arWorldCheckRemarks: '',
+      arMigratedData: false,
+      arremark: '',
+      arRegulatorDTO: {
         id: 0,
       },
       // Legacy fields (keeping for compatibility)
@@ -222,19 +222,19 @@ export default function DeveloperStepperWrapper({
           // Convert date fields to dayjs objects (only for Step 1)
           if (activeStep === 0) {
             if (
-              currentStepData.bpOnboardingDate &&
-              typeof currentStepData.bpOnboardingDate === 'string'
+              currentStepData.arOnboardingDate &&
+              typeof currentStepData.arOnboardingDate === 'string'
             ) {
-              processedData.bpOnboardingDate = dayjs(
-                currentStepData.bpOnboardingDate
+              processedData.arOnboardingDate = dayjs(
+                currentStepData.arOnboardingDate
               )
             }
             if (
-              currentStepData.bpLicenseExpDate &&
-              typeof currentStepData.bpLicenseExpDate === 'string'
+              currentStepData.arLicenseExpDate &&
+              typeof currentStepData.arLicenseExpDate === 'string'
             ) {
-              processedData.bpLicenseExpDate = dayjs(
-                currentStepData.bpLicenseExpDate
+              processedData.arLicenseExpDate = dayjs(
+                currentStepData.arLicenseExpDate
               )
             }
             if (
@@ -255,23 +255,23 @@ export default function DeveloperStepperWrapper({
             }
 
             // Convert string booleans to actual booleans (only for Step 1)
-            if (typeof currentStepData.bpWorldCheckFlag === 'string') {
-              processedData.bpWorldCheckFlag =
-                currentStepData.bpWorldCheckFlag === 'true'
-            } else if (typeof currentStepData.bpWorldCheckFlag === 'boolean') {
-              processedData.bpWorldCheckFlag = currentStepData.bpWorldCheckFlag
+            if (typeof currentStepData.arWorldCheckFlag === 'string') {
+              processedData.arWorldCheckFlag =
+                currentStepData.arWorldCheckFlag === 'true'
+            } else if (typeof currentStepData.arWorldCheckFlag === 'boolean') {
+              processedData.arWorldCheckFlag = currentStepData.arWorldCheckFlag
             } else {
-              processedData.bpWorldCheckFlag = false
+              processedData.arWorldCheckFlag = false
             }
 
-            if (typeof currentStepData.bpMigratedData === 'string') {
-              processedData.bpMigratedData =
-                currentStepData.bpMigratedData === 'true'
+            if (typeof currentStepData.arMigratedData === 'string') {
+              processedData.arMigratedData =
+                currentStepData.arMigratedData === 'true'
               d
-            } else if (typeof currentStepData.bpMigratedData === 'boolean') {
-              processedData.bpMigratedData = currentStepData.bpMigratedData
+            } else if (typeof currentStepData.arMigratedData === 'boolean') {
+              processedData.arMigratedData = currentStepData.arMigratedData
             } else {
-              processedData.bpMigratedData = false
+              processedData.arMigratedData = false
             }
 
             // Copy other Step 1 form fields
@@ -516,39 +516,39 @@ export default function DeveloperStepperWrapper({
   // Data transformation functions for each step
   const transformDetailsData = (formData: ProjectData) => {
     const transformed = {
-      bpDeveloperId: formData.bpDeveloperId,
-      bpCifrera: formData.bpCifrera,
-      bpDeveloperRegNo: formData.bpDeveloperRegNo,
-      bpName: formData.bpName,
-      bpMasterName: formData.bpMasterName,
-      bpNameLocal: formData.bpNameLocal,
-      bpOnboardingDate: formData.bpOnboardingDate
-        ? typeof formData.bpOnboardingDate === 'string'
-          ? formData.bpOnboardingDate
+      arDeveloperId: formData.arDeveloperId,
+      arCifrera: formData.arCifrera,
+      arDeveloperRegNo: formData.arDeveloperRegNo,
+      arName: formData.arName,
+      arMasterName: formData.arMasterName,
+      arNameLocal: formData.arNameLocal,
+      arOnboardingDate: formData.arOnboardingDate
+        ? typeof formData.arOnboardingDate === 'string'
+          ? formData.arOnboardingDate
           : convertDatePickerToZonedDateTime(
-              formData.bpOnboardingDate.format('YYYY-MM-DD')
+              formData.arOnboardingDate.format('YYYY-MM-DD')
             )
         : null,
-      bpContactAddress: formData.bpContactAddress,
-      bpContactTel: formData.bpContactTel,
-      bpPoBox: formData.bpPoBox,
-      bpMobile: formData.bpMobile,
-      bpFax: formData.bpFax,
-      bpEmail: formData.bpEmail,
-      bpLicenseNo: formData.bpLicenseNo,
-      bpLicenseExpDate: formData.bpLicenseExpDate
-        ? typeof formData.bpLicenseExpDate === 'string'
-          ? formData.bpLicenseExpDate
+      arContactAddress: formData.arContactAddress,
+      arContactTel: formData.arContactTel,
+      arPoBox: formData.arPoBox,
+      arMobile: formData.arMobile,
+      arFax: formData.arFax,
+      arEmail: formData.arEmail,
+      arLicenseNo: formData.arLicenseNo,
+      arLicenseExpDate: formData.arLicenseExpDate
+        ? typeof formData.arLicenseExpDate === 'string'
+          ? formData.arLicenseExpDate
           : convertDatePickerToZonedDateTime(
-              formData.bpLicenseExpDate.format('YYYY-MM-DD')
+              formData.arLicenseExpDate.format('YYYY-MM-DD')
             )
         : null,
-      bpWorldCheckFlag: formData.bpWorldCheckFlag,
-      bpWorldCheckRemarks: formData.bpWorldCheckRemarks,
-      bpMigratedData: formData.bpMigratedData,
-      bpremark: formData.bpremark,
-      bpRegulatorDTO: {
-        id: parseInt(formData.bpRegulatorDTO?.id?.toString() || '0') || 0,
+      arWorldCheckFlag: formData.arWorldCheckFlag,
+      arWorldCheckRemarks: formData.arWorldCheckRemarks,
+      arMigratedData: formData.arMigratedData,
+      arremark: formData.arremark,
+      arRegulatorDTO: {
+        id: parseInt(formData.arRegulatorDTO?.id?.toString() || '0') || 0,
       },
     }
 
