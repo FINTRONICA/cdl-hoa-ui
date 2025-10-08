@@ -19,7 +19,7 @@ export const PROCESSED_TRANSACTION_LABELS = {
   // Build Partner Labels
   CDL_TRANS_BP_NAME: 'Build Partner Name',
   CDL_TRANS_BP_ID: 'Build Partner ID',
-  CDL_TRANS_BP_CIF: 'Build Partner CIF',
+  CDL_TRANS_BP_CIF: 'Firm CIF',
   CDL_TRANS_BPA_NAME: 'Build Partner Assets Name',
   CDL_TRANS_BPA_CIF: 'Build Partner Assets CIF',
   CDL_TRANS_BPA_REGULATOR: 'Regulator ID',

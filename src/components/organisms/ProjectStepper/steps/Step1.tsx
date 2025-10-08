@@ -217,7 +217,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     {...field}
                     fullWidth
                     disabled={isViewMode}
-                    label={getLabel('CDL_BPA_REFID', 'System Reference ID*')}
+                    label={getLabel('CDL_MF_REFID', 'System Reference ID*')}
                     error={!!errors.reaId}
                     helperText={errors.reaId?.message}
                     InputLabelProps={{ sx: labelSx }}
@@ -276,12 +276,12 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     sx={errors.reaCif ? errorFieldStyles : commonFieldStyles}
                   >
                     <InputLabel sx={labelSx}>
-                      {getLabel('CDL_BPA_BP_CIF', 'Developer CIF/Name*')}
+                      {getLabel('CDL_MF_BP_CIF', 'Firm CIF/Name*')}
                     </InputLabel>
                     <Select
                       {...field}
                       disabled={isViewMode || isDevelopersLoading}
-                      label={getLabel('CDL_BPA_BP_CIF', 'Developer CIF/Name*')}
+                      label={getLabel('CDL_MF_BP_CIF', 'Firm CIF/Name*')}
                       // sx={valueSx}
                       sx={{
                         ...selectStyles,
@@ -348,11 +348,11 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     {...field}
                     fullWidth
                     disabled={isViewMode}
-                    label={getLabel('CDL_BPA_BP_ID', 'Developer ID (RERA)*')}
+                    label={getLabel('CDL_MF_BP_ID', 'Firm ID (RERA)*')}
                     InputLabelProps={{ sx: labelSx }}
                     InputProps={{ sx: valueSx }}
                     sx={commonFieldStyles}
-                    helperText="Auto-filled when developer is selected"
+                    helperText="Auto-filled when management is selected"
                   />
                 )}
               />
@@ -368,11 +368,11 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     {...field}
                     fullWidth
                     disabled={isViewMode}
-                    label={getLabel('CDL_BPA_BP_NAME', 'Developer Name')}
+                    label={getLabel('CDL_MF_BP_NAME', 'Firm Name')}
                     InputLabelProps={{ sx: labelSx }}
                     InputProps={{ sx: valueSx }}
                     sx={commonFieldStyles}
-                    helperText="Auto-filled when developer is selected"
+                    helperText="Auto-filled when management is selected"
                   />
                 )}
               />
@@ -389,13 +389,13 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     fullWidth
                     disabled={isViewMode}
                     label={getLabel(
-                      'CDL_BPA_BP_MASTER',
-                      'Master Developer Name'
+                      'CDL_MF_BP_MASTER',
+                      'Master Firm Name'
                     )}
                     InputLabelProps={{ sx: labelSx }}
                     InputProps={{ sx: valueSx }}
                     sx={commonFieldStyles}
-                    helperText="Auto-filled when developer is selected"
+                    helperText="Auto-filled when management is selected"
                   />
                 )}
               />
@@ -412,7 +412,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     {...field}
                     fullWidth
                     disabled={isViewMode}
-                    label={getLabel('CDL_BPA_REGNO', 'Project RERA Number*')}
+                    label={getLabel('CDL_MF_REGNO', 'Management RERA Number*')}
                     error={!!errors.reaReraNumber}
                     helperText={errors.reaReraNumber?.message}
                     InputLabelProps={{ sx: labelSx }}
@@ -438,7 +438,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     {...field}
                     fullWidth
                     disabled={isViewMode}
-                    label={getLabel('CDL_BPA_NAME', 'Project Name*')}
+                    label={getLabel('CDL_MF_NAME', 'Firm Name*')}
                     error={!!errors.reaName}
                     helperText={errors.reaName?.message}
                     InputLabelProps={{ sx: labelSx }}
@@ -458,12 +458,12 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                 render={({ field }) => (
                   <FormControl fullWidth error={!!errors.reaTypeDTO?.id}>
                     <InputLabel sx={labelSx}>
-                      {getLabel('CDL_BPA_TYPE', 'Project Type*')}
+                      {getLabel('CDL_MF_TYPE', 'Management Type*')}
                     </InputLabel>
                     <Select
                       {...field}
                       disabled={isViewMode || isProjectTypesLoading}
-                      label={getLabel('CDL_BPA_TYPE', 'Project Type*')}
+                      label={getLabel('CDL_MF_TYPE', 'Management Type*')}
                       IconComponent={KeyboardArrowDownIcon}
                       // sx={{ ...selectStyles, ...valueSx }}
                       sx={{
@@ -507,7 +507,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     {...field}
                     fullWidth
                     disabled={isViewMode}
-                    label={getLabel('CDL_BPA_LOCATION', 'Project Location*')}
+                    label={getLabel('CDL_MF_LOCATION', 'Management Location*')}
                     error={!!errors.reaLocation}
                     helperText={errors.reaLocation?.message}
                     InputLabelProps={{ sx: labelSx }}
@@ -531,7 +531,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     {...field}
                     fullWidth
                     disabled={isViewMode}
-                    label={getLabel('CDL_BPA_CIF', 'Project Account CIF*')}
+                    label={getLabel('CDL_MF_CIF', 'Management Account CIF*')}
                     error={!!errors.reaAccountStatusDTO?.id}
                     helperText={errors.reaAccountStatusDTO?.id?.message}
                     InputLabelProps={{ sx: labelSx }}
@@ -555,12 +555,12 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                 render={({ field }) => (
                   <FormControl fullWidth error={!!errors.reaStatusDTO?.id}>
                     <InputLabel sx={labelSx}>
-                      {getLabel('CDL_BPA_STATUS', 'Project Status*')}
+                      {getLabel('CDL_MF_STATUS', 'Management Status*')}
                     </InputLabel>
                     <Select
                       {...field}
                       disabled={isViewMode || isProjectStatusesLoading}
-                      label={getLabel('CDL_BPA_STATUS', 'Project Status*')}
+                      label={getLabel('CDL_MF_STATUS', 'Management Status*')}
                       IconComponent={KeyboardArrowDownIcon}
                       sx={{
                         ...selectStyles,
@@ -605,16 +605,16 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                   <FormControl fullWidth error={!!errors.reaAccountStatusDTO?.id}>
                     <InputLabel sx={labelSx}>
                       {getLabel(
-                        'CDL_BPA_ACC_STATUS',
-                        'Project Account Status*'
+                        'CDL_MF_ACC_STATUS',
+                        'Management Account Status*'
                       )}
                     </InputLabel>
                     <Select
                       {...field}
                       disabled={isViewMode || isBankAccountStatusesLoading}
                       label={getLabel(
-                        'CDL_BPA_ACC_STATUS',
-                        'Project Account Status*'
+                        'CDL_MF_ACC_STATUS',
+                        'Management Account Status*'
                       )}
                       IconComponent={KeyboardArrowDownIcon}
                       sx={{
@@ -667,7 +667,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                   <DatePicker
                     disabled={isViewMode}
                     label={getLabel(
-                      'CDL_BPA_ACC_STATUS_DATE',
+                      'CDL_MF_ACC_STATUS_DATE',
                       'Project Account Status Date'
                     )}
                     value={field.value}
@@ -703,8 +703,8 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                   <DatePicker
                     disabled={isViewMode}
                     label={getLabel(
-                      'CDL_BPA_REG_DATE',
-                      'Project Registration Date*'
+                      'CDL_MF_REG_DATE',
+                      'Management Registration Date*'
                     )}
                     value={field.value}
                     onChange={field.onChange}
@@ -739,8 +739,8 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                   <DatePicker
                     disabled={isViewMode}
                     label={getLabel(
-                      'CDL_BPA_EST_DATE',
-                      'Project Start Date Est.*'
+                      'CDL_MF_EST_DATE',
+                      'Management Start Date Est.*'
                     )}
                     value={field.value}
                     onChange={field.onChange}
@@ -775,8 +775,8 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                   <DatePicker
                     disabled={isViewMode}
                     label={getLabel(
-                      'CDL_BPA_EST_COMPLETION_DATE',
-                      'Project Completion Date*'
+                      'CDL_MF_EST_COMPLETION_DATE',
+                      'Management Completion Date*'
                     )}
                     value={field.value}
                     onChange={field.onChange}
@@ -819,7 +819,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     fullWidth
                     disabled={isViewMode}
                     label={getLabel(
-                      'CDL_BPA_PRIMARY_RETENTION',
+                      'CDL_MF_PRIMARY_RETENTION',
                       'Retention %*'
                     )}
                     error={!!errors.reaRetentionPercent}
@@ -855,7 +855,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     fullWidth
                     disabled={isViewMode}
                     label={getLabel(
-                      'CDL_BPA_SECONDARY_RETENTION',
+                      'CDL_MF_SECONDARY_RETENTION',
                       'Additional Retention %'
                     )}
                     error={!!errors.reaAdditionalRetentionPercent}
@@ -883,7 +883,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     fullWidth
                     disabled={isViewMode}
                     label={getLabel(
-                      'CDL_BPA_AGG_RETENTION',
+                      'CDL_MF_AGG_RETENTION',
                       'Total Retention %'
                     )}
                     InputLabelProps={{ sx: labelSx }}
@@ -908,7 +908,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                   <DatePicker
                     disabled={isViewMode}
                     label={getLabel(
-                      'CDL_BPA_RETENTION_START_DATE',
+                      'CDL_MF_RETENTION_START_DATE',
                       'Retention Effective Start Date*'
                     )}
                     value={field.value}
@@ -952,8 +952,8 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     fullWidth
                     disabled={isViewMode}
                     label={getLabel(
-                      'CDL_BPA_MGMT_EXPENSES',
-                      'Project Management Expenses*'
+                      'CDL_MF_MGMT_EXPENSES',
+                      'Management Expenses*'
                     )}
                     error={!!errors.reaManagementExpenses}
                     helperText={errors.reaManagementExpenses?.message}
@@ -987,7 +987,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     fullWidth
                     disabled={isViewMode}
                     label={getLabel(
-                      'CDL_BPA_MARKETING_COST',
+                      'CDL_MF_MARKETING_COST',
                       'Marketing Expenses*'
                     )}
                     error={!!errors.reaMarketingExpenses}
@@ -1015,7 +1015,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     fullWidth
                     disabled={isViewMode}
                     label={getLabel(
-                      'CDL_BPA_BROK_FEES',
+                      'CDL_MF_BROK_FEES',
                       'Real Estate Broker Expense'
                     )}
                     InputLabelProps={{ sx: labelSx }}
@@ -1037,7 +1037,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     fullWidth
                     disabled={isViewMode}
                     label={getLabel(
-                      'CDL_BPA_ADVTG_COST',
+                      'CDL_MF_ADVTG_COST',
                       'Advertising Expense'
                     )}
                     InputLabelProps={{ sx: labelSx }}
@@ -1059,7 +1059,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     fullWidth
                     disabled={isViewMode}
                     label={getLabel(
-                      'CDL_BPA_LANDOWNER_NAME',
+                      'CDL_MF_LANDOWNER_NAME',
                       'Land Owner Name'
                     )}
                     InputLabelProps={{ sx: labelSx }}
@@ -1081,8 +1081,8 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     fullWidth
                     disabled={isViewMode}
                     label={getLabel(
-                      'CDL_BPA_ASST_COMP_PER',
-                      'Project Completion Percentage'
+                      'CDL_MF_ASST_COMP_PER',
+                      'Management Completion Percentage'
                     )}
                     InputLabelProps={{ sx: labelSx }}
                     InputProps={{ sx: valueSx }}
@@ -1106,12 +1106,12 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     error={!!errors.reaConstructionCostCurrencyDTO?.id}
                   >
                     <InputLabel sx={labelSx}>
-                      {getLabel('CDL_BPA_TRAN_CUR', 'Currency*')}
+                      {getLabel('CDL_MF_TRAN_CUR', 'Currency*')}
                     </InputLabel>
                     <Select
                       {...field}
                       disabled={isViewMode || isProjectCurrenciesLoading}
-                      label={getLabel('CDL_BPA_TRAN_CUR', 'Currency*')}
+                      label={getLabel('CDL_MF_TRAN_CUR', 'Currency*')}
                       IconComponent={KeyboardArrowDownIcon}
                       sx={{
                         ...selectStyles,
@@ -1163,7 +1163,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     fullWidth
                     disabled={isViewMode}
                     label={getLabel(
-                      'CDL_BPA_ACT_COST',
+                      'CDL_MF_ACT_COST',
                       'Actual Construction Cost'
                     )}
                     InputLabelProps={{ sx: labelSx }}
@@ -1184,7 +1184,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     {...field}
                     fullWidth
                     disabled={isViewMode}
-                    label={getLabel('CDL_BPA_TOTAL_UNIT', 'No. of Units')}
+                    label={getLabel('CDL_MF_TOTAL_UNIT', 'No. of Units')}
                     InputLabelProps={{ sx: labelSx }}
                     InputProps={{ sx: valueSx }}
                     sx={commonFieldStyles}
@@ -1203,7 +1203,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     {...field}
                     fullWidth
                     disabled={isViewMode}
-                    label={getLabel('CDL_BPA_ADD_NOTES', 'Remarks')}
+                    label={getLabel('CDL_MF_ADD_NOTES', 'Remarks')}
                     InputLabelProps={{ sx: labelSx }}
                     InputProps={{ sx: valueSx }}
                     sx={commonFieldStyles}
@@ -1223,7 +1223,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     fullWidth
                     disabled={isViewMode}
                     label={getLabel(
-                      'CDL_BPA_SP_REG_APPROVAL',
+                      'CDL_MF_SP_REG_APPROVAL',
                       'Special Approval'
                     )}
                     InputLabelProps={{ sx: labelSx }}
@@ -1246,7 +1246,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                   >
                     <InputLabel sx={labelSx}>
                       {getLabel(
-                        'CDL_BPA_RES_PAYMENT_TYPE',
+                        'CDL_MF_RES_PAYMENT_TYPE',
                         'Payment Type to be Blocked'
                       )}
                     </InputLabel>
@@ -1254,7 +1254,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                       {...field}
                       disabled={isViewMode || isBlockedPaymentTypesLoading}
                       label={getLabel(
-                        'CDL_BPA_RES_PAYMENT_TYPE',
+                        'CDL_MF_RES_PAYMENT_TYPE',
                         'Payment Type to be Blocked'
                       )}
                       IconComponent={KeyboardArrowDownIcon}
@@ -1292,14 +1292,14 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
               <Controller
                 name="reaManagedBy"
                 control={control}
-                defaultValue={sanitizedData?.reaManagedBy || 'Developer 2'}
+                defaultValue={sanitizedData?.reaManagedBy || 'Management 2'}
                 rules={{ required: ERROR_MESSAGES.REQUIRED }}
                 render={({ field }) => (
                     <TextField
                     {...field}
                     fullWidth
                     disabled={isViewMode}
-                    label={getLabel('CDL_BPA_ASS_MANAGER', 'Managed By*')}
+                    label={getLabel('CDL_MF_ASS_MANAGER', 'Managed By*')}
                     error={!!errors.reaManagedBy}
                     helperText={errors.reaManagedBy?.message}
                     InputLabelProps={{ sx: labelSx }}
@@ -1323,7 +1323,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     {...field}
                     fullWidth
                     disabled={isViewMode}
-                    label={getLabel('CDL_BPA_BACKUP_MANAGER', 'Backup by')}
+                    label={getLabel('CDL_MF_BACKUP_MANAGER', 'Backup by')}
                     error={!!errors.reaBackupUser}
                     helperText={errors.reaBackupUser?.message}
                     InputLabelProps={{ sx: labelSx }}
@@ -1350,7 +1350,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     {...field}
                     fullWidth
                     disabled={isViewMode}
-                    label={getLabel('CDL_BPA_RM', 'Relationship Manager')}
+                    label={getLabel('CDL_MF_RM', 'Relationship Manager')}
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">
@@ -1405,7 +1405,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     fullWidth
                     disabled={isViewMode}
                     label={getLabel(
-                      'CDL_BPA_ARM',
+                      'CDL_MF_ARM',
                       'Asset Relationship Manager'
                     )}
                     InputLabelProps={{ sx: labelSx }}
@@ -1426,7 +1426,7 @@ const Step1: React.FC<Step1Props> = React.memo(({ initialData, isViewMode = fals
                     {...field}
                     fullWidth
                     disabled={isViewMode}
-                    label={getLabel('CDL_BPA_TL', 'Team Leader Name')}
+                    label={getLabel('CDL_MF_TL', 'Team Leader Name')}
                     InputLabelProps={{ sx: labelSx }}
                     InputProps={{ sx: valueSx }}
                     sx={commonFieldStyles}

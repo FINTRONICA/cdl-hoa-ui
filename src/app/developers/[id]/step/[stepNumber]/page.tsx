@@ -91,7 +91,7 @@ export default function DeveloperStepPage() {
         </div>
         <div className="flex flex-col min-w-[200px] gap-1">
           <label className="font-sans font-normal text-[12px] leading-[1] tracking-normal text-[#4A5565]">
-            Build Partner CIF
+            Firm CIF
           </label>
           <span className="font-outfit font-normal text-[16px] leading-[1] tracking-normal align-middle text-[#1E2939]">
             {buildPartnerData?.bpCifrera || 'N/A'}

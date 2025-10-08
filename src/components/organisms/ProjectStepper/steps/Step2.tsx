@@ -277,7 +277,7 @@ const Step2: React.FC<Step2Props> = React.memo(({ projectId, isViewMode = false 
                   <DatePicker
                     disabled={isViewMode}
                     label={getLabel(
-                            'CDL_BPA_DATE_OPENED',
+                            'CDL_MF_DATE_OPENED',
                             'Date Opened*'
                           )}
                           value={field.value}
@@ -334,7 +334,7 @@ const Step2: React.FC<Step2Props> = React.memo(({ projectId, isViewMode = false 
                             <InputLabel sx={labelSx}>
                               {currenciesLoading
                                 ? 'Loading...'
-                                : getLabel('CDL_BPA_CURRENCY', 'Currency*')}
+                                : getLabel('CDL_MF_CURRENCY', 'Currency*')}
                             </InputLabel>
                     <Select
                       {...field}
@@ -342,7 +342,7 @@ const Step2: React.FC<Step2Props> = React.memo(({ projectId, isViewMode = false 
                               label={
                                 currenciesLoading
                                   ? 'Loading...'
-                                  : getLabel('CDL_BPA_CURRENCY', 'Currency*')
+                                  : getLabel('CDL_MF_CURRENCY', 'Currency*')
                               }
                               IconComponent={KeyboardArrowDownIcon}
                               sx={{

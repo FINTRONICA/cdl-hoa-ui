@@ -145,9 +145,9 @@ const Step6: React.FC<Step6Props> = ({ isViewMode = false }) => {
 
   const groupedFields = [
     {
-      title: 'Project Estimate',
+      title: 'Management Estimate',
       fields: [
-        renderTextField('estimate.revenue', 'Revenue (Project Value)*', 6),
+        renderTextField('estimate.revenue', 'Revenue (Management Value)*', 6),
         renderSelectField(
           'estimate.constructionCost',
           'Construction Cost*',
@@ -160,14 +160,14 @@ const Step6: React.FC<Step6Props> = ({ isViewMode = false }) => {
         ),
         renderTextField(
           'estimate.projectManagementExpense',
-          'Project Management Expense*',
+          'Management Expense*',
           6
         ),
         renderTextField('estimate.landCost', 'Land Cost*', 6),
         renderTextField('estimate.marketingExpense', 'Marketing Expense*', 6),
         renderDateField(
           'estimate.date',
-          getLabel('CDL_BPA_ESTIMATE_DATE', 'Date*'),
+          getLabel('CDL_MF_ESTIMATE_DATE', 'Date*'),
           6
         ),
       ],
@@ -181,13 +181,13 @@ const Step6: React.FC<Step6Props> = ({ isViewMode = false }) => {
         renderTextField('actual.landCost', 'Land Cost*', 4),
         renderTextField(
           'actual.projectManagementExpense',
-          'Project Management Expense*',
+          'Management Expense*',
           4
         ),
         renderTextField('actual.marketingExpense', 'Marketing Expense*', 6),
         renderDateField(
           'actual.date',
-          getLabel('CDL_BPA_ACTUAL_DATE', 'Date*'),
+          getLabel('CDL_MF_ACTUAL_DATE', 'Date*'),
           6
         ),
       ],

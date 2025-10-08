@@ -89,21 +89,21 @@ const Step8: React.FC<Step8Props> = ({ onEditStep, projectId, isViewMode = false
   // Project fields with real data from API
   const projectFields = [
     { gridSize: 6, label: 'System ID*', value: reviewData.projectDetails?.id || 'PROJ7102' },
-    { gridSize: 6, label: 'Developer CIF/Name*', value: reviewData.projectDetails?.developerCif || '' },
-    { gridSize: 6, label: 'Developer ID (RERA)*', value: reviewData.projectDetails?.developerId || '' },
-    { gridSize: 6, label: 'Developer Name', value: reviewData.projectDetails?.developerName || '' },
-    { gridSize: 6, label: 'Master Developer Name', value: reviewData.projectDetails?.masterDeveloperName || '' },
-    { gridSize: 6, label: 'Project RERA Number*', value: reviewData.projectDetails?.reraNumber || '' },
-    { gridSize: 6, label: 'Project Name*', value: reviewData.projectDetails?.projectName || '' },
-    { gridSize: 6, label: 'Project Type*', value: reviewData.projectDetails?.projectType || '' },
-    { gridSize: 12, label: 'Project Location*', value: reviewData.projectDetails?.projectLocation || '' },
-    { gridSize: 3, label: 'Project Account CIF*', value: reviewData.projectDetails?.projectAccountCif || '' },
-    { gridSize: 3, label: 'Project Status*', value: reviewData.projectDetails?.projectStatus || '' },
-    { gridSize: 6, label: 'Project Account Status*', value: reviewData.projectDetails?.projectAccountStatus || '' },
-    { gridSize: 3, label: 'Project Account Status Date', value: reviewData.projectDetails?.projectAccountStatusDate ? formatDate(reviewData.projectDetails.projectAccountStatusDate, 'MM/DD/YYYY') : '' },
-    { gridSize: 3, label: 'Project Registration Date*', value: reviewData.projectDetails?.projectRegistrationDate ? formatDate(reviewData.projectDetails.projectRegistrationDate, 'MM/DD/YYYY') : '' },
-    { gridSize: 3, label: 'Project Start Date Est.*', value: reviewData.projectDetails?.projectStartDateEst ? formatDate(reviewData.projectDetails.projectStartDateEst, 'MM/DD/YYYY') : '' },
-    { gridSize: 3, label: 'Project Start Date*', value: reviewData.projectDetails?.projectStartDate ? formatDate(reviewData.projectDetails.projectStartDate, 'MM/DD/YYYY') : '' },
+    { gridSize: 6, label: 'Firm CIF/Name*', value: reviewData.projectDetails?.developerCif || '' },
+    { gridSize: 6, label: 'Firm ID (RERA)*', value: reviewData.projectDetails?.developerId || '' },
+    { gridSize: 6, label: 'Firm Name', value: reviewData.projectDetails?.developerName || '' },
+    { gridSize: 6, label: 'Master Firm Name', value: reviewData.projectDetails?.masterDeveloperName || '' },
+    { gridSize: 6, label: 'Management RERA Number*', value: reviewData.projectDetails?.reraNumber || '' },
+    { gridSize: 6, label: 'Firm Name*', value: reviewData.projectDetails?.projectName || '' },
+    { gridSize: 6, label: 'Management Type*', value: reviewData.projectDetails?.projectType || '' },
+    { gridSize: 12, label: 'Management Location*', value: reviewData.projectDetails?.projectLocation || '' },
+    { gridSize: 3, label: 'Firm Account CIF*', value: reviewData.projectDetails?.projectAccountCif || '' },
+    { gridSize: 3, label: 'Management Status*', value: reviewData.projectDetails?.projectStatus || '' },
+    { gridSize: 6, label: 'Management Account Status*', value: reviewData.projectDetails?.projectAccountStatus || '' },
+    { gridSize: 3, label: 'Management Account Status Date', value: reviewData.projectDetails?.projectAccountStatusDate ? formatDate(reviewData.projectDetails.projectAccountStatusDate, 'MM/DD/YYYY') : '' },
+    { gridSize: 3, label: 'Management Registration Date*', value: reviewData.projectDetails?.projectRegistrationDate ? formatDate(reviewData.projectDetails.projectRegistrationDate, 'MM/DD/YYYY') : '' },
+    { gridSize: 3, label: 'Management Start Date Est.*', value: reviewData.projectDetails?.projectStartDateEst ? formatDate(reviewData.projectDetails.projectStartDateEst, 'MM/DD/YYYY') : '' },
+    { gridSize: 3, label: 'Management Start Date*', value: reviewData.projectDetails?.projectStartDate ? formatDate(reviewData.projectDetails.projectStartDate, 'MM/DD/YYYY') : '' },
     { gridSize: 3, label: 'Retention %*', value: reviewData.projectDetails?.retentionPercent || '5.00' },
     { gridSize: 3, label: 'Additional Retention %', value: reviewData.projectDetails?.additionalRetentionPercent || '8.00' },
     { gridSize: 3, label: 'Total Retention %', value: reviewData.projectDetails?.totalRetentionPercent || '13.00' },
@@ -114,7 +114,7 @@ const Step8: React.FC<Step8Props> = ({ onEditStep, projectId, isViewMode = false
     },
     {
       gridSize: 6,
-      label: 'Project Management Expenses (% of paid construction cost)*',
+      label: 'Management Expenses (% of paid construction cost)*',
       value: reviewData.projectDetails?.projectManagementExpenses || '5.00',
     },
     {
@@ -124,46 +124,46 @@ const Step8: React.FC<Step8Props> = ({ onEditStep, projectId, isViewMode = false
     },
     {
       gridSize: 6,
-      label: getLabel('CDL_BPA_BROK_FEES', 'Real Estate Broker Expense'),
+      label: getLabel('CDL_MF_BROK_FEES', 'Real Estate Broker Expense'),
       value: reviewData.projectDetails?.realEstateBrokerExpense || '',
     },
     {
       gridSize: 6,
-      label: getLabel('CDL_BPA_ADVTG_COST', 'Advertising Expense'),
+      label: getLabel('CDL_MF_ADVTG_COST', 'Advertising Expense'),
       value: reviewData.projectDetails?.advertisingExpense || '',
     },
     {
       gridSize: 6,
-      label: getLabel('CDL_BPA_LANDOWNER_NAME', 'Land Owner Name'),
+      label: getLabel('CDL_MF_LANDOWNER_NAME', 'Land Owner Name'),
       value: reviewData.projectDetails?.landOwnerName || '',
     },
     { gridSize: 6, label: 'Project Completion Percentage', value: reviewData.projectDetails?.projectCompletionPercentage || '' },
     {
       gridSize: 3,
-      label: getLabel('CDL_BPA_TRAN_CUR', 'Currency'),
+      label: getLabel('CDL_MF_TRAN_CUR', 'Currency'),
       value: reviewData.projectDetails?.currency || 'AED',
     },
     { gridSize: 3, label: 'Actual Construction Cost', value: reviewData.projectDetails?.actualConstructionCost || '' },
     { gridSize: 6, label: 'No. of Units', value: reviewData.projectDetails?.noOfUnits || '12' },
-    { gridSize: 12, label: getLabel('CDL_BPA_ADD_NOTES', 'Remarks'), value: reviewData.projectDetails?.remarks || '' },
+    { gridSize: 12, label: getLabel('CDL_MF_ADD_NOTES', 'Remarks'), value: reviewData.projectDetails?.remarks || '' },
     {
       gridSize: 12,
-      label: getLabel('CDL_BPA_SP_REG_APPROVAL', 'Special Approval'),
+      label: getLabel('CDL_MF_SP_REG_APPROVAL', 'Special Approval'),
       value: reviewData.projectDetails?.specialApproval || '',
     },
     {
       gridSize: 6,
-      label: getLabel('CDL_BPA_RES_PAYMENT_TYPE', 'Payment Type to be Blocked'),
+      label: getLabel('CDL_MF_RES_PAYMENT_TYPE', 'Payment Type to be Blocked'),
       value: reviewData.projectDetails?.paymentType || '',
     },
     {
       gridSize: 6,
-      label: getLabel('CDL_BPA_ASS_MANAGER', 'Managed By*'),
+      label: getLabel('CDL_MF_ASS_MANAGER', 'Managed By*'),
       value: reviewData.projectDetails?.managedBy || 'ems_checker1, ems_checker1',
     },
     {
       gridSize: 6,
-      label: getLabel('CDL_BPA_BACKUP_MANAGER', 'Backup By'),
+      label: getLabel('CDL_MF_BACKUP_MANAGER', 'Backup By'),
       value: reviewData.projectDetails?.backupRef || 'Maker ENBD;[enbd_maker]',
     },
     { gridSize: 6, label: 'Relationship Manager', value: reviewData.projectDetails?.relationshipManager || '' },
@@ -193,7 +193,7 @@ const Step8: React.FC<Step8Props> = ({ onEditStep, projectId, isViewMode = false
 
   return (
     <Box sx={{ width: '100%', p: 3 }}>
-      {/* Project Details Section */}
+      {/* Management Details Section */}
       <Card sx={cardStyles}>
         <CardContent>
           <Box
@@ -764,7 +764,7 @@ const Step8: React.FC<Step8Props> = ({ onEditStep, projectId, isViewMode = false
                 {renderDisplayField('Payment for Retention Account', reviewData.financialData.reafsPaymentForRetentionAcc || 'N/A')}
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
-                {renderDisplayField('Developer Reimburse', reviewData.financialData.reafsDeveloperReimburse || 'N/A')}
+                {renderDisplayField('Firm Reimburse', reviewData.financialData.reafsDeveloperReimburse || 'N/A')}
               </Grid>
               <Grid size={{ xs: 12, md: 6 }}>
                 {renderDisplayField('Unit Registration Fees', reviewData.financialData.reafsUnitRegFees || 'N/A')}
@@ -783,7 +783,7 @@ const Step8: React.FC<Step8Props> = ({ onEditStep, projectId, isViewMode = false
         </Card>
       )}
 
-      {/* Project Closure Section */}
+      {/* Management Closure Section */}
       {reviewData.closureData && reviewData.closureData.length > 0 && (
         <Card sx={cardStyles}>
           <CardContent>

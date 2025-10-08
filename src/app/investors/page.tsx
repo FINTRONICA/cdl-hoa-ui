@@ -361,7 +361,7 @@ const InvestorsPage: React.FC = () => {
             <span className="ml-2">{row.buildPartnerName}</span>
           </div>
           <div>
-            <span className="text-gray-600">Build Partner CIF:</span>
+            <span className="text-gray-600">Firm CIF:</span>
             <span className="ml-2">{row.buildPartnerCif}</span>
           </div>
         </div>

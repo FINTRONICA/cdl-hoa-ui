@@ -6,7 +6,7 @@ import StepperWrapper from '@/components/organisms/ProjectStepper'
 export default function NewProjectPage() {
   return (
     <DashboardLayout
-      title="Build Partner Assest Details"
+      title="Management Firms Details"
       subtitle="Register your project step by step, on-mandatory fields and steps are easy to skip."
     >
       <div className="flex items-start py-2 gap-7 px-7">

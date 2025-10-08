@@ -91,7 +91,7 @@ export default function StepperWrapper({
   const createProjectWorkflowRequest = useCreateDeveloperWorkflowRequest()
 
   const steps = [
-    'Build Partner Assest Details',
+    'Management Firms Details',
     'Documents',
     'Account',
     'Fee Details',

@@ -8,14 +8,14 @@ import { useBuildPartnerAssetLabelsWithUtils } from './useBuildPartnerAssetLabel
  * 
  * Usage:
  * const { getLabel } = useProjectLabels();
- * const label = getLabel('CDL_BPA_CIF', 'Build Partner CIF');
+ * const label = getLabel('CDL_MF_CIF', 'Firm CIF');
  */
 export const useProjectLabels = () => {
   const { data, isLoading, error } = useBuildPartnerAssetLabelsWithUtils();
   
   /**
    * Get label by configId with fallback safety
-   * @param configId - The configuration ID (e.g., 'CDL_BPA_CIF')
+   * @param configId - The configuration ID (e.g., 'CDL_MF_CIF')
    * @param fallback - The fallback text if API fails or label not found
    * @returns The API label or fallback text
    */
@@ -37,13 +37,13 @@ export const useProjectLabels = () => {
       return labels['EN'];
     }
     
-    // Special debugging for CDL_BPA_STATUS only
-    if (configId === 'CDL_BPA_STATUS') {
-      console.log(`🔍 CDL_BPA_STATUS Debug:`, {
+    // Special debugging for CDL_MF_STATUS only
+    if (configId === 'CDL_MF_STATUS') {
+      console.log(`🔍 CDL_MF_STATUS Debug:`, {
         availableKeys: Object.keys(data).filter(key => key.includes('STATUS')),
         allKeys: Object.keys(data),
-        hasCDL_BPA_STATUS: !!data['CDL_BPA_STATUS'],
-        cdlBpaStatusValue: data['CDL_BPA_STATUS']
+        hasCDL_MF_STATUS: !!data['CDL_MF_STATUS'],
+        cdlBpaStatusValue: data['CDL_MF_STATUS']
       });
     }
     
