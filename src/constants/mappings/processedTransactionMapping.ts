@@ -16,6 +16,29 @@ export const PROCESSED_TRANSACTION_LABELS = {
   CDL_TRAN_STATUS: 'Processing Status',
   CDL_TRAN_ACTION: 'Action',
 
+  //NEW FIELDS
+  CDL_TRAN_PROPERTY_NUMBER:'Property Number',
+  CDL_TRAN_PROPERTY_NAME:'Property Name',
+  // CDL_TRAN_REFNO: 'Transaction Reference Number',
+  CDL_TRAN_UNIT_REFERENCE_NUMBER: 'Unit Reference Number',
+  CDL_TRAN_SPLIT_AMOUNT: 'Split Amount',
+  CDL_TRAN_RECEIVABLE_BUCKET:"Receivable Bucket",
+  CDL_TRAN_DEPOSIT_MODE:"Deposit Mode",
+  CDL_TRAN_RESERVE_PRESENTAGE:"Reserver Presentage",
+  CDL_TRAN_RESERVE_AMOUNT:"Reserver Amount",
+
+
+// NEW FIELDS FOR DEPOSITS TRANSACTIONS
+CDL_TRAN_DEPOSITS_PROPERTY_NUMBER:'Property Number',
+CDL_TRAN_DEPOSITS_PROPERTY_NAME:'Property Name',
+CDL_TRAN_DEPOSITS_TRANSACTION_REFERENCE :'Transaction Reference',
+CDL_TRAN_DEPOSITS_TRANSACTION_DESCRIPTION :'Transaction Description',
+CDL_TRAN_DEPOSITS_TRANSACTION_AMOUNT :'Transaction Amount',
+CDL_TRAN_DEPOSITS_TRANSACTION_STATUS :'Transaction Status' ,
+CDL_TRAN_DEPOSITS_TRANSACTION_DATE :'Transaction Date',
+CDL_TRAN_DEPOSITS_TRANSACTION_NARRATION :'Transaction Narration / Notes',
+
+
   // Build Partner Labels
   CDL_TRANS_BP_NAME: 'Build Partner Name',
   CDL_TRANS_BP_ID: 'Build Partner ID',

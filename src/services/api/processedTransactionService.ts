@@ -99,6 +99,14 @@ export interface ProcessedTransactionUIData {
   branchCode?: string
   checkNumber?: string
   retentionAmount?: string
+  transactionPropertyNumber?: string
+  transactionPropertyName?: string
+  transactionUnitReferenceNumber?: string
+  transactionSplitAmount?: string
+  transactionReceivableBucket?: string
+  transactionDepositMode?: string
+  transactionReservePresentage?: string
+  transactionReserveAmount?: string
 }
 
 export interface CreateProcessedTransactionRequest {

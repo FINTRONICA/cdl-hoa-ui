@@ -23,7 +23,7 @@ export type DocumentUploadType =
   | 'STAKEHOLDER'
   | 'ROLES'
   | 'PERMISSIONS'
-
+  | 'DEPOSITS_TRANSACTION'  
 interface DocumentUploadFactoryProps {
   type: DocumentUploadType
   entityId: string
@@ -130,7 +130,13 @@ const DocumentUploadFactory: React.FC<DocumentUploadFactoryProps> = ({
           title: 'Processed Transaction Documents',
           description: 'Upload processed transaction-related documents.',
         })
-
+      case 'DEPOSITS_TRANSACTION':
+        return createBuildPartnerDocumentConfig(entityId, {
+          ...baseOptions,
+          title: 'Deposits Transactions Documents',
+          description: 'Upload deposits transaction-related documents.',
+        })
+  
       case 'PENDING_TRANSACTION':
         return createBuildPartnerDocumentConfig(entityId, {
           ...baseOptions,

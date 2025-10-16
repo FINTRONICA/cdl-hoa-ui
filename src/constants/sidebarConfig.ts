@@ -135,56 +135,63 @@ export const createSidebarConfig = (getLabel: LabelResolver): SidebarSection[] =
       },
     ],
   },
-  // {
-  //   id: 'deposits',
-  //   label: getLabel('deposits', 'DEPOSITS'),
-  //   icon: CircleDollarSign,
-  //   permissions: ['*'], // Show section if any child is accessible
-  //   items: [
-  //     {
-  //       id: 'unallocated',
-  //       label: getLabel('unallocated', 'Unallocated Transaction'),
-  //       icon: AlignJustify,
-  //       href: '/transactions/unallocated',
-  //       permissions: ['nav_menu_pending_tran', 'nav_menu_all'],
-  //     },
-  //     {
-  //       id: 'discarded',
-  //       label: getLabel('discarded', 'Discarded Transaction'),
-  //       icon: XCircle,
-  //       href: '/transactions/discarded',
-  //       permissions: ['nav_menu_discarded_tran', 'nav_menu_all'],
-  //     },
-  //     {
-  //       id: 'allocated',
-  //       label: getLabel('allocated', 'Allocated Transaction'),
-  //       icon: ListCheck,
-  //       href: '/transactions/allocated',
-  //       permissions: ['nav_menu_processed_tran', 'nav_menu_all'],
-  //     },
-  //     {
-  //       id: 'manual',
-  //       label: getLabel('manual', 'Manual Payment'),
-  //       icon: HandCoins,
-  //       href: '/transactions/manual',
-  //       permissions: ['nav_menu_manual_payment', 'nav_menu_all'],
-  //     },
-  //     {
-  //       id: 'tas',
-  //       label: getLabel('tas', 'TAS Payment'),
-  //       icon: FileKey,
-  //       href: '/transactions/tas',
-  //       permissions: ['nav_menu_tas_payment', 'nav_menu_all'],
-  //     },
-  //     {
-  //       id: 'fee-reconciliation',
-  //       label: getLabel('fee-reconciliation', 'Fee Reconciliation'),
-  //       icon: TicketSlash,
-  //       href: '/transactions/fee-reconciliation',
-  //       permissions: ['nav_menu_fees', 'nav_menu_all'],
-  //     }
-  //   ],
-  // },
+  {
+    id: 'deposits',
+    label: getLabel('deposits', 'DEPOSITS'),
+    icon: CircleDollarSign,
+    permissions: ['*'], // Show section if any child is accessible
+    items: [
+      // {
+      //   id: 'unallocated',
+      //   label: getLabel('unallocated', 'Unallocated Transaction'),
+      //   icon: AlignJustify,
+      //   href: '/transactions/unallocated',
+      //   permissions: ['nav_menu_pending_tran', 'nav_menu_all'],
+      // },
+      // {
+      //   id: 'discarded',
+      //   label: getLabel('discarded', 'Discarded Transaction'),
+      //   icon: XCircle,
+      //   href: '/transactions/deposits',
+      //   permissions: ['nav_menu_discarded_tran', 'nav_menu_all'],
+      // },
+      {
+        id: 'allocated',
+        label: getLabel('allocated', 'Allocated Transaction'),
+        icon: ListCheck,
+        href: '/transactions/allocated',
+        permissions: ['nav_menu_processed_tran', 'nav_menu_all'],
+      },
+        {
+          id: 'depositsTransactions',
+          label: getLabel('depositsTransactions', 'Deposits Transactions'),
+          icon: HandCoins,
+          href: '/transactions/deposits',
+          permissions: ['*'],
+        },
+      // {
+      //   id: 'manual',
+      //   label: getLabel('manual', 'Manual Payment'),
+      //   icon: HandCoins,
+      //   href: '/transactions/manual',
+      //   permissions: ['nav_menu_manual_payment', 'nav_menu_all'],
+      // },
+      // {
+      //   id: 'tas',
+      //   label: getLabel('tas', 'TAS Payment'),
+      //   icon: FileKey,
+      //   href: '/transactions/tas',
+      //   permissions: ['nav_menu_tas_payment', 'nav_menu_all'],
+      // },
+      // {
+      //   id: 'fee-reconciliation',
+      //   label: getLabel('fee-reconciliation', 'Fee Reconciliation'),
+      //   icon: TicketSlash,
+      //   href: '/transactions/fee-reconciliation',
+      //   permissions: ['nav_menu_fees', 'nav_menu_all'],
+      // }
+    ],
+  },
   // {
   //   id: 'payment',
   //   label: getLabel('payment', 'PAYMENT'),
