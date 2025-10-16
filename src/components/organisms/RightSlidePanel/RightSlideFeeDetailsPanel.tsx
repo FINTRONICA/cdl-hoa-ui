@@ -20,8 +20,12 @@ import {
 import { KeyboardArrowDown as KeyboardArrowDownIcon } from '@mui/icons-material'
 import { Controller, useForm } from 'react-hook-form'
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined'
-import { useSaveBuildPartnerIndividualFee } from '@/hooks/useBuildPartners'
+import {
+  useSaveBuildPartnerIndividualFee,
+  useBuildPartnerFeeById,
+} from '@/hooks/useBuildPartners'
 import { feeValidationSchema } from '@/lib/validation'
+import { DeveloperStep4Schema } from '@/lib/validation/developerSchemas'
 import { convertDatePickerToZonedDateTime } from '@/utils'
 import { useFeeDropdownLabels } from '@/hooks/useFeeDropdowns'
 import { getFeeCategoryLabel } from '@/constants/mappings/feeDropdownMapping'
@@ -29,13 +33,18 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined'
+import dayjs from 'dayjs'
 
 interface RightSlidePanelProps {
   isOpen: boolean
   onClose: () => void
   onFeeAdded?: (fee: FeeFormData) => void
+  onFeeUpdated?: (fee: FeeFormData, index: number) => void
   title?: string
   buildPartnerId?: string
+  mode?: 'add' | 'edit'
+  feeData?: any
+  feeIndex?: number
 }
 
 interface FeeFormData {
@@ -55,12 +64,21 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
   isOpen,
   onClose,
   onFeeAdded,
+  onFeeUpdated,
   buildPartnerId,
+  mode = 'add',
+  feeData,
+  feeIndex,
 }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const addFeeMutation = useSaveBuildPartnerIndividualFee()
+
+  // Fetch full fee data when in edit mode
+  const { data: apiFeeData } = useBuildPartnerFeeById(
+    mode === 'edit' && feeData?.id ? feeData.id : null
+  )
 
   const {
     feeCategories,
@@ -80,6 +98,7 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
     control,
     handleSubmit,
     reset,
+    trigger,
     formState: { errors },
   } = useForm<FeeFormData>({
     defaultValues: {
@@ -94,14 +113,244 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
       currency: '',
       totalAmount: '',
     },
+    mode: 'onChange', // Enable real-time validation
   })
+
+  // Populate form when in edit mode
+  React.useEffect(() => {
+    if (isOpen && mode === 'edit' && (apiFeeData || feeData)) {
+      const dataToUse: any = apiFeeData || feeData
+
+      // Wait for dropdowns to load
+      if (
+        categoriesLoading ||
+        frequenciesLoading ||
+        currenciesLoading ||
+        accountsLoading
+      ) {
+        return
+      }
+
+      try {
+        // Extract IDs from API response or table data
+        const feeTypeId =
+          dataToUse.bpFeeCategoryDTO?.id?.toString() ||
+          feeCategories
+            .find(
+              (cat) =>
+                cat.configValue === dataToUse.feeType ||
+                cat.id?.toString() === dataToUse.feeType
+            )
+            ?.id?.toString() ||
+          dataToUse.feeType ||
+          ''
+
+        const frequencyId =
+          dataToUse.bpFeeFrequencyDTO?.id?.toString() ||
+          feeFrequencies
+            .find(
+              (freq) =>
+                freq.configValue === dataToUse.frequency ||
+                freq.id?.toString() === dataToUse.frequency
+            )
+            ?.id?.toString() ||
+          dataToUse.frequency ||
+          ''
+
+        const currencyId =
+          dataToUse.bpFeeCurrencyDTO?.id?.toString() ||
+          currencies
+            .find(
+              (curr) =>
+                curr.configValue === dataToUse.currency ||
+                curr.id?.toString() === dataToUse.currency
+            )
+            ?.id?.toString() ||
+          dataToUse.currency ||
+          ''
+
+        const debitAccountId =
+          dataToUse.bpAccountTypeDTO?.id?.toString() ||
+          (dataToUse.debitAccount
+            ? debitAccounts
+                .find(
+                  (acc) =>
+                    acc.configValue === dataToUse.debitAccount ||
+                    acc.id?.toString() === dataToUse.debitAccount
+                )
+                ?.id?.toString() || dataToUse.debitAccount
+            : '')
+
+        // Parse date fields - API response uses feeCollectionDate and feeNextRecoveryDate
+        const feeCollectionDate =
+          dataToUse.feeCollectionDate || dataToUse.feeToBeCollected || ''
+        const feeToBeCollectedDate =
+          feeCollectionDate && feeCollectionDate !== ''
+            ? dayjs(feeCollectionDate, 'MMM DD, YYYY').isValid()
+              ? dayjs(feeCollectionDate, 'MMM DD, YYYY')
+              : dayjs(feeCollectionDate).isValid()
+                ? dayjs(feeCollectionDate)
+                : null
+            : null
+
+        const nextRecoveryDate =
+          dataToUse.feeNextRecoveryDate || dataToUse.nextRecoveryDate || ''
+        const nextRecoveryDateParsed =
+          nextRecoveryDate && nextRecoveryDate !== ''
+            ? dayjs(nextRecoveryDate, 'MMM DD, YYYY').isValid()
+              ? dayjs(nextRecoveryDate, 'MMM DD, YYYY')
+              : dayjs(nextRecoveryDate).isValid()
+                ? dayjs(nextRecoveryDate)
+                : null
+            : null
+
+        const formValues = {
+          feeType: feeTypeId,
+          frequency: frequencyId,
+          debitAmount:
+            dataToUse.debitAmount?.toString() || dataToUse.DebitAmount || '',
+          debitAccount: debitAccountId,
+          feeToBeCollected: feeToBeCollectedDate,
+          nextRecoveryDate: nextRecoveryDateParsed,
+          feePercentage:
+            dataToUse.feePercentage?.toString() ||
+            dataToUse.FeePercentage ||
+            '',
+          vatPercentage:
+            dataToUse.vatPercentage?.toString() ||
+            dataToUse.VATPercentage ||
+            '',
+          currency: currencyId,
+          totalAmount:
+            dataToUse.totalAmount?.toString() || dataToUse.Amount || '',
+        }
+
+        reset(formValues)
+      } catch (error) {
+        console.error('❌ Error populating fee form:', error)
+      }
+    } else if (isOpen && mode === 'add') {
+      reset({
+        feeType: '',
+        frequency: '',
+        debitAmount: '',
+        debitAccount: '',
+        feeToBeCollected: null,
+        nextRecoveryDate: null,
+        feePercentage: '',
+        vatPercentage: '',
+        currency: '',
+        totalAmount: '',
+      })
+    }
+  }, [
+    isOpen,
+    mode,
+    feeData,
+    apiFeeData,
+    reset,
+    feeCategories,
+    feeFrequencies,
+    currencies,
+    debitAccounts,
+    categoriesLoading,
+    frequenciesLoading,
+    currenciesLoading,
+    accountsLoading,
+  ])
+
+  // Validation function using DeveloperStep4Schema
+  const validateFeeField = (
+    fieldName: string,
+    _value: any,
+    allValues: FeeFormData
+  ) => {
+    try {
+      // Transform form data to match DeveloperStep4Schema format
+      const feeForValidation = {
+        fees: [{
+          feeType: allValues.feeType,
+          frequency: allValues.frequency,
+          debitAmount: allValues.debitAmount,
+          feeToBeCollected: allValues.feeToBeCollected,
+          nextRecoveryDate: allValues.nextRecoveryDate,
+          feePercentage: allValues.feePercentage,
+          amount: allValues.totalAmount,
+          vatPercentage: allValues.vatPercentage,
+          currency: allValues.currency,
+        }]
+      }
+
+      // Validate using DeveloperStep4Schema
+      const result = DeveloperStep4Schema.safeParse(feeForValidation)
+
+      if (result.success) {
+        return true
+      } else {
+        // Map form field names to schema field names
+        const fieldMapping: Record<string, string> = {
+          feeType: 'feeType',
+          frequency: 'frequency',
+          debitAmount: 'debitAmount',
+          feeToBeCollected: 'feeToBeCollected',
+          nextRecoveryDate: 'nextRecoveryDate',
+          feePercentage: 'feePercentage',
+          totalAmount: 'amount',
+          vatPercentage: 'vatPercentage',
+          currency: 'currency',
+        }
+
+        const schemaFieldName = fieldMapping[fieldName]
+        if (!schemaFieldName) return true
+
+        // Find the specific field error
+        const fieldError = result.error.issues.find(
+          (issue) =>
+            issue.path.includes('fees') &&
+            issue.path.includes(0) &&
+            issue.path.includes(schemaFieldName)
+        )
+
+        return fieldError ? fieldError.message : true
+      }
+    } catch (error) {
+      return true // Return true on error to avoid blocking the form
+    }
+  }
 
   const onSubmit = async (data: FeeFormData) => {
     try {
       setErrorMessage(null)
       setSuccessMessage(null)
+      
+      // Check if dropdown data is still loading
+      if (dropdownsLoading) {
+        setErrorMessage('Please wait for dropdown options to load before submitting.')
+        return
+      }
+      
+      // Validate form fields individually to provide better error messages
+      const isValid = await trigger()
+      
+      if (!isValid) {
+        // Get specific validation errors
+        const errors = []
+        if (!data.feeType) errors.push('Fee Type is required')
+        if (!data.frequency) errors.push('Frequency is required')
+        if (!data.debitAccount) errors.push('Debit Account is required')
+        if (!data.feeToBeCollected) errors.push('Fee Collection Date is required')
+        if (!data.debitAmount) errors.push('Debit Amount is required')
+        if (!data.totalAmount) errors.push('Total Amount is required')
+        
+        if (errors.length > 0) {
+          setErrorMessage(`Please fill in the required fields: ${errors.join(', ')}`)
+        }
+        return
+      }
 
-      const feeData = {
+      const isEditing = mode === 'edit'
+      const feePayload: any = {
+        ...(isEditing && feeData?.id && { id: feeData.id }),
         bpFeeCategoryDTO: {
           id: parseInt(data.feeType) || 0,
         },
@@ -133,63 +382,64 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
         },
       }
 
-      const validationResult = feeValidationSchema.safeParse(feeData)
+      // Include status, enabled, and deleted fields from API response when editing
+      if (isEditing && apiFeeData) {
+        const apiData = apiFeeData as any
+        feePayload.status = apiData.status !== undefined ? apiData.status : null
+        feePayload.enabled =
+          apiData.enabled !== undefined ? apiData.enabled : false
+        feePayload.deleted =
+          apiData.deleted !== undefined ? apiData.deleted : null
+      }
+
+      const validationResult = feeValidationSchema.safeParse(feePayload)
       if (!validationResult.success) {
         const errorMessages = validationResult.error.issues.map(
           (issue) => issue.message
         )
 
-        const feeTypeErrors = validationResult.error.issues.filter(
-          (issue) =>
-            issue.path.some(
-              (path) =>
-                typeof path === 'string' &&
-                (path.includes('bpFeeCategoryDTO') || path.includes('feeType'))
-            ) ||
-            issue.message.toLowerCase().includes('fee') ||
-            issue.message.toLowerCase().includes('category')
-        )
-
-        if (feeTypeErrors.length > 0) {
-          console.log('🚨 Fee Type Specific Validation Errors:', {
-            feeTypeErrors,
-            feeTypeValue: data.feeType,
-            feeTypeParsed: parseInt(data.feeType) || 0,
-            feeTypeIsValid:
-              !isNaN(parseInt(data.feeType)) && parseInt(data.feeType) > 0,
-          })
-        }
-
         setErrorMessage(errorMessages.join(', '))
         return
       }
 
-      console.log('📋 Fee data being sent to backend:', feeData)
-
       await addFeeMutation.mutateAsync({
-        data: feeData,
-        isEditing: false, // false for adding new fee
+        data: feePayload,
+        isEditing: isEditing,
         developerId: buildPartnerId,
       })
 
-      setSuccessMessage('Fee added successfully!')
+      setSuccessMessage(
+        isEditing ? 'Fee updated successfully!' : 'Fee added successfully!'
+      )
 
-      if (onFeeAdded) {
-        // Convert dropdown IDs to display names
+      if (onFeeAdded || onFeeUpdated) {
+        // Convert dropdown IDs to display names - use configValue directly
+        const feeTypeOption = feeCategories.find(
+          (cat) => cat.id?.toString() === data.feeType
+        )
         const feeTypeLabel =
-          getDisplayLabel(feeCategories, data.feeType) ||
-          `Fee Type ${data.feeType}`
+          feeTypeOption?.configValue || `Fee Type ${data.feeType}`
+
+        const frequencyOption = feeFrequencies.find(
+          (freq) => freq.id?.toString() === data.frequency
+        )
         const frequencyLabel =
-          getDisplayLabel(feeFrequencies, data.frequency) ||
-          `Frequency ${data.frequency}`
+          frequencyOption?.configValue || `Frequency ${data.frequency}`
+
+        const currencyOption = currencies.find(
+          (curr) => curr.id?.toString() === data.currency
+        )
         const currencyLabel =
-          getDisplayLabel(currencies, data.currency) ||
-          `Currency ${data.currency}`
+          currencyOption?.configValue || `Currency ${data.currency}`
+
+        const accountOption = debitAccounts.find(
+          (acc) => acc.id?.toString() === data.debitAccount
+        )
         const accountLabel =
-          getDisplayLabel(debitAccounts, data.debitAccount) ||
-          `Account ${data.debitAccount}`
+          accountOption?.configValue || `Account ${data.debitAccount}`
 
         const feeForForm = {
+          ...(isEditing && feeData?.id && { id: feeData.id }),
           // Map to table column names (uppercase) with display labels
           FeeType: feeTypeLabel,
           Frequency: frequencyLabel,
@@ -216,16 +466,21 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
           VATPercentage: data.vatPercentage,
           Amount: data.totalAmount,
           // Keep original fields for reference
-          feeType: data.feeType,
-          frequency: data.frequency,
-          debitAccount: data.debitAccount,
-          currency: data.currency,
+          feeType: feeTypeLabel,
+          frequency: frequencyLabel,
+          debitAccount: accountLabel,
+          currency: currencyLabel,
           buildPartnerDTO: {
             id: buildPartnerId ? parseInt(buildPartnerId) : undefined,
           },
         }
 
-        onFeeAdded(feeForForm)
+        // Call appropriate callback based on mode
+        if (isEditing && onFeeUpdated && feeIndex !== undefined) {
+          onFeeUpdated(feeForForm, feeIndex)
+        } else if (!isEditing && onFeeAdded) {
+          onFeeAdded(feeForForm)
+        }
       }
 
       // Reset form and close after a short delay
@@ -234,7 +489,6 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
         onClose()
       }, 1500)
     } catch (error: unknown) {
-      console.error('Error adding fee:', error)
       const errorMessage =
         error instanceof Error
           ? error.message
@@ -328,14 +582,17 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
         name={name}
         control={control}
         defaultValue={defaultValue}
-        rules={required ? { required: `${label} is required` } : {}}
+        rules={{
+          validate: (value, formValues) => validateFeeField(name, value, formValues)
+        }}
         render={({ field }) => (
           <TextField
             {...field}
             label={label}
             fullWidth
+            required={required}
             error={!!errors[name]}
-            helperText={errors[name]?.message?.toString() || ''}
+            helperText={errors[name]?.message}
             InputLabelProps={{ sx: labelSx }}
             InputProps={{ sx: valueSx }}
             sx={errors[name] ? errorFieldStyles : commonFieldStyles}
@@ -358,17 +615,26 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
       <Controller
         name={name}
         control={control}
-        rules={required ? { required: `${label} is required` } : {}}
+        rules={{
+          validate: (value, formValues) => validateFeeField(name, value, formValues)
+        }}
         defaultValue={''}
         render={({ field }) => (
-          <FormControl fullWidth error={!!errors[name]}>
+          <FormControl fullWidth error={!!errors[name]} required={required}>
             <InputLabel sx={labelSx}>
-              {loading ? `Loading ${label}...` : label}
+              {loading ? `Loading...` : label}
             </InputLabel>
+            {errors[name] && (
+              <FormHelperText>{errors[name]?.message}</FormHelperText>
+            )}
             <Select
               {...field}
-              input={<OutlinedInput label={loading ? `Loading ${label}...` : label} />}
-              label={loading ? `Loading ${label}...` : label}
+              input={
+                <OutlinedInput
+                  label={loading ? `Loading...` : label}
+                />
+              }
+              label={loading ? `Loading...` : label}
               sx={{ ...selectStyles, ...valueSx }}
               IconComponent={KeyboardArrowDownIcon}
               disabled={loading}
@@ -387,11 +653,6 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
                 </MenuItem>
               ))}
             </Select>
-            {errors[name] && (
-              <FormHelperText error>
-                {errors[name]?.message?.toString()}
-              </FormHelperText>
-            )}
           </FormControl>
         )}
       />
@@ -408,7 +669,9 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
       <Controller
         name={name}
         control={control}
-        rules={required ? { required: `${label} is required` } : {}}
+        rules={{
+          validate: (value, formValues) => validateFeeField(name, value, formValues)
+        }}
         defaultValue={null}
         render={({ field }) => (
           <DatePicker
@@ -422,8 +685,9 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
             slotProps={{
               textField: {
                 fullWidth: true,
+                required: required,
                 error: !!errors[name],
-                helperText: errors[name]?.message?.toString() || '',
+                helperText: errors[name]?.message,
                 sx: errors[name] ? errorFieldStyles : commonFieldStyles,
                 InputLabelProps: { sx: labelSx },
                 InputProps: {
@@ -437,6 +701,11 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
       />
     </Grid>
   )
+
+  // Don't render the drawer content until we're ready
+  if (mode === 'edit' && !feeData) {
+    return null
+  }
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -469,7 +738,7 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
             verticalAlign: 'middle',
           }}
         >
-          Add Fee Details
+          {mode === 'edit' ? 'Edit Fee Details' : 'Add Fee Details'}
           <IconButton onClick={handleClose}>
             <CancelOutlinedIcon />
           </IconButton>
@@ -490,7 +759,7 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
                 'Fee Type',
                 feeCategories,
                 6,
-                false,
+                true,
                 categoriesLoading
               )}
               {renderApiSelectField(
@@ -498,7 +767,7 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
                 'Frequency',
                 feeFrequencies,
                 6,
-                false,
+                true,
                 frequenciesLoading
               )}
               {renderApiSelectField(
@@ -506,14 +775,14 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
                 'Debit Account',
                 debitAccounts,
                 6,
-                false,
+                true,
                 accountsLoading
               )}
               {renderDatePickerField(
                 'feeToBeCollected',
                 'Fee to be Collected',
                 6,
-                false
+                true
               )}
               {renderDatePickerField(
                 'nextRecoveryDate',
@@ -533,21 +802,21 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
                 'Debit Amount',
                 '50,000',
                 6,
-                false
+                true
               )}
               {renderTextField(
                 'vatPercentage',
                 'VAT Percentage',
                 '18%',
                 6,
-                false
+                true
               )}
               {renderApiSelectField(
                 'currency',
                 'Currency',
                 currencies,
                 6,
-                false,
+                true,
                 currenciesLoading
               )}
               {renderTextField(
@@ -555,7 +824,7 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
                 'Amount Received',
                 '50,000',
                 12,
-                false
+                true
               )}
             </Grid>
           </DialogContent>
@@ -627,7 +896,13 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
                     },
                   }}
                 >
-                  {addFeeMutation.isPending ? 'Adding...' : 'Add'}
+                  {addFeeMutation.isPending
+                    ? mode === 'edit'
+                      ? 'Updating...'
+                      : 'Adding...'
+                    : mode === 'edit'
+                      ? 'Update'
+                      : 'Add'}
                 </Button>
               </Grid>
             </Grid>

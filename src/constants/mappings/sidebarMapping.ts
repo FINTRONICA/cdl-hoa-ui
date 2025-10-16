@@ -1,7 +1,7 @@
 // Manual mapping for sidebar IDs that don't follow the automatic pattern
 export const SIDEBAR_TO_CONFIG_MAPPING: Record<string, string> = {
   // Main sections
-  'dashboard': 'CDL_DASHBOARD',                    // "Command Center"
+  'dasboard': 'CDL_DASHBOARD',                    // "Command Center"
   'activity': 'CDL_TASK_NAVIGATOR',               // "Task Navigator"
   'deposits': 'CDL_TRANSACTIONS',                 // "Transactions"
   'payment': 'CDL_PAYMENTS',                      // "Payments"
@@ -10,16 +10,14 @@ export const SIDEBAR_TO_CONFIG_MAPPING: Record<string, string> = {
   'entities': 'CDL_BUSINESS_OBJECTS',             // "Business Objects"
   
   // Entities section
-  'developers': 'CDL_ASSET_REGISTER',              // "Asset Register"
-  'projects': 'CDL_ASSET_REGISTER_',          // "Asset Register"
-  'investors': 'CDL_OWNER_REGISTRY',             // "Owner Registry"
+  // 'developers': 'CDL_BUILD_PARTNER',              // "Build Partner"
+  // 'projects': 'CDL_BUILD_PARTNER_ASSEST',          // "Build Partner Asset"
+  // 'investors': 'CDL_CAPITAL_PARTNER',  
   
-
-  // Entities section For HOA
-  'Asset-Register': 'CDL_ASSET_REGISTER',             // Replica of Asset-Register
-  'management-firms': 'CDL_MANAGEMENT_FIRMS',         // Replica of management-firms
-  'owner-Registry': 'CDL_OWNER_REGISTRY',             // Replica of 'owner-Registry
-
+  // "Capital Partner"
+  'developers': 'CDL_ASSET_REGISTER',              // "Build Partner"
+  'projects': 'CDL_MANAGEMENT_FIRMS',          // "Build Partner Asset"
+  'investors': 'CDL_OWNER_REGISTRY',             // "Capital Partner"
   // Deposits section
   'unallocated': 'CDL_PENDING_TRANSACTION',       // "Pending Transactions"
   'discarded': 'CDL_REJECTED_TRANSACTIONS',       // "Rejected Transactions"

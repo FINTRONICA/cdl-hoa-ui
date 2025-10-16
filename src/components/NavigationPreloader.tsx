@@ -26,12 +26,9 @@ const preloadConfig: Record<string, { loader: DataLoader; cacheKey: string }> = 
 
 export function NavigationPreloader() {
   useEffect(() => {
-    // Simple preloading for all pages - no complex event handling
-    console.log('Starting simple data preloading...')
     
-    // Preload all data immediately
     Object.entries(preloadConfig).forEach(([path, config]) => {
-      console.log(`Preloading data for: ${path}`)
+      
       preloadData(config.loader, config.cacheKey)
     })
   }, [])

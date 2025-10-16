@@ -508,7 +508,7 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
         }}
       >
         <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Loading review data...</Typography>
+        <Typography sx={{ ml: 2 }}>Loading...</Typography>
       </Box>
     )
   }
@@ -595,25 +595,25 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                'Developer ID (RERA)*',
-                buildPartnerDetails.arDeveloperId
+                'Asset Register ID*',
+                buildPartnerDetails.arID
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                'Developer CIF (Core Banking)*',
+                'Asset Register CIF*',
                 buildPartnerDetails.arCifrera
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                'Developer Registration No.',
+                'Asset Register Registration No.',
                 buildPartnerDetails.arDeveloperRegNo
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                'RERA Registration Date*',
+                'Onboarding Date*',
                 buildPartnerDetails.arOnboardingDate
                   ? formatDate(
                       buildPartnerDetails.arOnboardingDate,
@@ -624,20 +624,38 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                'Developer Name (English)*',
+                'Asset Register Name (English)*',
                 buildPartnerDetails.arName
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                'Developer Name (Arabic)*',
+                'Asset Register Name (Local)*',
                 buildPartnerDetails.arNameLocal
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                'Master Developer (if any)',
-                buildPartnerDetails.arMasterName
+                'Company Name',
+                buildPartnerDetails.arCompanyName
+              )}
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              {renderDisplayField(
+                'Project Name',
+                buildPartnerDetails.arProjectName
+              )}
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              {renderDisplayField(
+                'Master Developer',
+                buildPartnerDetails.arMasterDeveloper
+              )}
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              {renderDisplayField(
+                'Master Community',
+                buildPartnerDetails.arMasterCommunity
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
@@ -646,33 +664,18 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
                 buildPartnerDetails.arRegulatorDTO ? ' ' : ' '
               )}
             </Grid>
-            <Grid size={{ xs: 12, md: 12 }}>
-              {renderDisplayField(
-                'Address',
-                buildPartnerDetails.arContactAddress
-              )}
-            </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
-              {renderDisplayField('Mobile No.', buildPartnerDetails.arMobile)}
-            </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
-              {renderDisplayField('Email', buildPartnerDetails.arEmail)}
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              {renderDisplayField('FAX No', buildPartnerDetails.arFax)}
-            </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                'License Number (Trade License)*',
-                buildPartnerDetails.arLicenseNo
+                'Trade License Number*',
+                buildPartnerDetails.arTradeLicenseNo
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                'License Expiry Date*',
-                buildPartnerDetails.arLicenseExpDate
+                'Trade License Expiry Date*',
+                buildPartnerDetails.arTradeLicenseExpDate
                   ? formatDate(
-                      buildPartnerDetails.arLicenseExpDate,
+                      buildPartnerDetails.arTradeLicenseExpDate,
                       'MM/DD/YYYY'
                     )
                   : ' '
@@ -696,14 +699,8 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
                 buildPartnerDetails.arWorldCheckRemarks
               )}
             </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              {renderDisplayField('Remarks', buildPartnerDetails.arremark)}
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              {renderDisplayField(
-                'Account Contact Number',
-                buildPartnerDetails.arContactTel
-              )}
+            <Grid size={{ xs: 12, md: 12 }}>
+              {renderDisplayField('Remarks', buildPartnerDetails.arRemark)}
             </Grid>
           </Grid>
         </CardContent>

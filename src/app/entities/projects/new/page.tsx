@@ -7,7 +7,7 @@ export default function NewProjectPage() {
   return (
     <DashboardLayout
       title="Management Firms Details"
-      subtitle="Register your Management Firm step by step, non-mandatory fields and steps are easy to skip."
+      subtitle="Register your Management Firms step by step, non-mandatory fields and steps are easy to skip."
     >
       <div className="px-3">
         <StepperWrapper />

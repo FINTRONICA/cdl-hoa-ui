@@ -117,42 +117,42 @@ const GuaranteePage: React.FC = () => {
         label: getTranslatedLabel('CDL_SB_DATE', 'Date'),
         type: 'text' as const,
         sortable: true,
-        width: '120px',
+        width: 'w-40',
       },
       {
         key: 'referenceNumber',
         label: getTranslatedLabel('CDL_SB_REF_NO', 'Reference Number'),
         type: 'text' as const,
         sortable: true,
-        width: '180px',
+        width: 'w-48',
       },
       {
         key: 'type',
         label: getTranslatedLabel('CDL_SB_TYPE', 'Type'),
         type: 'text' as const,
         sortable: true,
-        width: '150px',
+        width: 'w-40',
       },
       {
         key: 'projectName',
         label: getTranslatedLabel('CDL_SB_BPA_NAME', 'Project Name'),
         type: 'text' as const,
         sortable: true,
-        width: '200px',
+        width: 'w-56',
       },
       {
         key: 'buildPartnerName',
         label: getTranslatedLabel('CDL_SB_BP_NAME', 'Guarantee'),
         type: 'text' as const,
         sortable: true,
-        width: '180px',
+        width: 'w-48',
       },
       {
         key: 'amount',
         label: getTranslatedLabel('CDL_SB_AMOUNT', 'Amount'),
         type: 'custom' as const,
         sortable: true,
-        width: '120px',
+        width: 'w-32',
         render: (value: number) => `$${value.toLocaleString()}`,
       },
       {
@@ -160,20 +160,20 @@ const GuaranteePage: React.FC = () => {
         label: getTranslatedLabel('CDL_SB_EXPIARY_DATE', 'Expiration Date'),
         type: 'text' as const,
         sortable: true,
-        width: '140px',
+        width: 'w-40',
       },
       {
         key: 'status',
         label: getTranslatedLabel('CDL_SB_STATUS', 'Status'),
         type: 'status' as const,
         sortable: true,
-        width: '100px',
+        width: 'w-40',
       },
       {
         key: 'actions',
         label: getTranslatedLabel('CDL_SB_ACTIONS', 'Actions'),
         type: 'actions' as const,
-        width: 'w-20',
+        width: 'w-28',
       },
     ],
     [sbTranslations, sbTranslationsLoading]
@@ -385,10 +385,7 @@ const GuaranteePage: React.FC = () => {
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600 text-lg">Loading surety bonds...</p>
-              <p className="text-gray-500 text-sm mt-2">
-                Please wait while we fetch your data
-              </p>
+              <p className="text-gray-600 text-lg">Loading...</p>
             </div>
           </div>
         </div>

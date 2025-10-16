@@ -7,10 +7,10 @@ export function useValidateBankAccount() {
   return useMutation({
     mutationFn: (accountNumber: string) => BankAccountService.validateAccount(accountNumber),
     onSuccess: (data, accountNumber) => {
-      console.log('✅ Bank account validation successful:', { accountNumber, data })
+    //  success message
     },
     onError: (error, accountNumber) => {
-      console.error('❌ Bank account validation failed:', { accountNumber, error })
+      throw error
     }
   })
 }
@@ -22,12 +22,11 @@ export function useSaveBankAccount() {
   return useMutation({
     mutationFn: (bankAccountData: BankAccountData) => BankAccountService.saveBankAccount(bankAccountData),
     onSuccess: (data, bankAccountData) => {
-      console.log('✅ Bank account saved successfully:', { bankAccountData, data })
-      // Invalidate relevant queries if needed
+      
       queryClient.invalidateQueries({ queryKey: ['bankAccounts'] })
     },
     onError: (error, bankAccountData) => {
-      console.error('❌ Bank account save failed:', { bankAccountData, error })
+      throw error
     }
   })
 }
@@ -39,12 +38,11 @@ export function useSaveMultipleBankAccounts() {
   return useMutation({
     mutationFn: (bankAccounts: BankAccountData[]) => BankAccountService.saveMultipleBankAccounts(bankAccounts),
     onSuccess: (data, bankAccounts) => {
-      console.log('✅ Multiple bank accounts saved successfully:', { count: bankAccounts.length, data })
-      // Invalidate relevant queries if needed
+     
       queryClient.invalidateQueries({ queryKey: ['bankAccounts'] })
     },
     onError: (error, bankAccounts) => {
-      console.error('❌ Multiple bank accounts save failed:', { count: bankAccounts.length, error })
+      throw error
     }
   })
 }

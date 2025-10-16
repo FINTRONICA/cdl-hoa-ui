@@ -7,7 +7,7 @@ export default function NewProjectPage() {
   return (
     <DashboardLayout
       title="Management Firms Details"
-      subtitle="Register your project step by step, on-mandatory fields and steps are easy to skip."
+      subtitle="Register your Management Firms step by step, on-mandatory fields and steps are easy to skip."
     >
       <div className="flex items-start py-2 gap-7 px-7">
         <div className="flex flex-col min-w-[200px] gap-1">

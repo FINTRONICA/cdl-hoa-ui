@@ -69,55 +69,55 @@ const ProjectsPage: React.FC = () => {
   const tableColumns = [
     {
       key: 'name',
-      label: getBuildPartnerAssetLabelDynamic('CDL_MF_NAME'),
+      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_NAME'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
       key: 'developerId',
-      label: getBuildPartnerAssetLabelDynamic('CDL_MF_BP_ID'),
+      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_BP_ID'),
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
     },
     {
       key: 'developerCif',
-      label: getBuildPartnerAssetLabelDynamic('CDL_MF_BP_CIF'),
+      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_BP_CIF'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
       key: 'developerName',
-      label: getBuildPartnerAssetLabelDynamic('CDL_MF_BP_NAME'),
+      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_BP_NAME'),
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
     },
     {
       key: 'projectStatus',
-      label: getBuildPartnerAssetLabelDynamic('CDL_MF_BP_STATUS'),
+      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_BP_STATUS'),
       type: 'status' as const,
       width: 'w-32',
       sortable: true,
     },
     {
       key: 'approvalStatus',
-      label: getBuildPartnerAssetLabelDynamic('CDL_MF_BP_APPROVAL_STATUS'),
+      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_BP_APPROVAL_STATUS'),
       type: 'status' as const,
       width: 'w-32',
       sortable: true,
     },
     {
       key: 'actions',
-      label: getBuildPartnerAssetLabelDynamic('CDL_MF_DOC_ACTION'),
+      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_DOC_ACTION'),
       type: 'actions' as const,
-      width: 'w-20',
+      width: 'w-32',
     },
   ]
 
-  // Simple table state - use API data or empty array if loading
+
   const {
     search,
     paginated,
@@ -142,10 +142,10 @@ const ProjectsPage: React.FC = () => {
   })
 
   // Debug: Log labels data
-  console.log('🏷️ Management Firms Labels:', {
+  console.log('🏷️ Build Partner Asset Labels:', {
     buildPartnerAssetLabels: !!buildPartnerAssetLabels,
     firstLabel: buildPartnerAssetLabels
-      ? getLabel('CDL_MF_NAME', currentLanguage, 'FALLBACK')
+      ? getLabel('CDL_BPA_NAME', currentLanguage, 'FALLBACK')
       : 'NO_LABELS',
   })
 
@@ -212,13 +212,13 @@ const ProjectsPage: React.FC = () => {
     <div className="grid grid-cols-2 gap-8">
       <div className="space-y-4">
         <div>
-          <span className="font-semibold">Firm Name:</span> {row.name}
+          <span className="font-semibold">Project Name:</span> {row.name}
         </div>
         <div>
-          <span className="font-semibold">Firm ID:</span> {row.developerId}
+          <span className="font-semibold">Developer ID:</span> {row.developerId}
         </div>
         <div>
-          <span className="font-semibold">Firm CIF:</span>{' '}
+          <span className="font-semibold">Developer CIF:</span>{' '}
           {row.developerCif}
         </div>
       </div>
@@ -237,7 +237,7 @@ const ProjectsPage: React.FC = () => {
   if (projectsLoading || statsLoading) {
     return (
       <DashboardLayout title="Projects">
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-50 z-50">
           <div className="text-lg">Loading...</div>
         </div>
       </DashboardLayout>
@@ -248,7 +248,7 @@ const ProjectsPage: React.FC = () => {
   if (projectsError) {
     return (
       <DashboardLayout title="Projects">
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-50 z-50">
           <div className="text-lg text-red-600">
             Error loading: {projectsError.message}
           </div>
@@ -275,7 +275,7 @@ const ProjectsPage: React.FC = () => {
             <PageActionButtons entityType="project" />
           </div>
 
-          <div className="flex flex-col flex-1 min-h-0">
+          <div className="flex-1 flex flex-col min-h-0">
             <div className="flex-1 overflow-auto">
               <ExpandableDataTable<ProjectData>
                 data={paginated as ProjectData[]}

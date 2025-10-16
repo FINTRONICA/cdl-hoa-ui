@@ -117,7 +117,9 @@ export function useAppInitialization(
   const { initializeFromCookies } = useAuthStore()
 
   useEffect(() => {
-    // Initialize auth from cookies first
+    // APP INITIALIZATION SEQUENCE when user returns:
+    // 1. First restore auth state from cookies (reconstruct user object, validate token)
+    // 2. Then load application labels and configuration data
     initializeFromCookies()
 
     if (!enableLabelLoading) {

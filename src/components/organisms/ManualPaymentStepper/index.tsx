@@ -12,6 +12,8 @@ import {
   CircularProgress,
 } from '@mui/material'
 import { FormProvider, useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { manualPaymentStep1Schema, manualPaymentRootSchema } from '@/lib/validation'
 
 import Step1 from './steps/Step1'
 import Step2 from './steps/Step2'
@@ -102,6 +104,11 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
   const createProjectWorkflowRequest = useCreateDeveloperWorkflowRequest()
 
   const methods = useForm<ProjectData>({
+    mode: 'onChange',
+    reValidateMode: 'onChange',
+    criteriaMode: 'firstError',
+    // Cast is safe here: Step 1 schema validates only a subset of ProjectData fields present on this step
+    resolver: zodResolver(manualPaymentStep1Schema) as unknown as any,
     defaultValues: {
       sectionId: '',
       developerId: '',
@@ -324,6 +331,17 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
 
   const onSubmit = async () => {
     try {
+      // Submit-time validation with root schema (as requested)
+      const values = methods.getValues()
+      const result = manualPaymentRootSchema.safeParse(values)
+      if (!result.success) {
+        result.error.issues.forEach((issue) => {
+          const path = (issue.path || []).join('.') as any
+          methods.setError(path, { message: issue.message })
+        })
+        toast.error('Please resolve the highlighted issues.')
+        return
+      }
       // Get the payment ID from saved state
       const projectIdFromStatus = savedId
 
@@ -375,10 +393,16 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
   }
 
   const onError = (errors: Record<string, unknown>) => {
-    const errorCount = Object.keys(errors).length
-    toast.error(
-      `Please fix ${errorCount} validation error${errorCount > 1 ? 's' : ''} before proceeding.`
-    )
+    // Focus the first errored field and toast a brief message
+    const keys = Object.keys(errors)
+    if (keys[0]) {
+      // @ts-ignore
+      methods.setFocus(keys[0] as any)
+    }
+    const count = keys.length
+    if (count > 0) {
+      toast.error(`Please fix ${count} validation error${count > 1 ? 's' : ''} before proceeding.`)
+    }
   }
 
   const getStepContent = (step: number) => {
@@ -641,11 +665,16 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
                     {activeStep === 0 ? (
                       <Button
                         onClick={() => {
-                          if (isEditMode) {
-                            handleUpdate()
-                          } else {
-                            handleSaveAndNext()
-                          }
+                          methods.handleSubmit(
+                            async () => {
+                              if (isEditMode) {
+                                await handleUpdate()
+                              } else {
+                                await handleSaveAndNext()
+                              }
+                            },
+                            onError
+                          )()
                         }}
                         variant="contained"
                         disabled={createProjectWorkflowRequest.isPending}
@@ -680,8 +709,9 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
                       <Button
                         onClick={() => {
                           if (activeStep === steps.length - 1) {
-                            methods.handleSubmit(onSubmit)()
+                            methods.handleSubmit(onSubmit, onError)()
                           } else {
+                            
                             handleNext()
                           }
                         }}

@@ -69,30 +69,26 @@ export interface PaginatedDocumentResponse {
   }
 }
 
-// Management Firm Data - NEW API uses 'ar' prefix
 export interface BuildPartnerData {
   id: number
-  arDeveloperId: string // Management Firm ID
-  arCifrera: string | null // Management Firm CIF
-  arDeveloperRegNo: string // Registration Number
-  arName: string | null // Management Firm Name
-  arMasterName: string | null // Master Management Firm
-  arNameLocal: string | null // Local Name
-  arOnboardingDate: string | null // Onboarding Date
-  arContactAddress: string | null // Contact Address
-  arContactTel: string | null // Contact Telephone
-  arPoBox: string | null // PO Box
-  arMobile: string | null // Mobile Number
-  arFax: string | null // Fax Number
-  arEmail: string | null // Email Address
-  arLicenseNo: string | null // License Number
-  arLicenseExpDate: string | null // License Expiry Date
-  arWorldCheckFlag: boolean | null // World Check Status
-  arWorldCheckRemarks: string | null // World Check Remarks
-  arMigratedData: boolean | null // Migrated Data Flag
-  arremark: string | null // Additional Notes
-  arRegulatorDTO: unknown | null // Regulatory Authority
-  arActiveStatusDTO: unknown | null // Active Status
+  arID: string
+  arCifrera: string | null
+  arDeveloperRegNo: string
+  arName: string | null
+  arNameLocal: string | null
+  arCompanyName: string | null
+  arProjectName: string | null
+  arMasterDeveloper: string | null
+  arMasterCommunity: string | null
+  arOnboardingDate: string | null
+  arTradeLicenseNo: string | null
+  arTradeLicenseExpDate: string | null
+  arWorldCheckFlag: boolean | null
+  arWorldCheckRemarks: string | null
+  arMigratedData: boolean | null
+  arRemark: string | null
+  arRegulatorDTO: unknown | null
+  arActiveStatusDTO: unknown | null
 }
 
 export interface ProjectDetailsData {
@@ -140,6 +136,7 @@ export interface AccountData {
 }
 
 export interface ContactData extends Record<string, unknown> {
+  id?: number | string
   name: string
   address: string
   email: string
@@ -154,6 +151,7 @@ export interface ContactData extends Record<string, unknown> {
 }
 
 export interface FeeData extends Record<string, unknown> {
+  id?: number | string
   feeType: string
   frequency: string
   debitAmount: string
@@ -193,28 +191,25 @@ export interface FinancialData {
 }
 
 export interface ProjectData extends ProjectDetailsData {
-  // Step 1: Management Firm Details (NEW API uses 'ar' prefix)
-  arDeveloperId: string // Management Firm ID
-  arCifrera: string // Management Firm CIF
-  arDeveloperRegNo: string // Registration Number
-  arName: string // Management Firm Name
-  arMasterName: string // Master Management Firm
-  arNameLocal: string // Local Name
-  arOnboardingDate: Dayjs | null // Onboarding Date
-  arContactAddress: string // Contact Address
-  arContactTel: string // Contact Telephone
-  arPoBox: string // PO Box
-  arMobile: string // Mobile Number
-  arFax: string // Fax Number
-  arEmail: string // Email Address
-  arLicenseNo: string // License Number
-  arLicenseExpDate: Dayjs | null // License Expiry Date
-  arWorldCheckFlag: boolean // World Check Status
-  arWorldCheckRemarks: string // World Check Remarks
-  arMigratedData: boolean // Migrated Data Flag
-  arremark: string // Additional Notes
+  // Step 1: Asset Register Details
+  arID: string
+  arCifrera: string
+  arDeveloperRegNo: string
+  arName: string
+  arNameLocal: string
+  arCompanyName: string
+  arProjectName: string
+  arMasterDeveloper: string
+  arMasterCommunity: string
+  arOnboardingDate: Dayjs | null
+  arTradeLicenseNo: string
+  arTradeLicenseExpDate: Dayjs | null
+  arWorldCheckFlag: boolean
+  arWorldCheckRemarks: string
+  arMigratedData: boolean
+  arRemark: string
   arRegulatorDTO: {
-    id: number // Regulatory Authority ID
+    id: number
   }
 
   // Step 2: Documents (Optional)

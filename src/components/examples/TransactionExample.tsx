@@ -103,19 +103,7 @@ export const TransactionExample: React.FC = () => {
     }
   }
 
-  // Bulk operations (commented out for now)
-  // const bulkCancelTransactions = async (transactionIds: string[]) => {
-  //   try {
-  //     await transactionService.bulkCancelTransactions(transactionIds, 'Bulk cancellation')
-  //     toast.success(`${transactionIds.length} transactions cancelled`)
-  //     refetchTransactions()
-  //   } catch (error) {
-  //     toast.error('Failed to cancel transactions')
-  //     console.error('Bulk cancel error:', error)
-  //   }
-  // }
 
-  // Export transactions
   const exportTransactions = async (format: 'csv' | 'xlsx' | 'pdf') => {
     try {
       const blob = await transactionService.exportTransactions({}, format)
@@ -211,7 +199,7 @@ export const TransactionExample: React.FC = () => {
           disabled={loading}
           className="bg-blue-500 text-white px-4 py-2 rounded mt-4 hover:bg-blue-600 disabled:opacity-50"
         >
-          {loading ? 'Creating...' : 'Create Transaction'}
+          {loading ? 'Loading...' : 'Create Transaction'}
         </button>
       </div>
 

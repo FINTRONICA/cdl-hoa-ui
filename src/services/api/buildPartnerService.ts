@@ -22,64 +22,61 @@ export interface TaskStatusDTO {
   enabled: boolean
 }
 
-// Asset Register (Management Firm) types - NEW API uses 'ar' prefix
-// Properties map to Asset Register/Management Firm data
+// Build Partner types - Updated to match API response structure
 export interface BuildPartner {
   id: number
-  arDeveloperId: string // Management Firm ID
-  arCifrera: string | null // Management Firm CIF
-  arDeveloperRegNo: string // Registration Number
-  arName: string | null // Management Firm Name
-  arMasterName: string | null // Master Management Firm
-  arNameLocal: string | null // Local Name
-  arOnboardingDate: string | null // Onboarding Date
-  arContactAddress: string | null // Contact Address
-  arContactTel: string | null // Contact Telephone
-  arPoBox: string | null // PO Box
-  arMobile: string | null // Mobile Number
-  arFax: string | null // Fax Number
-  arEmail: string | null // Email Address
-  arLicenseNo: string | null // License Number
-  arLicenseExpDate: string | null // License Expiry Date
-  arWorldCheckFlag: string | null // World Check Status
-  arWorldCheckRemarks: string | null // World Check Remarks
-  arMigratedData: boolean | null // Migrated Data Flag
-  arremark: string | null // Additional Notes
-  arRegulatorDTO: unknown | null // Regulatory Authority
-  arActiveStatusDTO: unknown | null // Active Status
-  assetRegisterBeneficiaryDTOS: unknown[] | null // Beneficiaries
-  assetRegisterContactDTOS: unknown[] | null // Contacts
-  taskStatusDTO: TaskStatusDTO | null // Task Status
+  bpDeveloperId: string
+  bpCifrera: string | null
+  bpDeveloperRegNo: string
+  bpName: string | null
+  bpMasterName: string | null
+  bpNameLocal: string | null
+  bpOnboardingDate: string | null
+  bpContactAddress: string | null
+  bpContactTel: string | null
+  bpPoBox: string | null
+  bpMobile: string | null
+  bpFax: string | null
+  bpEmail: string | null
+  bpLicenseNo: string | null
+  bpLicenseExpDate: string | null
+  bpWorldCheckFlag: string | null
+  bpWorldCheckRemarks: string | null
+  bpMigratedData: boolean | null
+  bpremark: string | null
+  bpRegulatorDTO: unknown | null
+  bpActiveStatusDTO: unknown | null
+  buildPartnerBeneficiaryDTOS: unknown[] | null
+  buildPartnerContactDTOS: unknown[] | null
+  taskStatusDTO: TaskStatusDTO | null
 }
 
-// Create Management Firm request - NEW API uses 'ar' prefix
 export interface CreateBuildPartnerRequest {
-  arName: string // Management Firm Name
-  arDeveloperId: string // Management Firm ID
-  arCifrera: string // Management Firm CIF
-  arNameLocal?: string // Local Name
-  arWorldCheckFlag?: string // World Check Status
-  arContactAddress?: string // Contact Address
-  arContactTel?: string // Contact Telephone
-  arEmail?: string // Email Address
-  arMobile?: string // Mobile Number
-  arLicenseNo?: string // License Number
-  arLicenseExpDate?: string // License Expiry Date
+  bpName: string
+  bpDeveloperId: string
+  bpCifrera: string
+  bpNameLocal?: string
+  bpWorldCheckFlag?: string
+  bpContactAddress?: string
+  bpContactTel?: string
+  bpEmail?: string
+  bpMobile?: string
+  bpLicenseNo?: string
+  bpLicenseExpDate?: string
 }
 
-// Update Management Firm request - NEW API uses 'ar' prefix
 export interface UpdateBuildPartnerRequest {
-  arName?: string // Management Firm Name
-  arDeveloperId?: string // Management Firm ID
-  arCifrera?: string // Management Firm CIF
-  arNameLocal?: string // Local Name
-  arWorldCheckFlag?: string // World Check Status
-  arContactAddress?: string // Contact Address
-  arContactTel?: string // Contact Telephone
-  arEmail?: string // Email Address
-  arMobile?: string // Mobile Number
-  arLicenseNo?: string // License Number
-  arLicenseExpDate?: string // License Expiry Date
+  bpName?: string
+  bpDeveloperId?: string
+  bpCifrera?: string
+  bpNameLocal?: string
+  bpWorldCheckFlag?: string
+  bpContactAddress?: string
+  bpContactTel?: string
+  bpEmail?: string
+  bpMobile?: string
+  bpLicenseNo?: string
+  bpLicenseExpDate?: string
 }
 
 export interface BuildPartnerFilters {
@@ -117,14 +114,13 @@ export interface StepValidationResponse {
   warnings?: string[]
 }
 
-// Asset Register (Management Firm) form data types
-// NEW API uses 'ar' prefix
+// Build Partner form data types
 export interface BuildPartnerDetailsData {
-  arName: string // Management Firm Name
-  arDeveloperId: string // Management Firm ID
-  arCifrera: string // Management Firm CIF
-  arNameLocal: string // Local Name
-  arWorldCheckFlag?: string // World Check Status
+  bpName: string
+  bpDeveloperId: string
+  bpCifrera: string
+  bpNameLocal: string
+  bpWorldCheckFlag?: string
 }
 
 // UI-friendly BuildPartner interface for table display
@@ -162,65 +158,98 @@ export const mapBuildPartnerToUIData = (
 
   return {
     id: apiData.id.toString(),
-    name: apiData.arName || 'N/A',
-    developerId: apiData.arDeveloperId || 'N/A',
-    developerCif: apiData.arCifrera || 'N/A',
-    localeNames: apiData.arNameLocal || '---',
+    name: apiData.bpName || 'N/A',
+    developerId: apiData.bpDeveloperId || 'N/A',
+    developerCif: apiData.bpCifrera || 'N/A',
+    localeNames: apiData.bpNameLocal || '---',
     status: mapApiStatus(apiData.taskStatusDTO),
-    registrationDate: apiData.arOnboardingDate || undefined,
-    lastUpdated: apiData.arOnboardingDate || undefined,
-    contactPerson: apiData.arContactAddress || undefined,
+    registrationDate: apiData.bpOnboardingDate || undefined,
+    lastUpdated: apiData.bpOnboardingDate || undefined,
+    contactPerson: apiData.bpContactAddress || undefined,
   }
 }
 
-// Management Firm contact data - NEW API uses 'arc' prefix (Asset Register Contact)
 export interface BuildPartnerContactData {
-  arcFirstName: string // Contact First Name
-  arcLastName: string // Contact Last Name
-  arcContactEmail: string // Contact Email
-  arcContactAddressLine1: string // Address Line 1
-  arcContactAddressLine2: string // Address Line 2
-  arcContactPoBox: string // PO Box
-  arcCountryMobCode: string // Country Mobile Code
-  arcContactTelNo: string // Telephone Number
-  arcContactMobNo: string // Mobile Number
-  arcContactFaxNo: string // Fax Number
+  id?: number | string
+  bpcFirstName: string
+  bpcLastName: string
+  bpcContactEmail: string
+  bpcContactAddressLine1: string
+  bpcContactAddressLine2: string
+  bpcContactPoBox: string
+  bpcCountryMobCode: string
+  bpcContactTelNo: string
+  bpcContactMobNo: string
+  bpcContactFaxNo: string
+  enabled?: boolean
+  deleted?: boolean | null
+  workflowStatus?: string | null
+  buildPartnerDTO?: {
+    id?: number
+  }
 }
 
-// Management Firm fees structure data
+// API Response interface for contact data (includes nested buildPartnerDTO)
+export interface BuildPartnerContactResponse {
+  id: number
+  bpcContactName: string | null
+  bpcFirstName: string
+  bpcLastName: string
+  bpcContactTelCode: string | null
+  bpcContactTelNo: string
+  bpcCountryMobCode: string
+  bpcContactMobNo: string
+  bpcContactEmail: string
+  bpcContactAddress: string | null
+  bpcContactAddressLine1: string
+  bpcContactAddressLine2: string
+  bpcContactPoBox: string
+  bpcContactFaxNo: string
+  enabled: boolean
+  workflowStatus: string | null
+  deleted: boolean | null
+  buildPartnerDTO?: {
+    id: number
+    [key: string]: any
+  }
+}
+
 export interface BuildPartnerFeesData {
   feeStructure: {
-    setupFee: number // Setup Fee
-    transactionFee: number // Transaction Fee
-    monthlyFee: number // Monthly Fee
+    setupFee: number
+    transactionFee: number
+    monthlyFee: number
   }
-  collectionMethod: 'automatic' | 'manual' // Collection Method
-  paymentTerms: string // Payment Terms
+  collectionMethod: 'automatic' | 'manual'
+  paymentTerms: string
 }
 
-// Management Firm individual fee data - NEW API uses 'ar' prefix
 export interface BuildPartnerIndividualFeeData {
-  arFeeCategoryDTO: {
-    id: number // Fee Category ID
+  id?: number | string
+  bpFeeCategoryDTO: {
+    id: number
   }
-  arFeeFrequencyDTO: {
-    id: number // Fee Frequency ID
+  bpFeeFrequencyDTO: {
+    id: number
   }
-  arAccountTypeDTO: {
-    id: number // Account Type ID
+  bpAccountTypeDTO: {
+    id: number
   }
-  debitAmount: number // Debit Amount
-  totalAmount: number // Total Amount
-  feeCollectionDate: string // Fee Collection Date
-  feeNextRecoveryDate: string // Next Recovery Date
-  feePercentage: number // Fee Percentage
-  vatPercentage: number // VAT Percentage
-  arFeeCurrencyDTO: {
-    id: number // Currency ID
+  debitAmount: number
+  totalAmount: number
+  feeCollectionDate: string
+  feeNextRecoveryDate: string
+  feePercentage: number
+  vatPercentage: number
+  bpFeeCurrencyDTO: {
+    id: number
+  }
+  buildPartnerDTO?: {
+    id: number
   }
 }
 
-// API Response interface for fee data - NEW API uses 'ar' prefix
+// API Response interface for fee data
 export interface BuildPartnerFeeResponse {
   id: number
   debitAmount?: number
@@ -230,7 +259,7 @@ export interface BuildPartnerFeeResponse {
   feePercentage?: number
   vatPercentage?: number
   feeCollected?: any
-  arFeeCategoryDTO?: {
+  bpFeeCategoryDTO?: {
     id?: number
     settingKey?: string
     settingValue?: string
@@ -248,7 +277,7 @@ export interface BuildPartnerFeeResponse {
     enabled?: boolean
     deleted?: boolean | null
   }
-  arFeeFrequencyDTO?: {
+  bpFeeFrequencyDTO?: {
     id?: number
     settingKey?: string
     settingValue?: string
@@ -266,7 +295,25 @@ export interface BuildPartnerFeeResponse {
     enabled?: boolean
     deleted?: boolean | null
   }
-  arFeeCurrencyDTO?: {
+  bpAccountTypeDTO?: {
+    id?: number
+    settingKey?: string
+    settingValue?: string
+    languageTranslationId?: {
+      id?: number
+      configId?: string
+      configValue?: string
+      content?: string | null
+      status?: string | null
+      enabled?: boolean
+      deleted?: boolean | null
+    }
+    remarks?: string | null
+    status?: string | null
+    enabled?: boolean
+    deleted?: boolean | null
+  }
+  bpFeeCurrencyDTO?: {
     id?: number
     settingKey?: string
     settingValue?: string
@@ -292,6 +339,7 @@ export interface FeeUIData extends Record<string, unknown> {
   feeType: string
   frequency: string
   debitAmount: string
+  debitAccount?: string
   feeToBeCollected: string
   nextRecoveryDate: string
   feePercentage: string
@@ -300,50 +348,48 @@ export interface FeeUIData extends Record<string, unknown> {
   currency: string
 }
 
-// Management Firm beneficiary data - NEW API uses 'arb' prefix (Asset Register Beneficiary)
 export interface BuildPartnerBeneficiaryData {
-  arbBeneficiaryId: string // Beneficiary Reference ID
-  arbBeneficiaryType: string // Payment Transfer Mode
-  arbName: string // Beneficiary Full Name
-  arbBankName: string // Beneficiary Bank Name
-  arbSwiftCode: string // SWIFT / BIC Code
-  arbRoutingCode: string // Bank Routing Number
-  arbAccountNumber: string // Bank Account Number
-  enabled: boolean // Active Status
+  bpbBeneficiaryId: string
+  bpbBeneficiaryType: string
+  bpbName: string
+  bpbBankName: string
+  bpbSwiftCode: string
+  bpbRoutingCode: string
+  bpbAccountNumber: string
+  enabled: boolean
 }
 
-// Management Firm beneficiary API response - NEW API uses 'arb' prefix
+// API Response interface for beneficiary data
 export interface BuildPartnerBeneficiaryResponse {
-  id: number // Beneficiary ID
-  arbBeneficiaryId: string // Beneficiary Reference ID
-  arbBeneficiaryType: string // Payment Transfer Mode
-  arbName: string // Beneficiary Full Name
-  arbBankName: string // Beneficiary Bank Name
-  arbSwiftCode: string // SWIFT / BIC Code
-  arbRoutingCode?: string // Bank Routing Number
-  arbAccountNumber: string // Bank Account Number
-  assetRegisterId?: number // Management Firm ID
-  createdAt?: string // Created Date
-  updatedAt?: string // Updated Date
-  status?: string // Status
-  enabled?: boolean // Active Status
+  id: number
+  bpbBeneficiaryId: string
+  bpbBeneficiaryType: string
+  bpbName: string
+  bpbBankName: string
+  bpbSwiftCode: string
+  bpbRoutingCode?: string
+  bpbAccountNumber: string
+  buildPartnerId?: number
+  createdAt?: string
+  updatedAt?: string
+  status?: string
+  enabled?: boolean
 }
 
-// Update Management Firm beneficiary request - NEW API uses 'arb' prefix
+// Update request interface for beneficiary
 export interface UpdateBuildPartnerBeneficiaryData {
-  arbBeneficiaryId?: string // Beneficiary Reference ID
-  arbBeneficiaryType?: string // Payment Transfer Mode
-  arbName?: string // Beneficiary Full Name
-  arbBankName?: string // Beneficiary Bank Name
-  arbSwiftCode?: string // SWIFT / BIC Code
-  arbRoutingCode?: string // Bank Routing Number
-  arbAccountNumber?: string // Bank Account Number
+  bpbBeneficiaryId?: string
+  bpbBeneficiaryType?: string
+  bpbName?: string
+  bpbBankName?: string
+  bpbSwiftCode?: string
+  bpbRoutingCode?: string
+  bpbAccountNumber?: string
 }
 
-// Management Firm review/submission data
 export interface BuildPartnerReviewData {
-  reviewData: unknown // Review Data
-  termsAccepted: boolean // Terms Accepted Flag
+  reviewData: unknown
+  termsAccepted: boolean
 }
 
 // Customer Details API Response Types
@@ -386,14 +432,14 @@ export class BuildPartnerService {
           Rejected: 'REJECTED',
           Incomplete: 'INCOMPLETE',
         }
-        apiFilters.arWorldCheckFlag =
+        apiFilters.bpWorldCheckFlag =
           statusMapping[filters.status] || filters.status
       }
       if (filters.name) {
-        apiFilters.arName = filters.name
+        apiFilters.bpName = filters.name
       }
       if (filters.developerId) {
-        apiFilters.arDeveloperId = filters.developerId
+        apiFilters.bpDeveloperId = filters.developerId
       }
     }
 
@@ -402,7 +448,7 @@ export class BuildPartnerService {
       ...apiFilters,
     }
     const queryString = new URLSearchParams(params).toString()
-    const url = `${buildApiUrl(API_ENDPOINTS.ASSET_REGISTER.FIND_ALL)}&${queryString}`
+    const url = `${buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.FIND_ALL)}&${queryString}`
 
     try {
       const result = await apiClient.get<PaginatedResponse<BuildPartner>>(url)
@@ -415,7 +461,7 @@ export class BuildPartnerService {
 
   async getBuildPartner(id: string): Promise<BuildPartner> {
     try {
-      const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER.GET_BY_ID(id))
+      const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.GET_BY_ID(id))
 
       const result = await apiClient.get<BuildPartner>(url)
 
@@ -427,7 +473,7 @@ export class BuildPartnerService {
 
   async getBuildPartnerContact(id: string): Promise<unknown> {
     try {
-      const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_CONTACT.GET_BY_ID(id))
+      const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER_CONTACT.GET_BY_ID(id))
 
       const result = await apiClient.get(url)
 
@@ -437,9 +483,34 @@ export class BuildPartnerService {
     }
   }
 
+  // Get contacts with pagination
+  async getBuildPartnerContactsPaginated(
+    buildPartnerId: string,
+    page = 0,
+    size = 20
+  ): Promise<PaginatedResponse<BuildPartnerContactResponse>> {
+    try {
+      const url = buildApiUrl(
+        API_ENDPOINTS.BUILD_PARTNER_CONTACT.GET_BY_ID(buildPartnerId)
+      )
+      const params = buildPaginationParams(page, size)
+      const queryString = new URLSearchParams(params).toString()
+      const finalUrl = `${url}&${queryString}`
+
+      const result =
+        await apiClient.get<PaginatedResponse<BuildPartnerContactResponse>>(
+          finalUrl
+        )
+
+      return result
+    } catch (error) {
+      throw error
+    }
+  }
+
   async getBuildPartnerFees(id: string): Promise<BuildPartnerFeeResponse[]> {
     try {
-      const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_FEES.GET_BY_ID(id))
+      const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER_FEES.GET_BY_ID(id))
       const result = await apiClient.get(url)
 
       // Handle different response formats
@@ -470,11 +541,44 @@ export class BuildPartnerService {
     }
   }
 
+  // Get fees with pagination
+  async getBuildPartnerFeesPaginated(
+    buildPartnerId: string,
+    page = 0,
+    size = 20
+  ): Promise<PaginatedResponse<FeeUIData>> {
+    try {
+      const url = buildApiUrl(
+        API_ENDPOINTS.BUILD_PARTNER_FEES.GET_BY_ID(buildPartnerId)
+      )
+      const params = buildPaginationParams(page, size)
+      const queryString = new URLSearchParams(params).toString()
+      const finalUrl = `${url}&${queryString}`
+
+      const result =
+        await apiClient.get<PaginatedResponse<BuildPartnerFeeResponse>>(
+          finalUrl
+        )
+
+      // Transform the fees in the content array
+      const transformedContent = result.content.map((fee) =>
+        this.mapFeeResponseToUIData(fee)
+      )
+
+      return {
+        content: transformedContent,
+        page: result.page,
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
   async getBuildPartnerByCif(cif: string): Promise<BuildPartner> {
     try {
-      const params = { arCifrera: cif }
+      const params = { bpCifrera: cif }
       const queryString = new URLSearchParams(params).toString()
-      const url = `${buildApiUrl(API_ENDPOINTS.ASSET_REGISTER.FIND_ALL)}&${queryString}`
+      const url = `${buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.FIND_ALL)}?${queryString}`
 
       const result = await apiClient.get<PaginatedResponse<BuildPartner>>(url)
 
@@ -484,7 +588,7 @@ export class BuildPartnerService {
           return buildPartner
         }
       }
-      throw new Error(`No management firm found with CIF: ${cif}`)
+      throw new Error(`No build partner found with CIF: ${cif}`)
     } catch (error) {
       throw error
     }
@@ -511,7 +615,7 @@ export class BuildPartnerService {
   ): Promise<BuildPartner> {
     try {
       const result = await apiClient.post<BuildPartner>(
-        buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_CREATE.DETAILS_SAVE),
+        buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.SAVE),
         data
       )
 
@@ -527,7 +631,7 @@ export class BuildPartnerService {
   ): Promise<BuildPartner> {
     try {
       const result = await apiClient.put<BuildPartner>(
-        buildApiUrl(API_ENDPOINTS.ASSET_REGISTER.UPDATE(id)),
+        buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.UPDATE(id)),
         updates
       )
 
@@ -539,9 +643,8 @@ export class BuildPartnerService {
 
   async deleteBuildPartner(id: string): Promise<void> {
     try {
-
       await apiClient.delete<string>(
-        buildApiUrl(API_ENDPOINTS.ASSET_REGISTER.SOFT_DELETE(id))
+        buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.SOFT_DELETE(id))
       )
     } catch (error) {
       throw error
@@ -550,7 +653,7 @@ export class BuildPartnerService {
 
   async getBuildPartnerLabels(): Promise<BuildPartnerLabel[]> {
     return apiClient.get<BuildPartnerLabel[]>(
-      buildApiUrl(API_ENDPOINTS.APP_LANGUAGE_TRANSLATION.ASSET_REGISTER)
+      buildApiUrl(API_ENDPOINTS.APP_LANGUAGE_TRANSLATION.BUILD_PARTNER)
     )
   }
 
@@ -560,10 +663,9 @@ export class BuildPartnerService {
     isEditing = false,
     developerId?: string
   ): Promise<StepSaveResponse> {
-
     if (isEditing && developerId) {
       // Use PUT for editing existing details - include buildPartnerDTO in data
-      const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER.UPDATE(developerId))
+      const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.UPDATE(developerId))
       const requestData = {
         ...data,
         id: parseInt(developerId),
@@ -573,7 +675,7 @@ export class BuildPartnerService {
       return response
     } else {
       // Use POST for creating new details
-      const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_CREATE.DETAILS_SAVE)
+      const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER_CREATE.DETAILS_SAVE)
 
       const response = await apiClient.post<StepSaveResponse>(url, data)
       return response
@@ -585,24 +687,69 @@ export class BuildPartnerService {
     isEditing = false,
     developerId?: string
   ): Promise<StepSaveResponse> {
-
-    if (isEditing && developerId) {
-      // Use POST for editing existing contact - add id to existing buildPartnerDTO structure
-      const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_CREATE.CONTACT_SAVE)
+    if (isEditing && data.id) {
+      // Use PUT for updating existing contact with ID
+      const url = buildApiUrl(
+        API_ENDPOINTS.BUILD_PARTNER_CONTACT.UPDATE(data.id.toString())
+      )
+      // Destructure to remove any existing buildPartnerDTO to avoid sending nested data
+      const { buildPartnerDTO, ...contactDataWithoutBuildPartner } = data
       const requestData = {
-        ...data,
-        buildPartnerDTO: { id: parseInt(developerId) },
+        ...contactDataWithoutBuildPartner,
+        // Preserve workflow-related fields from original data
+        enabled: data.enabled ?? false,
+        deleted: data.deleted ?? null,
+        workflowStatus: data.workflowStatus ?? null,
+        buildPartnerDTO: { id: parseInt(developerId || '0') },
+      }
+
+      const response = await apiClient.put<StepSaveResponse>(url, requestData)
+      return response
+    } else {
+      // Use POST for creating new contact
+      const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER_CREATE.CONTACT_SAVE)
+      // Destructure to remove any existing buildPartnerDTO to avoid sending nested data
+      const { buildPartnerDTO, ...contactDataWithoutBuildPartner } = data
+      const requestData = {
+        ...contactDataWithoutBuildPartner,
+        buildPartnerDTO: developerId
+          ? { id: parseInt(developerId) }
+          : undefined,
       }
 
       const response = await apiClient.post<StepSaveResponse>(url, requestData)
       return response
-    } else {
-      // Use POST for creating new contact
-      const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_CREATE.CONTACT_SAVE)
-
-      const response = await apiClient.post<StepSaveResponse>(url, data)
-      return response
     }
+  }
+
+  async deleteBuildPartnerContact(contactId: string | number): Promise<void> {
+    const url = buildApiUrl(
+      API_ENDPOINTS.BUILD_PARTNER_CONTACT.SOFT_DELETE(contactId.toString())
+    )
+    await apiClient.delete(url)
+  }
+
+  async getBuildPartnerContactById(
+    contactId: string
+  ): Promise<BuildPartnerContactResponse> {
+    const url = buildApiUrl(`/build-partner-contact/${contactId}`)
+    const response = await apiClient.get<BuildPartnerContactResponse>(url)
+    return response
+  }
+
+  async deleteBuildPartnerFee(feeId: string | number): Promise<void> {
+    const url = buildApiUrl(
+      API_ENDPOINTS.BUILD_PARTNER_FEES.SOFT_DELETE(feeId.toString())
+    )
+    await apiClient.delete(url)
+  }
+
+  async getBuildPartnerFeeById(feeId: string | number): Promise<unknown> {
+    const url = buildApiUrl(
+      API_ENDPOINTS.BUILD_PARTNER_FEES.GET_FEE_BY_ID(feeId.toString())
+    )
+    const response = await apiClient.get(url)
+    return response
   }
 
   async saveBuildPartnerFees(
@@ -610,13 +757,14 @@ export class BuildPartnerService {
     isEditing = false,
     developerId?: string
   ): Promise<StepSaveResponse> {
-
     if (isEditing && developerId) {
       // Use POST for editing existing fees - wrap data with isEditing and developerId
-      const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_CREATE.FEES_SAVE)
+      const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER_CREATE.FEES_SAVE)
+      // Destructure to remove any existing buildPartnerDTO to avoid sending nested data
+      const { buildPartnerDTO, ...feesDataWithoutBuildPartner } = data as any
       const requestData = {
         data: {
-          ...data,
+          ...feesDataWithoutBuildPartner,
           buildPartnerDTO: { id: parseInt(developerId) },
         },
         isEditing: false,
@@ -627,7 +775,7 @@ export class BuildPartnerService {
       return response
     } else {
       // Use POST for creating new fees - send data directly
-      const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_CREATE.FEES_SAVE)
+      const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER_CREATE.FEES_SAVE)
 
       const response = await apiClient.post<StepSaveResponse>(url, data)
       return response
@@ -639,29 +787,27 @@ export class BuildPartnerService {
     isEditing = false,
     developerId?: string
   ): Promise<unknown> {
-
     try {
-      if (isEditing && developerId) {
-        // Use POST for editing existing individual fee - wrap data with isEditing and developerId
+      const feeId = (data as any).id
+
+      if (isEditing && feeId) {
+        // Use PUT for updating existing individual fee
+        const url = buildApiUrl(
+          API_ENDPOINTS.BUILD_PARTNER_FEES.UPDATE(feeId.toString())
+        )
+        // Destructure to remove any existing buildPartnerDTO to avoid sending nested data
+        const { buildPartnerDTO, ...feeDataWithoutBuildPartner } = data as any
         const requestData = {
-          data: {
-            ...data,
-            buildPartnerDTO: { id: parseInt(developerId) },
-          },
-          isEditing: false,
-          developerId: developerId,
+          ...feeDataWithoutBuildPartner,
+          buildPartnerDTO: { id: parseInt(developerId || '0') },
         }
 
-        const result = await apiClient.post(
-          buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_FEES.SAVE),
-          requestData
-        )
+        const result = await apiClient.put(url, requestData)
         return result
       } else {
-        // Use POST for creating new individual fee - send data directly
-
+        // Use POST for creating new individual fee
         const result = await apiClient.post(
-          buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_FEES.SAVE),
+          buildApiUrl(API_ENDPOINTS.BUILD_PARTNER_FEES.SAVE),
           data
         )
         return result
@@ -674,28 +820,42 @@ export class BuildPartnerService {
   async saveBuildPartnerBeneficiary(
     data: BuildPartnerBeneficiaryData,
     isEditing = false,
-    developerId?: string
+    developerId?: string,
+    beneficiaryId?: string | number
   ): Promise<StepSaveResponse> {
-
-    if (isEditing && developerId) {
-      // Use POST for editing existing beneficiary - add id to existing buildPartnerDTO structure
+    if (isEditing && beneficiaryId) {
+      // Use PUT for editing existing beneficiary
       const url = buildApiUrl(
-        API_ENDPOINTS.ASSET_REGISTER_CREATE.BENEFICIARY_SAVE
+        API_ENDPOINTS.BUILD_PARTNER_BENEFICIARY.UPDATE(String(beneficiaryId))
       )
+      // Destructure to remove any existing buildPartnerDTO or buildPartnerId to avoid sending nested data
+      const { buildPartnerDTO, buildPartnerId, ...beneficiaryDataClean } =
+        data as any
       const requestData = {
-        ...data,
-        buildPartnerDTO: { id: parseInt(developerId) },
+        ...beneficiaryDataClean,
+        ...(developerId && {
+          buildPartnerDTO: [{ id: parseInt(developerId) }],
+        }),
       }
 
-      const response = await apiClient.post<StepSaveResponse>(url, requestData)
+      const response = await apiClient.put<StepSaveResponse>(url, requestData)
       return response
     } else {
       // Use POST for creating new beneficiary
       const url = buildApiUrl(
-        API_ENDPOINTS.ASSET_REGISTER_CREATE.BENEFICIARY_SAVE
+        API_ENDPOINTS.BUILD_PARTNER_CREATE.BENEFICIARY_SAVE
       )
+      // Destructure to remove any existing buildPartnerDTO or buildPartnerId to avoid sending nested data
+      const { buildPartnerDTO, buildPartnerId, ...beneficiaryDataClean } =
+        data as any
+      const requestData = {
+        ...beneficiaryDataClean,
+        ...(developerId && {
+          buildPartnerDTO: [{ id: parseInt(developerId) }],
+        }),
+      }
 
-      const response = await apiClient.post<StepSaveResponse>(url, data)
+      const response = await apiClient.post<StepSaveResponse>(url, requestData)
       return response
     }
   }
@@ -709,13 +869,57 @@ export class BuildPartnerService {
       }
 
       const url = buildApiUrl(
-        API_ENDPOINTS.ASSET_REGISTER_BENEFICIARY.GET_BY_ID(buildPartnerId)
+        API_ENDPOINTS.BUILD_PARTNER_BENEFICIARY.GET_BY_ID(buildPartnerId)
       )
 
-      const response =
-        await apiClient.get<BuildPartnerBeneficiaryResponse[]>(url)
+      const response = await apiClient.get<{
+        content: BuildPartnerBeneficiaryResponse[]
+        page: {
+          size: number
+          number: number
+          totalElements: number
+          totalPages: number
+        }
+      }>(url)
 
-      return response || []
+      return response?.content || []
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // Get beneficiaries with pagination
+  async getBuildPartnerBeneficiariesPaginated(
+    buildPartnerId?: string,
+    page = 0,
+    size = 20
+  ): Promise<PaginatedResponse<BuildPartnerBeneficiaryResponse>> {
+    try {
+      if (!buildPartnerId) {
+        return {
+          content: [],
+          page: {
+            size,
+            number: page,
+            totalElements: 0,
+            totalPages: 0,
+          },
+        }
+      }
+
+      const url = buildApiUrl(
+        API_ENDPOINTS.BUILD_PARTNER_BENEFICIARY.GET_BY_ID(buildPartnerId)
+      )
+      const params = buildPaginationParams(page, size)
+      const queryString = new URLSearchParams(params).toString()
+      const finalUrl = `${url}&${queryString}`
+
+      const response =
+        await apiClient.get<PaginatedResponse<BuildPartnerBeneficiaryResponse>>(
+          finalUrl
+        )
+
+      return response
     } catch (error) {
       throw error
     }
@@ -727,7 +931,7 @@ export class BuildPartnerService {
   ): Promise<BuildPartnerBeneficiaryResponse> {
     try {
       const url = buildApiUrl(
-        API_ENDPOINTS.ASSET_REGISTER_BENEFICIARY.GET_BY_ID(id)
+        API_ENDPOINTS.BUILD_PARTNER_BENEFICIARY.GET_BY_ID(id)
       )
       const response = await apiClient.get<BuildPartnerBeneficiaryResponse>(url)
 
@@ -744,7 +948,7 @@ export class BuildPartnerService {
   ): Promise<BuildPartnerBeneficiaryResponse> {
     try {
       const url = buildApiUrl(
-        API_ENDPOINTS.ASSET_REGISTER_BENEFICIARY.UPDATE(id)
+        API_ENDPOINTS.BUILD_PARTNER_BENEFICIARY.UPDATE(id)
       )
 
       const response = await apiClient.put<BuildPartnerBeneficiaryResponse>(
@@ -758,11 +962,11 @@ export class BuildPartnerService {
     }
   }
 
-  // Delete a beneficiary
+  // Delete a beneficiary (soft delete)
   async deleteBuildPartnerBeneficiary(id: string): Promise<void> {
     try {
       const url = buildApiUrl(
-        API_ENDPOINTS.ASSET_REGISTER_BENEFICIARY.DELETE(id)
+        API_ENDPOINTS.BUILD_PARTNER_BENEFICIARY.SOFT_DELETE(id)
       )
 
       await apiClient.delete(url)
@@ -771,10 +975,32 @@ export class BuildPartnerService {
     }
   }
 
+  // Soft delete a beneficiary
+  async softDeleteBuildPartnerBeneficiary(id: string): Promise<void> {
+    try {
+      const url = buildApiUrl(
+        API_ENDPOINTS.BUILD_PARTNER_BENEFICIARY.SOFT_DELETE(id)
+      )
+
+      await apiClient.delete(url)
+    } catch (error) {
+      throw error
+    }
+  }
+
+  // Get a specific beneficiary by ID for editing
+  async getBuildPartnerBeneficiaryById(
+    beneficiaryId: string | number
+  ): Promise<unknown> {
+    const url = buildApiUrl(`/build-partner-beneficiary/${beneficiaryId}`)
+    const response = await apiClient.get(url)
+    return response
+  }
+
   async saveBuildPartnerReview(
     data: BuildPartnerReviewData
   ): Promise<StepSaveResponse> {
-    const url = buildApiUrl(API_ENDPOINTS.ASSET_REGISTER_CREATE.REVIEW_SAVE)
+    const url = buildApiUrl(API_ENDPOINTS.BUILD_PARTNER_CREATE.REVIEW_SAVE)
     return apiClient.post<StepSaveResponse>(url, data)
   }
 
@@ -861,7 +1087,7 @@ export class BuildPartnerService {
   // Step data retrieval and validation methods
   async getStepData(step: number, developerId?: string): Promise<unknown> {
     let url = buildApiUrl(
-      API_ENDPOINTS.ASSET_REGISTER_CREATE.GET_STEP_DATA(step)
+      API_ENDPOINTS.BUILD_PARTNER_CREATE.GET_STEP_DATA(step)
     )
 
     // Add developer ID as query parameter if provided
@@ -877,7 +1103,7 @@ export class BuildPartnerService {
     data: unknown
   ): Promise<StepValidationResponse> {
     const url = buildApiUrl(
-      API_ENDPOINTS.ASSET_REGISTER_CREATE.VALIDATE_STEP(step)
+      API_ENDPOINTS.BUILD_PARTNER_CREATE.VALIDATE_STEP(step)
     )
     return apiClient.post<StepValidationResponse>(url, data)
   }
@@ -908,14 +1134,14 @@ export class BuildPartnerService {
   ): Record<string, unknown> {
     return {
       id: apiData.id.toString(),
-      arbBeneficiaryId: apiData.arbBeneficiaryId,
-      arbBeneficiaryType: apiData.arbBeneficiaryType,
-      arbName: apiData.arbName,
-      arbBankName: apiData.arbBankName,
-      arbSwiftCode: apiData.arbSwiftCode,
-      arbRoutingCode: apiData.arbRoutingCode || '',
-      arbAccountNumber: apiData.arbAccountNumber,
-      assetRegisterId: apiData.assetRegisterId,
+      bpbBeneficiaryId: apiData.bpbBeneficiaryId,
+      bpbBeneficiaryType: apiData.bpbBeneficiaryType,
+      bpbName: apiData.bpbName,
+      bpbBankName: apiData.bpbBankName,
+      bpbSwiftCode: apiData.bpbSwiftCode,
+      bpbRoutingCode: apiData.bpbRoutingCode || '',
+      bpbAccountNumber: apiData.bpbAccountNumber,
+      buildPartnerId: apiData.buildPartnerId,
       createdAt: apiData.createdAt,
       updatedAt: apiData.updatedAt,
       status: apiData.status,
@@ -927,13 +1153,13 @@ export class BuildPartnerService {
     uiData: Record<string, unknown>
   ): UpdateBuildPartnerBeneficiaryData {
     return {
-      arbBeneficiaryId: uiData.arbBeneficiaryId as string,
-      arbBeneficiaryType: uiData.arbBeneficiaryType as string,
-      arbName: uiData.arbName as string,
-      arbBankName: uiData.arbBankName as string,
-      arbSwiftCode: uiData.arbSwiftCode as string,
-      arbRoutingCode: uiData.arbRoutingCode as string,
-      arbAccountNumber: uiData.arbAccountNumber as string,
+      bpbBeneficiaryId: uiData.bpbBeneficiaryId as string,
+      bpbBeneficiaryType: uiData.bpbBeneficiaryType as string,
+      bpbName: uiData.bpbName as string,
+      bpbBankName: uiData.bpbBankName as string,
+      bpbSwiftCode: uiData.bpbSwiftCode as string,
+      bpbRoutingCode: uiData.bpbRoutingCode as string,
+      bpbAccountNumber: uiData.bpbAccountNumber as string,
     }
   }
 
@@ -941,19 +1167,19 @@ export class BuildPartnerService {
     formData: Record<string, unknown>
   ): BuildPartnerBeneficiaryData {
     return {
-      arbBeneficiaryId: (formData.arbBeneficiaryId as string) || '',
-      arbBeneficiaryType: (formData.arbBeneficiaryType as string) || 'RTGS',
-      arbName: (formData.arbName as string) || '',
-      arbBankName: (formData.arbBankName as string) || '',
-      arbSwiftCode: (formData.arbSwiftCode as string) || '',
-      arbRoutingCode: (formData.arbRoutingCode as string) || '',
-      arbAccountNumber: (formData.arbAccountNumber as string) || '',
+      bpbBeneficiaryId: (formData.bpbBeneficiaryId as string) || '',
+      bpbBeneficiaryType: (formData.bpbBeneficiaryType as string) || 'RTGS',
+      bpbName: (formData.bpbName as string) || '',
+      bpbBankName: (formData.bpbBankName as string) || '',
+      bpbSwiftCode: (formData.bpbSwiftCode as string) || '',
+      bpbRoutingCode: (formData.bpbRoutingCode as string) || '',
+      bpbAccountNumber: (formData.bpbAccountNumber as string) || '',
       enabled: true,
     }
   }
 
   /**
-   * Search management firms by name with pagination
+   * Search build partners by name with pagination
    * Used for autocomplete functionality
    */
   async searchBuildPartners(
@@ -968,15 +1194,15 @@ export class BuildPartnerService {
 
       const params = {
         ...buildPaginationParams(page, size),
-        'arName.contains': query.trim(),
+        'bpName.contains': query.trim(),
         'deleted.equals': 'false',
         'enabled.equals': 'true',
       }
-      const url = `${buildApiUrl(API_ENDPOINTS.ASSET_REGISTER.FIND_ALL)}&${new URLSearchParams(params).toString()}`
+      const url = `${buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.SAVE)}?${new URLSearchParams(params).toString()}`
       const response = await apiClient.get(url)
       // Handle both single object and paginated response formats
       let buildPartners: BuildPartner[] = []
-      
+
       if (Array.isArray(response)) {
         // Direct array response
         buildPartners = response
@@ -984,40 +1210,42 @@ export class BuildPartnerService {
         if ('content' in response && Array.isArray(response.content)) {
           // Paginated response format
           buildPartners = response.content
-        } else if ('id' in response || 'arName' in response) {
+        } else if ('id' in response || 'bpName' in response) {
           // Single object response - wrap in array
           buildPartners = [response as BuildPartner]
         }
       }
-      
+
       return buildPartners
-    } catch {
-      throw new Error('Failed to search management firms')
+    } catch (error) {
+      throw new Error('Failed to search build partners')
     }
   }
   // Data mapping functions for fees
   mapFeeResponseToUIData(apiData: BuildPartnerFeeResponse): FeeUIData {
-   
-
     const mapped = {
       id: apiData.id.toString(),
       feeType:
-        apiData.arFeeCategoryDTO?.languageTranslationId?.configValue ||
-        apiData.arFeeCategoryDTO?.settingValue ||
+        apiData.bpFeeCategoryDTO?.languageTranslationId?.configValue ||
+        apiData.bpFeeCategoryDTO?.settingValue ||
         '',
       frequency:
-        apiData.arFeeFrequencyDTO?.languageTranslationId?.configValue ||
-        apiData.arFeeFrequencyDTO?.settingValue ||
+        apiData.bpFeeFrequencyDTO?.languageTranslationId?.configValue ||
+        apiData.bpFeeFrequencyDTO?.settingValue ||
         '',
       debitAmount: apiData.debitAmount?.toString() || '',
+      debitAccount:
+        apiData.bpAccountTypeDTO?.languageTranslationId?.configValue ||
+        apiData.bpAccountTypeDTO?.settingValue ||
+        '',
       feeToBeCollected: apiData.feeCollectionDate || '',
       nextRecoveryDate: apiData.feeNextRecoveryDate || '',
       feePercentage: apiData.feePercentage?.toString() || '',
       amount: apiData.totalAmount?.toString() || '',
       vatPercentage: apiData.vatPercentage?.toString() || '',
       currency:
-        apiData.arFeeCurrencyDTO?.languageTranslationId?.configValue ||
-        apiData.arFeeCurrencyDTO?.settingValue ||
+        apiData.bpFeeCurrencyDTO?.languageTranslationId?.configValue ||
+        apiData.bpFeeCurrencyDTO?.settingValue ||
         '',
     }
 

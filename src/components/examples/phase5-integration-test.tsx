@@ -23,12 +23,12 @@ export const Phase5IntegrationTest: React.FC = () => {
   
   // Test data for validation
   const testConfigIds = [
-    'CDL_MF_REFID',
-    'CDL_MF_NAME', 
-    'CDL_MF_LOCATION',
-    'CDL_MF_CIF',
-    'CDL_MF_DETAILS',
-    'CDL_MF_ACC_DETAILS'
+    'CDL_BPA_REFID',
+    'CDL_BPA_NAME', 
+    'CDL_BPA_LOCATION',
+    'CDL_BPA_CIF',
+    'CDL_BPA_DETAILS',
+    'CDL_BPA_ACC_DETAILS'
   ]
   
   const testResults = testConfigIds.map(configId => ({

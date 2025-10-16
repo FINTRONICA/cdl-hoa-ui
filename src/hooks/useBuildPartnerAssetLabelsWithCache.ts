@@ -54,6 +54,6 @@ export function useBuildPartnerAssetLabelsWithCache() {
     
     // Compatibility properties (maintained for existing UI components)
     hasCache: !!buildPartnerAssetLabels, // Now represents Zustand store state
-    cacheStatus: buildPartnerAssetLabels ? 'cached' : buildPartnerAssetLabelsLoading ? 'loading' : 'fresh',
+    cacheStatus: buildPartnerAssetLabels ? 'cached' : buildPartnerAssetLabelsLoading ? 'Loading...' : 'fresh',
   }
 }

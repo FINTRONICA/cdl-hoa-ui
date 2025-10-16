@@ -10,6 +10,7 @@ import {
   Typography,
 } from '@mui/material'
 import { FormProvider, useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 
 import { Step1, Step2 } from './steps'
 import DocumentUploadFactory from '../DocumentUpload/DocumentUploadFactory'
@@ -26,6 +27,7 @@ import { BuildPartnerService } from '../../../services/api/buildPartnerService'
 import { useSuretyBondTranslationsByPattern } from '../../../hooks/useSuretyBondTranslations'
 import { toast } from 'react-hot-toast'
 import dayjs from 'dayjs'
+import { GuaranteeFormSchema } from '@/lib/validation/guaranteeSchemas'
 
 interface GuaranteeStepperWrapperProps {
   isViewMode?: boolean
@@ -105,6 +107,7 @@ export default function GuaranteeStepperWrapper({
   }, [params, searchParams])
 
   const methods = useForm<GuaranteeData>({
+    resolver: zodResolver(GuaranteeFormSchema),
     defaultValues: {
       guaranteeRefNo: '',
       guaranteeType: '',
@@ -122,22 +125,37 @@ export default function GuaranteeStepperWrapper({
       status: '',
       documents: [],
     },
+    mode: 'onChange', 
   })
 
   const handleNext = async () => {
-    // if (activeStep < steps.length - 1) {
-    //   const nextStep = activeStep + 1
-    //   setActiveStep(nextStep)
-
-    //   const guaranteeId = params.id as string
-    //   router.push(`/guarantee/new/${guaranteeId}?step=${nextStep}`)
-
-    //   const stepNames = ['Details', 'Documents', 'Review']
-    //   toast.success(`Moved to ${stepNames[nextStep]} step.`)
-    // } else {
-    //   router.push('/guarantee')
-    //   toast.success('Guarantee completed! Redirecting to guarantee page.')
-    // }
+    
+    let isStepValid = false
+    
+    if (activeStep === 0) {
+ 
+      isStepValid = await methods.trigger([
+        'guaranteeRefNo',
+        'guaranteeType',
+        'guaranteeDate',
+        'projectCif',
+        'projectName',
+        'developerName',
+        'guaranteeAmount',
+        'issuerBank'
+      ])
+    } else if (activeStep === 1) {
+     
+      isStepValid = await methods.trigger(['documents'])
+    } else {
+    
+      isStepValid = true
+    }
+    
+    if (!isStepValid) {
+      toast.error('Please fix validation errors before proceeding to the next step.')
+      return
+    }
 
     if (activeStep < steps.length - 1) {
       const nextStep = activeStep + 1
@@ -150,22 +168,22 @@ export default function GuaranteeStepperWrapper({
       toast.success(`Moved to step ${nextStep + 1}.`)
     } else {
       if (isViewMode) {
-        // In view mode, just go back to the guarantee list
+      
         router.push('/guarantee')
         toast.success('View completed! Redirecting to guarantee page.')
         return
       }
-      // Final step - Submit and create workflow request
+ 
       try {
         if (!savedId) {
           toast.error('No saved guarantee ID found for submission')
           return
         }
 
-        // Get form values for workflow request
+      
         const formValues = methods.getValues()
 
-        // Prepare the payload for workflow request
+   
         const workflowPayload = {
           suretyBondReferenceNumber: formValues.guaranteeRefNo || null,
           suretyBondDate: formValues.guaranteeDate
@@ -233,7 +251,7 @@ export default function GuaranteeStepperWrapper({
 
   const handleReset = () => {
     if (isViewMode) {
-      // In view mode, just go back to the guarantee list
+     
       router.push('/guarantee')
       return
     }
@@ -250,10 +268,34 @@ export default function GuaranteeStepperWrapper({
 
   const handleSaveAndNext = async () => {
     try {
-      // Get all form values
+     
+      let isStepValid = false
+      
+      if (activeStep === 0) {
+
+        isStepValid = await methods.trigger([
+          'guaranteeRefNo',
+          'guaranteeType',
+          'guaranteeDate',
+          'projectCif',
+          'projectName',
+          'developerName',
+          'guaranteeAmount',
+          'issuerBank'
+        ])
+      } else if (activeStep === 1) {
+        
+        isStepValid = await methods.trigger(['documents'])
+      }
+      
+      if (!isStepValid) {
+        toast.error('Please fix validation errors before saving and proceeding to the next step.')
+        return
+      }
+
+    
       const formValues = methods.getValues()
 
-      // Prepare the API payload
       const suretyBondData = {
         suretyBondReferenceNumber: formValues.guaranteeRefNo || null,
         suretyBondDate: formValues.guaranteeDate
@@ -317,23 +359,48 @@ export default function GuaranteeStepperWrapper({
         )
         return
       }
-      // Get form values
+
+
+      let isStepValid = false
+      
+      if (activeStep === 0) {
+
+        isStepValid = await methods.trigger([
+          'guaranteeRefNo',
+          'guaranteeType',
+          'guaranteeDate',
+          'projectCif',
+          'projectName',
+          'developerName',
+          'guaranteeAmount',
+          'issuerBank'
+        ])
+      } else if (activeStep === 1) {
+ 
+        isStepValid = await methods.trigger(['documents'])
+      }
+      
+      if (!isStepValid) {
+        toast.error('Please fix validation errors before updating.')
+        return
+      }
+
       const formValues = methods.getValues()
 
-      // Find developer ID from build partners
+
       const selectedDeveloper = buildPartners.find(
         (bp) => bp.bpName === formValues.developerName
       )
       const developerId = selectedDeveloper?.id || null
 
-      // Prepare update payload
+    
       const updatePayload = {
-        id: parseInt(savedId), // Add the ID to the payload
+        id: parseInt(savedId), 
         suretyBondReferenceNumber: formValues.guaranteeRefNo || null,
         suretyBondDate: formValues.guaranteeDate
           ? dayjs(formValues.guaranteeDate).toISOString()
           : null,
-        suretyBondName: formValues.guaranteeRefNo || null, // Using reference number as name
+        suretyBondName: formValues.guaranteeRefNo || null, 
         suretyBondTypeDTO: formValues.guaranteeType
           ? { id: parseInt(formValues.guaranteeType) }
           : null,
@@ -356,13 +423,13 @@ export default function GuaranteeStepperWrapper({
           formValues.suretyBondNewReadingAmendment || null,
       }
 
-      // Call update API
+     
       await updateSuretyBond(savedId, updatePayload)
 
       toast.success(
         `${getTranslatedLabel('CDL_SB_UPDATED_SUCCESS', 'Surety bond updated successfully!')}`
       )
-      // Navigate to next step
+
       setActiveStep(1)
     } catch (error) {
       toast.error(
@@ -379,14 +446,14 @@ export default function GuaranteeStepperWrapper({
   }
 
   const onSubmit = () => {
-    // Reset form after successful submission
+    
     setTimeout(() => {
       handleReset()
     }, 1000)
   }
 
   const onError = () => {
-    // Handle validation errors if needed
+   
   }
 
   const getStepContent = (step: number) => {

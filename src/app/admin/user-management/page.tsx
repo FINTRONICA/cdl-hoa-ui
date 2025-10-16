@@ -156,35 +156,11 @@ const UserManagementPage: React.FC = () => {
 
   // Wrapper functions for table handlers
   const handleTableRowSelectionChange = (newSelectedRows: number[]) => {
-    // Convert array-based selection to individual calls
-    // Clear current selection first
-    selectedRows.forEach(rowIndex => {
-      if (!newSelectedRows.includes(rowIndex)) {
-        handleRowSelectionChange(rowIndex, false)
-      }
-    })
-    // Add new selections
-    newSelectedRows.forEach(rowIndex => {
-      if (!selectedRows.includes(rowIndex)) {
-        handleRowSelectionChange(rowIndex, true)
-      }
-    })
+    handleRowSelectionChange(newSelectedRows)
   }
 
   const handleTableRowExpansionChange = (newExpandedRows: number[]) => {
-    // Convert array-based expansion to individual calls
-    // Clear current expansion first
-    expandedRows.forEach(rowIndex => {
-      if (!newExpandedRows.includes(rowIndex)) {
-        handleRowExpansionChange(rowIndex, false)
-      }
-    })
-    // Add new expansions
-    newExpandedRows.forEach(rowIndex => {
-      if (!expandedRows.includes(rowIndex)) {
-        handleRowExpansionChange(rowIndex, true)
-      }
-    })
+    handleRowExpansionChange(newExpandedRows)
   }
 
   if (isLoading || labelsLoading) {
@@ -432,7 +408,8 @@ const UserManagementPage: React.FC = () => {
               searchState={search}
               onSearchChange={handleSearchChange}
               paginationState={{
-                page: page + 1, // Convert 0-based to 1-based for display
+                // page: page + 1, // Convert 0-based to 1-based for display
+                page,
                 rowsPerPage,
                 totalRows,
                 totalPages,

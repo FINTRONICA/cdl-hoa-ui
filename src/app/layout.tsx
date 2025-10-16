@@ -10,9 +10,15 @@ import { ReactivePermissionsProvider } from '../components/ReactivePermissionsPr
 import { SessionTracker } from '../components/SessionTracker'
 import { GlobalConfirmationDialog } from '../components/providers/GlobalConfirmationDialog'
 import { GlobalNotificationProvider } from '../components/providers/GlobalNotificationProvider'
+import { NavigationProvider } from '../components/providers/NavigationProvider'
 
 
-const outfit = Outfit({ subsets: ['latin'] })
+const outfit = Outfit({ 
+  subsets: ['latin'],
+  display: 'swap',
+  preload: true,
+  fallback: ['system-ui', 'arial']
+})
 
 export const metadata: Metadata = {
   title: 'Escrow Application',
@@ -27,25 +33,27 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={outfit.className}>
-        <StoreHydration>
-          <QueryProvider>
-            <ComplianceProvider 
-              showLoadingUI={true}
-              enableDetailedLogging={process.env.NODE_ENV === 'development'}
-            >
-              <ReactivePermissionsProvider>
-                <ThemeProvider>
-                  <LayoutContent>
-                    {children}
-                  </LayoutContent>
-                  <SessionTracker />
-                  <GlobalConfirmationDialog />
-                  <GlobalNotificationProvider />
-                </ThemeProvider>
-              </ReactivePermissionsProvider>
-            </ComplianceProvider>
-          </QueryProvider>
-        </StoreHydration>
+        <NavigationProvider>
+          <StoreHydration>
+            <QueryProvider>
+              <ComplianceProvider 
+                showLoadingUI={true}
+                enableDetailedLogging={process.env.NODE_ENV === 'development'}
+              >
+                <ReactivePermissionsProvider>
+                  <ThemeProvider>
+                    <LayoutContent>
+                      {children}
+                    </LayoutContent>
+                    <SessionTracker />
+                    <GlobalConfirmationDialog />
+                    <GlobalNotificationProvider />
+                  </ThemeProvider>
+                </ReactivePermissionsProvider>
+              </ComplianceProvider>
+            </QueryProvider>
+          </StoreHydration>
+        </NavigationProvider>
       </body>
     </html>
   )

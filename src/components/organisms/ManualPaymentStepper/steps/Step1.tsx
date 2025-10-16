@@ -3,9 +3,7 @@ import dayjs from 'dayjs'
 import { useManualPaymentData } from '../ManualPaymentDataProvider'
 import { idService } from '../../../../services/api/developerIdService'
 import { useManualPaymentLabelsWithCache } from '../../../../hooks/useManualPaymentLabelsWithCache'
-import {
-  MANUAL_PAYMENT_LABELS
-} from '../../../../constants/mappings/manualPaymentLabels'
+import { MANUAL_PAYMENT_LABELS } from '../../../../constants/mappings/manualPaymentLabels'
 // State for developer names
 
 import {
@@ -33,6 +31,8 @@ import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { fundEgressService } from '../../../../services/api/fundEgressService'
 // import { toast } from 'react-hot-toast' // Not used in this component
+import { FormError } from '../../../atoms/FormError'
+import { getFieldMaxLength } from '@/lib/validation'
 
 interface Step1Props {
   savedId?: string | null
@@ -41,14 +41,14 @@ interface Step1Props {
   isReadOnly?: boolean
 }
 
-const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1Props) => {
-
+const Step1 = ({
+  savedId,
+  isEditMode,
+  onDataLoaded,
+  isReadOnly = false,
+}: Step1Props) => {
   // Form context
-  const {
-    control,
-    setValue,
-    watch,
-  } = useFormContext()
+  const { control, setValue, watch, trigger } = useFormContext()
 
   // Get dynamic labels
   const { getLabel } = useManualPaymentLabelsWithCache('EN')
@@ -75,21 +75,30 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
     accountBalances,
   } = sharedData
 
-
   // Destructure account balance functions
-  const { balances, loadingStates, errors: accountErrors, fetchBalance } = accountBalances
+  const {
+    balances,
+    loadingStates,
+    errors: accountErrors,
+    fetchBalance,
+  } = accountBalances
 
   // State to store additional developer/project data from prepopulated data
-  const [additionalDeveloperNames, setAdditionalDeveloperNames] = useState<string[]>([])
-  const [additionalProjectAssets, setAdditionalProjectAssets] = useState<{ id: number, reaName: string, reaId: string }[]>([])
+  const [additionalDeveloperNames, setAdditionalDeveloperNames] = useState<
+    string[]
+  >([])
+  const [additionalProjectAssets, setAdditionalProjectAssets] = useState<
+    { id: number; reaName: string; reaId: string }[]
+  >([])
 
   // Memoize developer names from build partners data + any additional names
   const developerNames = useMemo(() => {
-    const baseNames = buildPartners.data && buildPartners.data.length > 0
-      ? buildPartners.data
-        .map((bp: any) => bp.bpName)
-        .filter((name: string | null) => !!name)
-      : []
+    const baseNames =
+      buildPartners.data && buildPartners.data.length > 0
+        ? buildPartners.data
+            .map((bp: any) => bp.bpName)
+            .filter((name: string | null) => !!name)
+        : []
 
     // Combine base names with additional names, removing duplicates
     const allNames = [...baseNames, ...additionalDeveloperNames]
@@ -98,9 +107,10 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
 
   // Memoize project assets from real estate assets data + any additional assets
   const projectAssets = useMemo(() => {
-    const baseAssets = realEstateAssets.data && realEstateAssets.data.length > 0
-      ? realEstateAssets.data
-      : []
+    const baseAssets =
+      realEstateAssets.data && realEstateAssets.data.length > 0
+        ? realEstateAssets.data
+        : []
 
     // Combine base assets with additional assets, removing duplicates by ID
     const allAssets = [...baseAssets, ...additionalProjectAssets]
@@ -114,9 +124,9 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
     return uniqueAssets
   }, [realEstateAssets.data, additionalProjectAssets])
 
-
   // State to track if prepopulation has been attempted
-  const [prepopulationAttempted, setPrepopulationAttempted] = useState<boolean>(false)
+  const [prepopulationAttempted, setPrepopulationAttempted] =
+    useState<boolean>(false)
 
   // Handle data prepopulation when in edit mode
   useEffect(() => {
@@ -124,7 +134,6 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
       if (isEditMode && savedId && !prepopulationAttempted) {
         try {
           const savedData = await fundEgressService.getFundEgressById(savedId)
-
 
           // Map the saved data to form format - comprehensive field mapping
           const formData = {
@@ -145,8 +154,14 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
             remarks: savedData.feRemark || '',
 
             // Payment Type Information (use expenseTypeDTO instead of voucherPaymentTypeDTO)
-            paymentType: (savedData.expenseTypeDTO as any)?.id?.toString() || savedData.voucherPaymentTypeDTO?.id?.toString() || '',
-            paymentSubType: (savedData.expenseSubTypeDTO as any)?.id?.toString() || savedData.voucherPaymentSubTypeDTO?.id?.toString() || '',
+            paymentType:
+              (savedData.expenseTypeDTO as any)?.id?.toString() ||
+              savedData.voucherPaymentTypeDTO?.id?.toString() ||
+              '',
+            paymentSubType:
+              (savedData.expenseSubTypeDTO as any)?.id?.toString() ||
+              savedData.voucherPaymentSubTypeDTO?.id?.toString() ||
+              '',
 
             // Payment Details
             paymentMode: savedData.paymentModeDTO?.id?.toString() || '',
@@ -158,33 +173,45 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
             // Financial Fields
             invoiceRef: savedData.feInvoiceRefNo || '',
             invoiceValue: savedData.feInvoiceValue?.toString() || '',
-            invoiceDate: savedData.feInvoiceDate && savedData.feInvoiceDate !== '' ? dayjs(savedData.feInvoiceDate) : null,
-            paymentDate: savedData.fePaymentDate && savedData.fePaymentDate !== '' ? dayjs(savedData.fePaymentDate) : null,
+            invoiceDate:
+              savedData.feInvoiceDate && savedData.feInvoiceDate !== ''
+                ? dayjs(savedData.feInvoiceDate)
+                : null,
+            paymentDate:
+              savedData.fePaymentDate && savedData.fePaymentDate !== ''
+                ? dayjs(savedData.fePaymentDate)
+                : null,
             paymentAmount: savedData.fePaymentAmount?.toString() || '',
             totalAmountPaid: savedData.feTotalAmountPaid?.toString() || '',
 
             // Account Balances
             escrowBalance: savedData.feCurBalInEscrowAcc?.toString() || '',
-            retentionBalance: savedData.feCurBalInRetentionAcc?.toString() || '',
+            retentionBalance:
+              savedData.feCurBalInRetentionAcc?.toString() || '',
             corporateBalance: savedData.feCorporateAccBalance?.toString() || '',
             subConsBalance: savedData.feSubConsAccBalance?.toString() || '',
 
             // Debit/Credit Amounts
             debitFromEscrow: savedData.feDebitFromEscrow?.toString() || '',
-            debitFromRetention: savedData.feDebitFromRetention?.toString() || '',
+            debitFromRetention:
+              savedData.feDebitFromRetention?.toString() || '',
 
             // Engineer Fee Information (using correct field names)
-            engineerApprovedAmount: savedData.feEngineerApprovedAmt?.toString() || '',
-            corporatePaymentEngFee: savedData.feCorporatePaymentEngFee?.toString() || '',
+            engineerApprovedAmount:
+              savedData.feEngineerApprovedAmt?.toString() || '',
+            corporatePaymentEngFee:
+              savedData.feCorporatePaymentEngFee?.toString() || '',
 
             // Additional Financial Fields (using correct field names)
-            totalEligibleAmount: savedData.feTotalEligibleAmtInv?.toString() || '',
+            totalEligibleAmount:
+              savedData.feTotalEligibleAmtInv?.toString() || '',
             amountPaid: savedData.feAmtPaidAgainstInv?.toString() || '',
             currentEligibleAmt: savedData.feCurEligibleAmt?.toString() || '',
             totalPayoutAmt: savedData.feTotalPayoutAmt?.toString() || '',
             amountInTransit: savedData.feAmountInTransit?.toString() || '',
             indicativeRate: savedData.feIndicativeRate?.toString() || '',
-            amountToBeReleased: savedData.feAmountToBeReleased?.toString() || '',
+            amountToBeReleased:
+              savedData.feAmountToBeReleased?.toString() || '',
             beneVatPaymentAmt: savedData.feBeneVatPaymentAmt?.toString() || '',
 
             // Boolean Flags
@@ -192,48 +219,71 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
             specialRate: savedData.feSpecialRate ? 'true' : 'false',
             isEngineerFee: savedData.feIsEngineerFee ? 'true' : 'false',
             forFeit: savedData.feForFeit ? 'true' : 'false',
-            refundToUnitHolder: savedData.feRefundToUnitHolder ? 'true' : 'false',
-            transferToOtherUnit: savedData.feTransferToOtherUnit ? 'true' : 'false',
+            refundToUnitHolder: savedData.feRefundToUnitHolder
+              ? 'true'
+              : 'false',
+            transferToOtherUnit: savedData.feTransferToOtherUnit
+              ? 'true'
+              : 'false',
             docVerified: savedData.feDocVerified ? 'true' : 'false',
 
             // Forfeit Amount
             forFeitAmt: savedData.feForFeitAmt?.toString() || '',
 
             // Date Fields
-            unitTransferAppDate: savedData.feUnitTransferAppDate && savedData.feUnitTransferAppDate !== '' ? dayjs(savedData.feUnitTransferAppDate) : null,
-            paymentSubType1: savedData.feReraApprovedDate && savedData.feReraApprovedDate !== '' ? dayjs(savedData.feReraApprovedDate) : null, // Regular approval date
-            engineerFeePayment1: savedData.feBeneDateOfPayment && savedData.feBeneDateOfPayment !== '' ? dayjs(savedData.feBeneDateOfPayment) : null, // Payment date
+            unitTransferAppDate:
+              savedData.feUnitTransferAppDate &&
+              savedData.feUnitTransferAppDate !== ''
+                ? dayjs(savedData.feUnitTransferAppDate)
+                : null,
+            paymentSubType1:
+              savedData.feReraApprovedDate &&
+              savedData.feReraApprovedDate !== ''
+                ? dayjs(savedData.feReraApprovedDate)
+                : null, // Regular approval date
+            engineerFeePayment1:
+              savedData.feBeneDateOfPayment &&
+              savedData.feBeneDateOfPayment !== ''
+                ? dayjs(savedData.feBeneDateOfPayment)
+                : null, // Payment date
           }
 
-
-
           // Add developer name to additional names if not in current list
-          if (formData.developerName && !developerNames.includes(formData.developerName)) {
-            setAdditionalDeveloperNames(prev => [...prev, formData.developerName])
+          if (
+            formData.developerName &&
+            !developerNames.includes(formData.developerName)
+          ) {
+            setAdditionalDeveloperNames((prev) => [
+              ...prev,
+              formData.developerName,
+            ])
           }
 
           // Add project asset to additional assets if not in current list (by ID)
           if (savedData.realEstateAssestDTO && formData.projectName) {
             const projectId = parseInt(formData.projectName)
-            const existingAsset = projectAssets.find((asset: any) => asset.id === projectId)
+            const existingAsset = projectAssets.find(
+              (asset: any) => asset.id === projectId
+            )
 
             if (!existingAsset) {
               const newAsset = {
                 id: savedData.realEstateAssestDTO.id,
                 reaName: savedData.realEstateAssestDTO.reaName,
-                reaId: savedData.realEstateAssestDTO.reaId
+                reaId: savedData.realEstateAssestDTO.reaId,
               }
-              setAdditionalProjectAssets(prev => [...prev, newAsset])
+              setAdditionalProjectAssets((prev) => [...prev, newAsset])
             }
           }
 
           // Set form values - force update even if field exists
           Object.entries(formData).forEach(([key, value]) => {
-            if (value) { // Only set non-empty values
+            if (value) {
+              // Only set non-empty values
               setValue(key as any, value, {
                 shouldDirty: true,
                 shouldTouch: true,
-                shouldValidate: false
+                shouldValidate: false,
               })
 
               if (key === 'tasReference') {
@@ -245,12 +295,11 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
           // Mark prepopulation as attempted to prevent multiple attempts
           setPrepopulationAttempted(true)
 
-
           if (onDataLoaded) {
             onDataLoaded()
           }
         } catch (error) {
-          console.error('Step1: Failed to prepopulate form data:', error)
+          
           setPrepopulationAttempted(true) // Still mark as attempted to prevent retries
 
           // Still notify parent even if there's an error, to stop loading state
@@ -268,16 +317,26 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
     // 4. Either initial data is loaded OR we have some data to work with
     if (isEditMode && savedId && !prepopulationAttempted) {
       // Wait a bit for shared data to load, but don't wait forever
-      const timeoutId = setTimeout(() => {
-        prepopulateData()
-      }, sharedData.isInitialLoading ? 1000 : 100) // 1s if loading, 100ms if data ready
+      const timeoutId = setTimeout(
+        () => {
+          prepopulateData()
+        },
+        sharedData.isInitialLoading ? 1000 : 100
+      ) // 1s if loading, 100ms if data ready
 
       return () => clearTimeout(timeoutId)
     }
 
     // Return empty cleanup function if conditions not met
-    return () => { }
-  }, [isEditMode, savedId, setValue, sharedData.isInitialLoading, prepopulationAttempted, onDataLoaded])
+    return () => {}
+  }, [
+    isEditMode,
+    savedId,
+    setValue,
+    sharedData.isInitialLoading,
+    prepopulationAttempted,
+    onDataLoaded,
+  ])
 
   // Reset prepopulation flag and additional data when savedId changes
   useEffect(() => {
@@ -298,12 +357,10 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
       setValue('tasReference', newId, {
         shouldDirty: true,
         shouldTouch: true,
-        shouldValidate: false
+        shouldValidate: false,
       })
-
-
     } catch (error) {
-      console.error('Error generating payment reference ID:', error)
+throw error
     } finally {
       setIsGeneratingId(false)
     }
@@ -318,7 +375,6 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
         )
         if (selectedPartner) {
           setValue('developerId', selectedPartner.bpDeveloperId)
-
         }
       }
 
@@ -329,7 +385,6 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
         )
         if (selectedAsset) {
           setValue('projectId', selectedAsset.reaId)
-
         }
       }
     })
@@ -342,7 +397,11 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
     const currentProjectName = watch('projectName')
 
     // Try to populate developer ID if we have a name but no ID
-    if (currentDeveloperName && !watch('developerId') && buildPartners.data.length > 0) {
+    if (
+      currentDeveloperName &&
+      !watch('developerId') &&
+      buildPartners.data.length > 0
+    ) {
       const selectedPartner = buildPartners.data.find(
         (bp: any) => bp.bpName === currentDeveloperName
       )
@@ -377,7 +436,7 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
       setValue('tasReference', paymentRefId, {
         shouldDirty: true,
         shouldTouch: true,
-        shouldValidate: false
+        shouldValidate: false,
       })
     }
   }, [paymentRefId, watch, setValue])
@@ -396,6 +455,10 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
       },
       '&.Mui-focused fieldset': {
         borderColor: '#2563EB',
+      },
+      '&.Mui-error fieldset': {
+        borderColor: '#DC2626',
+        borderWidth: '2px',
       },
     },
   }
@@ -421,6 +484,11 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
         borderColor: '#2563EB',
         borderWidth: '2px',
         boxShadow: '0 0 0 3px rgba(37, 99, 235, 0.1)',
+      },
+      '&.Mui-error fieldset': {
+        borderColor: '#DC2626',
+        borderWidth: '2px',
+        boxShadow: 'none',
       },
     },
     '& .MuiSelect-icon': {
@@ -454,6 +522,10 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
       '&.Mui-focused fieldset': {
         borderColor: '#2563EB',
       },
+      '&.Mui-error fieldset': {
+        borderColor: '#DC2626',
+        borderWidth: '2px',
+      },
     },
   }
 
@@ -468,6 +540,9 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
     marginBottom: '4px',
     '&.Mui-focused': {
       color: '#2563EB',
+    },
+    '&.Mui-error': {
+      color: '#DC2626',
     },
     '&.MuiFormLabel-filled': {
       color: '#374151',
@@ -514,87 +589,11 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
     isRequired = false,
     disabled = false
   ) => {
-    const validationRules: any = {}
-
-    if (isRequired && !isReadOnly) {
-      validationRules.required = `${label} is required`
-    }
-
-    // Add specific validation rules based on field name
-    if (name === 'tasReference' && !isReadOnly) {
-      validationRules.required = 'Payment Reference Number is required'
-      validationRules.minLength = {
-        value: 3,
-        message: 'Payment Reference Number must be at least 3 characters',
-      }
-      validationRules.pattern = {
-        value: /^[A-Z0-9-]+$/,
-        message:
-          'Payment Reference Number can only contain uppercase letters, numbers, and hyphens',
-      }
-    }
-
-    if (name === 'developerId') {
-      validationRules.required = 'Developer ID is required'
-      validationRules.pattern = {
-        value: /^[A-Z0-9-]+$/,
-        message:
-          'Developer ID can only contain uppercase letters, numbers, and hyphens',
-      }
-    }
-
-    if (name === 'projectId') {
-      validationRules.required = 'Project ID is required'
-      validationRules.pattern = {
-        value: /^[A-Z0-9-]+$/,
-        message:
-          'Project ID can only contain uppercase letters, numbers, and hyphens',
-      }
-    }
-
-    if (name === 'invoiceRef') {
-      validationRules.required = 'Invoice Reference Number is required'
-      validationRules.minLength = {
-        value: 3,
-        message: 'Invoice Reference Number must be at least 3 characters',
-      }
-    }
-
-    if (
-      name === 'invoiceValue' ||
-      name === 'engineerApprovedAmount' ||
-      name === 'totalEligibleAmount' ||
-      name === 'amountPaid' ||
-      name === 'totalAmountPaid' ||
-      name === 'amountReceived'
-    ) {
-      validationRules.pattern = {
-        value: /^\d+(\.\d{1,2})?$/,
-        message:
-          'Please enter a valid amount (numbers and up to 2 decimal places)',
-      }
-      validationRules.min = {
-        value: 0,
-        message: 'Amount must be greater than or equal to 0',
-      }
-    }
-
-    if (name === 'regulatorApprovalRef') {
-      validationRules.required =
-        'Regulator Approval Reference Number is required'
-      validationRules.minLength = {
-        value: 3,
-        message:
-          'Regulator Approval Reference Number must be at least 3 characters',
-      }
-    }
-
     return (
       <Grid key={name} size={{ xs: 12, md: gridSize }}>
         <Controller
           name={name}
           control={control}
-          rules={validationRules}
           defaultValue={defaultValue}
           render={({ field, fieldState: { error } }) => (
             <TextField
@@ -604,9 +603,24 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
               error={!!error}
               helperText={error?.message}
               disabled={disabled || isReadOnly}
+              required={isRequired && !isReadOnly}
               InputLabelProps={{ sx: labelSx }}
               InputProps={{ sx: valueSx }}
               sx={commonFieldStyles}
+              onChange={(e) => {
+                const value = e.target.value
+                const maxLen = getFieldMaxLength(name)
+                // Let user type freely but trigger validation on over-limit for fields with max length
+                if (maxLen && value.length > maxLen) {
+                  field.onChange(value)
+                  // Trigger schema validation immediately so Zod shows "Max 15 characters"
+                  // @ts-ignore
+                  ;(control as any)._formState && control
+                  trigger(name as any)
+                } else {
+                  field.onChange(value)
+                }
+              }}
             />
           )}
         />
@@ -623,61 +637,15 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
     isLoading = false,
     disabled = false
   ) => {
-    const validationRules: any = {}
-
-    if (isRequired && !isReadOnly) {
-      validationRules.required = `${label} is required`
-    }
-
-    // Add specific validation rules based on field name
-    if (name === 'developerName' && !isReadOnly) {
-      validationRules.validate = (value: string) => {
-        if (!value || value === '') {
-          return 'Please select a developer'
-        }
-        return true
-      }
-    }
-
-    if (name === 'projectName' && !isReadOnly) {
-      validationRules.validate = (value: string) => {
-        if (!value || value === '') {
-          return 'Please select a project'
-        }
-        return true
-      }
-    }
-
-    if (name === 'paymentType' && !isReadOnly) {
-      validationRules.validate = (value: string) => {
-        if (!value || value === '') {
-          return 'Please select a payment type'
-        }
-        return true
-      }
-    }
-
-    if ((name === 'invoiceCurrency' || name === 'totalAmountPaid1') && !isReadOnly) {
-      validationRules.validate = (value: string) => {
-        if (!value || value === '') {
-          return 'Please select a currency'
-        }
-        return true
-      }
-    }
-
     return (
       <Grid key={name} size={{ xs: 12, md: gridSize }}>
         <Controller
           name={name}
           control={control}
-          rules={validationRules}
           defaultValue={''}
-          render={({ field }) => (
-            <FormControl fullWidth>
-              <InputLabel sx={labelSx}>
-                {label}
-              </InputLabel>
+          render={({ field, fieldState: { error } }) => (
+            <FormControl fullWidth error={!!error} aria-invalid={!!error} required={isRequired && !isReadOnly}>
+              <InputLabel sx={labelSx} required={isRequired && !isReadOnly}>{label}</InputLabel>
               <Select
                 {...field}
                 label={label}
@@ -764,6 +732,7 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                   </MenuItem>
                 ))}
               </Select>
+              <FormError error={error?.message || ''} touched={true} />
             </FormControl>
           )}
         />
@@ -777,41 +746,11 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
     gridSize: number = 6,
     isRequired = false
   ) => {
-    const validationRules: any = {}
-
-    if (isRequired) {
-      validationRules.required = `${label} is required`
-    }
-
-    // Add specific validation rules based on field name
-    if (name === 'paymentDate' || name === 'engineerFeePayment1') {
-      validationRules.required = `${label} is required`
-      validationRules.validate = (value: any) => {
-        if (!value) {
-          return `${label} is required`
-        }
-        if (value && new Date(value) > new Date()) {
-          return `${label} cannot be in the future`
-        }
-        return true
-      }
-    }
-
-    if (name === 'invoiceDate') {
-      validationRules.validate = (value: any) => {
-        if (value && new Date(value) > new Date()) {
-          return 'Invoice date cannot be in the future'
-        }
-        return true
-      }
-    }
-
     return (
       <Grid key={name} size={{ xs: 12, md: gridSize }}>
         <Controller
           name={name}
           control={control}
-          rules={validationRules}
           defaultValue={null}
           render={({ field, fieldState: { error } }) => (
             <DatePicker
@@ -829,6 +768,7 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                   error: !!error,
                   helperText: error?.message,
                   sx: datePickerStyles,
+                  required: isRequired && !isReadOnly,
                   InputLabelProps: { sx: labelSx },
                   InputProps: {
                     sx: valueSx,
@@ -847,18 +787,22 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
     name: string,
     label: string,
     buttonText: string,
-    gridSize: number = 6
+    gridSize: number = 6,
+    isRequired: boolean = false
   ) => (
     <Grid key={name} size={{ xs: 12, md: gridSize }}>
       <Controller
         name={name}
         control={control}
         defaultValue=""
-        render={({ field }) => (
+        render={({ field, fieldState: { error } }) => (
           <TextField
             {...field}
             fullWidth
             label={label}
+            error={!!error}
+            helperText={error?.message}
+            required={isRequired && !isReadOnly}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -885,7 +829,7 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                       letterSpacing: '0.5px',
                       verticalAlign: 'middle',
                     }}
-                    onClick={() => { }}
+                    onClick={() => {}}
                   >
                     {buttonText}
                   </Button>
@@ -950,14 +894,15 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
   const renderPaymentRefIdField = (
     name: string,
     label: string,
-    gridSize: number = 6
+    gridSize: number = 6,
+    isRequired: boolean = false
   ) => (
     <Grid key={name} size={{ xs: 12, md: gridSize }}>
       <Controller
         name={name}
         control={control}
         defaultValue=""
-        render={({ field }) => (
+        render={({ field, fieldState: { error } }) => (
           <TextField
             {...field}
             fullWidth
@@ -1003,6 +948,9 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
               ),
               sx: valueSx,
             }}
+            error={!!error}
+            helperText={error?.message}
+            required={isRequired && !isReadOnly}
             InputLabelProps={{ sx: labelSx }}
             sx={commonFieldStyles}
           />
@@ -1017,7 +965,8 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
     accountLabel: string,
     balanceFieldName: string,
     balanceLabel: string,
-    gridSize: number = 6
+    gridSize: number = 6,
+    isRequired: boolean = false
   ) => (
     <>
       <Grid key={accountFieldName} size={{ xs: 12, md: gridSize }}>
@@ -1025,12 +974,14 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
           name={accountFieldName}
           control={control}
           defaultValue=""
-          render={({ field }) => (
+          render={({ field, fieldState: { error } }) => (
             <TextField
               {...field}
               fullWidth
               label={accountLabel}
               disabled={isReadOnly} // Disable in view mode
+              error={!!error}
+              helperText={error?.message}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -1056,12 +1007,16 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                         letterSpacing: '0.5px',
                         verticalAlign: 'middle',
                       }}
-                      onClick={() => {
+                      onClick={async () => {
+                        const isValid = await trigger(accountFieldName as any, { shouldFocus: true })
+                        if (!isValid) return
                         if (field.value) {
                           fetchBalance(accountKey, field.value)
                         }
                       }}
-                      disabled={loadingStates[accountKey] || !field.value || isReadOnly}
+                      disabled={
+                        loadingStates[accountKey] || !field.value || isReadOnly
+                      }
                     >
                       {loadingStates[accountKey]
                         ? 'Loading...'
@@ -1071,6 +1026,7 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 ),
                 sx: valueSx,
               }}
+              required={isRequired && !isReadOnly}
               InputLabelProps={{ sx: labelSx }}
               sx={commonFieldStyles}
             />
@@ -1142,16 +1098,18 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.TAS_REFERENCE,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TAS_REFERENCE
-              ) + '*'
+              ),
+              6,
+              true
             )}
-            {/* {renderTextField('tasReference', 'Tas/EMS Payment Ref no.*', 6, '', true)} */}
+
             {renderSelectField(
               'developerName',
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEVELOPER_NAME,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_NAME
-              ) + '*',
+              ),
               developerNames,
               6,
               true,
@@ -1163,7 +1121,7 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEVELOPER_ID,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_ID
-              ) + '*',
+              ),
               6,
               '',
               true
@@ -1174,7 +1132,7 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROJECT_NAME,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_NAME
-              ) + '*',
+              ),
               projectAssets.map((asset) => ({
                 id: asset.id,
                 displayName: asset.reaName,
@@ -1189,7 +1147,7 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROJECT_ID,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_ID
-              ) + '*',
+              ),
               6,
               '',
               true
@@ -1201,7 +1159,9 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_STATUS
               ),
-              buildAssetAccountStatuses.data
+              buildAssetAccountStatuses.data,
+              6,
+              true
             )}
             {renderAccountBalanceField(
               'escrow',
@@ -1212,7 +1172,9 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.ESCROW_ACCOUNT
               ),
               'subConstructionAccount',
-              'Current Balance in Escrow Account*'
+              'Current Balance in Escrow Account*',
+              6,
+              true
             )}
             {renderAccountBalanceField(
               'subConstruction',
@@ -1224,7 +1186,9 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                   .SUB_CONSTRUCTION_ACCOUNT
               ),
               'retentionAccount',
-              'Current Balance in Sub Construction Account*'
+              'Current Balance in Sub Construction Account*',
+              6,
+              true
             )}
             {renderAccountBalanceField(
               'corporate',
@@ -1235,7 +1199,9 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CORPORATE_ACCOUNT
               ),
               'retentionAccount1',
-              'Current Balance in Corporate Account*'
+              'Current Balance in Corporate Account*',
+              6,
+              true
             )}
             {renderAccountBalanceField(
               'retention',
@@ -1246,7 +1212,9 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.RETENTION_ACCOUNT
               ),
               'retentionAccount2',
-              'Current Balance in Retention Account*'
+              'Current Balance in Retention Account*',
+              6,
+              true
             )}
 
             <Grid size={{ xs: 12 }}>
@@ -1273,7 +1241,7 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_TYPE,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_TYPE
-              ) + '*',
+              ),
               paymentTypes.data || [],
               6,
               true,
@@ -1288,7 +1256,7 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
               ),
               paymentSubTypes.data || [],
               6,
-              true,
+              false,
               paymentSubTypes.loading
             )}
             {renderTextField(
@@ -1297,7 +1265,10 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.REGULAR_APPROVAL_REF,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.REGULAR_APPROVAL_REF
-              ) + '*'
+              ),
+              6,
+              '',
+              true
             )}
             {renderDatePickerField(
               'paymentSubType1',
@@ -1306,7 +1277,7 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
                   .REGULAR_APPROVAL_DATE
-              ) + '*',
+              ),
               6,
               true
             )}
@@ -1316,7 +1287,7 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_REF,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_REF
-              ) + '*',
+              ),
               3,
               '',
               true
@@ -1327,7 +1298,7 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_CURRENCY,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_CURRENCY
-              ) + '*',
+              ),
               currencies.data || [],
               3,
               true,
@@ -1339,8 +1310,10 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_VALUE,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_VALUE
-              ) + '*',
-              3
+              ),
+              3,
+              '',
+              true
             )}
             {renderDatePickerField(
               'invoiceDate',
@@ -1348,7 +1321,7 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_DATE,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_DATE
-              ) + '*',
+              ),
               3
             )}
 
@@ -1419,7 +1392,7 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_CURRENCY,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_CURRENCY
-              ) + '*',
+              ),
               currencies.data,
               3
             )}
@@ -1503,7 +1476,9 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEAL_REF_NO
               ),
-              3
+              3,
+              '',
+              true
             )}
             {renderTextField(
               'ppcNo',
@@ -1521,7 +1496,9 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INDICATIVE_RATE
               ),
-              'Get Exchange Rate'
+              'Get Exchange Rate',
+              6,
+              true
             )}
             {renderTextField(
               'vatCapExceeded4',
@@ -1591,17 +1568,17 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                   verticalAlign: 'middle',
                 }}
               >
-                Unit Cancellation Details
+                Others
               </Typography>
             </Grid>
-
+{/* 
             {renderTextField(
               'unitNo',
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.UNIT_NO,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.UNIT_NO
-              ) + '*'
+              )
             )}
             {renderTextField(
               'towerName',
@@ -1625,7 +1602,7 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.AMOUNT_RECEIVED,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.AMOUNT_RECEIVED
-              ) + '*'
+              )
             )}
             {renderCheckboxField(
               'Forfeit',
@@ -1675,8 +1652,8 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
               ),
               4,
               '',
-              true
-            )}
+              false
+            )} */}
             {renderDatePickerField(
               'paymentDate',
               getLabel(
@@ -1686,7 +1663,7 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                   .REGULATOR_APPROVAL_DATE
               ),
               4,
-              true
+              false
             )}
 
             {renderSelectField(
@@ -1696,7 +1673,9 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CHARGE_MODE
               ),
-              depositModes.data
+              depositModes.data,
+              6,
+              true
             )}
             {renderSelectField(
               'paymentMode',
@@ -1705,7 +1684,9 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_MODE
               ),
-              paymentModes.data
+              paymentModes.data,
+              6,
+              false
             )}
             {renderSelectField(
               'engineerFeePayment',
@@ -1714,7 +1695,9 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TRANSACTION_TYPE
               ),
-              transferTypes.data
+              transferTypes.data,
+              6,
+              false
             )}
             {renderTextField(
               'uploadDocuments',
@@ -1731,7 +1714,7 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_DATE,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_DATE
-              ) + '*'
+              )
             )}
             {renderTextField(
               'uploadDocuments1',
@@ -1773,8 +1756,10 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_FROM_CBS,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_FROM_CBS
-              ) + '*',
-              boolYnOptions.data || []
+              ),
+              boolYnOptions.data || [],
+              6,
+              true
             )}
             {renderCheckboxField(
               'reviewNote*',
@@ -1782,13 +1767,12 @@ const Step1 = ({ savedId, isEditMode, onDataLoaded, isReadOnly = false }: Step1P
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.REVIEW_NOTE,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.REVIEW_NOTE
-              ) + '*',
+              ),
               12
             )}
           </Grid>
         </CardContent>
       </Card>
-
     </LocalizationProvider>
   )
 }

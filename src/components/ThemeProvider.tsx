@@ -94,6 +94,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
                 '&.Mui-focused fieldset': {
                   borderColor: '#2563EB',
                 },
+                '&.Mui-error fieldset': {
+                  borderColor: '#d32f2f',
+                  borderWidth: '1px',
+                },
+                '&.Mui-error:hover fieldset': {
+                  borderColor: '#d32f2f',
+                  borderWidth: '1px',
+                },
+                '&.Mui-error.Mui-focused fieldset': {
+                  borderColor: '#d32f2f',
+                  borderWidth: '1px',
+                },
               },
             },
           },
@@ -118,6 +130,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
               borderRadius: '8px',
               '& fieldset': {
                 border: 'none',
+              },
+              '&.Mui-error .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#d32f2f',
+                borderWidth: '1px',
+              },
+              '&.Mui-error:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#d32f2f',
+                borderWidth: '1px',
+              },
+              '&.Mui-error.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#d32f2f',
+                borderWidth: '1px',
               },
             },
           },

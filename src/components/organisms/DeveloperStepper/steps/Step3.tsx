@@ -10,6 +10,8 @@ import { useTableState } from '@/hooks'
 import { useBuildPartnerFees } from '@/hooks/useBuildPartners'
 import { FeeUIData } from '@/services/api/buildPartnerService'
 import { formatDate } from '@/utils'
+import { useDeleteConfirmation } from '@/store/confirmationDialogStore'
+import { useDeleteBuildPartnerFee } from '@/hooks/useBuildPartners'
 
 interface Step3Props {
   fees: FeeData[]
@@ -25,30 +27,47 @@ const Step3: React.FC<Step3Props> = ({
   isReadOnly = false,
 }) => {
   const [isPanelOpen, setIsPanelOpen] = useState(false)
+  const [editMode, setEditMode] = useState<'add' | 'edit'>('add')
+  const [selectedFee, setSelectedFee] = useState<FeeData | FeeUIData | null>(
+    null
+  )
+  const [selectedFeeIndex, setSelectedFeeIndex] = useState<number | null>(null)
+  const [currentPage, setCurrentPage] = useState(0)
+  const [currentPageSize, setCurrentPageSize] = useState(20)
 
-  // Fetch fee data from API when buildPartnerId is available
+  const confirmDelete = useDeleteConfirmation()
+  const deleteMutation = useDeleteBuildPartnerFee()
+
+  // Fetch fee data from API with pagination when buildPartnerId is available
   const {
-    data: apiFeeData = [],
+    data: apiFeeResponse,
     isLoading: isLoadingFees,
     error: feeError,
-    refetch: refetchFees
-  } = useBuildPartnerFees(buildPartnerId)
+    refetch: refetchFees,
+    updatePagination,
+    apiPagination,
+  } = useBuildPartnerFees(buildPartnerId, currentPage, currentPageSize)
 
   // Transform API data to table format
-  const transformedApiData: FeeUIData[] = apiFeeData.map((fee: FeeUIData) => ({
-    ...fee,
-    feeToBeCollected: fee.feeToBeCollected 
-      ? formatDate(fee.feeToBeCollected, 'MMM DD, YYYY')
-      : '',
-    nextRecoveryDate: fee.nextRecoveryDate
-      ? formatDate(fee.nextRecoveryDate, 'MMM DD, YYYY')
-      : '',
-  }))
+  const transformedApiData: FeeUIData[] =
+    apiFeeResponse?.content?.map((fee: FeeUIData) => ({
+      ...fee,
+      feeToBeCollected: fee.feeToBeCollected
+        ? formatDate(fee.feeToBeCollected, 'MMM DD, YYYY')
+        : '',
+      nextRecoveryDate: fee.nextRecoveryDate
+        ? formatDate(fee.nextRecoveryDate, 'MMM DD, YYYY')
+        : '',
+    })) || []
 
   // Use API data if available, otherwise use form data
-  const feeDetails: (FeeData | FeeUIData)[] = transformedApiData.length > 0 ? transformedApiData : (fees || [])
+  const feeDetails: (FeeData | FeeUIData)[] =
+    transformedApiData.length > 0 ? transformedApiData : fees || []
 
   const addFee = () => {
+    setEditMode('add')
+    setSelectedFee(null)
+    setSelectedFeeIndex(null)
     setIsPanelOpen(true)
   }
 
@@ -57,21 +76,76 @@ const Step3: React.FC<Step3Props> = ({
     const convertedFee = newFee as FeeData
     const updatedFees = [...(fees || []), convertedFee]
     onFeesChange(updatedFees)
-    
+
     // Refresh API data if we have a buildPartnerId
     if (buildPartnerId) {
       refetchFees()
     }
   }
 
+  const handleFeeUpdated = (updatedFee: unknown, index: number) => {
+    const updatedFees = [...(fees || [])]
+    updatedFees[index] = updatedFee as FeeData
+    onFeesChange(updatedFees)
+
+    // Refresh API data if we have a buildPartnerId
+    if (buildPartnerId) {
+      refetchFees()
+    }
+  }
+
+  const handleEdit = (row: FeeData | FeeUIData, index: number) => {
+    setEditMode('edit')
+    setSelectedFee(row)
+    setSelectedFeeIndex(index)
+    setIsPanelOpen(true)
+  }
+
+  const handleDelete = (row: FeeData | FeeUIData, index: number) => {
+    const feeId = (row as any).id || (row as any).feeId
+    const feeType = row.feeType || 'fee'
+
+    confirmDelete({
+      itemName: `fee: ${feeType}`,
+      onConfirm: async () => {
+        try {
+          // If fee has an ID, delete from API
+          if (feeId) {
+            await deleteMutation.mutateAsync(feeId)
+          }
+
+          // Remove from local state
+          const updatedFees = (fees || []).filter((_, i) => i !== index)
+          onFeesChange(updatedFees)
+
+          // Refresh API data if we have a buildPartnerId
+          if (buildPartnerId) {
+            refetchFees()
+          }
+        } catch (error) {
+          console.error('Failed to delete fee:', error)
+          throw error
+        }
+      },
+    })
+  }
+
   const handleClosePanel = () => {
     setIsPanelOpen(false)
+    setEditMode('add')
+    setSelectedFee(null)
+    setSelectedFeeIndex(null)
   }
 
   // Debug logging
-  useEffect(() => {
-   
-  }, [buildPartnerId, fees, apiFeeData, transformedApiData, feeDetails, isLoadingFees, feeError])
+  useEffect(() => {}, [
+    buildPartnerId,
+    fees,
+    transformedApiData,
+    feeDetails,
+    isLoadingFees,
+    feeError,
+  ])
 
   const tableColumns = [
     {
@@ -145,19 +219,25 @@ const Step3: React.FC<Step3Props> = ({
     },
   ]
 
+  // Get pagination data from API response if available
+  const totalRows = buildPartnerId
+    ? apiPagination.totalElements
+    : feeDetails.length
+  const totalPages = buildPartnerId
+    ? apiPagination.totalPages
+    : Math.ceil(feeDetails.length / 20)
+
   // Use the generic table state hook
   const {
     search,
     paginated,
-    totalRows,
-    totalPages,
-    startItem,
-    endItem,
-    page,
-    rowsPerPage,
+    startItem: localStartItem,
+    endItem: localEndItem,
+    page: localPage,
+    rowsPerPage: localRowsPerPage,
     handleSearchChange,
-    handlePageChange,
-    handleRowsPerPageChange,
+    handlePageChange: handleLocalPageChange,
+    handleRowsPerPageChange: handleLocalRowsPerPageChange,
   } = useTableState({
     data: feeDetails,
     searchFields: [
@@ -173,6 +253,40 @@ const Step3: React.FC<Step3Props> = ({
     ],
     initialRowsPerPage: 20,
   })
+
+  // Use API pagination state when buildPartnerId exists, otherwise use local state
+  // Note: useTableState uses 1-based pages (1, 2, 3...), API uses 0-based (0, 1, 2...)
+  const page = buildPartnerId ? currentPage + 1 : localPage // Convert API 0-based to UI 1-based
+  const rowsPerPage = buildPartnerId ? currentPageSize : localRowsPerPage
+
+  // Calculate start and end items for API pagination
+  const startItem = buildPartnerId
+    ? currentPage * currentPageSize + 1
+    : localStartItem
+  const endItem = buildPartnerId
+    ? Math.min((currentPage + 1) * currentPageSize, totalRows)
+    : localEndItem
+
+  // Wrap pagination handlers to update API pagination
+  const handlePageChange = (newPage: number) => {
+    if (buildPartnerId) {
+      const apiPage = newPage - 1 // Convert UI 1-based to API 0-based
+      setCurrentPage(apiPage)
+      updatePagination(apiPage, currentPageSize)
+    } else {
+      handleLocalPageChange(newPage)
+    }
+  }
+
+  const handleRowsPerPageChange = (newRowsPerPage: number) => {
+    if (buildPartnerId) {
+      setCurrentPage(0)
+      setCurrentPageSize(newRowsPerPage)
+      updatePagination(0, newRowsPerPage)
+    } else {
+      handleLocalRowsPerPageChange(newRowsPerPage)
+    }
+  }
 
   return (
     <Card
@@ -208,7 +322,7 @@ const Step3: React.FC<Step3Props> = ({
           )}
         </Box>
         <ExpandableDataTable<FeeData | FeeUIData>
-          data={paginated}
+          data={buildPartnerId ? feeDetails : paginated}
           columns={tableColumns}
           searchState={search}
           onSearchChange={handleSearchChange}
@@ -226,6 +340,13 @@ const Step3: React.FC<Step3Props> = ({
           onRowSelectionChange={() => {}}
           expandedRows={[]}
           onRowExpansionChange={() => {}}
+          {...(!isReadOnly && {
+            onRowEdit: handleEdit,
+            onRowDelete: handleDelete,
+          })}
+          showEditAction={!isReadOnly}
+          showDeleteAction={!isReadOnly}
+          showViewAction={false}
         />
       </CardContent>
       {buildPartnerId && (
@@ -233,7 +354,11 @@ const Step3: React.FC<Step3Props> = ({
           isOpen={isPanelOpen}
           onClose={handleClosePanel}
           onFeeAdded={handleFeeAdded}
+          onFeeUpdated={handleFeeUpdated}
           buildPartnerId={buildPartnerId}
+          mode={editMode}
+          {...(selectedFee && { feeData: selectedFee })}
+          {...(selectedFeeIndex !== null && { feeIndex: selectedFeeIndex })}
         />
       )}
     </Card>

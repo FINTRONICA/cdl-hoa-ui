@@ -2,6 +2,7 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { UserProfile } from '../../molecules/UserProfile'
 import { useAuthStore } from '@/store/authStore'
+import { useLogout } from '@/hooks/useAuthQuery'
 
 interface HeaderProps {
   title: string
@@ -23,11 +24,17 @@ export const Header: React.FC<HeaderProps> = ({
   className = '',
 }) => {
   const router = useRouter()
-  const { user, logout } = useAuthStore()
+  const { user } = useAuthStore()
+  const logoutMutation = useLogout()
 
-  const handleLogout = () => {
-    logout()
-    router.push('/login')
+  const handleLogout = async () => {
+    try {
+      await logoutMutation.mutateAsync()
+      router.push('/login')
+    } catch (error) {
+      // Even if logout fails, redirect to login
+      router.push('/login')
+    }
   }
 
   // Fallback user data if user is not available

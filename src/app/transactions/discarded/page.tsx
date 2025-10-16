@@ -10,7 +10,7 @@ import { useDiscardedTransactionsUI } from '@/hooks'
 import { useLabelConfigApi } from '@/hooks/useLabelConfigApi'
 import { getDiscardedTransactionLabel } from '@/constants/mappings/discardedTransactionMapping'
 import { useSidebarConfig } from '@/hooks/useSidebarConfig'
-import { Tooltip } from '@mui/material'
+
 
 // Define the transaction data structure to match UI
 interface TransactionData extends Record<string, unknown> {
@@ -134,9 +134,9 @@ const DiscardedTransactionPage: React.FC = () => {
   // Handle API pagination - when user changes page in table
   const handlePageChange = (newPage: number) => {
     // Check if we're dealing with filtered/searched data
-    const hasActiveSearch = Object.values(search).some((value) => value.trim())
+    const hasSearch = Object.values(search).some((value) => value.trim())
 
-    if (hasActiveSearch) {
+    if (hasSearch) {
       // Use local pagination for searched data
       localHandlePageChange(newPage)
     } else {
@@ -153,17 +153,19 @@ const DiscardedTransactionPage: React.FC = () => {
   }
 
   // Determine which pagination values to use
-  const effectiveTotalRows = Object.values(search).some((value) => value.trim())
-    ? localTotalRows
-    : apiTotal
-  const effectiveTotalPages = Object.values(search).some((value) =>
-    value.trim()
-  )
-    ? localTotalPages
-    : apiTotalPages
-  const effectivePage = Object.values(search).some((value) => value.trim())
-    ? localPage
-    : currentApiPage
+  const hasActiveSearch = Object.values(search).some((value) => value.trim())
+
+  const effectiveTotalRows = hasActiveSearch ? localTotalRows : apiTotal
+  const effectiveTotalPages = hasActiveSearch ? localTotalPages : apiTotalPages
+  const effectivePage = hasActiveSearch ? localPage : currentApiPage
+
+  // Calculate effective startItem and endItem based on pagination type
+  const effectiveStartItem = hasActiveSearch
+    ? startItem
+    : (currentApiPage - 1) * currentApiSize + 1
+  const effectiveEndItem = hasActiveSearch
+    ? endItem
+    : Math.min(currentApiPage * currentApiSize, apiTotal)
 
   // Define table columns with dynamic labels
   const tableColumns = [
@@ -328,10 +330,10 @@ const DiscardedTransactionPage: React.FC = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">
               {isLoading && labelsLoading
-                ? 'Loading transactions and labels...'
+                ? 'Loading...'
                 : isLoading
-                  ? 'Loading transactions...'
-                  : 'Loading labels...'}
+                  ? 'Loading...'
+                  : 'Loading...'}
             </p>
           </div>
         </div>
@@ -433,8 +435,8 @@ const DiscardedTransactionPage: React.FC = () => {
                   rowsPerPage: rowsPerPage,
                   totalRows: effectiveTotalRows,
                   totalPages: effectiveTotalPages,
-                  startItem,
-                  endItem,
+                  startItem: effectiveStartItem,
+                  endItem: effectiveEndItem,
                 }}
                 onPageChange={handlePageChange}
                 onRowsPerPageChange={handleRowsPerPageChange}

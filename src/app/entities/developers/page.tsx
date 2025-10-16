@@ -37,12 +37,18 @@ import { useSidebarConfig } from '@/hooks/useSidebarConfig'
 import { useTemplateDownload } from '@/hooks/useRealEstateDocumentTemplate'
 import { TEMPLATE_FILES } from '@/constants'
 import { useDeleteConfirmation } from '@/store/confirmationDialogStore'
-import { useSuccessNotification } from '@/store/notificationStore'
 import { useRouter } from 'next/navigation'
 
 interface DeveloperData extends BuildPartnerUIData, Record<string, unknown> {}
 
-const statusOptions = ['PENDING', 'APPROVED', 'REJECTED', 'IN_PROGRESS', 'DRAFT', 'INITIATED']
+const statusOptions = [
+  'PENDING',
+  'APPROVED',
+  'REJECTED',
+  'IN_PROGRESS',
+  'DRAFT',
+  'INITIATED',
+]
 
 const ErrorMessage: React.FC<{ error: Error; onRetry?: () => void }> = ({
   error,
@@ -111,9 +117,14 @@ const DevelopersPageImpl: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false)
 
   const currentLanguage = useAppStore((state) => state.language)
-  
+
   // Template download hook
-  const { downloadTemplate, isLoading: isDownloading, error: downloadError, clearError } = useTemplateDownload()
+  const {
+    downloadTemplate,
+    isLoading: isDownloading,
+    error: downloadError,
+    clearError,
+  } = useTemplateDownload()
 
   const { data: buildPartnerLabels, getLabel } =
     useBuildPartnerLabelsWithCache()
@@ -125,8 +136,8 @@ const DevelopersPageImpl: React.FC = () => {
   const { getLabelResolver } = useSidebarConfig()
 
   const developersPageTitle = getLabelResolver
-    ? getLabelResolver('developers', 'Developers')
-    : 'Developers'
+    ? getLabelResolver('assetRegister', 'Asset Register')
+    : 'Asset Register'
 
   const {
     data: apiResponse,
@@ -166,42 +177,42 @@ const DevelopersPageImpl: React.FC = () => {
   const tableColumns = [
     {
       key: 'name',
-      label: getBuildPartnerLabelDynamic('CDL_AR_NAME'),
+      label: getBuildPartnerLabelDynamic('CDL_BP_NAME'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
       key: 'developerId',
-      label: getBuildPartnerLabelDynamic('CDL_AR_ID'),
+      label: getBuildPartnerLabelDynamic('CDL_BP_ID'),
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
     },
     {
       key: 'developerCif',
-      label: getBuildPartnerLabelDynamic('CDL_AR_CIF'),
+      label: getBuildPartnerLabelDynamic('CDL_BP_CIF'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
       key: 'localeNames',
-      label: getBuildPartnerLabelDynamic('CDL_AR_NAME_LOCALE'),
+      label: getBuildPartnerLabelDynamic('CDL_BP_NAME_LOCALE'),
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
     },
     {
       key: 'status',
-      label: getBuildPartnerLabelDynamic('CDL_AR_STATUS'),
+      label: getBuildPartnerLabelDynamic('CDL_BP_STATUS'),
       type: 'status' as const,
       width: 'w-32',
       sortable: true,
     },
     {
       key: 'actions',
-      label: getBuildPartnerLabelDynamic('CDL_AR_DOC_ACTION'),
+      label: getBuildPartnerLabelDynamic('CDL_BP_DOC_ACTION'),
       type: 'actions' as const,
       width: 'w-20',
     },
@@ -238,9 +249,9 @@ const DevelopersPageImpl: React.FC = () => {
   })
 
   const handlePageChange = (newPage: number) => {
-    const hasActiveSearch = Object.values(search).some((value) => value.trim())
+    const hasSearch = Object.values(search).some((value) => value.trim())
 
-    if (hasActiveSearch) {
+    if (hasSearch) {
       localHandlePageChange(newPage)
     } else {
       setCurrentApiPage(newPage)
@@ -258,17 +269,19 @@ const DevelopersPageImpl: React.FC = () => {
   const apiTotal = apiPagination?.totalElements || 0
   const apiTotalPages = apiPagination?.totalPages || 1
 
-  const effectiveTotalRows = Object.values(search).some((value) => value.trim())
-    ? localTotalRows
-    : apiTotal
-  const effectiveTotalPages = Object.values(search).some((value) =>
-    value.trim()
-  )
-    ? localTotalPages
-    : apiTotalPages
-  const effectivePage = Object.values(search).some((value) => value.trim())
-    ? localPage
-    : currentApiPage
+  const hasActiveSearch = Object.values(search).some((value) => value.trim())
+
+  const effectiveTotalRows = hasActiveSearch ? localTotalRows : apiTotal
+  const effectiveTotalPages = hasActiveSearch ? localTotalPages : apiTotalPages
+  const effectivePage = hasActiveSearch ? localPage : currentApiPage
+
+  // Calculate effective startItem and endItem based on pagination type
+  const effectiveStartItem = hasActiveSearch
+    ? startItem
+    : (currentApiPage - 1) * currentApiSize + 1
+  const effectiveEndItem = hasActiveSearch
+    ? endItem
+    : Math.min(currentApiPage * currentApiSize, apiTotal)
 
   const actionButtons: Array<{
     label: string
@@ -294,14 +307,15 @@ const DevelopersPageImpl: React.FC = () => {
           // You can add a success notification here if needed
           console.log(`Developer "${row.name}" has been deleted successfully.`)
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error occurred'
           console.error(`Failed to delete developer: ${errorMessage}`)
           // You can add error notification here if needed
           throw error // Re-throw to keep dialog open on error
         } finally {
           setIsDeleting(false)
         }
-      }
+      },
     })
   }
 
@@ -313,17 +327,13 @@ const DevelopersPageImpl: React.FC = () => {
   const handleRowEdit = (row: DeveloperData) => {
     // Navigate to edit mode with the developer ID and editing flag
     router.push(`/developers/${row.id}/step/1?editing=true`)
-    
   }
 
   // Template download handler
   const handleDownloadTemplate = async () => {
     try {
       await downloadTemplate(TEMPLATE_FILES.BUILD_PARTNER)
-     
-    } catch (error) {
-      
-    }
+    } catch (error) {}
   }
 
   const renderExpandedContent = () => (
@@ -351,7 +361,9 @@ const DevelopersPageImpl: React.FC = () => {
       {downloadError && (
         <div className="fixed z-50 px-4 py-3 text-red-700 bg-red-100 border border-red-400 rounded shadow-lg top-4 right-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Download Error: {downloadError}</span>
+            <span className="text-sm font-medium">
+              Download Error: {downloadError}
+            </span>
             <button
               onClick={clearError}
               className="ml-4 text-red-500 hover:text-red-700"
@@ -362,7 +374,7 @@ const DevelopersPageImpl: React.FC = () => {
         </div>
       )}
 
-      <DashboardLayout title={"Asset Register"}>
+      <DashboardLayout title={developersPageTitle}>
         <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
           <div className="sticky top-0 z-10 bg-[#FFFFFFBF] border-b border-gray-200 rounded-t-2xl">
             <PageActionButtons
@@ -373,7 +385,7 @@ const DevelopersPageImpl: React.FC = () => {
               showButtons={{
                 downloadTemplate: true,
                 uploadDetails: true,
-                addNew: true
+                addNew: true,
               }}
             />
           </div>
@@ -390,8 +402,8 @@ const DevelopersPageImpl: React.FC = () => {
                   rowsPerPage: rowsPerPage,
                   totalRows: effectiveTotalRows,
                   totalPages: effectiveTotalPages,
-                  startItem,
-                  endItem,
+                  startItem: effectiveStartItem,
+                  endItem: effectiveEndItem,
                 }}
                 onPageChange={handlePageChange}
                 onRowsPerPageChange={handleRowsPerPageChange}

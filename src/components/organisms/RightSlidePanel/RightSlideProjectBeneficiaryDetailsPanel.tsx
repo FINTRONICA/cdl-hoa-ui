@@ -13,30 +13,22 @@ import {
   Button,
   Drawer,
   Box,
-  InputAdornment,
   Alert,
   Snackbar,
-  CircularProgress,
-  Typography,
 } from '@mui/material'
 import { KeyboardArrowDown as KeyboardArrowDownIcon } from '@mui/icons-material'
 import { Controller, useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
-import { useSaveProjectIndividualBeneficiary } from '@/hooks/useProjects'
-import { validateAndSanitizeProjectBeneficiaryData } from '@/lib/validation/beneficiarySchemas'
+import { useSaveProjectIndividualBeneficiary, useUpdateProjectIndividualBeneficiary } from '@/hooks/useProjects'
 import { useValidationStatus } from '@/hooks/useValidation'
-
-interface BeneficiaryFormData {
-  reaBeneficiaryId: string
-  reaBeneficiaryType: string | number
-  reaName: string
-  reaBankName: string | number
-  reaSwiftCode: string
-  reaRoutingCode: string
-  reaAccountNumber: string
-}
+import { useProjectLabels } from '@/hooks/useProjectLabels'
+import { 
+  projectBeneficiaryFormValidationSchema,
+  type ProjectBeneficiaryFormData
+} from '@/lib/validation/projectBeneficiary.schema'
 
 interface RightSlidePanelProps {
   isOpen: boolean
@@ -58,19 +50,16 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
   isOpen,
   onClose,
   onBeneficiaryAdded,
-  title,
   editingBeneficiary,
   bankNames: propBankNames,
   beneficiaryTypes: propBeneficiaryTypes,
   projectId,
-  buildPartnerId,
   dropdownsLoading: propDropdownsLoading,
   dropdownsError: propDropdownsError,
 }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-  // Toast state
   const [toasts, setToasts] = useState<
     Array<{
       id: string
@@ -81,6 +70,10 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
   >([])
 
   const addBeneficiaryMutation = useSaveProjectIndividualBeneficiary()
+  const updateBeneficiaryMutation = useUpdateProjectIndividualBeneficiary()
+
+ 
+  const { getLabel } = useProjectLabels()
 
 
   const addToast = (message: string, type: 'success' | 'error') => {
@@ -120,15 +113,11 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
 
  
   const {
-    isAccountValidating,
     accountValidationResult,
     accountValidationError,
-    validateAccount,
     resetAccountValidation,
-    isSwiftValidating,
     swiftValidationResult,
     swiftValidationError,
-    validateSwift,
     resetSwiftValidation,
   } = useValidationStatus()
 
@@ -136,8 +125,11 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
     control,
     handleSubmit,
     reset,
+    trigger,
     formState: { errors },
-  } = useForm<BeneficiaryFormData>({
+  } = useForm<ProjectBeneficiaryFormData>({
+    resolver: zodResolver(projectBeneficiaryFormValidationSchema),
+    mode: 'onChange', // Validate on every change
     defaultValues: {
       reaBeneficiaryId: editingBeneficiary?.reaBeneficiaryId || '',
       reaBeneficiaryType: editingBeneficiary?.reaBeneficiaryType || '',
@@ -167,12 +159,12 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
       reset({
         reaBeneficiaryId: editingBeneficiary.reaBeneficiaryId || '',
         reaBeneficiaryType:
-          (beneficiaryType as { id?: string })?.id ||
+          (beneficiaryType as { id?: string })?.id?.toString() ||
           editingBeneficiary.reaBeneficiaryType ||
           '',
         reaName: editingBeneficiary.reaName || '',
         reaBankName:
-          (bankName as { id?: string })?.id ||
+          (bankName as { id?: string })?.id?.toString() ||
           editingBeneficiary.reaBankName ||
           '',
         reaSwiftCode: editingBeneficiary.reaSwiftCode || '',
@@ -243,13 +235,22 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
     }
   }, [swiftValidationError])
 
-  const onSubmit = async (data: BeneficiaryFormData) => {
+  const onSubmit = async (data: ProjectBeneficiaryFormData) => {
     
     try {
       setErrorMessage(null)
       setSuccessMessage(null)
 
+      // Trigger validation to highlight required fields
+      const isValid = await trigger()
+      
+      if (!isValid) {
+        return
+      }
+
       const beneficiaryData = {
+        // Include ID for updates
+        ...(editingBeneficiary?.id && { id: parseInt(editingBeneficiary.id.toString()) }),
         reabBeneficiaryId: data.reaBeneficiaryId,
         reabTranferTypeDTO: {
           id: parseInt(data.reaBeneficiaryType.toString()) || 0,
@@ -267,21 +268,25 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
       ],
       }
 
-      
-
-      await addBeneficiaryMutation.mutateAsync(
-        beneficiaryData,
-    
-      )
-
-      setSuccessMessage('Beneficiary added successfully!')
+      if (editingBeneficiary?.id) {
+        // Update existing beneficiary using PUT
+        await updateBeneficiaryMutation.mutateAsync({ 
+          id: editingBeneficiary.id.toString(), 
+          beneficiaryData 
+        })
+        setSuccessMessage('Beneficiary updated successfully!')
+      } else {
+        // Add new beneficiary using POST
+        await addBeneficiaryMutation.mutateAsync(beneficiaryData)
+        setSuccessMessage('Beneficiary added successfully!')
+      }
 
       if (onBeneficiaryAdded) {
-        // Convert dropdown IDs to display names
+      
         const beneficiaryTypeLabel =
           (beneficiaryTypes.find(
             (type: unknown) =>
-              (type as { id: string }).id === data.reaBeneficiaryType.toString()
+              (type as { id: string }).id === data.reaBeneficiaryType
           ) as { configValue: string })?.configValue || `Type ${data.reaBeneficiaryType}`
         const bankNameLabel =
           (bankNames.find(
@@ -403,28 +408,30 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
   }
 
   const renderTextField = (
-    name: keyof BeneficiaryFormData,
+    name: keyof ProjectBeneficiaryFormData,
     label: string,
     defaultValue = '',
     gridSize: number = 6,
-    required = false
+    required = false,
+    maxLength?: number
   ) => (
     <Grid key={name} size={{ xs: 12, md: gridSize }}>
       <Controller
         name={name}
         control={control}
         defaultValue={defaultValue}
-        rules={required ? { required: `${label} is required` } : {}}
-        render={({ field }) => (
+        render={({ field, fieldState: { error } }) => (
           <TextField
             {...field}
             label={label}
             fullWidth
-            error={!!errors[name]}
-            helperText={errors[name]?.message?.toString() || ''}
+            required={required}
+            error={!!error}
+            helperText={error?.message}
+            inputProps={{ maxLength }}
             InputLabelProps={{ sx: labelSx }}
             InputProps={{ sx: valueSx }}
-            sx={errors[name] ? errorFieldStyles : commonFieldStyles}
+            sx={error ? errorFieldStyles : commonFieldStyles}
           />
         )}
       />
@@ -432,7 +439,7 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
   )
 
   const renderSelectField = (
-    name: keyof BeneficiaryFormData,
+    name: keyof ProjectBeneficiaryFormData,
     label: string,
     options: unknown[],
     gridSize: number = 6,
@@ -443,16 +450,15 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
       <Controller
         name={name}
         control={control}
-        rules={required ? { required: `${label} is required` } : {}}
         defaultValue={''}
-        render={({ field }) => (
-          <FormControl fullWidth error={!!errors[name]}>
+        render={({ field, fieldState: { error } }) => (
+          <FormControl fullWidth error={!!error} required={required}>
             <InputLabel sx={labelSx}>
-              {loading ? `Loading ${label}...` : label}
+              {loading ? `Loading...` : label}
             </InputLabel>
             <Select
               {...field}
-              label={loading ? `Loading ${label}...` : label}
+              label={loading ? `Loading...` : label}
               sx={{
                 ...selectStyles,
                 ...valueSx,
@@ -479,10 +485,10 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
                 </MenuItem>
               ))}
             </Select>
-            {errors[name] && (
-              <FormHelperText error>
-                {errors[name]?.message?.toString()}
-              </FormHelperText>
+            {error && (
+              <Box sx={{ color: 'error.main', fontSize: '0.75rem', mt: 0.5, ml: 1.75 }}>
+                {error.message}
+              </Box>
             )}
           </FormControl>
         )}
@@ -521,7 +527,7 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
             verticalAlign: 'middle',
           }}
         >
-          Add Project Beneficiary Details
+          {getLabel('CDL_BPA_ADD_BENEFICIARY_DETAILS', 'Add Project Beneficiary Details')}
           <IconButton onClick={handleClose}>
             <CancelOutlinedIcon />
           </IconButton>
@@ -542,35 +548,57 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
             <Grid container rowSpacing={4} columnSpacing={2} mt={3}>
               {renderTextField(
                 'reaBeneficiaryId',
-                'Beneficiary ID',
+                getLabel('CDL_BPA_BENEFICIARY_ID', 'Beneficiary ID'),
                 '',
                 6,
-                true
+                true, // Required
+                16 // Max length
               )}
               {renderSelectField(
                 'reaBeneficiaryType',
-                'Beneficiary Type',
+                getLabel('CDL_BPA_TRANSFER_TYPE', 'Transfer Type'),
                 beneficiaryTypes,
                 6,
-                true,
+                true, // Required
                 dropdownsLoading
               )}
-              {renderTextField('reaName', 'Name', '', 12, true)}
               {renderTextField(
-                'reaBankName',
-                'Bank Name',
-                '',
-                6,
-                true,
+                'reaName', 
+                getLabel('CDL_BPA_BENEFICIARY_NAME', 'Beneficiary Name'), 
+                '', 
+                12, 
+                true, // Required
+                35 // Max length
               )}
-              {renderTextField('reaSwiftCode', 'SWIFT Code', '', 6, true)}
-              {renderTextField('reaRoutingCode', 'Routing Code', '', 6, true)}
+              {renderSelectField(
+                'reaBankName',
+                getLabel('CDL_BPA_BENEFICIARY_BANK', 'Beneficiary Bank'),
+                bankNames,
+                6,
+                true, // Required
+                dropdownsLoading
+              )}
+              {renderTextField(
+                'reaSwiftCode', 
+                getLabel('CDL_BPA_SWIFT_CODE', 'SWIFT Code'), 
+                '', 
+                6, 
+                true // Required
+              )}
+              {renderTextField(
+                'reaRoutingCode', 
+                getLabel('CDL_BPA_ROUTING_CODE', 'Routing Code'), 
+                '', 
+                6, 
+                true, // Required
+                10 // Max length
+              )}
               {renderTextField(
                 'reaAccountNumber',
-                'Account Number',
+                getLabel('CDL_BPA_ACCOUNT_NUMBER', 'Account Number/IBAN'),
                 '',
                 6,
-                true
+                true // Required
               )}
             </Grid>
           </DialogContent>
@@ -591,7 +619,7 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
                   variant="outlined"
                   onClick={handleClose}
                   disabled={
-                    addBeneficiaryMutation.isPending || dropdownsLoading
+                    addBeneficiaryMutation.isPending || updateBeneficiaryMutation.isPending || dropdownsLoading
                   }
                   sx={{
                     fontFamily: 'Outfit, sans-serif',
@@ -602,7 +630,7 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
                     letterSpacing: 0,
                   }}
                 >
-                  Cancel
+                  {getLabel('CDL_BPA_CANCEL', 'Cancel')}
                 </Button>
               </Grid>
               <Grid size={{ xs: 6 }}>
@@ -612,7 +640,7 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
                   color="primary"
                   type="submit"
                   disabled={
-                    addBeneficiaryMutation.isPending || dropdownsLoading
+                    addBeneficiaryMutation.isPending || updateBeneficiaryMutation.isPending || dropdownsLoading
                   }
                   onClick={() => {
                     
@@ -628,7 +656,10 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
                     color: '#fff',
                   }}
                 >
-                  {addBeneficiaryMutation.isPending ? 'Adding...' : 'Add'}
+                  {(addBeneficiaryMutation.isPending || updateBeneficiaryMutation.isPending)
+                    ? (editingBeneficiary?.id ? getLabel('CDL_BPA_UPDATING', 'Updating...') : getLabel('CDL_BPA_ADDING', 'Adding...'))
+                    : (editingBeneficiary?.id ? getLabel('CDL_BPA_UPDATE', 'Update') : getLabel('CDL_BPA_ADD', 'Add'))
+                  }
                 </Button>
               </Grid>
             </Grid>

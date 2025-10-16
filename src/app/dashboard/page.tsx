@@ -205,7 +205,7 @@ const DateRangeDisplay = ({
             startDate={startDate}
             endDate={endDate}
             onChange={onDateChange}
-            className="w-full p-4 bg-white border border-gray-300 rounded-lg shadow-lg"
+            className="bg-white border border-gray-300 rounded-lg shadow-lg p-4 w-full"
           />
         </div>
       )}
@@ -252,13 +252,11 @@ const FiltersRow = ({ onSubmit }: { onSubmit?: () => void }) => {
     setSelectedDeveloper(value)
   }
 
-  // Handle build partner option selection (gets the complete object)
   const handleBuildPartnerOptionSelect = (option: any) => {
     setSelectedBuildPartnerOption(option)
     if (option.buildPartner) {
       setSelectedBuildPartner(option.buildPartner)
-      // Here you can use the complete build partner object for other API calls
-      // For example: option.buildPartner.id, option.buildPartner.bpName, etc.
+    
     }
   }
 
@@ -267,13 +265,12 @@ const FiltersRow = ({ onSubmit }: { onSubmit?: () => void }) => {
     setSelectedProject(value)
   }
 
-  // Handle real estate asset option selection (gets the complete object)
+
   const handleRealEstateAssetOptionSelect = (option: any) => {
     setSelectedRealEstateAssetOption(option)
     if (option.realEstateAsset) {
       setSelectedRealEstateAsset(option.realEstateAsset)
-      // Here you can use the complete real estate asset object for other API calls
-      // For example: option.realEstateAsset.id, option.realEstateAsset.reaName, etc.
+    
     }
   }
 
@@ -281,13 +278,7 @@ const FiltersRow = ({ onSubmit }: { onSubmit?: () => void }) => {
   React.useEffect(() => {
     if (selectedBuildPartner) {
       // Example of accessing build partner data for other API calls:
-      // const partnerId = selectedBuildPartner.id
-      // const partnerName = selectedBuildPartner.bpName
-      // const developerId = selectedBuildPartner.bpDeveloperId
-      // const cif = selectedBuildPartner.bpCifrera
-      // const email = selectedBuildPartner.bpEmail
-      // const mobile = selectedBuildPartner.bpMobile
-      // You can use these values to call other APIs that need build partner information
+
     }
   }, [selectedBuildPartner])
 
@@ -295,16 +286,12 @@ const FiltersRow = ({ onSubmit }: { onSubmit?: () => void }) => {
   React.useEffect(() => {
     if (selectedRealEstateAsset) {
       // Example of accessing real estate asset data for other API calls:
-      // const assetId = selectedRealEstateAsset.id
-      // const assetName = selectedRealEstateAsset.reaName
-      // const assetLocation = selectedRealEstateAsset.reaLocation
-      // const buildPartnerId = selectedRealEstateAsset.buildPartnerDTO?.id
-      // You can use these values to call other APIs that need real estate asset information
+    
     }
   }, [selectedRealEstateAsset])
 
   return (
-    <div className="flex flex-col gap-4 mt-8 mb-6 lg:flex-row lg:justify-between lg:items-end">
+    <div className="flex flex-col lg:flex-row lg:justify-between lg:items-end gap-4 mb-6 mt-8">
       <div className="flex flex-wrap gap-3">
         <div className="flex flex-col">
           <label className="text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
@@ -356,7 +343,7 @@ const FiltersRow = ({ onSubmit }: { onSubmit?: () => void }) => {
         </div>
         <div className="flex flex-col items-center justify-end mb-[2px]">
           <button
-            className="px-4 py-2 text-white transition-colors bg-blue-500 rounded-lg cursor-pointer hover:bg-blue-600"
+            className="bg-blue-500 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-600 transition-colors"
             onClick={onSubmit}
           >
             Submit
@@ -368,25 +355,32 @@ const FiltersRow = ({ onSubmit }: { onSubmit?: () => void }) => {
 }
 
 const MainBalance = ({ dashboardData }: { dashboardData: any }) => (
-  <div className="pb-8 mt-8 mb-8 border-b border-gray-200">
-    <h1 className="mb-2 text-2xl font-semibold leading-tight text-gray-900 lg:text-3xl">
-      Available balance in account's
+  <div className="mb-8 mt-8 pb-8 border-b border-gray-200">
+    <h1 className="text-2xl lg:text-3xl font-semibold text-gray-900 mb-2 leading-tight">
+      Available Balance in Accounts
     </h1>
-    <div className="mb-6 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-6">
       MAIN TRUST ACCOUNT SUMMARY
     </div>
-    <div className="flex gap-6">
-      <div className="text-4xl font-bold leading-none tracking-tight text-gray-900 lg:text-5xl">
-        ₹
-        {formatIndianCurrency(
-          dashboardData?.mainTrustSummary?.availableBalance
-        )}
+    <div className="flex flex-wrap items-baseline gap-4 lg:gap-6">
+      <div className="flex items-baseline gap-2">
+        <span className="text-2xl lg:text-3xl font-bold text-gray-900">₹</span>
+        <span className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900 leading-none">
+          {formatIndianCurrency(
+            dashboardData?.mainTrustSummary?.availableBalance
+          )}
+        </span>
       </div>
       <div className="flex flex-col">
-        <div className="text-xl font-semibold leading-tight text-gray-900 lg:text-2xl">
+        <div className="text-xl lg:text-2xl font-semibold text-gray-900 leading-tight">
           CRORE
         </div>
-        <TrendBadge value="12% vs last month" isPositive />
+        <TrendBadge
+          value={`${dashboardData?.mainTrustSummary?.depositVsLastPeriodPercent || 12}% vs last month`}
+          isPositive={
+            dashboardData?.mainTrustSummary?.depositVsLastPeriodPercent >= 0
+          }
+        />
       </div>
     </div>
   </div>
@@ -418,10 +412,10 @@ const CustomLegend = ({
     {data.map((entry, i) => (
       <div key={i} className="flex items-center gap-2">
         <div
-          className="flex-shrink-0 w-3 h-3 rounded-sm"
+          className="w-3 h-3 rounded-sm flex-shrink-0"
           style={{ backgroundColor: entry.color }}
         />
-        <span className="text-sm font-medium leading-relaxed text-gray-600">
+        <span className="text-gray-600 text-sm font-medium leading-relaxed">
           {entry.name}
         </span>
       </div>
@@ -445,27 +439,27 @@ const KpiCard = ({
   <div
     className={`bg-white rounded-xl shadow-sm border border-gray-200 h-full p-6 ${className}`}
   >
-    <div className="mb-4 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+    <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
       {title}
     </div>
-    <div className="flex flex-col items-baseline gap-1 mb-8">
-      <div className="text-2xl font-bold leading-tight text-gray-900 lg:text-3xl">
+    <div className="flex items-baseline gap-1 mb-8 flex-col">
+      <div className="text-2xl lg:text-3xl font-bold text-gray-900 leading-tight">
         ₹{formatIndianCurrency(amount)}
       </div>
       <div className="-mt-1 -mb-1">
         <TrendBadge {...trend} />
       </div>
     </div>
-    <div className="flex flex-col items-center justify-between h-80">
-      <div className="flex justify-center flex-1">
-        <div className="w-40 h-40">
+    <div className="flex items-center justify-between h-[330px] flex-col">
+      <div className="flex-1 flex justify-center w-full">
+        <div className="w-48 h-48">
           <HighchartsReact
             highcharts={Highcharts}
             options={getDonutChartOptions(data)}
           />
         </div>
       </div>
-      <div className="flex items-center justify-start flex-1 pl-6 mt-4">
+      <div className="flex-1 flex items-start justify-center w-full px-4">
         <CustomLegend data={data} />
       </div>
     </div>
@@ -491,15 +485,15 @@ const AccountCard = ({
   }
 
   return (
-    <div className="w-full p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 w-full">
       <div className="flex items-center gap-3 mb-4">
         <div className={`w-3 h-3 rounded-full border-2 ${iconColors[type]}`} />
-        <div className="text-xs font-semibold tracking-wider text-gray-500 uppercase">
+        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
           {title}
         </div>
       </div>
-      <div className="flex flex-col items-baseline gap-1">
-        <div className="text-xl font-bold leading-tight text-gray-900">
+      <div className="flex items-baseline gap-1 flex-col">
+        <div className="text-xl font-bold text-gray-900 leading-tight">
           ₹{formatIndianCurrency(amount)}
         </div>
         <div className="-mt-1 -mb-1">
@@ -520,13 +514,15 @@ const StatusBars = ({
   // Dynamic chart configuration based on actual data
   const maxValue = Math.max(...data.map((item) => item.y), 100)
   const hasData = data && data.length > 0
-  const chartHeight = Math.max(200, data.length * 40 + 100) // Dynamic height based on data items
+  const chartHeight = Math.max(300, data.length * 50 + 100) // Dynamic height based on data items
 
   const statusChartOptions = {
     chart: {
       type: 'bar',
       backgroundColor: 'transparent',
       height: chartHeight,
+      marginBottom: 100,
+      marginTop: 20,
     },
     title: {
       text: null,
@@ -607,14 +603,14 @@ const StatusBars = ({
   }
 
   return (
-    <div className="h-full p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
-      <div className="mb-4 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 h-full p-6">
+      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
         UNIT STATUS COUNT
       </div>
-      <div className="mb-8 text-3xl font-bold leading-tight text-gray-900">
+      <div className="text-3xl font-bold text-gray-900 mb-4 leading-tight">
         {total}
       </div>
-      <div className="h-48">
+      <div className="h-[330px] overflow-hidden">
         <HighchartsReact highcharts={Highcharts} options={statusChartOptions} />
       </div>
     </div>
@@ -631,13 +627,15 @@ const GuaranteeChart = ({
   // Dynamic chart configuration based on actual data
   const maxValue = Math.max(...data.map((item) => item.y), 1)
   const hasData = data && data.length > 0
-  const chartHeight = Math.max(200, data.length * 50 + 100) // Dynamic height based on data items
+  const chartHeight = Math.max(300, data.length * 50 + 100) // Dynamic height based on data items
 
   const guaranteeChartOptions = {
     chart: {
       type: 'column',
       backgroundColor: 'transparent',
       height: chartHeight,
+      marginBottom: 100,
+      marginTop: 20,
     },
     title: {
       text: null,
@@ -721,14 +719,14 @@ const GuaranteeChart = ({
   }
 
   return (
-    <div className="h-full p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
-      <div className="mb-4 text-xs font-semibold tracking-wider text-gray-500 uppercase">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 h-full p-6">
+      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
         GUARANTEE STATUS
       </div>
-      <div className="mb-8 text-3xl font-bold leading-tight text-gray-900">
+      <div className="text-3xl font-bold text-gray-900 mb-8 leading-tight">
         {total}
       </div>
-      <div className="h-48">
+      <div className="h-[330px] overflow-hidden">
         <HighchartsReact
           highcharts={Highcharts}
           options={guaranteeChartOptions}
@@ -760,42 +758,7 @@ const Dashboard = () => {
     } catch (error) {}
   }
 
-  // Transform API data to chart format
-  // Real API response structure:
-  // {
-  //   "mainTrustSummary": {
-  //     "availableBalance": 4.0E7,
-  //     "totalDeposits": 6.0E7,
-  //     "totalPayments": 2.0E7,
-  //     "totalFeesCollected": 3000000.0,
-  //     "depositVsLastPeriodPercent": -8.0,
-  //     "paymentVsLastPeriodPercent": 6.0,
-  //     "feesVsLastPeriodPercent": 2.0,
-  //     "depositBreakdown": [...],
-  //     "expenseBreakdown": [...],
-  //     "feesBreakdown": [...]
-  //   },
-  //   "otherAccounts": [...],
-  //   "unitStatus": {
-  //     "totalUnitsCount": 20678,
-  //     "items": [
-  //       { "unitStatus": "Sold", "count": 12407 },
-  //       { "unitStatus": "Unsold", "count": 15715 },
-  //       { "unitStatus": "Freeze", "count": 15715 },
-  //       { "unitStatus": "Resold", "count": 9256 },
-  //       { "unitStatus": "Cancelled", "count": 11586 }
-  //     ]
-  //   },
-  //   "guaranteeStatus": {
-  //     "totalGuaranteesCount": 3,
-  //     "totalGuaranteedAmount": 14267900.0,
-  //     "items": [
-  //       { "guaranteeType": "Advanced Guarantee", "amount": 3500000.0 },
-  //       { "guaranteeType": "Retention Guarantee", "amount": 2700000.0 },
-  //       { "guaranteeType": "Performance Guarantee", "amount": 8067900.0 }
-  //     ]
-  //   }
-  // }
+
   const transformApiDataToCharts = (data: any) => {
     // Debug: Log the actual API response structure
     if (data) {
@@ -892,10 +855,9 @@ const Dashboard = () => {
       }))
     }
 
-    // Transform unit status data to chart format
+  
     const transformUnitStatus = (_unitStatusData: any) => {
-      // For now, let's use static data to ensure the chart displays something
-      // TODO: Replace with real API data once the structure is confirmed
+     
       return statusData
     }
 
@@ -1011,26 +973,24 @@ const Dashboard = () => {
     return transformedData
   }
 
-  // Get transformed data
   const chartData = transformApiDataToCharts(dashboardData)
   // Loading state
   if (isLoading) {
     return (
-      <div className="h-full min-h-screen p-4 overflow-auto bg-gray-100 lg:p-6">
+      <div className="min-h-screen bg-gray-100 p-4 lg:p-6 h-full overflow-auto">
         <Header title={dashboardTitle} subtitle="" className="!p-0" />
-        <div className="flex items-center justify-center w-full h-64">
+        <div className="w-full flex items-center justify-center h-64">
           <div className="text-lg text-gray-600">Loading...</div>
         </div>
       </div>
     )
   }
 
-  // Error state
   if (error) {
     return (
-      <div className="h-full min-h-screen p-4 overflow-auto bg-gray-100 lg:p-6">
+      <div className="min-h-screen bg-gray-100 p-4 lg:p-6 h-full overflow-auto">
         <Header title={dashboardTitle} subtitle="" className="!p-0" />
-        <div className="flex items-center justify-center w-full h-64">
+        <div className="w-full flex items-center justify-center h-64">
           <div className="text-lg text-red-600">
             Error loading dashboard data. Please try again.
           </div>
@@ -1040,14 +1000,14 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="h-full min-h-screen p-6 overflow-auto bg-gray-50 lg:p-8">
+    <div className="min-h-screen bg-gray-50 p-6 lg:p-8 h-full overflow-auto">
       <Header title={dashboardTitle} subtitle="" className="!p-0" />
-      <div className="w-full mx-auto max-w-7xl">
+      <div className="w-full max-w-7xl mx-auto">
         <FiltersRow onSubmit={handleSubmit} />
 
         <MainBalance dashboardData={dashboardData} />
 
-        <div className="flex justify-between gap-6 mt-8 mb-8">
+        <div className="flex gap-6 mb-8 mt-8 justify-between">
           <AccountCard
             type="retention"
             title="RETENTION ACCOUNT"
@@ -1074,9 +1034,9 @@ const Dashboard = () => {
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-8 xl:grid-cols-12">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
           <div className="xl:col-span-12">
-            <div className="grid grid-cols-1 gap-6 mb-8 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               <KpiCard
                 title="TOTAL DEPOSITS (MAIN A/C)"
                 amount={chartData.totals.deposits}
@@ -1097,7 +1057,7 @@ const Dashboard = () => {
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div>
                 <StatusBars
                   data={chartData.statusData}
@@ -1113,32 +1073,6 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* <div className="space-y-6 xl:col-span-3">
-            <AccountCard
-              type="retention"
-              title="RETENTION ACCOUNT"
-              amount={chartData.accountData.retention}
-              trend={chartData.trends.retention}
-            />
-            <AccountCard
-              type="wakala"
-              title="WAKALA ACCOUNT"
-              amount={chartData.accountData.wakala}
-              trend={chartData.trends.wakala}
-            />
-            <AccountCard
-              type="corporate"
-              title="CORPORATE ACCOUNT"
-              amount={chartData.accountData.corporate}
-              trend={chartData.trends.corporate}
-            />
-            <AccountCard
-              type="trust"
-              title="TRUST ACCOUNT"
-              amount={chartData.accountData.trust}
-              trend={chartData.trends.trust}
-            />
-          </div> */}
         </div>
       </div>
     </div>

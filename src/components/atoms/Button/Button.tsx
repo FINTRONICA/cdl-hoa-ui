@@ -34,7 +34,7 @@ export const Button: React.FC<ButtonProps> = ({
     lg: 'px-6 py-3 text-lg rounded-lg',
   }
 
-  const loadingClasses = loading ? 'cursor-wait' : ''
+  const loadingClasses = loading ? 'Loading...' : ''
 
   const classes = cn(
     baseClasses,

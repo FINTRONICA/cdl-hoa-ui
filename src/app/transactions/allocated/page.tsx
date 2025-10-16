@@ -203,9 +203,9 @@ const AllocatedTransactionPage: React.FC = () => {
   })
 
   const handlePageChange = (newPage: number) => {
-    const hasActiveSearch = Object.values(search).some((value) => value.trim())
+    const hasSearch = Object.values(search).some((value) => value.trim())
 
-    if (hasActiveSearch) {
+    if (hasSearch) {
       localHandlePageChange(newPage)
     } else {
       setCurrentApiPage(newPage)
@@ -223,17 +223,19 @@ const AllocatedTransactionPage: React.FC = () => {
   const apiTotal = processedTransactionsData?.page?.totalElements || 0
   const apiTotalPages = processedTransactionsData?.page?.totalPages || 1
 
-  const effectiveTotalRows = Object.values(search).some((value) => value.trim())
-    ? localTotalRows
-    : apiTotal
-  const effectiveTotalPages = Object.values(search).some((value) =>
-    value.trim()
-  )
-    ? localTotalPages
-    : apiTotalPages
-  const effectivePage = Object.values(search).some((value) => value.trim())
-    ? localPage
-    : currentApiPage
+  const hasActiveSearch = Object.values(search).some((value) => value.trim())
+
+  const effectiveTotalRows = hasActiveSearch ? localTotalRows : apiTotal
+  const effectiveTotalPages = hasActiveSearch ? localTotalPages : apiTotalPages
+  const effectivePage = hasActiveSearch ? localPage : currentApiPage
+
+  // Calculate effective startItem and endItem based on pagination type
+  const effectiveStartItem = hasActiveSearch
+    ? startItem
+    : (currentApiPage - 1) * currentApiSize + 1
+  const effectiveEndItem = hasActiveSearch
+    ? endItem
+    : Math.min(currentApiPage * currentApiSize, apiTotal)
 
   const handleRowDelete = (row: TransactionTableData) => {
     if (isDeleting) {
@@ -247,15 +249,18 @@ const AllocatedTransactionPage: React.FC = () => {
         try {
           setIsDeleting(true)
           await deleteTransaction(row.id)
-          console.log(`Transaction "${row.transId}" has been deleted successfully.`)
+          console.log(
+            `Transaction "${row.transId}" has been deleted successfully.`
+          )
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error occurred'
           console.error(`Failed to delete transaction: ${errorMessage}`)
           throw error // Re-throw to keep dialog open on error
         } finally {
           setIsDeleting(false)
         }
-      }
+      },
     })
   }
 
@@ -426,10 +431,10 @@ const AllocatedTransactionPage: React.FC = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">
               {transactionsLoading && labelsLoading
-                ? 'Loading transactions and labels...'
+                ? 'Loading...'
                 : transactionsLoading
-                  ? 'Loading transactions...'
-                  : 'Loading labels...'}
+                  ? 'Loading...'
+                  : 'Loading...'}
             </p>
           </div>
         </div>
@@ -518,8 +523,8 @@ const AllocatedTransactionPage: React.FC = () => {
                   rowsPerPage: rowsPerPage,
                   totalRows: effectiveTotalRows,
                   totalPages: effectiveTotalPages,
-                  startItem,
-                  endItem,
+                  startItem: effectiveStartItem,
+                  endItem: effectiveEndItem,
                 }}
                 onPageChange={handlePageChange}
                 onRowsPerPageChange={handleRowsPerPageChange}

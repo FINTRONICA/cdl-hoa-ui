@@ -30,7 +30,6 @@ import { API_ENDPOINTS } from '@/constants/apiEndpoints'
 import { BankDetailsResponse } from '@/types/capitalPartner'
 import {
   mapStep4ToCapitalPartnerBankInfoPayload,
-  validateStep4Data,
   type Step4FormData,
 } from '../../../../utils/capitalPartnerBankInfoMapper'
 
@@ -109,6 +108,7 @@ const Step4 = forwardRef<Step4Ref, Step4Props>(
       control,
       watch,
       setValue,
+      trigger,
       formState: { errors },
     } = useFormContext()
     const { getLabel } = useCapitalPartnerLabelsApi()
@@ -130,7 +130,7 @@ const Step4 = forwardRef<Step4Ref, Step4Props>(
     // Load existing bank data when in edit mode
     const { data: existingBankData, isLoading: isLoadingExistingBank } =
       useGetEnhanced<BankDetailsResponse[]>(
-        `${API_ENDPOINTS.OWNER_REGISTRY_BANK_INFO.GET_ALL}?capitalPartnerId.equals=${capitalPartnerId || 0}`,
+        `${API_ENDPOINTS.CAPITAL_PARTNER_BANK_INFO.GET_ALL}?capitalPartnerId.equals=${capitalPartnerId || 0}`,
         {},
         {
           enabled: Boolean(isEditMode && capitalPartnerId),
@@ -170,6 +170,23 @@ const Step4 = forwardRef<Step4Ref, Step4Props>(
           throw new Error('Capital Partner ID is required from Step1')
         }
 
+        // First, run Zod-based validation via RHF
+        const isValid = await trigger([
+          'payMode',
+          'accountNumber',
+          'payeeName',
+          'payeeAddress',
+          'bankName',
+          'bankAddress',
+          'beneficiaryRoutingCode',
+          'bic',
+        ])
+
+        if (!isValid) {
+          setSaveError('Please fix validation errors before continuing')
+          throw new Error('Validation failed')
+        }
+
         // Get current form data
         const formData: Step4FormData = {
           payMode: watch('payMode'),
@@ -180,13 +197,6 @@ const Step4 = forwardRef<Step4Ref, Step4Props>(
           bankAddress: watch('bankAddress'),
           beneficiaryRoutingCode: watch('beneficiaryRoutingCode'),
           bic: watch('bic'),
-        }
-
-        // Validate form data
-        const validationErrors = validateStep4Data(formData)
-        if (validationErrors.length > 0) {
-          setSaveError(validationErrors.join(', '))
-          throw new Error(validationErrors.join(', '))
         }
 
         // Map form data to API payload
@@ -302,11 +312,11 @@ const Step4 = forwardRef<Step4Ref, Step4Props>(
                 sx={commonInputStyles}
               >
                 <InputLabel sx={labelSx}>
-                  {loading ? `Loading ${label}...` : label}
+                  {loading ? `Loading...` : label}
                 </InputLabel>
                 <Select
                   {...field}
-                  label={loading ? `Loading ${label}...` : label}
+                  label={loading ? `Loading...` : label}
                   sx={{
                     ...selectStyles,
                     ...valueSx,
@@ -399,7 +409,7 @@ const Step4 = forwardRef<Step4Ref, Step4Props>(
                 }}
               >
                 <Typography variant="body2" color="error">
-                  ⚠️ {saveError}
+                  ⚠️ 678{saveError}
                 </Typography>
               </Box>
             )}
@@ -407,38 +417,38 @@ const Step4 = forwardRef<Step4Ref, Step4Props>(
             <Grid container rowSpacing={4} columnSpacing={2}>
               {renderApiSelectField(
                 'payMode',
-                'CDL_OWR_PAY_MODE',
-                'Pay Mode*',
+                'CDL_CP_PAY_MODE',
+                'Pay Mode',
                 paymentModes?.length
                   ? paymentModes
                   : getFallbackOptions('payMode'),
                 6,
-                true,
+                false,
                 loadingPaymentModes
               )}
               {renderTextField(
                 'accountNumber',
-                'CDL_OWR_ACCOUNT_NUMBER',
+                'CDL_CP_ACCOUNT_NUMBER',
                 'Account Number'
               )}
-              {renderTextField('payeeName', 'CDL_OWR_PAYEE_NAME', 'Payee Name')}
+              {renderTextField('payeeName', 'CDL_CP_PAYEE_NAME', 'Payee Name')}
               {renderTextField(
                 'payeeAddress',
-                'CDL_OWR_PAYEE_ADDRESS',
+                'CDL_CP_PAYEE_ADDRESS',
                 'Payee Address'
               )}
-              {renderTextField('bankName', 'CDL_OWR_BANK_NAME', 'Bank Name')}
+              {renderTextField('bankName', 'CDL_CP_BANK_NAME', 'Bank Name')}
               {renderTextField(
                 'bankAddress',
-                'CDL_OWR_BANK_ADDRESS',
+                'CDL_CP_BANK_ADDRESS',
                 'Bank Address'
               )}
               {renderTextField(
                 'beneficiaryRoutingCode',
-                'CDL_OWR_ROUTING_CODE',
+                'CDL_CP_ROUTING_CODE',
                 'Beneficiary Routing Code'
               )}
-              {renderTextField('bic', 'CDL_OWR_BIC_CODE', 'BIC')}
+              {renderTextField('bic', 'DL_CP_BIC_CODE', 'BIC')}
             </Grid>
           </CardContent>
         </Card>

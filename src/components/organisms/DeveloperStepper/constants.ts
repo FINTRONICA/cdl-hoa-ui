@@ -4,36 +4,31 @@ import { ProjectData } from './developerTypes'
 
 
 export const STEP_LABELS = [
-  getBuildPartnerLabel('CDL_AR_DETAILS'),
   'Documents (Optional)',
+  getBuildPartnerLabel('CDL_AR_DETAILS'),
   getBuildPartnerLabel('CDL_AR_CONTACT'),
-  getBuildPartnerLabel('CDL_AR_FEES'),
-  getBuildPartnerLabel('CDL_AR_BENE_INFO'),
   'Review',
 ] as const
 
 
 export const DEFAULT_FORM_VALUES: ProjectData = {
 
-  arDeveloperId: '',
+  arID: '',
   arCifrera: '',
   arDeveloperRegNo: '',
   arName: '',
-  arMasterName: '',
   arNameLocal: '',
+  arCompanyName: '',
+  arProjectName: '',
+  arMasterDeveloper: '',
+  arMasterCommunity: '',
   arOnboardingDate: null,
-  arContactAddress: '',
-  arContactTel: '',
-  arPoBox: '',
-  arMobile: '',
-  arFax: '',
-  arEmail: '',
-  arLicenseNo: '',
-  arLicenseExpDate: null,
+  arTradeLicenseNo: '',
+  arTradeLicenseExpDate: null,
   arWorldCheckFlag: false,
   arWorldCheckRemarks: '',
   arMigratedData: false,
-  arremark: '',
+  arRemark: '',
   arRegulatorDTO: { id: 0 },
 
   // Project Details
@@ -124,7 +119,7 @@ export const DEFAULT_FORM_VALUES: ProjectData = {
 
 export const DATE_FIELDS = [
   'arOnboardingDate',
-  'arLicenseExpDate', 
+  'arTradeLicenseExpDate', 
   'projectStartDate',
   'projectEndDate'
 ] as const
@@ -136,7 +131,7 @@ export const BOOLEAN_FIELDS = [
 ] as const
 
 
-export const SKIP_VALIDATION_STEPS = [1, 2, 3, 4] as const
+export const SKIP_VALIDATION_STEPS = [1, 2] as const
 
 // Steps that reset form when developerId changes
 export const RESET_FORM_STEPS = [1, 2, 3] as const

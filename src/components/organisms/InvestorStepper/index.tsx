@@ -12,29 +12,43 @@ import {
   Alert,
   Snackbar,
 } from '@mui/material'
-import { FormProvider, useForm } from 'react-hook-form'
+import { FormProvider, useForm, type Resolver, type ResolverResult } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  CapitalPartnerStep1Schema,
+  CapitalPartnerStep2Schema,
+  CapitalPartnerStep4Schema,
+  type CapitalPartnerStep1Data,
+  type CapitalPartnerStep2Data,
+} from '@/lib/validation/capitalPartnerSchemas'
 
 import Step1, { type Step1Ref } from './steps/Step1'
 import Step2, { type Step2Ref } from './steps/Step2'
 import Step3, { type Step3Ref } from './steps/Step3'
-import Step4, { type Step4Ref } from './steps/Step4'
 import Step5 from './steps/Step5'
 import DocumentUploadFactory from '../DocumentUpload/DocumentUploadFactory'
 import { DocumentItem } from '../DeveloperStepper/developerTypes'
+import { OwnerData, PaymentPlanData } from './investorsTypes'
 
-import { ProjectData } from './investorsTypes'
+
+type CapitalPartnerFormData = CapitalPartnerStep1Data &
+  CapitalPartnerStep2Data & {
+    // Add other step data types as needed
+    documents?: DocumentItem[]
+    paymentPlan?: PaymentPlanData[]
+    owners?: OwnerData[]
+  }
 import { useCreateDeveloperWorkflowRequest } from '@/hooks/workflow'
 import { useCapitalPartnerLabelsApi } from '@/hooks/useCapitalPartnerLabelsApi'
 import { useAppStore } from '@/store'
 
 // Step configuration with config IDs for dynamic labels
 const stepConfigs = [
-  { key: 'basic', configId: 'CDL_OWR_BASIC_INFO' },
-  { key: 'documents', configId: 'CDL_OWR_DOCUMENTS' },
-  { key: 'unit', configId: 'CDL_OWR_UNIT_DETAILS' },
-  { key: 'payment', configId: 'CDL_OWR_PAYMENT_PLAN' },
-  { key: 'bank', configId: 'CDL_OWR_BANK_DETAILS' },
-  { key: 'review', configId: 'CDL_OWR_REVIEW' },
+  { key: 'basic', configId: 'CDL_OWN_BASIC_INFO' },
+  { key: 'documents', configId: 'CDL_OWN_DOCUMENTS' },
+  { key: 'unit', configId: 'CDL_OWN_UNIT_DETAILS' },
+  { key: 'payment', configId: 'CDL_OWN_JOINT_OWNER_DETAILS' },
+  { key: 'review', configId: 'CDL_OWN_REVIEW' },
 ]
 
 // Fallback step labels
@@ -42,8 +56,7 @@ const fallbackSteps = [
   'Basic Details',
   'Documents',
   'Unit Details',
-  'Payment Plan',
-  'Bank Details',
+  'Joint Owner Details',
   'Review',
 ]
 
@@ -83,7 +96,40 @@ export default function InvestorsStepperWrapper({
   const step1Ref = useRef<Step1Ref>(null)
   const step2Ref = useRef<Step2Ref>(null)
   const step3Ref = useRef<Step3Ref>(null)
-  const step4Ref = useRef<Step4Ref>(null)
+
+  // Keep active step in a ref so the resolver can react to step changes without remounting the form
+  const activeStepRef = useRef(activeStep)
+  useEffect(() => {
+    activeStepRef.current = activeStep
+  }, [activeStep])
+
+  const dynamicResolver: Resolver<CapitalPartnerFormData> = useCallback(
+    async (
+      values: CapitalPartnerFormData,
+      context: unknown,
+      options: Parameters<Resolver<CapitalPartnerFormData>>[2]
+    ) => {
+      const step = activeStepRef.current
+      switch (step) {
+        case 0:
+          return (
+            zodResolver(CapitalPartnerStep1Schema) as unknown as Resolver<CapitalPartnerFormData>
+          )(values, context, options)
+        case 2:
+          return (
+            zodResolver(CapitalPartnerStep2Schema) as unknown as Resolver<CapitalPartnerFormData>
+          )(values, context, options)
+        case 4:
+          return (
+            zodResolver(CapitalPartnerStep4Schema) as unknown as Resolver<CapitalPartnerFormData>
+          )(values, context, options)
+        default:
+ 
+          return { values, errors: {} } as ResolverResult<CapitalPartnerFormData>
+      }
+    },
+    []
+  )
 
   const updateURL = (step: number, id?: number | null) => {
     if (id && step >= 0) {
@@ -117,99 +163,41 @@ export default function InvestorsStepperWrapper({
     }
   }, [params.id, capitalPartnerId])
 
-  const methods = useForm<ProjectData>({
+  const methods = useForm<CapitalPartnerFormData>({
+    resolver: dynamicResolver,
+    mode: 'onChange', // Enable real-time validation
     defaultValues: {
-      sectionId: '',
-      developerId: '',
-      developerName: '',
-      masterDeveloperName: '',
-      projectName: '',
-      projectLocation: '',
-      projectAccountCif: '',
-      projectStatus: '',
-      projectAccountStatusDate: null,
-      projectRegistrationDate: null,
-      projectStartDate: null,
-      projectCompletionDate: null,
-      retention: '',
-      additionalRetention: '',
-      totalRetention: '',
-      retentionEffectiveStartDate: null,
-      projectManagementExpenses: '',
-      marketingExpenses: '',
-      realEstateBrokerExpense: '',
-      advertisingExpense: '',
-      landOwnerName: '',
-      projectCompletionPercentage: '',
-      currency: '',
-      actualConstructionCost: '',
-      noOfUnits: '',
-      remarks: '',
-      specialApproval: '',
-      paymentType: '',
-      managedBy: '',
-      backupRef: '',
-      relationshipManager: '',
-      assistantRelationshipManager: '',
-      teamLeaderName: '',
-
-      accounts: [
-        {
-          trustAccountNumber: '',
-          ibanNumber: '',
-          dateOpened: null,
-          accountTitle: '',
-          currency: '',
-        },
-      ],
-
-      fees: [
-        {
-          feeType: '',
-          frequency: '',
-          debitAmount: '',
-          feeToBeCollected: '',
-          nextRecoveryDate: null,
-          feePercentage: '',
-          amount: '',
-          vatPercentage: '',
-        },
-      ],
-
-      beneficiaries: [
-        {
-          id: '',
-          expenseType: '',
-          transferType: '',
-          name: '',
-          bankName: '',
-          swiftCode: '',
-          routingCode: '',
-          account: '',
-        },
-      ],
-
-      paymentPlan: [
-        {
-          installmentNumber: 1,
-          installmentPercentage: '',
-          projectCompletionPercentage: '',
-        },
-      ],
-
-      financialData: {
-        projectEstimatedCost: '',
-        actualCost: '',
-        projectBudget: '',
-      },
+      // Step 1: Capital Partner Basic Info
+      investorType: '',
+      investorFirstName: '',
+      investorMiddleName: '',
+      investorLastName: '',
+      arabicName: '',
+      investorId: '',
+      investorIdType: '',
+      idNumber: '',
+      ownership: '',
+      idExpiryDate: null,
+      nationality: '',
+      accountContact: '',
+      mobileNumber: '',
+      email: '',
+     
+      
+      // Additional fields for other steps
+      documents: [],
+      paymentPlan: [],
+      owners: [],
     },
   })
 
   const handleAsyncStep = async (stepRef: {
     handleSaveAndNext: () => Promise<void>
   }) => {
+    
     try {
       setIsSaving(true)
+      
       await stepRef.handleSaveAndNext()
     } catch {
       return false
@@ -228,7 +216,7 @@ export default function InvestorsStepperWrapper({
   }
 
   const handleNext = async () => {
-    // In view mode, just navigate to next step without saving
+
     if (isViewMode) {
       navigateToNextStep()
       return
@@ -245,17 +233,14 @@ export default function InvestorsStepperWrapper({
     }
 
     if (activeStep === 2 && step2Ref.current) {
+    
       await handleAsyncStep(step2Ref.current)
       return
     }
 
     if (activeStep === 3 && step3Ref.current) {
+ 
       await handleAsyncStep(step3Ref.current)
-      return
-    }
-
-    if (activeStep === 4 && step4Ref.current) {
-      await handleAsyncStep(step4Ref.current)
       return
     }
 
@@ -307,14 +292,6 @@ export default function InvestorsStepperWrapper({
     }
   }
 
-  const handleStep4SaveAndNext = () => {
-    const nextStep = activeStep + 1
-    if (nextStep < steps.length) {
-      setActiveStep(nextStep)
-      updateURL(nextStep, capitalPartnerId)
-    }
-  }
-
   const handleDocumentsChange = useCallback(
     (documents: DocumentItem[]) => {
       methods.setValue('documents', documents)
@@ -323,8 +300,15 @@ export default function InvestorsStepperWrapper({
   )
 
   const handlePaymentPlanChange = useCallback(
-    (paymentPlan: ProjectData['paymentPlan']) => {
+    (paymentPlan: CapitalPartnerFormData['paymentPlan']) => {
       methods.setValue('paymentPlan', paymentPlan)
+    },
+    [methods]
+  )
+
+  const handleOwnersChange = useCallback(
+    (owners: OwnerData[]) => {
+      methods.setValue('owners', owners)
     },
     [methods]
   )
@@ -405,8 +389,10 @@ export default function InvestorsStepperWrapper({
         return (
           <Step3
             ref={step3Ref}
-            paymentPlan={methods.watch('paymentPlan')}
+            paymentPlan={methods.watch('paymentPlan') || []}
             onPaymentPlanChange={handlePaymentPlanChange}
+            owners={(methods.watch('owners') as OwnerData[]) || []}
+            onOwnersChange={handleOwnersChange}
             capitalPartnerId={capitalPartnerId}
             onSaveAndNext={handleStep3SaveAndNext}
             isEditMode={isEditMode}
@@ -415,17 +401,11 @@ export default function InvestorsStepperWrapper({
         )
       case 4:
         return (
-          <Step4
-            ref={step4Ref}
-            capitalPartnerId={capitalPartnerId}
-            onSaveAndNext={handleStep4SaveAndNext}
-            isEditMode={isEditMode}
+          <Step5 
+            capitalPartnerId={capitalPartnerId} 
             isViewMode={isViewMode}
+            owners={(methods.watch('owners') as OwnerData[]) || []}
           />
-        )
-      case 5:
-        return (
-          <Step5 capitalPartnerId={capitalPartnerId} isViewMode={isViewMode} />
         )
       default:
         return null
@@ -534,6 +514,7 @@ export default function InvestorsStepperWrapper({
                     createCapitalPartnerWorkflowRequest.isPending
                   }
                   sx={{
+                    
                     width: '114px',
                     height: '36px',
                     gap: '6px',

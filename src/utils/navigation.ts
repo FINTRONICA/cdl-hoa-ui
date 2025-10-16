@@ -138,6 +138,18 @@ export const setGlobalRouter = (router: any) => {
 export const getGlobalRouter = () => globalRouter
 
 export const serviceNavigation = {
+  navigateTo: (path: string, replace: boolean = false) => {
+    if (globalRouter) {
+      if (replace) {
+        globalRouter.replace(path)
+      } else {
+        globalRouter.push(path)
+      }
+    } else if (typeof window !== 'undefined') {
+      window.location.href = path
+    }
+  },
+  
   goToLogin: (redirectTo?: string) => {
     const path = redirectTo ? `/login?redirect=${encodeURIComponent(redirectTo)}` : '/login'
     

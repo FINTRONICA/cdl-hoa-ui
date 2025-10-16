@@ -22,19 +22,15 @@ import { capitalPartnerUnitBookingService } from '../../../../services/api/capit
 import { capitalPartnerUnitPurchaseService } from '../../../../services/api/capitalPartnerUnitPurchaseService'
 import {
   mapStep2ToCapitalPartnerUnitPayload,
-  validateStep2Data,
   type Step2FormData,
 } from '../../../../utils/capitalPartnerUnitMapper'
 
 import {
-  Box,
   Button,
   Card,
   CardContent,
-  FormHelperText,
   Grid,
   TextField,
-  Typography,
   FormControl,
   InputLabel,
   Select,
@@ -49,6 +45,8 @@ import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import dayjs from 'dayjs'
+import { CapitalPartnerStep2Schema } from '@/lib/validation/capitalPartnerSchemas'
+import { FormError } from '../../../atoms/FormError'
 
 interface Step2Props {
   onSaveAndNext?: (data: any) => void
@@ -71,13 +69,14 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
       watch,
       setValue,
       formState: { errors },
+      setError,
+      clearErrors,
+      trigger,
     } = useFormContext()
 
-    // Get labels from API
     const { getLabel } = useCapitalPartnerLabelsApi()
     const currentLanguage = useAppStore((state) => state.language)
 
-    const [saveError, setSaveError] = useState<string | null>(null)
     const [selectedProject, setSelectedProject] = useState<any>(null)
     const [isFormInitialized, setIsFormInitialized] = useState<boolean>(false)
 
@@ -85,21 +84,11 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
       setIsFormInitialized(false)
       setSelectedProject(null)
     }, [isEditMode, capitalPartnerId])
-    const {
-      data: unitStatuses,
-      loading: loadingUnitStatuses,
-      error: unitStatusesError,
-    } = useUnitStatuses()
-    const {
-      data: propertyIds,
-      loading: loadingPropertyIds,
-      error: propertyIdsError,
-    } = usePropertyIds()
-    const {
-      data: realEstateAssets,
-      loading: loadingProjects,
-      error: projectsError,
-    } = useRealEstateAssets()
+    const { data: unitStatuses, loading: loadingUnitStatuses } =
+      useUnitStatuses()
+    const { data: propertyIds, loading: loadingPropertyIds } = usePropertyIds()
+    const { data: realEstateAssets, loading: loadingProjects } =
+      useRealEstateAssets()
 
     const projectOptions =
       transformRealEstateAssetsForDropdown(realEstateAssets)
@@ -109,7 +98,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
       isLoading: isLoadingExistingUnit,
       error: errorLoadingUnit,
     } = useGetEnhanced<CapitalPartnerUnitResponse[]>(
-      `${API_ENDPOINTS.OWNER_REGISTRY_UNIT.GET_ALL}?capitalPartnerId.equals=${capitalPartnerId || 0}`,
+      `${API_ENDPOINTS.CAPITAL_PARTNER_UNIT.GET_ALL}?capitalPartnerId.equals=${capitalPartnerId || 0}`,
       {},
       {
         enabled: Boolean(isEditMode && capitalPartnerId),
@@ -126,9 +115,8 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
     const {
       data: existingUnitPurchaseData,
       isLoading: isLoadingExistingPurchase,
-      error: errorPurchase,
     } = useGetEnhanced<CapitalPartnerUnitPurchaseResponse[]>(
-      `${API_ENDPOINTS.OWNER_REGISTRY_UNIT_PURCHASE.GET_ALL}?capitalPartnerUnitId.equals=${unitId || 0}`,
+      `${API_ENDPOINTS.CAPITAL_PARTNER_UNIT_PURCHASE.GET_ALL}?capitalPartnerUnitId.equals=${unitId || 0}`,
       {},
       {
         enabled: Boolean(isEditMode && isUnitDataReady && unitId),
@@ -138,9 +126,8 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
     const {
       data: existingUnitBookingData,
       isLoading: isLoadingExistingBooking,
-      error: errorBooking,
     } = useGetEnhanced<any[]>(
-      `${API_ENDPOINTS.OWNER_REGISTRY_UNIT_BOOKING.GET_ALL}?capitalPartnerUnitId.equals=${unitId || 0}`,
+      `${API_ENDPOINTS.CAPITAL_PARTNER_UNIT_BOOKING.GET_ALL}?capitalPartnerUnitId.equals=${unitId || 0}`,
       {},
       {
         enabled: Boolean(isEditMode && isUnitDataReady && unitId),
@@ -277,16 +264,77 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
 
       if (selectedProjectData) {
         setSelectedProject(selectedProjectData)
-        setValue('projectId', selectedProjectData.projectId)
-        setValue('developerIdInput', selectedProjectData.developerId)
-        setValue('developerNameInput', selectedProjectData.developerName)
+        setValue('projectId', selectedProjectData.projectId, {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true,
+        })
+        setValue('developerIdInput', selectedProjectData.developerId, {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true,
+        })
+        setValue('developerNameInput', selectedProjectData.developerName, {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true,
+        })
+        // Clear any prior manual errors for these auto-filled fields
+        clearErrors([
+          'projectId',
+          'developerIdInput',
+          'developerNameInput',
+        ] as unknown as any)
       }
     }
     const handleSaveAndNext = async () => {
+      console.log('inside step 2 handle save and next')
       try {
-        setSaveError(null)
+        // Validate required fields first so UI shows errors immediately
+        const requiredValid = await (async () => {
+          try {
+            const result = CapitalPartnerStep2Schema.safeParse({
+              projectNameDropdown: watch('projectNameDropdown'),
+              projectId: watch('projectId'),
+              developerIdInput: watch('developerIdInput'),
+              developerNameInput: watch('developerNameInput'),
+              unitNoQaqood: watch('unitNoQaqood'),
+              unitStatus: watch('unitStatus'),
+              plotSize: watch('plotSize'),
+              propertyId: watch('propertyId'),
+            })
+            if (!result.success) {
+              const fieldsToCheck = [
+                'projectNameDropdown',
+                'projectId',
+                'developerIdInput',
+                'developerNameInput',
+                'unitNoQaqood',
+                'unitStatus',
+                'plotSize',
+                'propertyId',
+              ] as const
+              clearErrors(fieldsToCheck as unknown as any)
+              result.error.issues.forEach((issue) => {
+                const field = (issue.path?.[0] as string) || ''
+                if (field) {
+                  setError(field as any, {
+                    type: 'manual',
+                    message: issue.message,
+                  })
+                }
+              })
+              return false
+            }
+            return true
+          } catch {
+            return false
+          }
+        })()
+        if (!requiredValid) {
+          throw new Error('Please fill all required fields')
+        }
         if (!capitalPartnerId) {
-          setSaveError('Capital Partner ID is required from Step1')
           throw new Error('Capital Partner ID is required from Step1')
         }
         const formData: Step2FormData = {
@@ -328,10 +376,31 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
           transferredAmount: watch('transferredAmount'),
           unitRemarks: watch('unitRemarks'),
         }
-        const validationErrors = validateStep2Data(formData)
-        if (validationErrors.length > 0) {
-          setSaveError(validationErrors.join(', '))
-          throw new Error(validationErrors.join(', '))
+        console.log('am i here?')
+        console.log('scheemma', CapitalPartnerStep2Schema)
+        const zodResult = CapitalPartnerStep2Schema.safeParse(formData)
+        console.log('zodResult', zodResult)
+        if (!zodResult.success) {
+          const fieldsToCheck = [
+            'projectNameDropdown',
+            'projectId',
+            'developerIdInput',
+            'developerNameInput',
+            'unitNoQaqood',
+            'unitStatus',
+            'plotSize',
+            'propertyId',
+          ] as const
+          clearErrors(fieldsToCheck as unknown as any)
+          zodResult.error.issues.forEach((issue) => {
+            const field = (issue.path?.[0] as string) || ''
+            if (field) {
+              setError(field as any, { type: 'manual', message: issue.message })
+            }
+          })
+          throw new Error('Please fix validation errors')
+        } else {
+          clearErrors()
         }
         const { unitPayload, bookingPayload, purchasePayload } =
           mapStep2ToCapitalPartnerUnitPayload(
@@ -438,9 +507,6 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
           onSaveAndNext({ unitResponse, bookingResponse, purchaseResponse })
         }
       } catch (error) {
-        setSaveError(
-          error instanceof Error ? error.message : 'Failed to save data'
-        )
         throw error
       }
     }
@@ -549,7 +615,8 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
       fallbackLabel: string,
       defaultValue = '',
       gridMd = 6,
-      disabled = false
+      disabled = false,
+      required = false
     ) => {
       const label = getLabel(configId, currentLanguage, fallbackLabel)
       return (
@@ -557,19 +624,35 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
           <Controller
             name={name}
             control={control}
+            rules={required ? { required: `${label} is required` } : {}}
             defaultValue={defaultValue}
             render={({ field }) => (
-              <TextField
-                {...field}
-                label={label}
-                fullWidth
-                disabled={disabled || isViewMode}
-                InputLabelProps={{ sx: labelSx }}
-                InputProps={{ sx: valueSx }}
-                sx={commonFieldStyles}
-                value={field.value || ''}
-                onChange={field.onChange}
-              />
+              <>
+                <TextField
+                  {...field}
+                  label={label}
+                  fullWidth
+                  disabled={disabled || isViewMode}
+                  error={!!errors[name]}
+                  InputLabelProps={{ sx: labelSx }}
+                  InputProps={{ sx: valueSx }}
+                  sx={commonFieldStyles}
+                  required={required}
+                  value={field.value || ''}
+                  onChange={(e) => {
+                    field.onChange(e)
+                    if (errors[name]) {
+                      clearErrors(name as any)
+                    }
+                    // re-validate this field to update resolver-based errors
+                    trigger(name as any)
+                  }}
+                />
+                <FormError
+                  error={errors[name]?.message as string}
+                  touched={true}
+                />
+              </>
             )}
           />
         </Grid>
@@ -594,13 +677,14 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
             rules={required ? { required: `${label} is required` } : {}}
             defaultValue={''}
             render={({ field }) => (
-              <FormControl fullWidth error={!!errors[name]}>
-                <InputLabel sx={labelSx}>
-                  {loading ? `Loading ${label}...` : label}
+              <FormControl fullWidth error={!!errors[name]} required={required}>
+                <InputLabel sx={labelSx} required={required}>
+                  {loading ? `Loading...` : label}
                 </InputLabel>
                 <Select
                   {...field}
-                  label={loading ? `Loading ${label}...` : label}
+                  label={loading ? `Loading...` : label}
+                  required={required}
                   sx={{
                     ...selectStyles,
                     ...valueSx,
@@ -626,11 +710,10 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                     </MenuItem>
                   ))}
                 </Select>
-                {errors[name] && (
-                  <FormHelperText error>
-                    {errors[name]?.message?.toString()}
-                  </FormHelperText>
-                )}
+                <FormError
+                  error={errors[name]?.message as string}
+                  touched={true}
+                />
               </FormControl>
             )}
           />
@@ -656,13 +739,14 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
             rules={required ? { required: `${label} is required` } : {}}
             defaultValue={''}
             render={({ field }) => (
-              <FormControl fullWidth error={!!errors[name]}>
-                <InputLabel sx={labelSx}>
-                  {loading ? `Loading ${label}...` : label}
+              <FormControl fullWidth error={!!errors[name]} required={required}>
+                <InputLabel sx={labelSx} required={required}>
+                  {loading ? `Loading...` : label}
                 </InputLabel>
                 <Select
                   {...field}
-                  label={loading ? `Loading ${label}...` : label}
+                  label={loading ? `Loading...` : label}
+                  required={required}
                   sx={{
                     ...selectStyles,
                     ...valueSx,
@@ -691,11 +775,10 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                     </MenuItem>
                   ))}
                 </Select>
-                {errors[name] && (
-                  <FormHelperText error>
-                    {errors[name]?.message?.toString()}
-                  </FormHelperText>
-                )}
+                <FormError
+                  error={errors[name]?.message as string}
+                  touched={true}
+                />
               </FormControl>
             )}
           />
@@ -714,6 +797,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
           return [
             { id: 1, displayName: 'Property 1', settingValue: '1' },
             { id: 2, displayName: 'Property 2', settingValue: '2' },
+            { id: 3, displayName: 'Property 3', settingValue: '3' },
           ]
         default:
           return []
@@ -768,6 +852,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
 
     return (
       <LocalizationProvider dateAdapter={AdapterDayjs}>
+        {/** Inline field errors + a small top banner for save errors. */}
         <Card
           sx={{
             boxShadow: 'none',
@@ -777,63 +862,12 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
           }}
         >
           <CardContent>
-            {(unitStatusesError || projectsError || propertyIdsError) && (
-              <Box
-                sx={{
-                  mb: 2,
-                  p: 1,
-                  bgcolor: '#fef2f2',
-                  borderRadius: 1,
-                  border: '1px solid #ef4444',
-                }}
-              >
-                <Typography variant="body2" color="error">
-                  ⚠️ Failed to load dropdown options.
-                  {unitStatusesError && ' Unit statuses failed to load.'}
-                  {projectsError && ' Projects failed to load.'}
-                  {propertyIdsError && ' Property IDs failed to load.'}
-                </Typography>
-              </Box>
-            )}
-            {(errorLoadingUnit || errorPurchase || errorBooking) && (
-              <Box
-                sx={{
-                  mb: 2,
-                  p: 1,
-                  bgcolor: '#fef2f2',
-                  borderRadius: 1,
-                  border: '1px solid #ef4444',
-                }}
-              >
-                <Typography variant="body2" color="error">
-                  ⚠️ Failed to load existing data.
-                  {errorLoadingUnit && ' Unit data failed to load.'}
-                  {errorPurchase && ' Purchase data failed to load.'}
-                  {errorBooking && ' Booking data failed to load.'}
-                </Typography>
-              </Box>
-            )}
-            {saveError && (
-              <Box
-                sx={{
-                  mb: 2,
-                  p: 1,
-                  bgcolor: '#fef2f2',
-                  borderRadius: 1,
-                  border: '1px solid #ef4444',
-                }}
-              >
-                <Typography variant="body2" color="error">
-                  ⚠️ {saveError}
-                </Typography>
-              </Box>
-            )}
-
+            {/* Removed top banner error; rely on inline field errors for consistency with Step 1 */}
             <Grid container rowSpacing={4} columnSpacing={2}>
               {renderProjectSelectField(
                 'projectNameDropdown',
-                'CDL_OWR_PROJECT_NAME',
-                'Project Name*',
+                'CDL_OWN_PROPERTY_NAME',
+                'Property Name',
                 projectOptions,
                 6,
                 true,
@@ -841,46 +875,51 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderTextField(
                 'projectId',
-                'CDL_OWR_PROP_NUMBER',
-                'Project ID*',
+                'CDL_OWN_PROPERTY_ID',
+                'Property ID*',
                 '',
                 6,
-                !selectedProject
+                !selectedProject,
+                true
               )}
               {renderTextField(
                 'developerIdInput',
-                'CDL_OWR_BP_ID',
-                'Developer ID*',
+                'CDL_OWN_MF_ID',
+                'Managing Firm ID*',
                 '',
                 6,
-                !selectedProject
+                !selectedProject,
+                true
               )}
               {renderTextField(
                 'developerNameInput',
-                'CDL_OWR_BP_NAME',
-                'Developer Name*',
+                'CDL_OWN_MF_NAME',
+                'Managing Firm Name*',
                 '',
                 6,
-                !selectedProject
+                !selectedProject,
+                true
               )}
-              {renderTextField('floor', 'CDL_OWR_FLOOR', 'Floor', '', 3)}
+              {renderTextField('floor', 'CDL_OWN_FLOOR', 'Floor', '', 3)}
               {renderTextField(
                 'bedroomCount',
-                'CDL_OWR_NOOF_BED',
+                'CDL_OWN_NOOF_BED',
                 'No. of Bedroom',
                 '',
                 3
               )}
               {renderTextField(
                 'unitNoQaqood',
-                'CDL_OWR_UNIT_NUMBER',
-                'Unit no. Qaqood format*',
+                'CDL_OWN_UNIT_NUMBER',
+                'Unit no. Qaqood format',
                 '',
-                3
+                3,
+                false,
+                false
               )}
               {renderApiSelectField(
                 'unitStatus',
-                'CDL_OWR_UNIT_STATUS',
+                'CDL_OWN_UNIT_STATUS',
                 'Unit Status*',
                 unitStatuses?.length
                   ? unitStatuses
@@ -891,21 +930,25 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderTextField(
                 'buildingName',
-                'CDL_OWR_BUILDING_NAME',
+                'CDL_OWN_BUILDING_NAME',
                 'Building Name',
                 '',
-                6
+                6,
+                false,
+                watch('propertyId') === '3'
               )}
               {renderTextField(
                 'plotSize',
-                'CDL_OWR_PLOT_SIZE',
+                'CDL_OWN_PLOT_SIZE',
                 'Plot Size*',
                 '',
-                6
+                6,
+                false,
+                true
               )}
               {renderApiSelectField(
                 'propertyId',
-                'CDL_OWR_PROP_NUMBER',
+                'CDL_OWN_PROP_NUMBER',
                 'Property ID*',
                 propertyIds?.length
                   ? propertyIds
@@ -926,7 +969,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                       fullWidth
                       disabled={isViewMode}
                       label={getLabel(
-                        'CDL_OWR_UNIT_IBAN',
+                        'CDL_OWN_UNIT_IBAN',
                         currentLanguage,
                         'Unit IBAN'
                       )}
@@ -976,68 +1019,55 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
 
               {renderTextField(
                 'registrationFees',
-                'CDL_OWR_REG_FEE',
+                'CDL_OWN_REG_FEE',
                 'Unit Registration Fees',
                 '',
-                3
+                3,
+                false,
+                false
               )}
               {renderTextField(
                 'agentName',
-                'CDL_OWR_AGENT_NAME',
+                'CDL_OWN_AGENT_NAME',
                 'Agent Name',
                 '',
-                3
+                3,
+                false,
+                false
               )}
               {renderTextField(
                 'agentNationalId',
-                'CDL_OWR_AGENT_ID',
+                'CDL_OWN_AGENT_ID',
                 'Agent National ID',
                 '',
-                3
+                3,
+                false,
+                false
               )}
               {renderTextField(
                 'grossSalePrice',
-                'CDL_OWR_GROSS_PRICE',
+                'CDL_OWN_GROSS_PRICE',
                 'Gross Sale Price',
                 '',
-                3
-              )}
-              {renderTextField(
-                'agentName',
-                'CDL_OWR_AGENT_NAME',
-                'Agent Name',
-                '',
-                3
-              )}
-              {renderTextField(
-                'agentNationalId',
-                'CDL_OWR_AGENT_ID',
-                'Agent National ID',
-                '',
-                3
-              )}
-              {renderTextField(
-                'grossSalePrice',
-                'CDL_OWR_GROSS_PRICE',
-                'Gross Sale Price',
-                '',
-                3
+                3,
+                false,
+                false
               )}
 
               {[
                 {
                   name: 'VatApplicable',
-                  configId: 'CDL_OWR_VAT_APPLICABLE',
+                  configId: 'CDL_OWN_VAT_APPLICABLE',
                   fallbackLabel: 'VAT Applicable',
                 },
                 {
                   name: 'SalesPurchaseAgreement',
-                  configId: 'CDL_OWR_SALES_PURCHASE_AGREEMENT',
+                  configId: 'CDL_OWN_SALES_PURCHASE_AGREEMENT',
                   fallbackLabel: 'Sales Purchase Agreement',
                 },
                 {
                   name: 'ProjectPaymentPlan',
-                  configId: 'CDL_OWR_PROJECT_PAYMENT_PLAN',
+                  configId: 'CDL_OWN_PROJECT_PAYMENT_PLAN',
                   fallbackLabel: 'Project Payment Plan',
                 },
               ].map(({ name, configId, fallbackLabel }) => (
@@ -1074,21 +1104,21 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
 
               {renderTextField(
                 'salePrice',
-                'CDL_OWR_NET_PRICE',
+                'CDL_OWN_NET_PRICE',
                 'Sale Price',
                 '',
                 3
               )}
               {renderTextField(
                 'deedNo',
-                'CDL_OWR_DEED_REF_NO',
+                'CDL_OWN_DEED_REF_NO',
                 'Deed No',
                 '',
                 3
               )}
               {renderTextField(
                 'contractNo',
-                'CDL_OWR_CONTRACT_NO',
+                'CDL_OWN_CONTRACT_NO',
                 'Contract No',
                 '',
                 3
@@ -1101,7 +1131,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                   render={({ field }) => (
                     <DatePicker
                       label={getLabel(
-                        'CDL_OWR_AGREEMENT_DATE',
+                        'CDL_OWN_AGREEMENT_DATE',
                         currentLanguage,
                         'Agreement Date'
                       )}
@@ -1165,76 +1195,76 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               ))}
               {renderCheckboxField(
                 'worldCheck',
-                'CDL_OWR_WORLD_STATUS',
+                'CDL_OWN_WORLD_STATUS',
                 'World Check',
                 6
               )}
               {renderTextField(
                 'paidInEscrow',
-                'CDL_OWR_WITH_ESCROW',
-                'Amount Paid to Developer within Escrow',
+                'CDL_OWN_WITH_ESCROW',
+                'Amount Paid to  Management Company/Developer (AED)  within Escrow',
                 '',
                 6
               )}
               {renderTextField(
                 'paidOutEscrow',
-                'CDL_OWR_OUTSIDE_ESCROW',
-                'Amount Paid to Developer out of Escrow',
+                'CDL_OWN_OUTSIDE_ESCROW',
+                'Amount Paid to Management Company/Developer (AED) out of Escrow',
                 '',
                 6
               )}
               {renderTextField(
                 'totalPaid',
-                'CDL_OWR_PARTNER_PAYMENT',
+                'CDL_OWN_PARTNER_PAYMENT',
                 'Total Amount Paid',
                 '',
                 6
               )}
               {renderTextField(
                 'qaqoodAmount',
-                'CDL_OWR_OQOOD_PAID',
+                'CDL_OWN_OQOOD_PAID',
                 'Qaqood Amount Paid',
                 '',
                 3
               )}
               {renderTextField(
                 'unitAreaSize',
-                'CDL_OWR_UNIT_AREA',
+                'CDL_OWN_UNIT_AREA',
                 'Unit Area Size',
                 '',
                 3
               )}
               {renderTextField(
                 'forfeitAmount',
-                'CDL_OWR_FROFEIT_AMT',
+                'CDL_OWN_FROFEIT_AMT',
                 'Forfeit Amount',
                 '',
                 3
               )}
               {renderTextField(
                 'dldAmount',
-                'CDL_OWR_DLD_FEE',
+                'CDL_OWN_DLD_FEE',
                 'Dld Amount',
                 '',
                 3
               )}
               {renderTextField(
                 'refundAmount',
-                'CDL_OWR_REFUND_AMOUNT',
+                'CDL_OWN_REFUND_AMOUNT',
                 'Refund Amount',
                 '',
                 6
               )}
               {renderTextField(
                 'transferredAmount',
-                'CDL_OWR_TRANS_AMT',
+                'CDL_OWN_TRANS_AMT',
                 'Transferred Amount',
                 '',
                 6
               )}
               {renderTextField(
                 'unitRemarks',
-                'CDL_OWR_REMARKS',
+                'CDL_OWN_REMARKS',
                 'Remarks',
                 '',
                 12

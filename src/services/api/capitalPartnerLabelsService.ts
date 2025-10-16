@@ -1,7 +1,6 @@
 import { apiClient } from '@/lib/apiClient'
 import { getAuthCookies } from '@/utils/cookieUtils'
 import { API_ENDPOINTS } from '@/constants/apiEndpoints'
-import { CAPITAL_PARTNER_LABELS } from '@/constants/mappings/capitalPartnerMapping'
 
 export interface CapitalPartnerLabelResponse {
   id: number
@@ -37,7 +36,7 @@ const DEFAULT_LANGUAGE = 'EN'
 
 export class CapitalPartnerLabelsService {
   /**
-   * Fetch owner registry labels from the API
+   * Fetch capital partner labels from the API
    */
   static async fetchLabels(): Promise<CapitalPartnerLabelResponse[]> {
     try {
@@ -47,7 +46,7 @@ export class CapitalPartnerLabelsService {
         throw new Error('Authentication token not found')
       }
       
-      const labels = await apiClient.get<CapitalPartnerLabelResponse[]>(API_ENDPOINTS.APP_LANGUAGE_TRANSLATION.OWNER_REGISTRY, {
+      const labels = await apiClient.get<CapitalPartnerLabelResponse[]>(API_ENDPOINTS.APP_LANGUAGE_TRANSLATION.CAPITAL_PARTNER, {
         headers: { Authorization: `Bearer ${token}` }
       })
   
@@ -55,7 +54,7 @@ export class CapitalPartnerLabelsService {
       return labels
     } catch (error) {
      
-      throw new Error('Failed to fetch owner registry labels')
+      throw new Error('Failed to fetch capital partner labels')
     }
   }
 
@@ -83,21 +82,7 @@ export class CapitalPartnerLabelsService {
     fallback: string
   ): string {
     const languageLabels = labels[configId]
-    const apiLabel = languageLabels?.[language] || languageLabels?.[DEFAULT_LANGUAGE]
-    
-    // If API label exists, use it
-    if (apiLabel) {
-      return apiLabel
-    }
-    
-    // Fallback to local mapping
-    const localLabel = CAPITAL_PARTNER_LABELS[configId]
-    if (localLabel) {
-      return localLabel
-    }
-    
-    // Final fallback
-    return fallback
+    return languageLabels?.[language] || languageLabels?.[DEFAULT_LANGUAGE] || fallback
   }
 
   /**

@@ -87,16 +87,12 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 
   return (
     <div
-      className={`${getStatusVariant(status)} ${className} inline-block max-w-full`}
+      className={`${getStatusVariant(status)} ${className} inline-flex items-center gap-1 px-3 py-1.5 min-w-fit`}
     >
-      <div className="flex items-center gap-1 mx-1.5 my-1 min-w-0">
-        <span
-          className={`w-3 h-3 border rounded-full shrink-0 ${getStatusDotColor(status)}`}
-        ></span>
-        <span className="overflow-hidden truncate text-ellipsis whitespace-nowrap">
-          {status || 'Incomplete'}
-        </span>
-      </div>
+      <span
+        className={`w-3 h-3 border rounded-full shrink-0 ${getStatusDotColor(status)}`}
+      ></span>
+      <span className="whitespace-nowrap">{status || 'Incomplete'}</span>
     </div>
   )
 }

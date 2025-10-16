@@ -25,9 +25,13 @@ import { Controller, useForm } from 'react-hook-form'
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
-import { useSaveBuildPartnerBeneficiary } from '@/hooks/useBuildPartners'
-import { validateAndSanitizeBeneficiaryData } from '@/lib/validation/beneficiarySchemas'
+import {
+  useSaveBuildPartnerBeneficiary,
+  useBuildPartnerBeneficiaryById,
+} from '@/hooks/useBuildPartners'
 import { useValidationStatus } from '@/hooks/useValidation'
+import { validateAndSanitizeBeneficiaryData } from '@/lib/validation/beneficiarySchemas'
+import { DeveloperStep5Schema } from '@/lib/validation/developerSchemas'
 
 interface BeneficiaryFormData {
   bpbBeneficiaryId: string
@@ -43,7 +47,14 @@ interface RightSlidePanelProps {
   isOpen: boolean
   onClose: () => void
   onBeneficiaryAdded?: (beneficiary: BeneficiaryFormData) => void
+  onBeneficiaryUpdated?: (
+    beneficiary: BeneficiaryFormData,
+    index: number
+  ) => void
   title?: string
+  mode?: 'add' | 'edit'
+  beneficiaryData?: any
+  beneficiaryIndex?: number
   editingBeneficiary?: BeneficiaryFormData | null
   bankNames?: unknown[]
   beneficiaryTypes?: unknown[]
@@ -58,7 +69,11 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
   isOpen,
   onClose,
   onBeneficiaryAdded,
+  onBeneficiaryUpdated,
   title,
+  mode = 'add',
+  beneficiaryData,
+  beneficiaryIndex,
   editingBeneficiary,
   bankNames: propBankNames,
   beneficiaryTypes: propBeneficiaryTypes,
@@ -66,6 +81,8 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
   dropdownsLoading: propDropdownsLoading,
   dropdownsError: propDropdownsError,
 }) => {
+  // Use beneficiaryData if provided (new prop), otherwise fall back to editingBeneficiary (legacy)
+  const dataToEdit = beneficiaryData || editingBeneficiary
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
@@ -80,6 +97,11 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
   >([])
 
   const addBeneficiaryMutation = useSaveBuildPartnerBeneficiary()
+
+  // Fetch full beneficiary data when in edit mode
+  const { data: apiBeneficiaryData } = useBuildPartnerBeneficiaryById(
+    mode === 'edit' && dataToEdit?.id ? dataToEdit.id : null
+  )
 
   // Toast utility functions
   const addToast = (message: string, type: 'success' | 'error') => {
@@ -135,50 +157,58 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
     control,
     handleSubmit,
     reset,
+    trigger,
     formState: { errors },
   } = useForm<BeneficiaryFormData>({
     defaultValues: {
-      bpbBeneficiaryId: editingBeneficiary?.bpbBeneficiaryId || '',
-      bpbBeneficiaryType: editingBeneficiary?.bpbBeneficiaryType || '',
-      bpbName: editingBeneficiary?.bpbName || '',
-      bpbBankName: editingBeneficiary?.bpbBankName || '',
-      bpbSwiftCode: editingBeneficiary?.bpbSwiftCode || '',
-      bpbRoutingCode: editingBeneficiary?.bpbRoutingCode || '',
-      bpbAccountNumber: editingBeneficiary?.bpbAccountNumber || '',
+      bpbBeneficiaryId: dataToEdit?.bpbBeneficiaryId || '',
+      bpbBeneficiaryType: dataToEdit?.bpbBeneficiaryType || '',
+      bpbName: dataToEdit?.bpbName || '',
+      bpbBankName: dataToEdit?.bpbBankName || '',
+      bpbSwiftCode: dataToEdit?.bpbSwiftCode || '',
+      bpbRoutingCode: dataToEdit?.bpbRoutingCode || '',
+      bpbAccountNumber: dataToEdit?.bpbAccountNumber || '',
     },
+    mode: 'onChange', // Enable real-time validation
   })
 
   // Reset form when editing beneficiary changes
   React.useEffect(() => {
-    if (editingBeneficiary) {
+    if (isOpen && mode === 'edit' && (apiBeneficiaryData || dataToEdit)) {
+      // Use API data if available, otherwise use table data
+      const dataToUse: any = apiBeneficiaryData || dataToEdit
+
+      // Wait for dropdowns to load
+      if (dropdownsLoading) {
+        return
+      }
+
       // Map display values back to IDs for editing
       const beneficiaryType = beneficiaryTypes.find(
         (type: unknown) =>
           (type as { configValue: string }).configValue ===
-          editingBeneficiary.bpbBeneficiaryType
+          dataToUse.bpbBeneficiaryType
       )
       const bankName = bankNames.find(
         (bank: unknown) =>
           (bank as { configValue: string }).configValue ===
-          editingBeneficiary.bpbBankName
+          dataToUse.bpbBankName
       )
 
       reset({
-        bpbBeneficiaryId: editingBeneficiary.bpbBeneficiaryId || '',
+        bpbBeneficiaryId: dataToUse.bpbBeneficiaryId || '',
         bpbBeneficiaryType:
           (beneficiaryType as { id?: string })?.id ||
-          editingBeneficiary.bpbBeneficiaryType ||
+          dataToUse.bpbBeneficiaryType ||
           '',
-        bpbName: editingBeneficiary.bpbName || '',
+        bpbName: dataToUse.bpbName || '',
         bpbBankName:
-          (bankName as { id?: string })?.id ||
-          editingBeneficiary.bpbBankName ||
-          '',
-        bpbSwiftCode: editingBeneficiary.bpbSwiftCode || '',
-        bpbRoutingCode: editingBeneficiary.bpbRoutingCode || '',
-        bpbAccountNumber: editingBeneficiary.bpbAccountNumber || '',
+          (bankName as { id?: string })?.id || dataToUse.bpbBankName || '',
+        bpbSwiftCode: dataToUse.bpbSwiftCode || '',
+        bpbRoutingCode: dataToUse.bpbRoutingCode || '',
+        bpbAccountNumber: dataToUse.bpbAccountNumber || '',
       })
-    } else {
+    } else if (!isOpen) {
       reset({
         bpbBeneficiaryId: '',
         bpbBeneficiaryType: '',
@@ -189,7 +219,16 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
         bpbAccountNumber: '',
       })
     }
-  }, [editingBeneficiary, reset])
+  }, [
+    isOpen,
+    mode,
+    apiBeneficiaryData,
+    dataToEdit,
+    bankNames,
+    beneficiaryTypes,
+    dropdownsLoading,
+    reset,
+  ])
 
   // Watch for validation results and show toasts
   useEffect(() => {
@@ -240,79 +279,206 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
         'error'
       )
     }
-  }, [swiftValidationError])
+  }, [swiftValidationError  ])
+
+  // Validation function using DeveloperStep5Schema
+  const validateBeneficiaryField = (
+    fieldName: string,
+    _value: any,
+    allValues: BeneficiaryFormData
+  ) => {
+    try {
+      // Skip validation for dropdown fields since they come from backend
+      const dropdownFields = ['bpbBeneficiaryType', 'bpbBankName']
+      if (dropdownFields.includes(fieldName)) {
+        return true
+      }
+
+      // Transform form data to match DeveloperStep5Schema format
+      const beneficiaryForValidation = {
+        beneficiaries: [{
+          id: allValues.bpbBeneficiaryId,
+          transferType: allValues.bpbBeneficiaryType,
+          name: allValues.bpbName,
+          bankName: allValues.bpbBankName,
+          account: allValues.bpbAccountNumber,
+          swiftCode: allValues.bpbSwiftCode,
+          routingCode: allValues.bpbRoutingCode || '',
+          buildPartnerDTO: {
+            id: buildPartnerId ? parseInt(buildPartnerId) : undefined,
+          },
+        }]
+      }
+
+      // Validate using DeveloperStep5Schema
+      const result = DeveloperStep5Schema.safeParse(beneficiaryForValidation)
+
+      if (result.success) {
+        return true
+      } else {
+        // Map form field names to schema field names
+        const fieldMapping: Record<string, string> = {
+          bpbBeneficiaryId: 'id',
+          bpbBeneficiaryType: 'transferType',
+          bpbName: 'name',
+          bpbBankName: 'bankName',
+          bpbAccountNumber: 'account',
+          bpbSwiftCode: 'swiftCode',
+          bpbRoutingCode: 'routingCode',
+        }
+
+        const schemaFieldName = fieldMapping[fieldName]
+        if (!schemaFieldName) return true
+
+        // Find the specific field error
+        const fieldError = result.error.issues.find(
+          (issue) =>
+            issue.path.includes('beneficiaries') &&
+            issue.path.includes(0) &&
+            issue.path.includes(schemaFieldName)
+        )
+
+        return fieldError ? fieldError.message : true
+      }
+    } catch (error) {
+      return true // Return true on error to avoid blocking the form
+    }
+  }
 
   const onSubmit = async (data: BeneficiaryFormData) => {
-    
     try {
       setErrorMessage(null)
       setSuccessMessage(null)
+      
+      // Check if dropdown data is still loading
+      if (dropdownsLoading) {
+        setErrorMessage('Please wait for dropdown options to load before submitting.')
+        return
+      }
+      
+      // Validate form fields individually to provide better error messages
+      const isValid = await trigger()
+      
+      if (!isValid) {
+        // Get specific validation errors for text fields only
+        const errors = []
+        if (!data.bpbBeneficiaryId) errors.push('Beneficiary ID is required')
+        if (!data.bpbBeneficiaryType) errors.push('Beneficiary Type is required')
+        if (!data.bpbName) errors.push('Name is required')
+        if (!data.bpbBankName) errors.push('Bank is required')
+        if (!data.bpbAccountNumber) errors.push('Account Number is required')
+        if (!data.bpbSwiftCode) errors.push('SWIFT Code is required')
+        
+        if (errors.length > 0) {
+          setErrorMessage(`Please fill in the required fields: ${errors.join(', ')}`)
+        }
+        return
+      }
 
       // Validate and sanitize form data
       const validatedData = validateAndSanitizeBeneficiaryData(data)
-     
 
-      // Transform form data to API format - matching backend expectations
-      const beneficiaryData = {
-        bpbBeneficiaryId: validatedData.bpbBeneficiaryId,
-        bpbBeneficiaryType: validatedData.bpbBeneficiaryType,
-        bpbName: validatedData.bpbName,
-        bpbBankName: validatedData.bpbBankName,
-        bpbSwiftCode: validatedData.bpbSwiftCode,
-        bpbRoutingCode: validatedData.bpbRoutingCode || '',
-        bpbAccountNumber: validatedData.bpbAccountNumber,
-        enabled: true,
-        buildPartnerDTO: [
-          {
-            id: buildPartnerId ? parseInt(buildPartnerId) : undefined,
-          }
-          
-      ]
-      }
+      const isEditing =
+        mode === 'edit' && (dataToEdit?.id || (apiBeneficiaryData as any)?.id)
+      const beneficiaryId = isEditing
+        ? (apiBeneficiaryData as any)?.id || dataToEdit?.id
+        : undefined
 
-     
-      await addBeneficiaryMutation.mutateAsync({
-        data: beneficiaryData,
-        isEditing: false, // false for adding new beneficiary
-        developerId: buildPartnerId,
-      })
-     
+      let beneficiaryData: any
 
-      setSuccessMessage(
-        editingBeneficiary
-          ? 'Beneficiary updated successfully!'
-          : 'Beneficiary added successfully!'
-      )
-
-      if (onBeneficiaryAdded) {
-        
-        // Map IDs to display values for the callback
-        const beneficiaryType = beneficiaryTypes.find(
-          (type: unknown) =>
-            (type as { id: string }).id === data.bpbBeneficiaryType
-        )
-        const bankName = bankNames.find(
-          (bank: unknown) => (bank as { id: string }).id === data.bpbBankName
-        )
-
-        const beneficiaryForForm = {
+      if (isEditing && apiBeneficiaryData) {
+        // For updates, use the complete API data structure and update only the changed fields
+        beneficiaryData = {
+          ...(apiBeneficiaryData as any), // Include all original fields
           bpbBeneficiaryId: validatedData.bpbBeneficiaryId,
-          bpbBeneficiaryType:
-            (beneficiaryType as { configValue?: string })?.configValue ||
-            String(data.bpbBeneficiaryType),
+          bpbBeneficiaryType: validatedData.bpbBeneficiaryType,
           bpbName: validatedData.bpbName,
-          bpbBankName:
-            (bankName as { configValue?: string })?.configValue ||
-            String(data.bpbBankName),
+          bpbBankName: validatedData.bpbBankName,
+          bpbSwiftCode: validatedData.bpbSwiftCode,
+          bpbRoutingCode: validatedData.bpbRoutingCode || '',
+          bpbAccountNumber: validatedData.bpbAccountNumber,
+          // Simplify buildPartnerDTO to just the ID
+          buildPartnerDTO: [
+            {
+              id:
+                (apiBeneficiaryData as any).buildPartnerDTO?.[0]?.id ||
+                (buildPartnerId ? parseInt(buildPartnerId) : undefined),
+            },
+          ],
+        }
+      } else {
+        // For new beneficiaries, use the standard structure
+        beneficiaryData = {
+          bpbBeneficiaryId: validatedData.bpbBeneficiaryId,
+          bpbBeneficiaryType: validatedData.bpbBeneficiaryType,
+          bpbName: validatedData.bpbName,
+          bpbBankName: validatedData.bpbBankName,
           bpbSwiftCode: validatedData.bpbSwiftCode,
           bpbRoutingCode: validatedData.bpbRoutingCode || '',
           bpbAccountNumber: validatedData.bpbAccountNumber,
           enabled: true,
+          buildPartnerDTO: [
+            {
+              id: buildPartnerId ? parseInt(buildPartnerId) : undefined,
+            },
+          ],
         }
+      }
 
-       
+      // Debug: Log the payload being sent
+      console.log('🔄 Beneficiary payload:', {
+        isEditing,
+        beneficiaryId,
+        payload: beneficiaryData,
+      })
+
+      await addBeneficiaryMutation.mutateAsync({
+        data: beneficiaryData,
+        isEditing: isEditing,
+        developerId: buildPartnerId,
+        beneficiaryId: beneficiaryId,
+      } as any)
+
+      setSuccessMessage(
+        isEditing
+          ? 'Beneficiary updated successfully!'
+          : 'Beneficiary added successfully!'
+      )
+
+      // Map IDs to display values for the callback
+      const beneficiaryType = beneficiaryTypes.find(
+        (type: unknown) =>
+          (type as { id: string }).id === data.bpbBeneficiaryType
+      )
+      const bankName = bankNames.find(
+        (bank: unknown) => (bank as { id: string }).id === data.bpbBankName
+      )
+
+      const beneficiaryForForm = {
+        bpbBeneficiaryId: validatedData.bpbBeneficiaryId,
+        bpbBeneficiaryType:
+          (beneficiaryType as { configValue?: string })?.configValue ||
+          String(data.bpbBeneficiaryType),
+        bpbName: validatedData.bpbName,
+        bpbBankName:
+          (bankName as { configValue?: string })?.configValue ||
+          String(data.bpbBankName),
+        bpbSwiftCode: validatedData.bpbSwiftCode,
+        bpbRoutingCode: validatedData.bpbRoutingCode || '',
+        bpbAccountNumber: validatedData.bpbAccountNumber,
+        enabled: true,
+      }
+
+      // Call appropriate callback based on mode
+      if (
+        mode === 'edit' &&
+        onBeneficiaryUpdated &&
+        beneficiaryIndex !== null &&
+        beneficiaryIndex !== undefined
+      ) {
+        onBeneficiaryUpdated(beneficiaryForForm, beneficiaryIndex)
+      } else if (onBeneficiaryAdded) {
         onBeneficiaryAdded(beneficiaryForForm)
-        
       }
 
       // Reset form and close after a short delay
@@ -321,7 +487,6 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
         onClose()
       }, 1500)
     } catch (error: unknown) {
-     
       let errorMessage = 'Failed to add beneficiary. Please try again.'
 
       if (error instanceof Error) {
@@ -439,18 +604,23 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
     name: keyof BeneficiaryFormData,
     label: string,
     defaultValue = '',
-    gridSize: number = 6
+    gridSize: number = 6,
+    required = false
   ) => (
     <Grid key={name} size={{ xs: 12, md: gridSize }}>
       <Controller
         name={name}
         control={control}
         defaultValue={defaultValue}
+        rules={{
+          validate: (value, formValues) => validateBeneficiaryField(name, value, formValues)
+        }}
         render={({ field }) => (
           <TextField
             {...field}
             label={label}
             fullWidth
+            required={required}
             error={!!errors[name]}
             helperText={errors[name]?.message?.toString() || ''}
             InputLabelProps={{ sx: labelSx }}
@@ -475,17 +645,23 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
       <Controller
         name={name}
         control={control}
-        rules={required ? { required: `${label} is required` } : {}}
+        rules={{
+          validate: (value, formValues) => validateBeneficiaryField(name, value, formValues)
+        }}
         defaultValue={''}
         render={({ field }) => (
-          <FormControl fullWidth error={!!errors[name]}>
+          <FormControl fullWidth error={!!errors[name]} required={required}>
             <InputLabel sx={labelSx}>
-              {loading ? `Loading ${label}...` : label}
+              {loading ? `Loading...` : label}
             </InputLabel>
             <Select
               {...field}
-              input={<OutlinedInput label={loading ? `Loading ${label}...` : label} />}
-              label={loading ? `Loading ${label}...` : label}
+              input={
+                <OutlinedInput
+                  label={loading ? `Loading...` : label}
+                />
+              }
+              label={loading ? `Loading...` : label}
               sx={{ ...selectStyles, ...valueSx }}
               IconComponent={KeyboardArrowDownIcon}
               disabled={loading}
@@ -514,7 +690,8 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
     name: keyof BeneficiaryFormData,
     label: string,
     buttonText: string,
-    gridSize: number = 6
+    gridSize: number = 6,
+    required = false
   ) => {
     const isAccountField = name === 'bpbAccountNumber'
     const isSwiftField = name === 'bpbSwiftCode'
@@ -531,11 +708,15 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
           name={name}
           control={control}
           defaultValue=""
+          rules={{
+            validate: (value, formValues) => validateBeneficiaryField(name, value, formValues)
+          }}
           render={({ field }) => (
             <TextField
               {...field}
               fullWidth
               label={label}
+              required={required}
               error={
                 !!errors[name] ||
                 !!(validationResult && !validationResult.isValid)
@@ -653,7 +834,7 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
             verticalAlign: 'middle',
           }}
         >
-          {editingBeneficiary
+          {mode === 'edit'
             ? 'Edit Beneficiary Details'
             : 'Add Beneficiary Details'}
           <IconButton onClick={onClose}>
@@ -718,11 +899,13 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
                   {renderTextField(
                     'bpbBeneficiaryId',
                     'Beneficiary ID',
-                    '1234'
+                    '1234',
+                    6,
+                    true
                   )}
                   {renderApiSelectField(
                     'bpbBeneficiaryType',
-                    'Beneficiary Type*',
+                    'Beneficiary Type',
                     beneficiaryTypes.length > 0 ? beneficiaryTypes : [],
                     6,
                     true,
@@ -733,7 +916,7 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
                 <>
                   {renderApiSelectField(
                     'bpbBeneficiaryType',
-                    'Beneficiary Type*',
+                    'Beneficiary Type',
                     beneficiaryTypes.length > 0 ? beneficiaryTypes : [],
                     6,
                     true,
@@ -741,19 +924,21 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
                   )}
                   {renderTextField(
                     'bpbBeneficiaryId',
-                    'Beneficiary ID*',
-                    '1234'
+                    'Beneficiary ID',
+                    '1234',
+                    6,
+                    true
                   )}
                 </>
               )}
 
-              {renderTextField('bpbName', 'Name*')}
+              {renderTextField('bpbName', 'Name', '', 6, true)}
 
               {title === 'Beneficiary' ? (
                 <>
                   {renderApiSelectField(
                     'bpbBankName',
-                    'Bank*',
+                    'Bank',
                     bankNames.length > 0 ? bankNames : [],
                     6,
                     true,
@@ -761,26 +946,29 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
                   )}
                 </>
               ) : (
-                <>{renderTextField('bpbBankName', 'Bank*', 'SBI')}</>
+                <>{renderTextField('bpbBankName', 'Bank', 'SBI', 6, true)}</>
               )}
 
               {renderTextField(
                 'bpbRoutingCode',
                 'Routing Code',
                 '',
-                title === 'Beneficiary' ? 12 : 6
+                title === 'Beneficiary' ? 12 : 6,
+                false
               )}
               {renderTextFieldWithButton(
                 'bpbAccountNumber',
-                'Account Number/IBAN*',
+                'Account Number/IBAN',
                 'Validate Account',
-                12
+                12,
+                true
               )}
               {renderTextFieldWithButton(
                 'bpbSwiftCode',
-                'Swift/BIC*',
+                'Swift/BIC',
                 'Validate BIC',
-                12
+                12,
+                true
               )}
             </Grid>
           </DialogContent>
@@ -836,10 +1024,10 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
                   }}
                 >
                   {addBeneficiaryMutation.isPending
-                    ? editingBeneficiary
+                    ? mode === 'edit'
                       ? 'Updating...'
                       : 'Adding...'
-                    : editingBeneficiary
+                    : mode === 'edit'
                       ? 'Update'
                       : 'Add'}
                 </Button>

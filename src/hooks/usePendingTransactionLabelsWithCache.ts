@@ -61,7 +61,7 @@ export function usePendingTransactionLabelsWithCache() {
     cacheStatus: pendingTransactionLabels
       ? 'cached'
       : pendingTransactionLabelsLoading
-        ? 'loading'
+        ? 'Loading...'
         : 'fresh',
   }
 }

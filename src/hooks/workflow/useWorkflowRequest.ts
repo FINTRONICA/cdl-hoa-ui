@@ -10,27 +10,17 @@ import {
 } from '@/services/api/workflowApi/workflowRequestService'
 import type { PaginatedResponse } from '@/types'
 
-
 export const WORKFLOW_REQUESTS_QUERY_KEY = 'workflowRequests'
-
-
-
-
-
-
-
 
 export function useAwaitingActionsUIData(page = 0, size = 20, filters?: WorkflowRequestFilters) {
   return useQuery({
     queryKey: [WORKFLOW_REQUESTS_QUERY_KEY, 'awaiting-actions-ui-data', page, size, filters?.moduleName, filters?.referenceType, filters?.actionKey],
     queryFn: async () => {
-      console.log('🔍 Fetching awaiting actions with filters:', filters)
       const result = await workflowRequestService.getAwaitingActionsUIData(page, size, filters)
-      console.log('📊 API Response for awaiting actions:', result)
       return result
     },
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 0, // Don't cache data
+    staleTime: 0,
+    gcTime: 0,
     retry: 1,
     enabled: true,
     refetchOnWindowFocus: true,
@@ -42,13 +32,11 @@ export function useEngagementsActionsUIData(page = 0, size = 20, filters?: Workf
   return useQuery({
     queryKey: [WORKFLOW_REQUESTS_QUERY_KEY, 'engagements-actions-ui-data', page, size, filters?.moduleName, filters?.referenceType, filters?.actionKey],
     queryFn: async () => {
-      console.log('🔍 Fetching engagements actions with filters:', filters)
       const result = await workflowRequestService.getEngagementsActionsUIData(page, size, filters)
-      console.log('📊 API Response for engagements actions:', result)
       return result
     },
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 0, // Don't cache data
+    staleTime: 0,
+    gcTime: 0,
     retry: 1,
     enabled: true,
     refetchOnWindowFocus: true,
@@ -190,7 +178,6 @@ export function useWorkflowRequestService() {
 
 
 export function useCreatePendingTransaction() {
-  console.log('useCreatePendingTransaction is deprecated. Use useCreateWorkflowRequest instead.')
   return useCreateWorkflowRequest()
 }
 
@@ -203,8 +190,11 @@ export function useQueueRequestDetail(id: string) {
       return result
     },
     enabled: !!id,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0,
     retry: 1,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   })
 }
 
@@ -216,8 +206,11 @@ export function useQueueRequestStatus(id: string) {
       return result
     },
     enabled: !!id,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0,
     retry: 1,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   })
 }
 
@@ -229,8 +222,11 @@ export function useQueueRequestLogs(id: string) {
       return result
     },
     enabled: !!id,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0,
     retry: 1,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   })
 }
 
@@ -241,8 +237,11 @@ export function useQueueSummary() {
       const result = await workflowRequestService.getQueueSummary()
       return result
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0,
     retry: 1,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   })
 }
 

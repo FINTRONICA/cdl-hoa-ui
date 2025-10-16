@@ -46,6 +46,20 @@ const SidebarComponent = () => {
       if (pathname === href) return true
       if (pathname.startsWith(href + '/')) return true
 
+      // Special case mappings for URL structure mismatches
+      // /developers/* should highlight /entities/developers
+      if (
+        href === '/entities/developers' &&
+        pathname.startsWith('/developers/')
+      ) {
+        return true
+      }
+
+      // /projects/* should highlight /entities/projects
+      if (href === '/entities/projects' && pathname.startsWith('/projects/')) {
+        return true
+      }
+
       return false
     },
     [pathname]
@@ -242,28 +256,28 @@ const SidebarComponent = () => {
                 {section.href ? (
                   <Link
                     href={section.href}
-                    className={`flex items-center gap-2 flex-1 ${
+                    className={`flex items-center gap-2 flex-1 p-1.5 rounded-lg transition-colors ${
                       isActive(section.href)
-                        ? 'text-[#155DFC]'
-                        : 'text-[#4A5565]'
+                        ? 'bg-[#DBEAFE] text-[#155DFC] font-medium'
+                        : 'text-[#4A5565] font-medium hover:bg-gray-100'
                     }`}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <section.icon
                       className={`w-5 h-5 ${
                         isActive(section.href)
-                          ? 'text-[#155DFC]'
+                          ? 'text-[#60A5FA]'
                           : 'text-[#4A5565]'
                       }`}
                     />
-                    <h3 className="text-start font-sans font-medium text-[11px] leading-none uppercase align-middle">
+                    <h3 className="text-start font-sans text-[11px] leading-none uppercase align-middle">
                       {section.label}
                     </h3>
                   </Link>
                 ) : (
                   <>
-                    <section.icon className="w-4 h-4 text-[#4A5565]" />
-                    <h3 className="text-[#4A5565] text-start font-sans font-medium text-[11px] leading-none uppercase align-middle">
+                    <section.icon className="w-4 h-4 text-[#6A7282]" />
+                    <h3 className="text-[#6A7282] text-start font-sans p-1.5 font-medium text-[11px] leading-none uppercase align-middle">
                       {section.label}
                     </h3>
                   </>
@@ -298,7 +312,7 @@ const SidebarComponent = () => {
                               isParentActive(item) ? '' : 'text-gray-700'
                             }`}
                           />
-                          <span className="text-[#4A5565] font-sans font-medium text-[11px] leading-none uppercase align-middle flex-1 text-left">
+                          <span className="text-[#6A7282] font-sans font-medium text-[11px] leading-none uppercase align-middle flex-1 text-left">
                             {item.label}
                           </span>
                           <ChevronDown
@@ -316,7 +330,7 @@ const SidebarComponent = () => {
                                 className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                                   child.href && isActive(child.href)
                                     ? 'bg-blue-100 text-blue-600'
-                                    : 'text-gray-600 hover:bg-gray-100'
+                                    : 'text-[#1E2939] hover:bg-gray-100'
                                 }`}
                                 onClick={(e) => e.stopPropagation()}
                               >
@@ -345,7 +359,7 @@ const SidebarComponent = () => {
                         <item.icon
                           className={`w-4 h-4 ${
                             item.href && isActive(item.href)
-                              ? 'text-[#155DFC]'
+                              ? 'text-[#60A5FA]'
                               : 'text-[#1E2939]'
                           }`}
                         />

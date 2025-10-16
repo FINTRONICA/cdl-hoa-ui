@@ -75,6 +75,27 @@ const ProjectDetailsStepper: React.FC = () => {
         accountTitle: 'Account value',
         currency: 'Currency value',
       },
+      {
+        trustAccountNumber: '',
+        ibanNumber: '',
+        dateOpened: null,
+        accountTitle: '',
+        currency: 'AED',
+      },
+      {
+        trustAccountNumber: '',
+        ibanNumber: '',
+        dateOpened: null,
+        accountTitle: '',
+        currency: 'AED',
+      },
+      {
+        trustAccountNumber: '',
+        ibanNumber: '',
+        dateOpened: null,
+        accountTitle: '',
+        currency: 'AED',
+      },
     ],
     fees: [
       {
@@ -313,15 +334,15 @@ const ProjectDetailsStepper: React.FC = () => {
         {/* Header */}
         <Box mb={3}>
           <Typography variant="h4" gutterBottom>
-            Management Firms Details
+          Management Firms Details
           </Typography>
           <Typography variant="body1" color="textSecondary">
-            Register your project step by step, on-mandatory fields and steps
+            Register your           Management Firms Details            step by step, on-mandatory fields and steps
             are easy to skip.
           </Typography>
           <Box display="flex" alignItems="center" mt={2}>
             <Typography variant="body2" sx={{ mr: 2 }}>
-              Project Name
+              Management Firms Name
             </Typography>
             <Typography variant="body1" sx={{ mr: 4 }}>
               AI Madina

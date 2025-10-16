@@ -54,6 +54,6 @@ export function useCapitalPartnerLabelsWithCache() {
     
     // Compatibility properties (maintained for existing UI components)
     hasCache: !!capitalPartnerLabels, // Now represents Zustand store state
-    cacheStatus: capitalPartnerLabels ? 'cached' : capitalPartnerLabelsLoading ? 'loading' : 'fresh',
+    cacheStatus: capitalPartnerLabels ? 'cached' : capitalPartnerLabelsLoading ? 'Loading...' : 'fresh',
   }
 }

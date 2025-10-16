@@ -23,6 +23,7 @@ import {
   Calendar,
   Activity,
   Settings,
+  FileText,
 } from 'lucide-react'
 import { ReportCard } from '@/components'
 import { useSidebarConfig } from '@/hooks/useSidebarConfig'
@@ -144,6 +145,13 @@ const reportsData: ReportCategory[] = [
         title: 'Payment Audit Report',
         icon: <PcCase className="w-8 h-8 text-[#1E2939]" strokeWidth={2} />,
       },
+      {
+        id: 'tas-batch-status',
+        title: 'TAS Batch Status Report',
+        icon: (
+          <FileChartLine className="w-8 h-8 text-[#1E2939]" strokeWidth={2} />
+        ),
+      },
     ],
   },
   {
@@ -182,6 +190,16 @@ const reportsData: ReportCategory[] = [
         title: 'Escrow Regulatory Tas Report',
         icon: <SquareUser className="w-8 h-8 text-[#1E2939]" strokeWidth={2} />,
       },
+      {
+        id: 'rt04-trust',
+        title: 'RT04 Trust Report',
+        icon: <Shield className="w-8 h-8 text-[#1E2939]" strokeWidth={2} />,
+      },
+      {
+        id: 'unit-history',
+        title: 'Unit History Report',
+        icon: <FileText className="w-8 h-8 text-[#1E2939]" strokeWidth={2} />,
+      },
     ],
   },
   {
@@ -215,12 +233,12 @@ const reportsData: ReportCategory[] = [
     reports: [
       {
         id: 'monthly-rera',
-        title: 'Monthly Rera Report',
+        title: 'Monthly RERA Report',
         icon: <Box className="w-8 h-8 text-[#1E2939]" strokeWidth={2} />,
       },
       {
         id: 'monthly-tas',
-        title: 'Monthly Tas Report',
+        title: 'Monthly TAS Report',
         icon: (
           <PackageOpen className="w-8 h-8 text-[#1E2939]" strokeWidth={2} />
         ),
@@ -274,6 +292,13 @@ const reportsData: ReportCategory[] = [
         title: 'R/T/04 (Trust Report)',
         icon: <Shield className="w-8 h-8 text-[#1E2939]" strokeWidth={2} />,
       },
+      {
+        id: 'transactions-audit',
+        title: 'Transactions Audit Report',
+        icon: (
+          <FileChartLine className="w-8 h-8 text-[#1E2939]" strokeWidth={2} />
+        ),
+      },
     ],
   },
 ]
@@ -287,7 +312,7 @@ const BusinessReportPage = () => {
   const businessReportTitle = getLabelResolver
     ? getLabelResolver('business', 'Business Report')
     : 'Business Report'
-  
+
   const handleReportClick = (report: Report) => {
     router.push(`/reports/business/${report.id}`)
   }

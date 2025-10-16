@@ -15,6 +15,8 @@ import {
   StepLabel,
   TextareaAutosize,
   Grid,
+  Snackbar,
+  Alert,
 } from '@mui/material'
 import { CommentModal } from '@/components/molecules'
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined'
@@ -27,6 +29,7 @@ import {
 } from '@/hooks/workflow/useWorkflowRequest'
 import { useAuthStore } from '@/store/authStore'
 import { JWTParser } from '@/utils/jwtParser'
+import { formatDateOnly, truncateWords } from '@/utils'
 
 interface FieldItem {
   gridSize: number
@@ -169,37 +172,50 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
     []
   )
   const [comment, setComment] = useState('')
-  const [permissionDeniedModalOpen, setPermissionDeniedModalOpen] =
-    useState(false)
-  const [permissionDeniedMessage, setPermissionDeniedMessage] = useState('')
   const [activeStep, setActiveStep] = useState(Math.max(1, initialStep))
   const [modalOpen, setModalOpen] = useState(false)
   const [actionType, setActionType] = useState<'approve' | 'reject' | null>(
     null
   )
 
+  // MUI Snackbar state - single state for messages
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
   const createWorkflowExecutionMutation = useCreateWorkflowExecution()
   const router = useRouter()
   const { token } = useAuthStore()
 
-  // Queue API hooks
+  // Queue API hooks with fresh data fetching
   const {
     data: queueDetailData,
     isLoading: queueDetailLoading,
-    error: _queueDetailError,
+    refetch: refetchQueueDetail,
   } = useQueueRequestDetail(transactionId?.toString() || '')
 
-  const {
-    data: queueStatusData,
-    isLoading: _queueStatusLoading,
-    error: _queueStatusError,
-  } = useQueueRequestStatus(transactionId?.toString() || '')
+  const { data: queueStatusData, refetch: refetchQueueStatus } =
+    useQueueRequestStatus(transactionId?.toString() || '')
 
   const {
     data: queueLogsData,
     isLoading: queueLogsLoading,
-    error: _queueLogsError,
+    refetch: refetchQueueLogs,
   } = useQueueRequestLogs(transactionId?.toString() || '')
+
+  // Refetch data when panel opens to ensure fresh data
+  React.useEffect(() => {
+    if (isOpen && transactionId) {
+      refetchQueueDetail()
+      refetchQueueStatus()
+      refetchQueueLogs()
+    }
+  }, [
+    isOpen,
+    transactionId,
+    refetchQueueDetail,
+    refetchQueueStatus,
+    refetchQueueLogs,
+  ])
 
   React.useEffect(() => {
     // Use queue status data if available, otherwise fallback to old data
@@ -207,6 +223,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
       queueStatusData?.completedStages ||
       queueDetailData?.currentStageOrder ||
       workflowRequestData?.currentStageOrder
+
     if (currentStageOrder) {
       const newActiveStep = Math.max(1, currentStageOrder - 1)
       setActiveStep(newActiveStep)
@@ -216,17 +233,6 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
     queueDetailData?.currentStageOrder,
     workflowRequestData?.currentStageOrder,
   ])
-
-  const showPermissionDeniedModal = useCallback((message: string) => {
-    setPermissionDeniedMessage(message)
-    setPermissionDeniedModalOpen(true)
-  }, [])
-
-  const handlePermissionDeniedModalClose = useCallback(() => {
-    setPermissionDeniedModalOpen(false)
-    setPermissionDeniedMessage('')
-    router.push('/dashboard')
-  }, [router])
 
   const getCurrentUserRoles = useCallback(() => {
     if (!token) {
@@ -239,7 +245,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
       }
       const roles = parsedToken.payload.realm_access.roles
       return roles
-    } catch (error) {
+    } catch {
       return []
     }
   }, [token])
@@ -254,10 +260,8 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
   )
 
   const dynamicSteps = useMemo(() => {
-    const _userRoles = getCurrentUserRoles()
     const isMaker = hasRole('ROLE_MAKER')
     const isChecker = hasRole('ROLE_CHECKER')
-    const _isAdmin = hasRole('ROLE_ADMIN')
 
     // Use queue status data if available, otherwise fallback to old data
     const stageData =
@@ -322,7 +326,6 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
     queueStatusData?.stageHistory,
     workflowRequestData?.workflowRequestStageDTOS,
     stepsProp,
-    getCurrentUserRoles,
     hasRole,
   ])
 
@@ -340,7 +343,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
         userName: userInfo.name,
       }
       return result
-    } catch (error) {
+    } catch {
       return { userId: null, userName: null }
     }
   }, [token])
@@ -352,67 +355,42 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
       if (userId === currentUserId && _currentUserName) {
         return _currentUserName
       }
+
+      // Try to find username from stages data
+      if (userId && queueDetailData?.stages) {
+        for (const stage of queueDetailData.stages) {
+          if ((stage as any).approvals) {
+            for (const approval of (stage as any).approvals) {
+              if (
+                approval.approverUserId === userId &&
+                approval.approverUsername
+              ) {
+                return approval.approverUsername
+              }
+            }
+          }
+        }
+      }
+
+      // Try to find username from workflow data stages
+      if (userId && workflowRequestData?.workflowRequestStageDTOS) {
+        for (const stage of workflowRequestData.workflowRequestStageDTOS) {
+          if ((stage as any).approvals) {
+            for (const approval of (stage as any).approvals) {
+              if (
+                approval.approverUserId === userId &&
+                approval.approverUsername
+              ) {
+                return approval.approverUsername
+              }
+            }
+          }
+        }
+      }
+
       return userId
     },
-    [getCurrentUserInfo]
-  )
-
-  // Function to validate role permissions for workflow actions
-  const validateRolePermission = useCallback(
-    (_action: 'approve' | 'reject', currentStage: string) => {
-      const _userRoles = getCurrentUserRoles()
-
-      const isMaker = hasRole('ROLE_MAKER')
-      const isChecker = hasRole('ROLE_CHECKER')
-      const isAdmin = hasRole('ROLE_ADMIN')
-
-      if (isAdmin) {
-        return { allowed: true, message: '' }
-      }
-
-      const isMakerStage =
-        currentStage.toLowerCase().includes('maker') ||
-        currentStage.toLowerCase().includes('initiation') ||
-        currentStage === 'Stage 1' ||
-        currentStage === '1' ||
-        currentStage.toLowerCase().includes('stage 1')
-
-      if (isMakerStage) {
-        if (isMaker) {
-          return { allowed: true, message: '' }
-        } else {
-          return {
-            allowed: false,
-            message: `Your role does not match. Your current role is "${_userRoles.find((r: string) => r.startsWith('ROLE_'))}" but you need ROLE_MAKER for this action.`,
-          }
-        }
-      }
-      const isCheckerStage =
-        currentStage.toLowerCase().includes('checker') ||
-        currentStage.toLowerCase().includes('approval') ||
-        currentStage === 'Stage 2' ||
-        currentStage === 'Stage 3' ||
-        currentStage === '2' ||
-        currentStage === '3' ||
-        currentStage.toLowerCase().includes('stage 2') ||
-        currentStage.toLowerCase().includes('stage 3')
-      if (isCheckerStage) {
-        if (isChecker) {
-          return { allowed: true, message: '' }
-        } else {
-          return {
-            allowed: false,
-            message: `Your role does not match. Your current role is "${_userRoles.find((r: string) => r.startsWith('ROLE_'))}" but you need ROLE_CHECKER for this action.`,
-          }
-        }
-      }
-
-      return {
-        allowed: false,
-        message: `Your role does not match. Your current role is "${_userRoles.find((r: string) => r.startsWith('ROLE_'))}" and you don't have permission for this action. Stage "${currentStage}" is not recognized.`,
-      }
-    },
-    [getCurrentUserRoles, hasRole]
+    [getCurrentUserInfo, queueDetailData, workflowRequestData]
   )
 
   const currentLogEntry = useMemo(() => {
@@ -441,6 +419,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
       currentLogEntry?.workflowRequestDTO
     const detailsJson =
       queueDetailData?.payloadJson ||
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (workflowData as any)?.payloadJson ||
       currentLogEntry?.detailsJson
 
@@ -456,17 +435,20 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
       ]
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const workflowDataAny = workflowData as any
+
     const baseDetails = [
       {
         gridSize: 4,
         label: 'ID',
-        value: (workflowData as any)?.id ? (workflowData as any).id : '-',
+        value: workflowDataAny?.id ? workflowDataAny.id : '-',
       },
       {
         gridSize: 4,
         label: 'Reference ID',
-        value: (workflowData as any)?.referenceId
-          ? (workflowData as any).referenceId
+        value: workflowDataAny?.referenceId
+          ? workflowDataAny.referenceId
           : transactionId
             ? String(transactionId)
             : '-',
@@ -474,114 +456,94 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
       {
         gridSize: 4,
         label: 'Reference Type',
-        value: (workflowData as any)?.referenceType
-          ? (workflowData as any).referenceType
+        value: workflowDataAny?.referenceType
+          ? workflowDataAny.referenceType
           : '-',
       },
       {
         gridSize: 4,
         label: 'Action Key',
-        value: (workflowData as any)?.actionKey
-          ? (workflowData as any).actionKey
-          : '-',
+        value: workflowDataAny?.actionKey ? workflowDataAny.actionKey : '-',
       },
       {
         gridSize: 4,
         label: 'Amount',
-        value: (workflowData as any)?.amount
-          ? (workflowData as any).amount
-          : '-',
+        value: workflowDataAny?.amount ? workflowDataAny.amount : '0',
       },
       {
         gridSize: 4,
         label: 'Currency',
-        value: (workflowData as any)?.currency
-          ? (workflowData as any).currency
-          : '-',
+        value: workflowDataAny?.currency || '-',
       },
-      // { gridSize: 12, label: 'Created By', value: workflowData?.createdBy ? workflowData.createdBy : '-' },
     ]
 
     const dynamicDetails = []
     const currentModuleName =
       TAB_TO_MODULE_MAP[activeTab as keyof typeof TAB_TO_MODULE_MAP] ||
-      (workflowData as any)?.moduleName
+      workflowDataAny?.moduleName
 
     if (
       activeTab === 'buildPartner' ||
       currentModuleName === 'BUILD_PARTNER' ||
-      (workflowData as any)?.referenceType === 'BUILD_PARTNER'
+      workflowDataAny?.referenceType === 'BUILD_PARTNER'
     ) {
       dynamicDetails.push({
         gridSize: 4,
         label: 'CIFRERA',
-        value: detailsJson?.bpCifrera ? detailsJson.bpCifrera : '-',
+        value: detailsJson?.bpCifrera || '-',
       })
 
       dynamicDetails.push({
         gridSize: 4,
         label: 'License No',
-        value: detailsJson?.bpLicenseNo ? detailsJson.bpLicenseNo : '-',
+        value: detailsJson?.bpLicenseNo || '-',
       })
 
       dynamicDetails.push({
         gridSize: 4,
         label: 'Local Name',
-        value: detailsJson?.bpNameLocal ? detailsJson.bpNameLocal : '-',
+        value: detailsJson?.bpNameLocal || '-',
       })
 
       dynamicDetails.push({
         gridSize: 4,
         label: 'Current Stage',
-        value: (workflowData as any)?.currentStageOrder
-          ? `Stage ${(workflowData as any).currentStageOrder}`
+        value: workflowDataAny?.currentStageOrder
+          ? `Stage ${workflowDataAny.currentStageOrder}`
           : '-',
       })
 
       dynamicDetails.push({
         gridSize: 4,
         label: 'Created At',
-        value: (workflowData as any)?.createdAt
-          ? new Date((workflowData as any).createdAt).toLocaleDateString(
-              'en-GB',
-              {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              }
-            )
+        value: workflowDataAny?.createdAt
+          ? formatDateOnly(workflowDataAny.createdAt)
           : '-',
       })
 
       dynamicDetails.push({
         gridSize: 4,
         label: 'Last Updated At',
-        value: (workflowData as any)?.lastUpdatedAt
-          ? new Date((workflowData as any).lastUpdatedAt).toLocaleDateString(
-              'en-GB',
-              {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              }
-            )
+        value: workflowDataAny?.lastUpdatedAt
+          ? formatDateOnly(workflowDataAny.lastUpdatedAt)
           : '-',
       })
 
       dynamicDetails.push({
-        gridSize: 6,
+        gridSize: 4,
         label: 'Build Partner Name',
-        value: detailsJson?.bpName ? detailsJson.bpName : '-',
+        value: truncateWords(detailsJson?.bpName, 15) || '-',
       })
 
       dynamicDetails.push({
-        gridSize: 6,
+        gridSize: 4,
         label: 'Developer ID',
-        value: detailsJson?.bpDeveloperId ? detailsJson.bpDeveloperId : '-',
+        value: detailsJson?.bpDeveloperId || '-',
+      })
+      dynamicDetails.push({
+        gridSize: 4,
+        label: 'Status',
+        value: workflowDataAny?.status ? workflowDataAny.status : '-',
       })
     }
 
@@ -854,6 +816,13 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
     const logsData = queueLogsData?.content || workflowRequestLogsData?.content
     const workflowData = queueDetailData || currentWorkflowData
 
+    // Event types to filter out from audit trail
+    const filteredEventTypes = [
+      'WORKFLOW_COMPLETED',
+      'STAGE_STARTED',
+      'REQUEST_CREATED',
+    ]
+
     if (!logsData && !workflowData && queueLogsLoading) {
       return [
         {
@@ -866,21 +835,29 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
 
     if (logsData && logsData.length > 0) {
       return logsData
+        .filter((log) => {
+          const eventType = (log.eventType as string)?.toUpperCase()
+          return !filteredEventTypes.includes(eventType)
+        })
         .sort(
           (a, b) =>
             new Date(a.eventAt as string).getTime() -
             new Date(b.eventAt as string).getTime()
         )
         .map((log) => {
+          const resolvedUserName = resolveUserName(log.eventByUser as string)
           const displayUser =
-            resolveUserName(log.eventByUser as string) ||
-            (log.eventByGroup as string) ||
-            'System'
+            resolvedUserName !== log.eventByUser
+              ? resolvedUserName
+              : (log.eventByGroup as string) || 'System'
 
+          const eventTypeLower = (log.eventType as string)?.toLowerCase() || ''
           const isApprovalAction =
-            (log.eventType as string)?.toLowerCase().includes('approve') ||
-            (log.eventType as string)?.toLowerCase().includes('approved') ||
-            (log.eventType as string)?.toLowerCase().includes('approval')
+            eventTypeLower.includes('approve') ||
+            eventTypeLower.includes('approved') ||
+            eventTypeLower.includes('approval') ||
+            (eventTypeLower === 'decision' &&
+              (log.detailsJson as any)?.decision === 'APPROVE')
 
           let userRole = 'Unknown'
           if (log.eventByGroup) {
@@ -896,49 +873,59 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
             userRole = 'ROLE_CHECKER'
           }
 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const logAny = log as any
+
+          // Format action text for better display
+          let actionText = log.eventType || 'Unknown Event'
+          if (eventTypeLower === 'decision') {
+            const decision = (log.detailsJson as any)?.decision
+            if (decision === 'APPROVE') {
+              actionText = 'APPROVED'
+            } else if (decision === 'REJECT') {
+              actionText = 'REJECTED'
+            } else {
+              actionText = `DECISION: ${decision || 'UNKNOWN'}`
+            }
+          }
+
           return {
             id: log.id,
-            action: log.eventType || 'Unknown Event',
+            action: actionText,
             user: displayUser,
             group: log.eventByGroup,
             role: userRole,
             isApproval: isApprovalAction,
             timestamp: log.eventAt
-              ? new Date(log.eventAt as string).toLocaleString('en-GB', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  second: '2-digit',
-                })
-              : 'N/A',
+              ? formatDateOnly(log.eventAt as string)
+              : '-',
             rawTimestamp: log.eventAt,
             details: log.detailsJson || {},
-            workflowRequestId: (log as any).workflowRequestDTO?.id,
-            referenceId: (log as any).workflowRequestDTO?.referenceId,
-            moduleName: (log as any).workflowRequestDTO?.moduleName,
-            actionKey: (log as any).workflowRequestDTO?.actionKey,
+            remarks: (log.detailsJson as any)?.remarks || '',
+            workflowRequestId: logAny.workflowRequestDTO?.id,
+            referenceId: logAny.workflowRequestDTO?.referenceId,
+            moduleName: logAny.workflowRequestDTO?.moduleName,
+            actionKey: logAny.workflowRequestDTO?.actionKey,
           }
         })
     }
 
     if (currentWorkflowData) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const currentWorkflowDataAny = currentWorkflowData as any
       return [
         {
           action: 'Request Created',
-          user: (currentWorkflowData as any).createdBy || 'System',
-          timestamp: (currentWorkflowData as any).createdAt
-            ? new Date((currentWorkflowData as any).createdAt).toLocaleString()
+          user: currentWorkflowDataAny.createdBy || 'System',
+          timestamp: currentWorkflowDataAny.createdAt
+            ? formatDateOnly(currentWorkflowDataAny.createdAt)
             : '-',
         },
         {
           action: 'Current Stage',
-          user: `Stage ${(currentWorkflowData as any).currentStageOrder || 1}`,
-          timestamp: (currentWorkflowData as any).lastUpdatedAt
-            ? new Date(
-                (currentWorkflowData as any).lastUpdatedAt
-              ).toLocaleString()
+          user: `Stage ${currentWorkflowDataAny.currentStageOrder || 1}`,
+          timestamp: currentWorkflowDataAny.lastUpdatedAt
+            ? formatDateOnly(currentWorkflowDataAny.lastUpdatedAt)
             : 'Pending',
         },
       ]
@@ -954,108 +941,18 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
     queueLogsLoading,
   ])
 
+  // Check if user can perform action - if not, silently return (button should be disabled)
   const handleApprove = () => {
-    const currentStage = workflowRequestData?.currentStageOrder
-      ? `Stage ${workflowRequestData.currentStageOrder}`
-      : 'Unknown'
-
-    const currentStep = dynamicSteps[activeStep]
-    const currentStepLabel =
-      typeof currentStep === 'string'
-        ? currentStep
-        : currentStep?.label || 'Unknown'
-
-    const _userRoles = getCurrentUserRoles()
-    const isMaker = hasRole('ROLE_MAKER')
-    const isChecker = hasRole('ROLE_CHECKER')
-
-    const isCheckerStage =
-      currentStage === 'Stage 2' ||
-      currentStage === 'Stage 3' ||
-      currentStage === '2' ||
-      currentStage === '3' ||
-      currentStepLabel.toLowerCase().includes('checker') ||
-      currentStepLabel.toLowerCase().includes('approval')
-
-    if (isMaker && isCheckerStage) {
-      showPermissionDeniedModal(
-        `Permission Denied! Your role is ROLE_MAKER but you're trying to approve at ${currentStepLabel} (CHECKER stage). Only ROLE_CHECKER can approve CHECKER stages.`
-      )
+    if (!canPerformAction) {
       return
     }
-
-    const isMakerStage =
-      currentStage === 'Stage 1' ||
-      currentStage === '1' ||
-      currentStepLabel.toLowerCase().includes('maker') ||
-      currentStepLabel.toLowerCase().includes('initiation')
-
-    if (isChecker && isMakerStage) {
-      showPermissionDeniedModal(
-        `Permission Denied! Your role is ROLE_CHECKER but you're trying to approve at ${currentStepLabel} (MAKER stage). Only ROLE_MAKER can approve MAKER stages.`
-      )
-      return
-    }
-
-    const permission = validateRolePermission('approve', currentStage)
-
-    if (!permission.allowed) {
-      alert(permission.message)
-      return
-    }
-
     setActionType('approve')
     setModalOpen(true)
   }
 
+  // Check if user can perform action - if not, silently return (button should be disabled)
   const handleReject = () => {
-    const currentStage = workflowRequestData?.currentStageOrder
-      ? `Stage ${workflowRequestData.currentStageOrder}`
-      : 'Unknown'
-
-    // Get the current active step from the stepper
-    const currentStep = dynamicSteps[activeStep]
-    const currentStepLabel =
-      typeof currentStep === 'string'
-        ? currentStep
-        : currentStep?.label || 'Unknown'
-
-    const _userRoles = getCurrentUserRoles()
-    const isMaker = hasRole('ROLE_MAKER')
-    const isChecker = hasRole('ROLE_CHECKER')
-
-    const isCheckerStage =
-      currentStage === 'Stage 2' ||
-      currentStage === 'Stage 3' ||
-      currentStage === '2' ||
-      currentStage === '3' ||
-      currentStepLabel.toLowerCase().includes('checker') ||
-      currentStepLabel.toLowerCase().includes('approval')
-
-    if (isMaker && isCheckerStage) {
-      showPermissionDeniedModal(
-        `Permission Denied! Your role is ROLE_MAKER but you're trying to reject at ${currentStepLabel} (CHECKER stage). Only ROLE_CHECKER can reject CHECKER stages.`
-      )
-      return
-    }
-
-    const isMakerStage =
-      currentStage === 'Stage 1' ||
-      currentStage === '1' ||
-      currentStepLabel.toLowerCase().includes('maker') ||
-      currentStepLabel.toLowerCase().includes('initiation')
-
-    if (isChecker && isMakerStage) {
-      showPermissionDeniedModal(
-        `Permission Denied! Your role is ROLE_CHECKER but you're trying to reject at ${currentStepLabel} (MAKER stage). Only ROLE_MAKER can reject MAKER stages.`
-      )
-      return
-    }
-
-    const permission = validateRolePermission('reject', currentStage)
-
-    if (!permission.allowed) {
-      alert(permission.message)
+    if (!canPerformAction) {
       return
     }
 
@@ -1063,7 +960,16 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
     setModalOpen(true)
   }
 
+  // Use queue data if available, otherwise fallback to legacy data
   const getCurrentWorkflowStageId = useMemo(() => {
+    if (queueDetailData?.stages && queueDetailData?.currentStageOrder) {
+      const currentStage = queueDetailData.stages.find(
+        (stage) => stage.stageOrder === queueDetailData.currentStageOrder
+      )
+      return currentStage?.id?.toString() || null
+    }
+
+    // Fallback to legacy data
     if (
       !workflowRequestData?.workflowRequestStageDTOS ||
       !workflowRequestData?.currentStageOrder
@@ -1075,39 +981,77 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
       (stage) => stage.stageOrder === workflowRequestData.currentStageOrder
     )
 
-    return currentStage?.id || null
-  }, [workflowRequestData])
+    return currentStage?.id?.toString() || null
+  }, [queueDetailData, workflowRequestData])
 
+  // Get current stage order from any available source
   const isAllStepsCompleted = useMemo(() => {
-    if (
-      !workflowRequestData?.workflowRequestStageDTOS ||
-      !workflowRequestData?.currentStageOrder
-    ) {
+    const currentStageOrder =
+      queueDetailData?.currentStageOrder ||
+      workflowRequestData?.currentStageOrder ||
+      queueStatusData?.completedStages
+
+    if (!currentStageOrder) {
       return false
     }
 
-    const totalStages = workflowRequestData.workflowRequestStageDTOS.length
-    const currentStageOrder = workflowRequestData.currentStageOrder
+    // Get total stages from queue data or workflow data
+    const totalStages =
+      queueDetailData?.stages?.length ||
+      workflowRequestData?.workflowRequestStageDTOS?.length ||
+      dynamicSteps.length
 
-    return currentStageOrder >= totalStages
-  }, [workflowRequestData])
+    // Check if checker has actually approved by looking at audit trail
+    const logsData = queueLogsData?.content || workflowRequestLogsData?.content
+    let checkerHasApproved = false
 
+    if (logsData && logsData.length > 0) {
+      checkerHasApproved = logsData.some((log) => {
+        const eventType = (log.eventType as string)?.toLowerCase() || ''
+        const eventByGroup = (log.eventByGroup as string)?.toLowerCase() || ''
+        const isApprovalEvent =
+          eventType.includes('approve') ||
+          eventType.includes('approved') ||
+          eventType.includes('approval')
+        const isCheckerEvent =
+          eventByGroup.includes('checker') ||
+          eventByGroup.includes('role_checker')
+        return isApprovalEvent && isCheckerEvent
+      })
+    }
+
+    // All steps are completed when:
+    // 1. Current stage order is greater than total stages, OR
+    // 2. We're at stage 3 or higher (checker has completed approval), OR
+    // 3. Checker has actually approved (based on audit trail)
+    const result =
+      currentStageOrder > totalStages ||
+      currentStageOrder >= 3 ||
+      checkerHasApproved
+
+    return result
+  }, [
+    queueDetailData?.currentStageOrder,
+    queueDetailData?.stages?.length,
+    workflowRequestData?.currentStageOrder,
+    workflowRequestData?.workflowRequestStageDTOS?.length,
+    queueStatusData?.completedStages,
+    dynamicSteps.length,
+    queueLogsData?.content,
+    workflowRequestLogsData?.content,
+  ])
+
+  // Use queue data if available, otherwise fallback to old data
   const canPerformAction = useMemo(() => {
     if (isAllStepsCompleted) {
       return false
     }
 
-    const currentStage = workflowRequestData?.currentStageOrder
-      ? `Stage ${workflowRequestData.currentStageOrder}`
-      : 'Unknown'
+    const currentStageOrder =
+      queueDetailData?.currentStageOrder ||
+      workflowRequestData?.currentStageOrder ||
+      queueStatusData?.completedStages
 
-    const currentStep = dynamicSteps[activeStep]
-    const currentStepLabel =
-      typeof currentStep === 'string'
-        ? currentStep
-        : currentStep?.label || 'Unknown'
-
-    const _userRoles = getCurrentUserRoles()
     const isMaker = hasRole('ROLE_MAKER')
     const isChecker = hasRole('ROLE_CHECKER')
     const isAdmin = hasRole('ROLE_ADMIN')
@@ -1116,53 +1060,54 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
       return true
     }
 
-    const isCheckerStage =
-      currentStage === 'Stage 2' ||
-      currentStage === 'Stage 3' ||
-      currentStage === '2' ||
-      currentStage === '3' ||
-      currentStepLabel.toLowerCase().includes('checker') ||
-      currentStepLabel.toLowerCase().includes('approval')
+    // Check if checker has actually approved by looking at audit trail
+    const logsData = queueLogsData?.content || workflowRequestLogsData?.content
+    let checkerHasApproved = false
 
-    if (isMaker && isCheckerStage) {
+    if (logsData && logsData.length > 0) {
+      checkerHasApproved = logsData.some((log) => {
+        const eventType = (log.eventType as string)?.toLowerCase() || ''
+        const eventByGroup = (log.eventByGroup as string)?.toLowerCase() || ''
+        const isApprovalEvent =
+          eventType.includes('approve') ||
+          eventType.includes('approved') ||
+          eventType.includes('approval')
+        const isCheckerEvent =
+          eventByGroup.includes('checker') ||
+          eventByGroup.includes('role_checker')
+        return isApprovalEvent && isCheckerEvent
+      })
+    }
+
+    // If stage order is 3 or higher OR checker has actually approved, all approvals are complete - disable buttons
+    if ((currentStageOrder || 0) >= 3 || checkerHasApproved) {
       return false
     }
 
-    const isMakerStage =
-      currentStage === 'Stage 1' ||
-      currentStage === '1' ||
-      currentStepLabel.toLowerCase().includes('maker') ||
-      currentStepLabel.toLowerCase().includes('initiation')
-
-    if (isChecker && isMakerStage) {
-      return false
+    // Simplified logic based on current stage order
+    if (isMaker) {
+      // Maker can only approve when at stage 1 (Maker stage)
+      return (currentStageOrder || 0) === 1
     }
 
-    if (isMakerStage) {
-      return isMaker
-    }
-
-    if (isCheckerStage) {
-      return isChecker
+    if (isChecker) {
+      // Checker can only approve when at stage 2 (Checker stage) AND checker hasn't already approved
+      // If currentStageOrder is 2, it means checker stage is active and can be approved
+      // If currentStageOrder is 3 or higher OR checker has already approved, disable buttons
+      const stage = currentStageOrder || 0
+      return stage === 2 && !checkerHasApproved
     }
 
     return false
   }, [
     isAllStepsCompleted,
-    workflowRequestData,
-    getCurrentUserRoles,
+    queueDetailData?.currentStageOrder,
+    workflowRequestData?.currentStageOrder,
+    queueStatusData?.completedStages,
     hasRole,
-    dynamicSteps,
-    activeStep,
+    queueLogsData?.content,
+    workflowRequestLogsData?.content,
   ])
-
-  const _getCurrentActiveStep = useMemo(() => {
-    if (!workflowRequestData?.currentStageOrder) {
-      return 0
-    }
-
-    return workflowRequestData.currentStageOrder - 1
-  }, [workflowRequestData])
 
   const handleCommentSubmit = async (
     comment: string,
@@ -1170,21 +1115,11 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
   ) => {
     try {
       const workflowStageId = getCurrentWorkflowStageId
-
-      if (!workflowStageId) {
-        return
-      }
-
-      const { userId: currentUserId, userName: _currentUserName } =
-        getCurrentUserInfo()
-
-      if (!currentUserId) {
-        return
-      }
-
+      if (!workflowStageId) return
+      const { userId: currentUserId } = getCurrentUserInfo()
+      if (!currentUserId) return
       const _userRoles = getCurrentUserRoles()
       const currentRole = _userRoles.find((r: string) => r.startsWith('ROLE_'))
-
       const payload = {
         userId: String(currentUserId),
         remarks: comment.trim() || (type === 'approve' ? 'APPROVE' : 'REJECT'),
@@ -1194,26 +1129,74 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
         userRole: currentRole,
       }
 
-      const _response = await createWorkflowExecutionMutation.mutateAsync({
+      await createWorkflowExecutionMutation.mutateAsync({
         workflowId: String(workflowStageId),
         data: payload,
       })
 
+      // Refetch data after successful action to get updated state
+      await Promise.all([
+        refetchQueueDetail(),
+        refetchQueueStatus(),
+        refetchQueueLogs(),
+      ])
+
+      // Show success toast based on user role and action type
+      const isMaker = hasRole('ROLE_MAKER')
+      const isChecker = hasRole('ROLE_CHECKER')
+
       if (type === 'approve') {
+        if (isMaker) {
+          setSuccessMessage('Maker approved successfully!')
+        } else if (isChecker) {
+          setSuccessMessage('Checker approved successfully!')
+        } else {
+          setSuccessMessage('Approved successfully!')
+        }
+
         const newStep = Math.min(activeStep + 1, dynamicSteps.length - 1)
-
         setActiveStep(newStep)
-      }
 
-      if (type === 'approve') {
+        // Redirect to involved activities for both maker and checker approvals
         onApprove?.(transactionId, comment)
+        setSuccessMessage('Redirecting to involved activities...')
+        router.push('/activities/involved')
       } else {
+        if (isMaker) {
+          setErrorMessage('Maker rejected the request')
+        } else if (isChecker) {
+          setErrorMessage('Checker rejected the request')
+        } else {
+          setErrorMessage('Request rejected')
+        }
         onReject?.(transactionId, comment)
+        setSuccessMessage('Redirecting to involved activities...')
+        router.push('/activities/involved')
       }
 
       setModalOpen(false)
       setComment('')
-    } catch (error) {}
+    } catch (error) {
+      console.log(error)
+
+      // Show error toast with API message if available
+      let errorMessage = 'Failed to process request'
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'object' && error !== null) {
+        // Try to extract message from API response
+        const errorObj = error as any
+        if (errorObj.message) {
+          errorMessage = errorObj.message
+        } else if (errorObj.response?.data?.message) {
+          errorMessage = errorObj.response.data.message
+        } else if (errorObj.data?.message) {
+          errorMessage = errorObj.data.message
+        }
+      }
+
+      setErrorMessage(`Error: ${errorMessage}`)
+    }
   }
   const formatReferenceType = (text = '') => {
     return text
@@ -1259,9 +1242,11 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                 fontFamily: 'var(--font-outfit), system-ui, sans-serif',
               }}
             >
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {(currentWorkflowData as any)?.referenceType && (
                 <h2 title="Transaction Details">
                   {formatReferenceType(
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     (currentWorkflowData as any).referenceType
                   )}{' '}
                   Details :
@@ -1307,18 +1292,115 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
 
               {/* Dynamic Stepper */}
               <Box sx={{ mt: 3 }}>
-                <Stepper activeStep={activeStep} alternativeLabel>
+                <Stepper
+                  activeStep={activeStep}
+                  alternativeLabel
+                  sx={{
+                    '& .MuiStepConnector-line': {
+                      borderColor: '#e5e7eb', // Default gray for future stages
+                    },
+                    '& .MuiStepConnector-root': {
+                      '&.Mui-active .MuiStepConnector-line': {
+                        borderColor: '#3b82f6', // Blue for active stage
+                      },
+                      '&.Mui-completed .MuiStepConnector-line': {
+                        borderColor: '#3b82f6', // Blue for completed stages
+                      },
+                    },
+                  }}
+                >
                   {dynamicSteps.map((step, index) => {
                     const stepLabel =
                       typeof step === 'string' ? step : step.label
-                    const _stepOrder =
-                      typeof step === 'string' ? 0 : step.stageOrder
+
+                    // Get current stage order for proper completion logic
+                    const currentStageOrder =
+                      queueDetailData?.currentStageOrder ||
+                      workflowRequestData?.currentStageOrder ||
+                      queueStatusData?.completedStages ||
+                      0
+
+                    const stepStageOrder =
+                      typeof step === 'object' ? step.stageOrder : index
 
                     const isInitiationStage = stepLabel
                       .toLowerCase()
                       .includes('initiation')
+                    const isMakerStage = stepLabel
+                      .toLowerCase()
+                      .includes('maker')
+                    const isCheckerStage = stepLabel
+                      .toLowerCase()
+                      .includes('checker')
+
                     const isActive = index === activeStep
-                    const isCompleted = isInitiationStage || index < activeStep
+
+                    // Fixed completion logic - stages should only be completed when they're actually done
+                    let isCompleted = false
+
+                    // Check audit trail for actual completion status
+                    const logsData =
+                      queueLogsData?.content || workflowRequestLogsData?.content
+
+                    if (isInitiationStage) {
+                      // Initiation is completed if we're at stage 1 or higher
+                      isCompleted = currentStageOrder >= 1
+                    } else if (isMakerStage) {
+                      // Maker stage is completed if we're at stage 2 or higher (after maker approves)
+                      isCompleted = currentStageOrder >= 2
+                    } else if (isCheckerStage) {
+                      // Check if checker has actually approved by looking at audit trail
+                      let checkerHasApproved = false
+                      if (logsData && logsData.length > 0) {
+                        checkerHasApproved = logsData.some((log) => {
+                          const eventType =
+                            (log.eventType as string)?.toLowerCase() || ''
+                          const eventByGroup =
+                            (log.eventByGroup as string)?.toLowerCase() || ''
+                          const isApprovalEvent =
+                            eventType.includes('approve') ||
+                            eventType.includes('approved') ||
+                            eventType.includes('approval')
+                          const isCheckerEvent =
+                            eventByGroup.includes('checker') ||
+                            eventByGroup.includes('role_checker')
+                          return isApprovalEvent && isCheckerEvent
+                        })
+                      }
+                      // Checker stage is completed if stage 3+ OR checker has actually approved
+                      isCompleted = currentStageOrder >= 3 || checkerHasApproved
+                    } else {
+                      // Fallback to original logic
+                      isCompleted = stepStageOrder < currentStageOrder
+                    }
+
+                    // Debug logging for stepper
+                    if (isCheckerStage) {
+                      const logsData =
+                        queueLogsData?.content ||
+                        workflowRequestLogsData?.content
+                      let checkerHasApproved = false
+                      if (logsData && logsData.length > 0) {
+                        checkerHasApproved = logsData.some((log) => {
+                          const eventType =
+                            (log.eventType as string)?.toLowerCase() || ''
+                          const eventByGroup =
+                            (log.eventByGroup as string)?.toLowerCase() || ''
+                          const isApprovalEvent =
+                            eventType.includes('approve') ||
+                            eventType.includes('approved') ||
+                            eventType.includes('approval')
+                          const isCheckerEvent =
+                            eventByGroup.includes('checker') ||
+                            eventByGroup.includes('role_checker')
+                          return isApprovalEvent && isCheckerEvent
+                        })
+                      }
+
+                      console.log('Checker Stage Debug:', {
+                        checkerHasApproved,
+                      })
+                    }
 
                     return (
                       <Step
@@ -1326,7 +1408,75 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                         completed={isCompleted}
                         active={isActive}
                       >
-                        <StepLabel>
+                        <StepLabel
+                          StepIconComponent={({ completed, active }) => {
+                            if (completed) {
+                              return (
+                                <div
+                                  style={{
+                                    width: 24,
+                                    height: 24,
+                                    borderRadius: '50%',
+                                    backgroundColor: '#3b82f6',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: 'white',
+                                    fontSize: '14px',
+                                    fontWeight: 'bold',
+                                    border: '2px solid #3b82f6',
+                                    boxShadow:
+                                      '0 2px 4px rgba(59, 130, 246, 0.3)',
+                                  }}
+                                >
+                                  ✓
+                                </div>
+                              )
+                            }
+                            if (active) {
+                              return (
+                                <div
+                                  style={{
+                                    width: 24,
+                                    height: 24,
+                                    borderRadius: '50%',
+                                    backgroundColor: '#3b82f6',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: 'white',
+                                    fontSize: '14px',
+                                    fontWeight: 'bold',
+                                    border: '2px solid #3b82f6',
+                                    boxShadow:
+                                      '0 2px 4px rgba(59, 130, 246, 0.3)',
+                                  }}
+                                >
+                                  {index + 1}
+                                </div>
+                              )
+                            }
+                            return (
+                              <div
+                                style={{
+                                  width: 24,
+                                  height: 24,
+                                  borderRadius: '50%',
+                                  backgroundColor: '#e5e7eb',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: '#6b7280',
+                                  fontSize: '14px',
+                                  fontWeight: 'bold',
+                                  border: '2px solid #d1d5db',
+                                }}
+                              >
+                                {index + 1}
+                              </div>
+                            )
+                          }}
+                        >
                           <div>
                             <div
                               style={{
@@ -1336,7 +1486,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                   ? '#3b82f6'
                                   : isCompleted
                                     ? '#3b82f6'
-                                    : '#1e293b',
+                                    : '#3b82f6',
                                 fontFamily:
                                   'var(--font-outfit), system-ui, sans-serif',
                               }}
@@ -1375,7 +1525,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                         )
                         .map((log) => {
                           const displayUser =
-                            resolveUserName(log.eventByUser as string) || 'N/A'
+                            resolveUserName(log.eventByUser as string) || '-'
 
                           return (
                             <Box
@@ -1458,7 +1608,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                         'var(--font-outfit), system-ui, sans-serif',
                                     }}
                                   >
-                                    {String(log.eventByGroup || 'N/A')}
+                                    {String(log.eventByGroup || '-')}
                                   </Typography>
                                 </Box>
 
@@ -1485,17 +1635,8 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                     }}
                                   >
                                     {log.eventAt
-                                      ? new Date(
-                                          log.eventAt as string
-                                        ).toLocaleString('en-GB', {
-                                          day: '2-digit',
-                                          month: '2-digit',
-                                          year: 'numeric',
-                                          hour: '2-digit',
-                                          minute: '2-digit',
-                                          second: '2-digit',
-                                        })
-                                      : 'N/A'}
+                                      ? formatDateOnly(log.eventAt as string)
+                                      : '-'}
                                   </Typography>
                                 </Box>
                               </Box>
@@ -1531,7 +1672,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                       top: 0,
                       bottom: 0,
                       width: 2,
-                      backgroundColor: '#e5e7eb',
+                      backgroundColor: '#3b82f6',
                     },
                   }}
                 >
@@ -1542,7 +1683,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                     const isCompleted =
                       item.timestamp &&
                       item.timestamp !== 'Pending' &&
-                      item.timestamp !== 'N/A'
+                      item.timestamp !== '-'
 
                     return (
                       <Box
@@ -1576,38 +1717,39 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                             zIndex: 2,
                           }}
                         >
-                          {isCompleted && isApproval && (
+                          {isCompleted && isApproval ? (
                             <Box
                               sx={{
                                 width: 8,
                                 height: 6,
-                                border: '2px solid white',
+                                border: '2px solid #3b82f6',
                                 borderTop: 'none',
                                 borderRight: 'none',
+                                display: 'inline-block',
                                 transform: 'rotate(-45deg)',
                               }}
                             />
-                          )}
-                          {isCompleted && !isApproval && (
+                          ) : null}
+                          {isCompleted && !isApproval ? (
                             <Box
                               sx={{
                                 width: 6,
                                 height: 6,
                                 borderRadius: '50%',
-                                backgroundColor: 'white',
+                                backgroundColor: '#3b82f6',
                               }}
                             />
-                          )}
-                          {!isCompleted && (
+                          ) : null}
+                          {!isCompleted ? (
                             <Box
                               sx={{
                                 width: 4,
                                 height: 4,
                                 borderRadius: '50%',
-                                backgroundColor: 'white',
+                                backgroundColor: '#3b82f6',
                               }}
                             />
-                          )}
+                          ) : null}
                         </Box>
 
                         {/* Content Card */}
@@ -1737,7 +1879,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                               >
                                 {String(
                                   (item as Record<string, unknown>).group
-                                ) || 'N/A'}
+                                ) || '-'}
                               </Typography>
                             </Box>
 
@@ -1761,7 +1903,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                 sx={{
                                   fontSize: '14px',
                                   fontWeight: 600,
-                                  color: isCompleted ? '#1e293b' : '#f59e0b',
+                                  color: '#1e293b',
                                   fontFamily:
                                     'var(--font-outfit), system-ui, sans-serif',
                                 }}
@@ -1771,46 +1913,48 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                             </Box>
                           </Box>
 
-                          {/* Status Badge */}
-                          {isCompleted && (
-                            <Box
-                              sx={{
-                                mt: 2,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 1,
-                                px: 2,
-                                py: 0.5,
-                                backgroundColor: isApproval
-                                  ? '#dcfce7'
-                                  : '#dbeafe',
-                                borderRadius: 2,
-                                border: `1px solid ${isApproval ? '#bbf7d0' : '#bfdbfe'}`,
-                              }}
-                            >
-                              <Box
-                                sx={{
-                                  width: 6,
-                                  height: 6,
-                                  borderRadius: '50%',
-                                  backgroundColor: isApproval
-                                    ? '#10b981'
-                                    : '#3b82f6',
-                                }}
-                              />
-                              <Typography
-                                sx={{
-                                  fontSize: '12px',
-                                  fontWeight: 600,
-                                  color: isApproval ? '#065f46' : '#1e40af',
-                                  fontFamily:
-                                    'var(--font-outfit), system-ui, sans-serif',
-                                }}
-                              >
-                                {isApproval ? 'Completed' : 'Processed'}
-                              </Typography>
-                            </Box>
-                          )}
+                          {/* Remarks Section */}
+                          {(item as Record<string, unknown>).remarks &&
+                            String(
+                              (item as Record<string, unknown>).remarks
+                            ).trim() !== '' && (
+                              <Box sx={{ mt: 2 }}>
+                                <Typography
+                                  sx={{
+                                    fontSize: '11px',
+                                    fontWeight: 600,
+                                    color: '#9ca3af',
+                                    fontFamily:
+                                      'var(--font-outfit), system-ui, sans-serif',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.5px',
+                                    mb: 1,
+                                  }}
+                                >
+                                  Remarks
+                                </Typography>
+                                <Typography
+                                  sx={{
+                                    fontSize: '14px',
+                                    fontWeight: 500,
+                                    color: '#374151',
+                                    fontFamily:
+                                      'var(--font-outfit), system-ui, sans-serif',
+                                    backgroundColor: '#f9fafb',
+                                    padding: '8px 12px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #e5e7eb',
+                                    wordBreak: 'break-word',
+                                    lineHeight: '1.4',
+                                  }}
+                                >
+                                  {String(
+                                    (item as Record<string, unknown>).remarks ||
+                                      ''
+                                  )}
+                                </Typography>
+                              </Box>
+                            )}
                         </Box>
                       </Box>
                     )
@@ -1822,52 +1966,101 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
         </DialogContent>
 
         <Box sx={{ mt: 'auto', pt: 1, display: 'flex', gap: 1.5 }}>
-          <Button
-            fullWidth
-            variant="contained"
-            onClick={handleApprove}
-            disabled={!canPerformAction}
-            sx={{
-              backgroundColor: !canPerformAction ? '#9ca3af' : '#3b82f6',
-              color: 'white',
-              fontFamily: 'var(--font-outfit), system-ui, sans-serif',
-              fontWeight: 600,
-              fontSize: '14px',
-              textTransform: 'none',
-              '&:hover': {
-                backgroundColor: !canPerformAction ? '#9ca3af' : '#2563eb',
-              },
-              '&:disabled': {
+          {canPerformAction ? (
+            <>
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={handleApprove}
+                sx={{
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  fontFamily: 'var(--font-outfit), system-ui, sans-serif',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  textTransform: 'none',
+                  '&:hover': {
+                    backgroundColor: '#2563eb',
+                  },
+                }}
+              >
+                {(() => {
+                  const isMaker = hasRole('ROLE_MAKER')
+                  const isChecker = hasRole('ROLE_CHECKER')
+
+                  if (isMaker) return 'Approve (Maker)'
+                  if (isChecker) return 'Approve (Checker)'
+
+                  return 'Approve'
+                })()}
+              </Button>
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={handleReject}
+                sx={{
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  fontFamily: 'var(--font-outfit), system-ui, sans-serif',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  textTransform: 'none',
+                  '&:hover': {
+                    backgroundColor: '#dc2626',
+                  },
+                }}
+              >
+                {(() => {
+                  const isMaker = hasRole('ROLE_MAKER')
+                  const isChecker = hasRole('ROLE_CHECKER')
+
+                  if (isMaker) return 'Reject (Maker)'
+                  if (isChecker) return 'Reject (Checker)'
+
+                  return 'Reject'
+                })()}
+              </Button>
+            </>
+          ) : (
+            <Button
+              fullWidth
+              variant="contained"
+              disabled
+              sx={{
                 backgroundColor: '#9ca3af',
                 color: 'white',
-              },
-            }}
-          >
-            {isAllStepsCompleted ? 'Completed' : 'Approve'}
-          </Button>
-          <Button
-            fullWidth
-            variant="contained"
-            onClick={handleReject}
-            disabled={!canPerformAction}
-            sx={{
-              backgroundColor: !canPerformAction ? '#9ca3af' : '#ef4444',
-              color: 'white',
-              fontFamily: 'var(--font-outfit), system-ui, sans-serif',
-              fontWeight: 600,
-              fontSize: '14px',
-              textTransform: 'none',
-              '&:hover': {
-                backgroundColor: !canPerformAction ? '#9ca3af' : '#dc2626',
-              },
-              '&:disabled': {
-                backgroundColor: '#9ca3af',
-                color: 'white',
-              },
-            }}
-          >
-            {isAllStepsCompleted ? 'Completed' : 'Reject'}
-          </Button>
+                fontFamily: 'var(--font-outfit), system-ui, sans-serif',
+                fontWeight: 600,
+                fontSize: '14px',
+                textTransform: 'none',
+                '&:disabled': {
+                  backgroundColor: '#9ca3af',
+                  color: 'white',
+                },
+              }}
+            >
+              {(() => {
+                const currentStageOrder =
+                  queueDetailData?.currentStageOrder ||
+                  workflowRequestData?.currentStageOrder ||
+                  queueStatusData?.completedStages ||
+                  0
+
+                if (isAllStepsCompleted || currentStageOrder >= 3)
+                  return 'All Stages Completed'
+
+                const isMaker = hasRole('ROLE_MAKER')
+                const isChecker = hasRole('ROLE_CHECKER')
+
+                if (isMaker && currentStageOrder > 1)
+                  return 'Maker Stage Completed'
+                if (isChecker && currentStageOrder > 2)
+                  return 'Checker Stage Completed'
+
+                return 'All Stages Completed'
+              })()}
+            </Button>
+          )}
         </Box>
 
         <CommentModal
@@ -1899,8 +2092,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                   handleCommentSubmit(comment, actionType)
                 }
               },
-              disabled:
-                createWorkflowExecutionMutation.isPending || !comment.trim(),
+              disabled: createWorkflowExecutionMutation.isPending,
             },
           ]}
         >
@@ -1912,44 +2104,37 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
             className="w-full p-2 font-sans text-sm border rounded-lg outline-none resize-y mt-7 border-slate-300 focus:ring-2 focus:ring-blue-500"
           />
         </CommentModal>
-
-        <CommentModal
-          open={permissionDeniedModalOpen}
-          onClose={handlePermissionDeniedModalClose}
-          title="Permission Denied"
-          subtitle="Access Restricted"
-          actions={[
-            {
-              label: 'Go to Dashboard',
-              color: 'primary',
-              onClick: handlePermissionDeniedModalClose,
-            },
-          ]}
-        >
-          <Box sx={{ p: 2, textAlign: 'center' }}>
-            <Typography
-              sx={{
-                fontSize: '16px',
-                fontWeight: 500,
-                color: '#ef4444',
-                fontFamily: 'var(--font-outfit), system-ui, sans-serif',
-                mb: 2,
-              }}
-            >
-              {permissionDeniedMessage}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: '14px',
-                color: '#64748b',
-                fontFamily: 'var(--font-outfit), system-ui, sans-serif',
-              }}
-            >
-              You will be redirected to the dashboard.
-            </Typography>
-          </Box>
-        </CommentModal>
       </Drawer>
+
+      <Snackbar
+        open={!!errorMessage}
+        autoHideDuration={6000}
+        onClose={() => setErrorMessage(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setErrorMessage(null)}
+          severity="error"
+          sx={{ width: '100%' }}
+        >
+          {errorMessage}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={!!successMessage}
+        autoHideDuration={3000}
+        onClose={() => setSuccessMessage(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSuccessMessage(null)}
+          severity="success"
+          sx={{ width: '100%' }}
+        >
+          {successMessage}
+        </Alert>
+      </Snackbar>
     </>
   )
 }

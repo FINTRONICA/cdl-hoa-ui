@@ -14,11 +14,10 @@ import {
   TableHead,
   TableRow,
   Paper,
-  IconButton,
 } from '@mui/material'
 import { PaymentPlanData } from '../types'
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined'
-import DeleteIcon from '@mui/icons-material/Delete'
+import { Pencil, Trash2 } from 'lucide-react'
 import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import {
@@ -28,7 +27,8 @@ import {
   cardStyles,
 } from '../styles'
 
-import { usePaymentPlans } from '@/hooks/useProjects'
+import { usePaymentPlans, useSaveProjectPaymentPlan, useDeletePaymentPlan } from '@/hooks/useProjects'
+import { useProjectLabels } from '@/hooks/useProjectLabels'
 
 interface Step5Props {
   paymentPlan: PaymentPlanData[]
@@ -38,10 +38,39 @@ interface Step5Props {
 }
 
 const Step5: React.FC<Step5Props> = ({ paymentPlan, onPaymentPlanChange, projectId, isViewMode = false }) => {
-  // Add default value for paymentPlan to prevent undefined errors
+
   const safePaymentPlan = paymentPlan || []
 
+  const { getLabel } = useProjectLabels()
+
   const { data: existingPaymentPlans } = usePaymentPlans(projectId || '')
+  const savePaymentPlanMutation = useSaveProjectPaymentPlan()
+  const deletePaymentPlanMutation = useDeletePaymentPlan()
+
+  const [editModeRows, setEditModeRows] = React.useState<Record<number, boolean>>({})
+
+ 
+  const validateField = (fieldName: string, value: string | number) => {
+    try {
+      if (fieldName.includes('installmentPercentage')) {
+        if (!value || value === '') return 'Installment Percentage is required'
+        if (typeof value === 'string' && value.length > 5) return 'Installment Percentage must be maximum 5 characters'
+        if (typeof value === 'string' && !/^[0-9]+(\.[0-9]{1,2})?$/.test(value)) {
+          return 'Installment Percentage must be a valid number (e.g., 25 or 25.5)'
+        }
+      }
+      if (fieldName.includes('projectCompletionPercentage')) {
+        if (!value || value === '') return 'Project Completion Percentage is required'
+        if (typeof value === 'string' && value.length > 5) return 'Project Completion Percentage must be maximum 5 characters'
+        if (typeof value === 'string' && !/^[0-9]+(\.[0-9]{1,2})?$/.test(value)) {
+          return 'Project Completion Percentage must be a valid number (e.g., 25 or 25.5)'
+        }
+      }
+      return null
+    } catch (error) {
+      return 'Invalid input'
+    }
+  }
 
   React.useEffect(() => {
     if (existingPaymentPlans && existingPaymentPlans.length > 0) {
@@ -52,12 +81,18 @@ const Step5: React.FC<Step5Props> = ({ paymentPlan, onPaymentPlanChange, project
       
       if (shouldLoadData) {
         const transformedPlans = existingPaymentPlans.map((plan: any) => ({
+          id: plan.id, 
           installmentNumber: plan.reappInstallmentNumber,
           installmentPercentage: plan.reappInstallmentPercentage?.toString() || '',
           projectCompletionPercentage: plan.reappProjectCompletionPercentage?.toString() || '',
         }))
         
+        // Load the data into the form
         onPaymentPlanChange(transformedPlans)
+        
+        // Clear edit mode states - existing plans should be displayed as "saved" (disabled)
+        // This ensures they show with disabled fields and edit icons
+        setEditModeRows({})
       }
     }
   }, [existingPaymentPlans, safePaymentPlan.length, onPaymentPlanChange])
@@ -94,6 +129,10 @@ const Step5: React.FC<Step5Props> = ({ paymentPlan, onPaymentPlanChange, project
       ? Math.max(...existingNumbers) + 1
       : 1
 
+    const newIndex = safePaymentPlan.length
+    
+    // Mark the new row as editable
+    setEditModeRows(prev => ({ ...prev, [newIndex]: true }))
     
     onPaymentPlanChange([
       ...safePaymentPlan,
@@ -105,14 +144,86 @@ const Step5: React.FC<Step5Props> = ({ paymentPlan, onPaymentPlanChange, project
     ])
   }
 
-  const deletePaymentPlan = (index: number) => {
+  const deletePaymentPlan = async (index: number) => {
+    const plan = safePaymentPlan[index]
+    
+    if (!plan) {
+
+      return
+    }
+    
+
+    if (plan.id) {
+      try {
+        
+        await deletePaymentPlanMutation.mutateAsync(plan.id)
+       
+      } catch (error) {
+      
+        return 
+      }
+    }
+    
+
     const updatedPaymentPlan = safePaymentPlan.filter((_, i) => i !== index)
-    // Reorder installment numbers
+  
     const reorderedPlan = updatedPaymentPlan.map((plan, idx) => ({
       ...plan,
       installmentNumber: idx + 1,
     }))
+    
+    // Clean up state for deleted row
+    setEditModeRows(prev => {
+      const newState = { ...prev }
+      delete newState[index]
+      return newState
+    })
+    
     onPaymentPlanChange(reorderedPlan)
+  }
+
+  // Phase 2 & 3: Enable edit mode for a specific row
+  const enableEditMode = (index: number) => {
+    setEditModeRows(prev => ({ ...prev, [index]: true }))
+  }
+
+  // Phase 3: Save individual payment plan row
+  const saveIndividualPaymentPlan = async (plan: PaymentPlanData, index: number) => {
+    if (!projectId) {
+     
+      return
+    }
+
+    // Validate the row data
+    const installmentError = validateField(`installmentPercentage${index}`, plan.installmentPercentage)
+    const completionError = validateField(`projectCompletionPercentage${index}`, plan.projectCompletionPercentage)
+    
+    if (installmentError || completionError) {
+      
+      return
+    }
+
+    try {
+  
+      const isEdit = !!plan.id
+      
+      await savePaymentPlanMutation.mutateAsync({
+        projectId: projectId,
+        data: plan,
+        isEdit: isEdit 
+      })
+      
+      setEditModeRows(prev => {
+        const newState = { ...prev }
+        delete newState[index]
+        return newState
+      })
+      
+  
+      
+    } catch (error) {
+      
+    }
   }
 
 
@@ -136,7 +247,7 @@ const Step5: React.FC<Step5Props> = ({ paymentPlan, onPaymentPlanChange, project
                   verticalAlign: 'middle',
                 }}
               >
-                Add Payment Plan
+                {getLabel('CDL_BPA_ADD_INSTALLMENT', 'Add New Installment')}
               </Button>
             )}
           </Box>
@@ -147,19 +258,25 @@ const Step5: React.FC<Step5Props> = ({ paymentPlan, onPaymentPlanChange, project
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={compactValueSx}>Installment Number</TableCell>
                   <TableCell sx={compactValueSx}>
-                    Installment Percentage
+                    {getLabel('CDL_BPA_INSTALLMENT_NO', 'Installment Sequence Number')}
                   </TableCell>
                   <TableCell sx={compactValueSx}>
-                    Project Completion Percentage
+                    {getLabel('CDL_BPA_INSTALLMENT_PER', 'Installment Percentage (%)')}
                   </TableCell>
-                  <TableCell sx={compactValueSx}>Action</TableCell>
+                  <TableCell sx={compactValueSx}>
+                    {getLabel('CDL_BPA_PROJ_COM_PER', 'Asset Completion Percentage (%)')}
+                  </TableCell>
+                  <TableCell sx={compactValueSx}>
+                    {getLabel('CDL_BPA_ACTION', 'Action')}
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                
                 {safePaymentPlan.map((plan, index) => {
+                  const isRowInEditMode = editModeRows[index] || false
+                  const isRowDisabled = isViewMode || !isRowInEditMode
                 
                   return (
                   <TableRow key={index}>
@@ -168,9 +285,10 @@ const Step5: React.FC<Step5Props> = ({ paymentPlan, onPaymentPlanChange, project
                       <TextField
                         name={`installmentPercentage${index}`}
                         size="small"
-                        disabled={isViewMode}
+                        disabled={isRowDisabled}
                         fullWidth
-                        placeholder="Installment Percentage"
+                        required
+                        placeholder={getLabel('CDL_BPA_INSTALLMENT_PER', 'Installment Percentage')}
                         value={plan.installmentPercentage}
                         onChange={(e) =>
                           handlePaymentPlanChange(
@@ -179,6 +297,8 @@ const Step5: React.FC<Step5Props> = ({ paymentPlan, onPaymentPlanChange, project
                             e.target.value
                           )
                         }
+                        error={!!validateField(`installmentPercentage${index}`, plan.installmentPercentage)}
+                        helperText={validateField(`installmentPercentage${index}`, plan.installmentPercentage)}
                         InputLabelProps={{ sx: compactLabelSx }}
                         InputProps={{ sx: compactValueSx }}
                         sx={compactFieldStyles}
@@ -189,7 +309,9 @@ const Step5: React.FC<Step5Props> = ({ paymentPlan, onPaymentPlanChange, project
                         name={`bookingAmount${index}`}
                         size="small"
                         fullWidth
-                        placeholder="Project Completion Percentage"
+                        required
+                        disabled={isRowDisabled}
+                        placeholder={getLabel('CDL_BPA_PROJ_COM_PER', 'Project Completion Percentage')}
                         value={plan.projectCompletionPercentage}
                         onChange={(e) =>
                           handlePaymentPlanChange(
@@ -198,18 +320,58 @@ const Step5: React.FC<Step5Props> = ({ paymentPlan, onPaymentPlanChange, project
                             e.target.value
                           )
                         }
+                        error={!!validateField(`projectCompletionPercentage${index}`, plan.projectCompletionPercentage)}
+                        helperText={validateField(`projectCompletionPercentage${index}`, plan.projectCompletionPercentage)}
                         InputLabelProps={{ sx: compactLabelSx }}
                         InputProps={{ sx: compactValueSx }}
                         sx={compactFieldStyles}
                       />
                     </TableCell>
                     <TableCell>
-                      <IconButton
-                        size="small"
-                        onClick={() => deletePaymentPlan(index)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
+                      {!isViewMode && (
+                        <div className="flex items-center space-x-2">
+                          {isRowInEditMode ? (
+                            // Show Save/Update button when in edit mode
+                            <Button
+                              variant="contained"
+                              size="small"
+                              onClick={() => saveIndividualPaymentPlan(plan, index)}
+                              disabled={savePaymentPlanMutation.isPending}
+                              sx={{
+                                fontFamily: 'Outfit, sans-serif',
+                                fontWeight: 500,
+                                fontSize: '14px',
+                                textTransform: 'none',
+                                minWidth: '70px',
+                              }}
+                            >
+                              {savePaymentPlanMutation.isPending 
+                                ? (plan.id ? 'Updating...' : 'Saving...') 
+                                : (plan.id ? 'Update' : 'Save')
+                              }
+                            </Button>
+                          ) : (
+                            // Show Edit icon when not in edit mode
+                            <button
+                              onClick={() => enableEditMode(index)}
+                              className="p-1 transition-colors rounded cursor-pointer hover:bg-blue-50"
+                              aria-label="Edit"
+                              title="Edit"
+                            >
+                              <Pencil className="w-4 h-4 text-blue-600 hover:text-blue-800" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => deletePaymentPlan(index)}
+                            className="p-1 transition-colors rounded cursor-pointer hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            aria-label="Delete"
+                            title="Delete"
+                            disabled={deletePaymentPlanMutation.isPending}
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600 hover:text-red-800" />
+                          </button>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                   )

@@ -170,6 +170,37 @@ const DocumentUpload = <
     }
   }, [uploadedDocuments, setValue, formFieldName])
 
+  const selectStyles = {
+    height: '52px',
+    '& .MuiOutlinedInput-root': {
+      height: '52px',
+      borderRadius: '8px',
+      '& fieldset': {
+        borderColor: '#CAD5E2',
+        borderWidth: '1px',
+      },
+      '&:hover fieldset': {
+        borderColor: '#CAD5E2',
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: '#2563EB',
+      },
+    },
+    '& .MuiSelect-icon': {
+      color: '#666',
+    },
+  }
+
+  const valueSx = {
+    color: '#1E2939',
+    fontFamily: 'Outfit',
+    fontWeight: 400,
+    fontStyle: 'normal',
+    fontSize: '14px',
+    letterSpacing: 0,
+    wordBreak: 'break-word',
+  }
+
   const handleUploadClick = () => {
     fileInputRef.current?.click()
   }
@@ -198,7 +229,7 @@ const DocumentUpload = <
     } catch (error) {
       setDocumentTypeDialog((prev) => ({
         ...prev,
-        documentTypes: [{ id: 0, value: 'OWR_OTHER', label: 'Other' }],
+        documentTypes: [{ id: 0, value: 'CP_OTHER', label: 'Other' }],
         loading: false,
       }))
     }
@@ -610,7 +641,7 @@ const DocumentUpload = <
                       sx={{ fontFamily: 'Outfit', fontWeight: 'normal' }}
                     >
                       <LinearProgress sx={{ width: '100%', mb: 2 }} />
-                      Loading documents...
+                      Loading...
                     </TableCell>
                   </TableRow>
                 ) : uploadedDocuments.filter((doc) => doc.status !== 'failed')
@@ -799,20 +830,48 @@ const DocumentUpload = <
           }
           maxWidth="sm"
           fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: '12px',
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+            },
+          }}
         >
-          <DialogTitle sx={{ fontFamily: 'Outfit' }}>
+          <DialogTitle
+            sx={{
+              fontFamily: 'Outfit',
+              fontWeight: 600,
+              fontSize: '18px',
+              color: '#1F2937',
+              pb: 1,
+            }}
+          >
             Select Document Type
           </DialogTitle>
-          <DialogContent>
-            <Typography variant="body2" sx={{ mb: 3, fontFamily: 'Outfit' }}>
+          <DialogContent sx={{ pt: 2 }}>
+            <Typography
+              variant="body2"
+              sx={{
+                mb: 3,
+                fontFamily: 'Outfit',
+                color: '#6B7280',
+                fontSize: '14px',
+              }}
+            >
               Please select the type of document you are uploading:
             </Typography>
 
             {documentTypeDialog.files.length > 0 && (
-              <Box mb={2}>
+              <Box mb={3}>
                 <Typography
                   variant="subtitle2"
-                  sx={{ fontFamily: 'Outfit', mb: 1 }}
+                  sx={{
+                    fontFamily: 'Outfit',
+                    mb: 1,
+                    fontWeight: 500,
+                    color: '#374151',
+                    fontSize: '14px',
+                  }}
                 >
                   Files to upload:
                 </Typography>
@@ -820,7 +879,12 @@ const DocumentUpload = <
                   <Typography
                     key={index}
                     variant="body2"
-                    sx={{ fontFamily: 'Outfit', color: '#666' }}
+                    sx={{
+                      fontFamily: 'Outfit',
+                      color: '#6B7280',
+                      fontSize: '13px',
+                      ml: 1,
+                    }}
                   >
                     • {file.name}
                   </Typography>
@@ -834,7 +898,15 @@ const DocumentUpload = <
               </Box>
             ) : (
               <FormControl fullWidth sx={{ mt: 2 }}>
-                <InputLabel sx={{ fontFamily: 'Outfit' }}>
+                <InputLabel
+                  sx={{
+                    fontFamily: 'Outfit',
+                    color: '#6B7280',
+                    '&.Mui-focused': {
+                      color: '#2563EB',
+                    },
+                  }}
+                >
                   Document Type
                 </InputLabel>
                 <Select
@@ -846,13 +918,45 @@ const DocumentUpload = <
                     }))
                   }
                   label="Document Type"
-                  sx={{ fontFamily: 'Outfit' }}
+                  sx={[
+                    selectStyles,
+                    valueSx,
+                    {
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        border: '1px solid #D1D5DB',
+                        borderRadius: '8px',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        border: '1px solid #9CA3AF',
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        border: '2px solid #2563EB',
+                      },
+                      '& .MuiSelect-select': {
+                        padding: '12px 14px',
+                        fontFamily: 'Outfit',
+                        fontSize: '14px',
+                        color: '#374151',
+                      },
+                    },
+                  ]}
                 >
                   {documentTypeDialog.documentTypes.map((docType) => (
                     <MenuItem
                       key={docType.id}
                       value={docType.id.toString()}
-                      sx={{ fontFamily: 'Outfit' }}
+                      sx={{
+                        fontFamily: 'Outfit',
+                        fontSize: '14px',
+                        color: '#374151',
+                        '&:hover': {
+                          backgroundColor: '#F3F4F6',
+                        },
+                        '&.Mui-selected': {
+                          backgroundColor: '#EFF6FF',
+                          color: '#2563EB',
+                        },
+                      }}
                     >
                       {docType.label}
                     </MenuItem>
@@ -861,12 +965,28 @@ const DocumentUpload = <
               </FormControl>
             )}
           </DialogContent>
-          <DialogActions>
+          <DialogActions sx={{ p: 3, pt: 2, gap: 2 }}>
             <Button
               onClick={() =>
                 setDocumentTypeDialog((prev) => ({ ...prev, open: false }))
               }
-              sx={{ fontFamily: 'Outfit' }}
+              sx={{
+                fontFamily: 'Outfit',
+                textTransform: 'none',
+                fontWeight: 500,
+                fontSize: '14px',
+                lineHeight: '20px',
+                letterSpacing: '0px',
+                borderRadius: '8px',
+                padding: '10px 24px',
+                border: '1px solid #D1D5DB',
+                color: '#374151',
+                backgroundColor: '#FFFFFF',
+                '&:hover': {
+                  backgroundColor: '#F9FAFB',
+                  borderColor: '#9CA3AF',
+                },
+              }}
             >
               Cancel
             </Button>
@@ -877,7 +997,26 @@ const DocumentUpload = <
                 !documentTypeDialog.selectedDocumentType ||
                 documentTypeDialog.loading
               }
-              sx={{ fontFamily: 'Outfit' }}
+              sx={{
+                fontFamily: 'Outfit',
+                textTransform: 'none',
+                fontWeight: 500,
+                fontSize: '14px',
+                lineHeight: '20px',
+                letterSpacing: '0px',
+                borderRadius: '8px',
+                padding: '10px 24px',
+                backgroundColor: '#2563EB',
+                color: '#FFFFFF',
+                '&:hover': {
+                  backgroundColor: '#1D4ED8',
+                  color: '#FFFFFF',
+                },
+                '&:disabled': {
+                  backgroundColor: '#9CA3AF',
+                  color: '#FFFFFF',
+                },
+              }}
             >
               Upload
             </Button>

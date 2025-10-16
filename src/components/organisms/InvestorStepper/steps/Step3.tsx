@@ -7,6 +7,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
   useEffect,
+  useCallback,
 } from 'react'
 import { capitalPartnerPaymentPlanService } from '../../../../services/api/capitalPartnerPaymentPlanService'
 import { useGetEnhanced } from '@/hooks/useApiEnhanced'
@@ -15,15 +16,11 @@ import { PaymentPlanResponse } from '@/types/capitalPartner'
 import dayjs from 'dayjs'
 import {
   mapStep3ToCapitalPartnerPaymentPlanPayload,
-  validateStep3Data,
   type Step3FormData,
 } from '../../../../utils/capitalPartnerPaymentPlanMapper'
 
-const errors: Record<string, any> = {}
-
 import {
   Box,
-  TextField,
   Card,
   CardContent,
   Button,
@@ -38,29 +35,13 @@ import {
   Typography,
 } from '@mui/material'
 import { Delete as DeleteIcon } from '@mui/icons-material'
-import { PaymentPlanData } from '../investorsTypes'
+import { PaymentPlanData, OwnerData } from '../investorsTypes'
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined'
-import { Controller, useFormContext } from 'react-hook-form'
-import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers'
-import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined'
+import { useFormContext } from 'react-hook-form'
+import { LocalizationProvider } from '@mui/x-date-pickers'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
-
-const commonFieldStyles = {
-  '& .MuiOutlinedInput-root': {
-    height: '32px',
-    borderRadius: '8px',
-    '& fieldset': {
-      borderColor: '#CAD5E2',
-      borderWidth: '1px',
-    },
-    '&:hover fieldset': {
-      borderColor: '#CAD5E2',
-    },
-    '&.Mui-focused fieldset': {
-      borderColor: '#2563EB',
-    },
-  },
-}
+import { RightSlideAddMultipleOwnersPanel } from '../../RightSlidePanel/ RightSlideAddMultipleOwnersPanel'
+import { useDeleteConfirmation } from '@/store/confirmationDialogStore'
 
 const valueSx = {
   fontSize: '14px',
@@ -69,37 +50,15 @@ const valueSx = {
   lineHeight: 1.4,
 }
 
-const labelSx = {
-  fontSize: '12px',
-  fontWeight: 600,
-  color: '#666',
-  textTransform: 'uppercase',
-  letterSpacing: '0.5px',
-  mb: 0.5,
-}
-
-const datePickerStyles = {
-  '& .MuiOutlinedInput-root': {
-    borderRadius: '8px',
-    '& fieldset': {
-      borderColor: '#E0E0E0',
-    },
-    '&:hover fieldset': {
-      borderColor: '#B0B0B0',
-    },
-    '&.Mui-focused fieldset': {
-      borderColor: '#1976d2',
-    },
-  },
-}
-
 interface Step3Props {
   paymentPlan: PaymentPlanData[]
   onPaymentPlanChange: (paymentPlan: PaymentPlanData[]) => void
-  onSaveAndNext?: (data: any) => void
+  onSaveAndNext?: (data: unknown) => void
   capitalPartnerId?: number | null
   isEditMode?: boolean
   isViewMode?: boolean
+  owners?: OwnerData[]
+  onOwnersChange?: (owners: OwnerData[]) => void
 }
 
 export interface Step3Ref {
@@ -115,6 +74,8 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
       capitalPartnerId,
       isEditMode,
       isViewMode = false,
+      owners = [],
+      onOwnersChange,
     },
     ref
   ) => {
@@ -122,16 +83,23 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
     const [currentExistingPaymentPlanData, setCurrentExistingPaymentPlanData] =
       useState<PaymentPlanResponse[]>([])
 
-    const { control, watch, setValue } = useFormContext()
+    // Owner panel state
+    const [isOwnerPanelOpen, setIsOwnerPanelOpen] = useState(false)
+    const [ownerEditMode, setOwnerEditMode] = useState<'add' | 'edit'>('add')
+    const [selectedOwner, setSelectedOwner] = useState<OwnerData | null>(null)
+    const [selectedOwnerIndex, setSelectedOwnerIndex] = useState<number | null>(null)
+
+    const { watch, setValue } = useFormContext()
     const { getLabel } = useCapitalPartnerLabelsApi()
     const currentLanguage = useAppStore((state) => state.language)
+    const confirmDelete = useDeleteConfirmation()
 
     // Load existing payment plan data when in edit mode
     const {
       data: existingPaymentPlanData,
       isLoading: isLoadingExistingPaymentPlan,
     } = useGetEnhanced<PaymentPlanResponse[]>(
-      `${API_ENDPOINTS.OWNER_REGISTRY_PAYMENT_PLAN.GET_ALL}?capitalPartnerId.equals=${capitalPartnerId || 0}`,
+      `${API_ENDPOINTS.CAPITAL_PARTNER_PAYMENT_PLAN.GET_ALL}?capitalPartnerId.equals=${capitalPartnerId || 0}`,
       {},
       {
         enabled: Boolean(isEditMode && capitalPartnerId),
@@ -183,20 +151,8 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
       onPaymentPlanChange,
     ])
 
-    const handlePaymentPlanChange = (
-      index: number,
-      field: keyof PaymentPlanData,
-      value: unknown
-    ) => {
-      const updatedPaymentPlan = [...paymentPlan]
-      updatedPaymentPlan[index] = {
-        ...updatedPaymentPlan[index],
-        [field]: value,
-      } as PaymentPlanData
-      onPaymentPlanChange(updatedPaymentPlan)
-    }
 
-    const handleSaveAndNext = async () => {
+    const handleSaveAndNext = useCallback(async () => {
       try {
         setSaveError(null)
 
@@ -205,7 +161,7 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
           throw new Error('Capital Partner ID is required from Step1')
         }
 
-        const installmentDates: { [key: string]: any } = {}
+        const installmentDates: { [key: string]: unknown } = {}
         paymentPlan.forEach((_, index) => {
           const dateKey = `installmentDate${index}`
           installmentDates[dateKey] = watch(dateKey)
@@ -214,12 +170,6 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
         const formData: Step3FormData = {
           paymentPlan: paymentPlan,
           installmentDates: installmentDates,
-        }
-
-        const validationErrors = validateStep3Data(formData)
-        if (validationErrors.length > 0) {
-          setSaveError(validationErrors.join(', '))
-          throw new Error(validationErrors.join(', '))
         }
 
         const payloadArray = mapStep3ToCapitalPartnerPaymentPlanPayload(
@@ -276,7 +226,7 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
         )
         throw error
       }
-    }
+    }, [capitalPartnerId, paymentPlan, watch, onSaveAndNext, isEditMode, currentExistingPaymentPlanData])
     useImperativeHandle(
       ref,
       () => ({
@@ -285,96 +235,49 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
       [handleSaveAndNext]
     )
 
-    const addPaymentPlan = () => {
-      const newIndex = paymentPlan.length
+    // Owner management functions
+    const addOwner = () => {
+      setOwnerEditMode('add')
+      setSelectedOwner(null)
+      setSelectedOwnerIndex(null)
+      setIsOwnerPanelOpen(true)
+    }
 
-      // Clear form values for the new payment plan row
-      setValue(`installmentDate${newIndex}`, null)
+    const handleOwnerAdded = (newOwner: unknown) => {
+      const updatedOwners = [...owners, newOwner as OwnerData]
+      onOwnersChange?.(updatedOwners)
+    }
 
-      onPaymentPlanChange([
-        ...paymentPlan,
-        {
-          installmentNumber: newIndex + 1,
-          installmentPercentage: '',
-          projectCompletionPercentage: '',
+    const handleOwnerUpdated = (updatedOwner: unknown, index: number) => {
+      const updatedOwners = [...owners]
+      updatedOwners[index] = updatedOwner as OwnerData
+      onOwnersChange?.(updatedOwners)
+    }
+
+    const handleEditOwner = (owner: OwnerData, index: number) => {
+      setOwnerEditMode('edit')
+      setSelectedOwner(owner)
+      setSelectedOwnerIndex(index)
+      setIsOwnerPanelOpen(true)
+    }
+
+    const handleDeleteOwner = (owner: OwnerData, index: number) => {
+      confirmDelete({
+        itemName: `owner: ${owner.name}`,
+        onConfirm: () => {
+          const updatedOwners = owners.filter((_, i) => i !== index)
+          onOwnersChange?.(updatedOwners)
         },
-      ])
+      })
     }
 
-    const deletePaymentPlan = async (index: number) => {
-      try {
-        // If in edit mode and payment plan exists, call delete API
-        if (
-          isEditMode &&
-          currentExistingPaymentPlanData &&
-          currentExistingPaymentPlanData.length > index
-        ) {
-          const paymentPlanToDelete = currentExistingPaymentPlanData[index]
-          if (paymentPlanToDelete?.id) {
-            await capitalPartnerPaymentPlanService.deleteCapitalPartnerPaymentPlan(
-              paymentPlanToDelete.id
-            )
-
-            // Remove the deleted payment plan from current existing data
-            const updatedExistingData = currentExistingPaymentPlanData.filter(
-              (_, i) => i !== index
-            )
-            setCurrentExistingPaymentPlanData(updatedExistingData)
-          }
-        }
-
-        // Update the local state regardless of API call
-        const updatedPaymentPlan = paymentPlan.filter((_, i) => i !== index)
-        const reorderedPlan = updatedPaymentPlan.map((plan, idx) => ({
-          ...plan,
-          installmentNumber: idx + 1,
-        }))
-
-        // Clear form values for removed and shifted rows
-        // Clear the last row's form data since it's being removed
-        setValue(`installmentDate${paymentPlan.length - 1}`, null)
-
-        onPaymentPlanChange(reorderedPlan)
-      } catch (error) {
-        // Still update local state even if API call fails
-        const updatedPaymentPlan = paymentPlan.filter((_, i) => i !== index)
-        const reorderedPlan = updatedPaymentPlan.map((plan, idx) => ({
-          ...plan,
-          installmentNumber: idx + 1,
-        }))
-
-        // Also update existing data even if API call failed (optimistic update)
-        if (isEditMode && currentExistingPaymentPlanData.length > index) {
-          const updatedExistingData = currentExistingPaymentPlanData.filter(
-            (_, i) => i !== index
-          )
-          setCurrentExistingPaymentPlanData(updatedExistingData)
-        }
-
-        // Clear form values for removed and shifted rows
-        // Clear the last row's form data since it's being removed
-        setValue(`installmentDate${paymentPlan.length - 1}`, null)
-
-        onPaymentPlanChange(reorderedPlan)
-      }
+    const handleCloseOwnerPanel = () => {
+      setIsOwnerPanelOpen(false)
+      setOwnerEditMode('add')
+      setSelectedOwner(null)
+      setSelectedOwnerIndex(null)
     }
 
-    const StyledCalendarIcon = (
-      props: React.ComponentProps<typeof CalendarTodayOutlinedIcon>
-    ) => (
-      <CalendarTodayOutlinedIcon
-        {...props}
-        sx={{
-          width: '18px',
-          height: '20px',
-          position: 'relative',
-          top: '2px',
-          left: '3px',
-          transform: 'rotate(0deg)',
-          opacity: 1,
-        }}
-      />
-    )
 
     return (
       <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -398,7 +301,7 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
                 }}
               >
                 <Typography variant="body2" color="error">
-                  ⚠️ {saveError}
+                  ⚠️456 {saveError} mkmkmkmk
                 </Typography>
               </Box>
             )}
@@ -406,7 +309,7 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
               <Button
                 variant="outlined"
                 startIcon={<AddCircleOutlineOutlinedIcon />}
-                onClick={addPaymentPlan}
+                onClick={addOwner}
                 disabled={isViewMode}
                 sx={{
                   fontFamily: 'Outfit, sans-serif',
@@ -419,14 +322,9 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
                 }}
               >
                 {getLabel(
-                  'CDL_OWR_ADD_PAYMENT_PLAN',
+                  'CDL_OWN_ADD_JOINT_OWNER',
                   currentLanguage,
-                  'Add Payment Plan'
-                )}
-                {getLabel(
-                  'CDL_OWR_ADD_PAYMENT_PLAN',
-                  currentLanguage,
-                  'Add Payment Plan'
+                  'Add New Joint Owner'
                 )}
               </Button>
             </Box>
@@ -438,93 +336,59 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
                 <TableHead>
                   <TableRow>
                     <TableCell sx={valueSx}>
-                      {getLabel(
-                        'CDL_OWR_INSTALLMENT_NUMBER',
-                        currentLanguage,
-                        'Installment Number'
-                      )}
+                      {getLabel('CDL_OWN_NAME', currentLanguage, 'Name')}
                     </TableCell>
                     <TableCell sx={valueSx}>
-                      {getLabel(
-                        'CDL_OWR_INSTALLMENT_DATE',
-                        currentLanguage,
-                        'Installment Date'
-                      )}
+                      {getLabel('CDL_OWN_ADDRESS', currentLanguage, 'Address')}
                     </TableCell>
                     <TableCell sx={valueSx}>
-                      {getLabel(
-                        'CDL_OWR_BOOKING_AMOUNT',
-                        currentLanguage,
-                        'Booking Amount'
-                      )}
+                      {getLabel('CDL_OWN_EMAIL', currentLanguage, 'Email ID')}
                     </TableCell>
                     <TableCell sx={valueSx}>
-                      {getLabel('CDL_OWR_ACTION', currentLanguage, 'Action')}
+                      {getLabel('CDL_OWN_COUNTRY_CODE', currentLanguage, 'Country Code')}
+                    </TableCell>
+                    <TableCell sx={valueSx}>
+                      {getLabel('CDL_OWN_MOBILE', currentLanguage, 'Mobile No')}
+                    </TableCell>
+                    <TableCell sx={valueSx}>
+                      {getLabel('CDL_OWN_TELEPHONE', currentLanguage, 'Telephone No')}
+                    </TableCell>
+                    <TableCell sx={valueSx}>
+                      {getLabel('CDL_OWN_DOC_NO', currentLanguage, 'ID Number')}
+                    </TableCell>
+                    <TableCell sx={valueSx}>
+                      {getLabel('CDL_OWN_ID_EXP', currentLanguage, 'ID Expiry Date')}
+                    </TableCell>
+                    <TableCell sx={valueSx}>
+                      {getLabel('CDL_CP_ACTION', currentLanguage, 'Action')}
                     </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {paymentPlan.map((plan, index) => (
+                  {owners.map((owner, index) => (
                     <TableRow key={index}>
-                      <TableCell>{plan.installmentNumber}</TableCell>
-                      <TableCell>
-                        <Controller
-                          name={`installmentDate${index}`}
-                          control={control}
-                          defaultValue={null}
-                          render={({ field }) => (
-                            <DatePicker
-                              value={field.value}
-                              onChange={field.onChange}
-                              format="DD/MM/YYYY"
-                              disabled={isViewMode}
-                              slots={{
-                                openPickerIcon: StyledCalendarIcon,
-                              }}
-                              slotProps={{
-                                textField: {
-                                  fullWidth: true,
-                                  error: !!errors.agreementDate,
-                                  sx: datePickerStyles,
-                                  InputLabelProps: { sx: labelSx },
-                                  InputProps: {
-                                    sx: valueSx,
-                                    style: { height: '32px' },
-                                  },
-                                },
-                              }}
-                            />
-                          )}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <TextField
-                          name={`bookingAmount${index}`}
-                          size="small"
-                          fullWidth
-                          disabled={isViewMode}
-                          placeholder={getLabel(
-                            'CDL_OWR_AMOUNT',
-                            currentLanguage,
-                            'Amount'
-                          )}
-                          value={plan.projectCompletionPercentage}
-                          onChange={(e) =>
-                            handlePaymentPlanChange(
-                              index,
-                              'projectCompletionPercentage',
-                              e.target.value
-                            )
-                          }
-                          InputLabelProps={{ sx: labelSx }}
-                          InputProps={{ sx: valueSx }}
-                          sx={commonFieldStyles}
-                        />
-                      </TableCell>
+                      <TableCell>{owner.name}</TableCell>
+                      <TableCell>{owner.address}</TableCell>
+                      <TableCell>{owner.email}</TableCell>
+                      <TableCell>{owner.countrycode}</TableCell>
+                      <TableCell>{owner.mobileno}</TableCell>
+                      <TableCell>{owner.telephoneno}</TableCell>
+                      <TableCell>{owner.idNumber}</TableCell>
+                      <TableCell>{owner.idExpiryDate}</TableCell>
                       <TableCell>
                         <IconButton
                           size="small"
-                          onClick={() => deletePaymentPlan(index)}
+                          onClick={() => handleEditOwner(owner, index)}
+                          disabled={isViewMode}
+                          sx={{ mr: 1 }}
+                        >
+                          <Typography variant="body2" color="primary">
+                            Edit
+                          </Typography>
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteOwner(owner, index)}
                           disabled={isViewMode}
                         >
                           <DeleteIcon />
@@ -537,6 +401,18 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
             </TableContainer>
           </CardContent>
         </Card>
+        <RightSlideAddMultipleOwnersPanel
+          isOpen={isOwnerPanelOpen}
+          onClose={handleCloseOwnerPanel}
+          onContactAdded={handleOwnerAdded}
+          onContactUpdated={handleOwnerUpdated}
+          buildPartnerId={capitalPartnerId?.toString()}
+          mode={ownerEditMode}
+          {...(selectedOwner && { contactData: selectedOwner })}
+          {...(selectedOwnerIndex !== null && {
+            contactIndex: selectedOwnerIndex,
+          })}
+        />
       </LocalizationProvider>
     )
   }

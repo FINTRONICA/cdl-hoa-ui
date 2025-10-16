@@ -15,6 +15,10 @@ const nextConfig = {
   images: {
     domains: ['cdn.builder.io'],
   },
+  transpilePackages: ['@mui/material', '@mui/icons-material', '@mui/x-date-pickers'],
+  experimental: {
+    optimizePackageImports: ['@mui/material', '@mui/icons-material', '@mui/x-date-pickers'],
+  },
   async headers() {
     return [
       {
@@ -23,10 +27,6 @@ const nextConfig = {
           {
             key: 'X-Frame-Options',
             value: 'DENY',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
           },
           {
             key: 'Referrer-Policy',

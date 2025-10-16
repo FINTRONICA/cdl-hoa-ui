@@ -19,7 +19,7 @@ function DeveloperStepperWithSuspense() {
 export default function NewDeveloperPage() {
   return (
     <DashboardLayout
-      title="TEST"
+      title="Build Partner Details"
       subtitle="Register your developer step by step, non-mandatory fields and steps are easy to skip."
     >
       <div className="px-3 bg-white ">

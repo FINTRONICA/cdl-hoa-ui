@@ -227,7 +227,7 @@ export const THEME_COLORS = {
 export const TEMPLATE_FILES = {
   BUILD_PARTNER: 'BuildPartnerTemplate.xlsx',
   BUILD_PARTNER_ASSET: 'BuildPartnerAssestTemplate.xlsx',
-  ASSET_REGISTER_BENEFICIARY: 'BuildPartnerBeneficiaryTemplate.xlsx',
+  BUILD_PARTNER_BENEFICIARY: 'BuildPartnerBeneficiaryTemplate.xlsx',
   BUILD_PARTNER_ASSET_BENEFICIARY: 'BuildPartnerAssestBeneficiaryTemplate.xlsx',
   INVESTOR: 'InvesterUpload.xlsx',
   UNIT_PLAN: 'OffUnitPlanTemplate.xlsx',

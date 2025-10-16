@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import { useMemo, memo } from 'react'
 import { Sidebar } from './organisms/Sidebar'
 import { useAppInitialization } from '@/hooks/useAppInitialization'
+import { useAuthStore } from '@/store/authStore'
 
 const AUTHENTICATED_ROUTES = [
   '/dashboard',
@@ -27,6 +28,7 @@ interface LayoutContentProps {
 
 const LayoutContentComponent = ({ children }: LayoutContentProps) => {
   const pathname = usePathname()
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
 
   useAppInitialization({
     enableLabelLoading: true,
@@ -35,7 +37,13 @@ const LayoutContentComponent = ({ children }: LayoutContentProps) => {
   })
 
   const shouldShowSidebar = useMemo(() => {
+    // Never show sidebar on login page
     if (pathname === '/login') {
+      return false
+    }
+
+    // Don't show sidebar if not authenticated, even on protected routes
+    if (!isAuthenticated) {
       return false
     }
 
@@ -115,7 +123,7 @@ const LayoutContentComponent = ({ children }: LayoutContentProps) => {
     })
 
     return isValidRoute
-  }, [pathname])
+  }, [pathname, isAuthenticated])
 
   if (shouldShowSidebar) {
     return (

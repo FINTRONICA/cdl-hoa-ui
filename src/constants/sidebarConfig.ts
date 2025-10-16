@@ -88,28 +88,30 @@ export const createSidebarConfig = (getLabel: LabelResolver): SidebarSection[] =
     label: getLabel('entities', 'ENTITIES'),
     icon: Building,
     permissions: ['*'], // Show section if any child is accessible
+    // items: [
+    //   {
+    //     id: 'developers',
+    //     label: getLabel('developers', 'Developers'),
+    //     icon: SquareUserRound,
+    //     href: '/entities/developers',
+    //     permissions: ['nav_menu_bp', 'nav_menu_all'],
+    //   },
+    //   {
+    //     id: 'projects',
+    //     label: getLabel('projects', 'Projects'),
+    //     icon: BriefcaseBusiness,
+    //     href: '/entities/projects',
+    //     permissions: ['nav_menu_bpa', 'nav_menu_all'],
+    //   },
+    //   {
+    //     id: 'investors',
+    //     label: getLabel('investors', 'Investor'),
+    //     icon: CircleUserRound,
+    //     href: '/investors',
+    //     permissions: ['nav_menu_cp', 'nav_menu_all'],
+    //   },
+    // ],
     items: [
-      // {
-      //   id: 'developers',
-      //   label: getLabel('developers', 'Developers'),
-      //   icon: SquareUserRound,
-      //   href: '/entities/developers',
-      //   permissions: ['nav_menu_bp', 'nav_menu_all'],
-      // },
-      // {
-      //   id: 'projects',
-      //   label: getLabel('projects', 'Projects'),
-      //   icon: BriefcaseBusiness,
-      //   href: '/entities/projects',
-      //   permissions: ['nav_menu_bpa', 'nav_menu_all'],
-      // },
-      // {
-      //   id: 'investors',
-      //   label: getLabel('investors', 'Investor'),
-      //   icon: CircleUserRound,
-      //   href: '/investors',
-      //   permissions: ['nav_menu_cp', 'nav_menu_all'],
-      // },
       {
         id: 'developers',
         label: getLabel('developers', 'Asset Register'),
@@ -133,7 +135,6 @@ export const createSidebarConfig = (getLabel: LabelResolver): SidebarSection[] =
       },
     ],
   },
-  // form my side
   // {
   //   id: 'deposits',
   //   label: getLabel('deposits', 'DEPOSITS'),
@@ -184,9 +185,6 @@ export const createSidebarConfig = (getLabel: LabelResolver): SidebarSection[] =
   //     }
   //   ],
   // },
-
-
-
   // {
   //   id: 'payment',
   //   label: getLabel('payment', 'PAYMENT'),
@@ -209,11 +207,6 @@ export const createSidebarConfig = (getLabel: LabelResolver): SidebarSection[] =
   //     },
   //   ],
   // },
-
-
-  
-  // form my side
-
   // {
   //   id: 'guarantee',
   //   label: getLabel('guarantee', 'Guarantee'),
@@ -222,10 +215,6 @@ export const createSidebarConfig = (getLabel: LabelResolver): SidebarSection[] =
   //   items: [],
   //   permissions: ['nav_menu_surety_bond', 'nav_menu_all'],
   // },
-
-  // END
-
-
   // {
   //   id: 'fee-reconciliation',
   //   label: getLabel('fee-reconciliation', 'Fee Reconciliation'),
@@ -234,26 +223,103 @@ export const createSidebarConfig = (getLabel: LabelResolver): SidebarSection[] =
   //   items: [],
   //   permissions: ['nav_menu_fees','nav_menu_all'],
   // },
-  {
-    id: 'reports',
-    label: getLabel('reports', 'REPORTS'),
-    icon: FileText,
-    permissions: ['*'], // Show section if any child is accessible
-    items: [
-      {
-        id: 'business',
-        label: getLabel('business', 'Business Report'),
-        icon: FileChartPie,
-        href: '/reports/business',
-        permissions: ['nav_menu_reports', 'nav_menu_all'],
-      },
-    ],
-  },
+  // {
+  //   id: 'reports',
+  //   label: getLabel('reports', 'REPORTS'),
+  //   icon: FileText,
+  //   permissions: ['*'], // Show section if any child is accessible
+  //   items: [
+  //     {
+  //       id: 'business',
+  //       label: getLabel('business', 'Business Report'),
+  //       icon: FileChartPie,
+  //       href: '/reports/business',
+  //       permissions: ['nav_menu_reports', 'nav_menu_all'],
+  //     },
+  //   ],
+  // },
+  // {
+  //   id: 'system-admin',
+  //   label: getLabel('system-admin', 'SYSTEM ADMIN'),
+  //   icon: UserCog,
+  //   permissions: ['*'], // Show section if any child is accessible
+  //   // permissions: ['nav_menu_system_admin'], // Show section if any child is accessible
+  //   items: [
+  //     {
+  //       id: 'user',
+  //       label: getLabel('user', 'User Management'),
+  //       icon: UserPen,
+  //       href: '/admin/user-management',
+  //       permissions: ['nav_menu_system_admin', 'nav_menu_all'],
+  //     },
+  //     {
+  //       id: 'role',
+  //       label: getLabel('role', 'Role Management'),
+  //       icon: ListChecks,
+  //       href: '/admin/role-management',
+  //       permissions: ['nav_menu_system_admin', 'nav_menu_all'],
+  //     },
+  //     {
+  //       id: 'fee-type',
+  //       label: getLabel('fee-type', 'Fee Type'),
+  //       icon: Banknote,
+  //       href: '/admin/fee-types',
+  //       permissions: ['nav_menu_fees', 'nav_menu_all'],
+  //     },
+  //     {
+  //       id: 'security',
+  //       label: getLabel('security', 'Security'),
+  //       icon: Shield,
+  //       href: '/admin/security',
+  //       permissions: ['nav_menu_system_admin', '*'],
+  //     },
+  //     {
+  //       id: 'workflow',
+  //       label: getLabel('workflow', 'WORKFLOW'),
+  //       icon: Workflow,
+  //       permissions: ['nav_menu_workflow', 'nav_menu_all'],
+  //       children: [
+  //     {
+  //       id: 'workflow-action',
+  //       label: getLabel('action', 'Action'),
+  //       icon: BanknoteArrowUp,
+  //       href: '/admin/workflow/action',
+  //       permissions: ['nav_menu_workflow_action', 'nav_menu_all'],
+  //     },
+  //     {
+  //       id: 'workflow-definition',
+  //       label: getLabel('definition', 'Definition'),
+  //       icon: Tv,
+  //       href: '/admin/workflow/definition',
+  //       permissions: ['nav_menu_workflow_definition', 'nav_menu_all'],
+  //     },
 
-    // form my side
+  //     {
+  //       id: 'workflow-stage-template',
+  //       label: getLabel('stage-template', 'Stage Template'),
+  //       icon: ArrowsUpFromLine,
+  //       href: '/admin/workflow/stage-template',
+  //       permissions: ['nav_menu_workflow_stage_template', 'nav_menu_all'],
+  //     },
+  //     {
+  //       id: 'workflow-amount-rule',
+  //       label: getLabel('amount-rule', 'Amount Rule'),
+  //       icon: HandCoins,
+  //       href: '/admin/workflow/amount-rule',
+  //       permissions: ['nav_menu_workflow_amount_rule', 'nav_menu_all'],
+  //     },
+  //     {
+  //       id: 'amount-stage-overrides',
+  //       label: getLabel('amount-stage-overrides', 'Amount Stage'),
+  //       icon: Banknote,
+  //       href: '/admin/workflow/amount-stage-override',
+  //       permissions: ['nav_menu_workflow_amount_stage_override', 'nav_menu_all'],
+  //     },
 
-  
-    // END
+  //       ],
+  //     },
+  //   ],
+  // },
 ]
 
 // Keep the original static configuration for backward compatibility
@@ -285,83 +351,83 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       },
     ],
   },
+  {
+    id: 'entities',
+    label: 'ENTITIES',
+    icon: Building,
+    items: [
+      {
+        id: 'developers',
+        label: 'Developers',
+        icon: SquareUserRound,
+        href: '/entities/developers',
+      },
+      {
+        id: 'projects',
+        label: 'Projects',
+        icon: BriefcaseBusiness,
+        href: '/projects',
+      },
+      {
+        id: 'investors',
+        label: 'Investor',
+        icon: CircleUserRound,
+        href: '/investors',
+      },
+    ],
+  },
   // {
-  //   id: 'entities',
-  //   label: 'ENTITIES',
-  //   icon: Building,
+  //   id: 'deposits',
+  //   label: 'DEPOSITS',
+  //   icon: CircleDollarSign,
   //   items: [
   //     {
-  //       id: 'developers',
-  //       label: 'Developers',
-  //       icon: SquareUserRound,
-  //       href: '/entities/developers',
+  //       id: 'unallocated',
+  //       label: 'Unallocated Transaction',
+  //       icon: AlignJustify,
+  //       href: '/transactions/unallocated',
   //     },
   //     {
-  //       id: 'projects',
-  //       label: 'Projects',
-  //       icon: BriefcaseBusiness,
-  //       href: '/projects',
+  //       id: 'discarded',
+  //       label: 'Discarded Transaction',
+  //       icon: XCircle,
+  //       href: '/transactions/discarded',
   //     },
   //     {
-  //       id: 'investors',
-  //       label: 'Investor',
-  //       icon: CircleUserRound,
-  //       href: '/investors',
+  //       id: 'allocated',
+  //       label: 'Allocated Transaction',
+  //       icon: ListCheck,
+  //       href: '/transactions/allocated',
   //     },
   //   ],
   // },
-  {
-    id: 'deposits',
-    label: 'DEPOSITS',
-    icon: CircleDollarSign,
-    items: [
-      {
-        id: 'unallocated',
-        label: 'Unallocated Transaction',
-        icon: AlignJustify,
-        href: '/transactions/unallocated',
-      },
-      {
-        id: 'discarded',
-        label: 'Discarded Transaction',
-        icon: XCircle,
-        href: '/transactions/discarded',
-      },
-      {
-        id: 'allocated',
-        label: 'Allocated Transaction',
-        icon: ListCheck,
-        href: '/transactions/allocated',
-      },
-    ],
-  },
-  {
-    id: 'guarantee',
-    label: 'Guarantee',
-    icon: ShieldCheckIcon,
-    href: '/guarantee',
-    items: [],
-  },
-  {
-    id: 'fee-reconciliation',
-    label: 'Fee Reconciliation',
-    icon: TicketSlash,
-    href: '/fee-reconciliation',
-    items: [],
-  },
-  {
-    id: 'reports',
-    label: 'REPORTS',
-    icon: FileText,
-    items: [
-      {
-        id: 'business',
-        label: 'Business Report',
-        icon: FileChartPie,
-        href: '/reports/business',
-      },
-    ],
-  },
+  // {
+  //   id: 'guarantee',
+  //   label: 'Guarantee',
+  //   icon: ShieldCheckIcon,
+  //   href: '/guarantee',
+  //   items: [],
+  // },
+  // {
+  //   id: 'fee-reconciliation',
+  //   label: 'Fee Reconciliation',
+  //   icon: TicketSlash,
+  //   href: '/fee-reconciliation',
+  //   items: [],
+  // },
+  // {
+  //   id: 'reports',
+  //   label: 'REPORTS',
+  //   icon: FileText,
+  //   items: [
+  //     {
+  //       id: 'business',
+  //       label: 'Business Report',
+  //       icon: FileChartPie,
+  //       href: '/reports/business',
+  //     },
+  //   ],
+  // },
   // {
   //   id: 'system-admin',
   //   label: 'SYSTEM ADMIN',

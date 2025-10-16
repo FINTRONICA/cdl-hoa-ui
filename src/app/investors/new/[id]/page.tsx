@@ -50,8 +50,9 @@ function InvestorStepPageContent() {
   if (isLoading) {
     return (
       <DashboardLayout
-        title="Owner Register Details"
-        subtitle="Loading owner registry details..."
+        title="Owner Registry Details
+"
+        subtitle="Loading..."
       >
         <div className="flex items-center justify-center h-64">
           <div className="w-8 h-8 border-b-2 border-blue-600 rounded-full animate-spin"></div>
@@ -64,8 +65,10 @@ function InvestorStepPageContent() {
   if (error) {
     return (
       <DashboardLayout
-        title="Owner Register Details"
-        subtitle="Error loading owner registry details"
+        title="Owner Registry Details
+"
+        subtitle="Error loading Owner Registry Details
+"
       >
         <div className="p-6 text-red-600">
           <p>Error: {error}</p>
@@ -76,13 +79,14 @@ function InvestorStepPageContent() {
 
   return (
     <DashboardLayout
-      title="Owner Register Details"
-      subtitle="Register your Owner Register step by step, non-mandatory fields and steps are easy to skip."
+      title="Owner Registry Details
+"
+      subtitle="Register your investor step by step, non-mandatory fields and steps are easy to skip."
     >
       <div className="flex items-start py-2 gap-7 px-7">
         <div className="flex flex-col min-w-[200px] gap-1">
           <label className="font-sans font-normal text-[12px] leading-[1] tracking-normal text-[#4A5565]">
-            Owner Registry Name
+            Capital Partner Name
           </label>
           <span className="font-outfit font-normal text-[16px] leading-[1] tracking-normal align-middle text-[#1E2939]">
             {capitalPartnerData
@@ -93,7 +97,7 @@ function InvestorStepPageContent() {
         </div>
         <div className="flex flex-col min-w-[200px] gap-1">
           <label className="font-sans font-normal text-[12px] leading-[1] tracking-normal text-[#4A5565]">
-            Owner Registry ID
+            Capital Partner ID
           </label>
           <span className="font-outfit font-normal text-[16px] leading-[1] tracking-normal align-middle text-[#1E2939]">
             {capitalPartnerData?.capitalPartnerId || 'N/A'}
@@ -117,7 +121,8 @@ export default function InvestorStepPage() {
   return (
     <Suspense
       fallback={
-        <DashboardLayout title="Owner Register Details" subtitle="Loading...">
+        <DashboardLayout title="Owner Registry Details
+" subtitle="Loading...">
           <div className="flex items-center justify-center h-64">
             <div className="text-lg">Loading...</div>
           </div>

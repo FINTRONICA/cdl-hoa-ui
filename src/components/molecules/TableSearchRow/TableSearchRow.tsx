@@ -19,6 +19,7 @@ interface Column {
     | 'custom'
     | 'comment'
   options?: { value: string; label: string }[]
+  statusOptions?: string[]
 }
 
 interface TableSearchRowProps {
@@ -35,7 +36,7 @@ export const TableSearchRow: React.FC<TableSearchRowProps> = ({
   statusOptions = [],
 }) => {
   return (
-    <tr className="sticky top-[52px] z-20 border-b border-gray-200">
+    <tr className="sticky top-[52px] z-20 border-b border-gray-200 pb-4">
       {columns.map((column) => {
         if (
           column.type === 'expand' ||
@@ -48,26 +49,29 @@ export const TableSearchRow: React.FC<TableSearchRowProps> = ({
           return (
             <th
               key={column.key}
-              className={`${column.width || ''} px-4 py-2 ${column.type === 'checkbox' ? 'border-r border-[#CAD5E2] text-center align-middle' : ''}`}
+              className={`${column.width || ''} px-4 py-2 pb-4 ${column.type === 'checkbox' ? 'border-r border-[#CAD5E2] text-center align-middle' : ''}`}
             ></th>
           )
         }
         // Status dropdown
         if (column.type === 'status' || column.key === 'status') {
+          // Use column-specific status options if available, otherwise fall back to global statusOptions
+          const columnStatusOptions = column.statusOptions || statusOptions
+
           return (
             <th
               key={column.key}
-              className={`${column.width || ''} px-4 py-2 align-middle`}
+              className={`${column.width || ''} px-4 py-2 pb-4 align-middle`}
             >
               <Select
                 value={search[column.key] || ''}
                 onChange={(value) => onSearchChange(column.key, value)}
-                options={statusOptions.map((opt) => ({
+                options={columnStatusOptions.map((opt) => ({
                   value: opt,
                   label: opt,
                 }))}
                 placeholder="Search"
-                className="w-full min-w-0 h-8 px-2 py-1 text-xs font-outfit font-normal not-italic border border-gray-300 rounded-md text-gray-900 focus:outline-none [&>option]:text-gray-900 shadow-none placeholder:text-xs placeholder:font-outfit placeholder:font-normal placeholder:not-italic"
+                className="w-full min-w-0 h-8 something px-2 py-1 text-xs font-outfit font-normal not-italic border border-gray-300 rounded-md text-gray-900 focus:outline-none [&>option]:text-gray-900 shadow-none placeholder:text-xs placeholder:font-outfit placeholder:font-normal placeholder:not-italic"
               />
             </th>
           )
@@ -76,7 +80,7 @@ export const TableSearchRow: React.FC<TableSearchRowProps> = ({
         return (
           <th
             key={column.key}
-            className={`${column.width || ''} px-4 py-2 align-middle`}
+            className={`${column.width || ''} px-4 py-2 pb-4 align-middle`}
           >
             <input
               placeholder="Search"

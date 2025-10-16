@@ -1,6 +1,6 @@
 // Step names and configuration
 export const STEPS = [
-  'Management Firms Details',
+  ' Firms Details',
   'Documents',
   'Account',
   'Fee Details',
@@ -32,11 +32,11 @@ export const DEFAULT_FORM_VALUES = {
   reaName: '',
   reaLocation: '',
   reaReraNumber: '',
-  reaRetentionPercent: '5.00',
-  reaAdditionalRetentionPercent: '8.00',
-  reaTotalRetentionPercent: '13.00',
-  reaManagementExpenses: '5.00',
-  reaMarketingExpenses: '10.00',
+  reaRetentionPercent: '',
+  reaAdditionalRetentionPercent: '',
+  reaTotalRetentionPercent: '',
+  reaManagementExpenses: '',
+  reaMarketingExpenses: '',
   reaRealEstateBrokerExp: 0,
   reaAdvertisementExp: 0,
   reaPercentComplete: '',
@@ -52,15 +52,36 @@ export const DEFAULT_FORM_VALUES = {
   reaNoOfUnits: 0,
   status: 'ACTIVE',
   
-  // DTO defaults
+
   reaConstructionCostCurrencyDTO: { id: 32 },
   buildPartnerDTO: { id: 501 },
   reaStatusDTO: { id: 53 },
   reaTypeDTO: { id: 51 },
   reaAccountStatusDTO: { id: 55 },
   
-  // Step 2 defaults
+
   accounts: [
+    {
+      trustAccountNumber: '',
+      ibanNumber: '',
+      dateOpened: null,
+      accountTitle: '',
+      currency: '',
+    },
+    {
+      trustAccountNumber: '',
+      ibanNumber: '',
+      dateOpened: null,
+      accountTitle: '',
+      currency: 'AED',
+    },
+    {
+      trustAccountNumber: '',
+      ibanNumber: '',
+      dateOpened: null,
+      accountTitle: '',
+      currency: 'AED',
+    },
     {
       trustAccountNumber: '',
       ibanNumber: '',
@@ -70,7 +91,7 @@ export const DEFAULT_FORM_VALUES = {
     },
   ],
   
-  // Step 3 defaults
+
   fees: [
     {
       feeType: '',
@@ -84,7 +105,7 @@ export const DEFAULT_FORM_VALUES = {
     },
   ],
   
-  // Step 4 defaults
+ 
   beneficiaries: [
     {
       id: '',
@@ -97,7 +118,7 @@ export const DEFAULT_FORM_VALUES = {
     },
   ],
   
-  // Step 5 defaults
+
   paymentPlan: [
     {
       installmentNumber: 1,
@@ -106,22 +127,28 @@ export const DEFAULT_FORM_VALUES = {
     },
   ],
   
-  // Step 6 defaults
+ 
   financialData: {
     projectEstimatedCost: '',
     actualCost: '',
     projectBudget: '',
   },
+  
+  // Step 8 defaults
+  closureData: {
+    totalIncomeFund: '',
+    totalPayment: '',
+  },
 } as const
 
-// Validation patterns
+
 export const VALIDATION_PATTERNS = {
   PERCENTAGE: /^\d+(\.\d{1,2})?%?$/,
   AMOUNT: /^\d+(\.\d{1,2})?$/,
   REQUIRED: (value: any) => !!value || 'This field is required',
 } as const
 
-// Error messages
+
 export const ERROR_MESSAGES = {
   REQUIRED: 'This field is required',
   INVALID_PERCENTAGE: 'Please enter a valid percentage',
@@ -132,27 +159,27 @@ export const ERROR_MESSAGES = {
   ACCOUNT_SAVE_FAILED: 'Failed to save bank accounts',
 } as const
 
-// Success messages
+
 export const SUCCESS_MESSAGES = {
   STEP_SAVED: 'Step saved successfully!',
   ACCOUNTS_SAVED: 'Bank accounts saved successfully!',
   ALL_STEPS_COMPLETED: 'All steps completed successfully!',
 } as const
 
-// API endpoints and configurations
+
 export const API_CONFIG = {
   MAX_RETRIES: 3,
   TIMEOUT: 30000,
   VALIDATION_DEBOUNCE: 300,
 } as const
 
-// Date formats
+
 export const DATE_FORMATS = {
   DISPLAY: 'DD/MM/YYYY',
   API: 'YYYY-MM-DD',
 } as const
 
-// Grid configurations
+
 export const GRID_CONFIGS = {
   DEFAULT: { xs: 12, md: 6 },
   FULL_WIDTH: { xs: 12, md: 12 },
@@ -162,7 +189,7 @@ export const GRID_CONFIGS = {
   COMPACT: { xs: 12, md: 2 },
 } as const
 
-// Button configurations
+
 export const BUTTON_CONFIGS = {
   PRIMARY: {
     variant: 'contained' as const,
@@ -178,13 +205,13 @@ export const BUTTON_CONFIGS = {
   },
 } as const
 
-// Table configurations
+
 export const TABLE_CONFIGS = {
   DEFAULT_ROWS_PER_PAGE: 20,
   PAGINATION_OPTIONS: [10, 20, 50, 100],
 } as const
 
-// Form field types
+
 export const FIELD_TYPES = {
   TEXT: 'text',
   SELECT: 'select',

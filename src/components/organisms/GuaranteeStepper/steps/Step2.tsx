@@ -312,7 +312,7 @@ const Step2 = ({ onEdit, suretyBondId, isViewMode }: Step2Props) => {
               <Typography variant="h6" sx={{ mb: 2 }}>
                 {getTranslatedLabel(
                   'CDL_SB_LOADING',
-                  'Loading Surety Bond Details...'
+                  'Loading...'
                 )}
               </Typography>
               <Typography variant="body2" color="text.secondary">

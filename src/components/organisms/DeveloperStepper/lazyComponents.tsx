@@ -9,7 +9,7 @@ const Step4 = lazy(() => import('./steps/Step4'))
 const Step5 = lazy(() => import('./steps/Step5'))
 const DocumentUploadStep = lazy(() => import('./steps/DocumentUploadStep'))
 
-// Loading component for Suspense fallback
+
 const StepLoadingFallback = () => (
   <Box
     sx={{
@@ -23,12 +23,12 @@ const StepLoadingFallback = () => (
   >
     <CircularProgress size={40} />
     <Typography variant="body2" color="text.secondary">
-      Loading step...
+      Loading...
     </Typography>
   </Box>
 )
 
-// Error boundary component for lazy loading errors
+
 const StepErrorBoundary = ({
   children,
   fallback,
@@ -91,11 +91,9 @@ export const preloadSteps = {
 // Preload next step for better performance
 export const preloadNextStep = (currentStep: number) => {
   const preloadMap: Record<number, () => Promise<any>> = {
-    0: preloadSteps.step2,
-    1: preloadSteps.documentUpload,
-    2: preloadSteps.step3,
-    3: preloadSteps.step4,
-    4: preloadSteps.step5,
+    0: preloadSteps.documentUpload,
+    1: preloadSteps.step2,
+    2: preloadSteps.step5,
   }
 
   const preloadFn = preloadMap[currentStep]

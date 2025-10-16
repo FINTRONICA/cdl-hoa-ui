@@ -55,7 +55,7 @@ export default function DeveloperStepPage() {
   if (isValidating || isLoadingData) {
     return (
       <DashboardLayout title="Loading...">
-        <div className="flex items-center justify-center h-64">
+        <div className="flex justify-center items-center h-64">
           <Spinner />
         </div>
       </DashboardLayout>
@@ -77,10 +77,10 @@ export default function DeveloperStepPage() {
 
   return (
     <DashboardLayout
-      title="TEST - Developer Registration"
+      title="Build Partner Details"
       subtitle="Register your developer step by step, non-mandatory fields and steps are easy to skip."
     >
-      <div className="flex items-start py-2 gap-7 px-7">
+      <div className="flex gap-7 items-start px-7 py-2">
         <div className="flex flex-col min-w-[200px] gap-1">
           <label className="font-sans font-normal text-[12px] leading-[1] tracking-normal text-[#4A5565]">
             Build Partner Name
@@ -91,7 +91,7 @@ export default function DeveloperStepPage() {
         </div>
         <div className="flex flex-col min-w-[200px] gap-1">
           <label className="font-sans font-normal text-[12px] leading-[1] tracking-normal text-[#4A5565]">
-            Firm CIF
+            Build Partner CIF
           </label>
           <span className="font-outfit font-normal text-[16px] leading-[1] tracking-normal align-middle text-[#1E2939]">
             {buildPartnerData?.bpCifrera || 'N/A'}

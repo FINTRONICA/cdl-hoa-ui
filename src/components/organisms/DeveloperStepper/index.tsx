@@ -34,7 +34,7 @@ export default function DeveloperStepperWrapper({
   const [isEditingMode, setIsEditingMode] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
-  
+
   // Check if we're in view mode (read-only)
   const mode = searchParams.get('mode')
   const isViewMode = mode === 'view'
@@ -112,19 +112,19 @@ export default function DeveloperStepperWrapper({
         const nextStep = activeStep + 1
         if (nextStep < steps.length) {
           const nextUrlStep = nextStep + 1
-          router.push(`/developers/${developerId}/step/${nextUrlStep}?mode=view`)
+          router.push(
+            `/developers/${developerId}/step/${nextUrlStep}?mode=view`
+          )
         } else {
           router.push('/entities/developers')
         }
         return
       }
 
-      // Documents (Optional), Contact, Fees, and Beneficiary steps don't need API call here - items are saved when "Add" is clicked
+      // Documents (Optional) and Contact steps don't need API call here - items are saved when "Add" is clicked
       if (
         activeStep === 1 ||
-        activeStep === 2 ||
-        activeStep === 3 ||
-        activeStep === 4
+        activeStep === 2
       ) {
         // For these steps, just navigate to next step without API call
         const nextStep = activeStep + 1
@@ -138,8 +138,8 @@ export default function DeveloperStepperWrapper({
         return
       }
 
-      // Review step (step 5) - complete the process and submit workflow request
-      if (activeStep === 5) {
+      // Review step (step 3) - complete the process and submit workflow request
+      if (activeStep === 3) {
         try {
           // Get the developer ID from step status
           const developerIdFromStatus =
@@ -199,17 +199,26 @@ export default function DeveloperStepperWrapper({
 
       // All other steps make API calls
       const currentFormData = methods.getValues()
-      const stepSpecificData = transformStepData(activeStep + 1, currentFormData, transformers)
+      const stepSpecificData = transformStepData(
+        activeStep + 1,
+        currentFormData,
+        transformers
+      )
 
       // Enhanced validation with client-side and server-side validation
-      const validationResult = await validation.validateStepData(activeStep, stepSpecificData)
+      const validationResult = await validation.validateStepData(
+        activeStep,
+        stepSpecificData
+      )
 
       if (!validationResult.isValid) {
         const errorPrefix =
           validationResult.source === 'client'
             ? 'Form validation failed'
             : 'Server validation failed'
-        notifications.showError(`${errorPrefix}: ${validationResult.errors?.join(', ')}`)
+        notifications.showError(
+          `${errorPrefix}: ${validationResult.errors?.join(', ')}`
+        )
         return
       }
 
@@ -228,7 +237,8 @@ export default function DeveloperStepperWrapper({
         // For Step 1, we need to get the developer ID from the API response and navigate to dynamic route
         if (activeStep === 0) {
           // Step 1 just saved, get the developer ID from the API response
-          const savedDeveloperId = (saveResponse as any)?.data?.id || (saveResponse as any)?.id
+          const responseData = saveResponse as { data?: { id?: string | number }; id?: string | number }
+          const savedDeveloperId = responseData?.data?.id || responseData?.id
 
           if (savedDeveloperId) {
             // Navigate to Step 2 using the dynamic route with the ID from backend
@@ -270,7 +280,9 @@ export default function DeveloperStepperWrapper({
       setActiveStep(previousStep)
       // Navigate to the previous step URL with mode parameter
       const modeParam = isViewMode ? '?mode=view' : ''
-      router.push(`/developers/${developerId}/step/${previousStep + 1}${modeParam}`)
+      router.push(
+        `/developers/${developerId}/step/${previousStep + 1}${modeParam}`
+      )
     }
   }
 
@@ -294,16 +306,47 @@ export default function DeveloperStepperWrapper({
 
         <Box sx={{ mt: 4 }}>{stepRenderer.getStepContent(activeStep)}</Box>
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            {activeStep > 0 && (
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            mt: 3,
+            mx: 6,
+            mb: 2,
+          }}
+        >
+          <Button
+            onClick={() => router.push('/entities/developers')}
+            sx={{
+              fontFamily: 'Outfit, sans-serif',
+              fontWeight: 500,
+              fontStyle: 'normal',
+              fontSize: '14px',
+              lineHeight: '20px',
+              letterSpacing: 0,
+            }}
+          >
+            Cancel
+          </Button>
+          <Box>
+            {activeStep !== 0 && (
               <Button
                 onClick={handleBack}
                 variant="outlined"
                 sx={{
                   width: '114px',
                   height: '36px',
+                  gap: '6px',
+                  opacity: 1,
+                  paddingTop: '2px',
+                  paddingRight: '3px',
+                  paddingBottom: '2px',
+                  paddingLeft: '3px',
                   borderRadius: '6px',
+                  backgroundColor: '#DBEAFE',
+                  color: '#155DFC',
+                  border: 'none',
+                  mr: 2,
                   fontFamily: 'Outfit, sans-serif',
                   fontWeight: 500,
                   fontStyle: 'normal',
@@ -315,53 +358,39 @@ export default function DeveloperStepperWrapper({
                 Back
               </Button>
             )}
-            {activeStep === 0 && (
-              <Button
-                onClick={() => router.push('/entities/developers')}
-                variant="outlined"
-                sx={{
-                  width: '114px',
-                  height: '36px',
-                  borderRadius: '6px',
-                  fontFamily: 'Outfit, sans-serif',
-                  fontWeight: 500,
-                  fontStyle: 'normal',
-                  fontSize: '14px',
-                  lineHeight: '20px',
-                  letterSpacing: 0,
-                  color: '#6B7280',
-                  borderColor: '#D1D5DB',
-                  '&:hover': {
-                    borderColor: '#9CA3AF',
-                    backgroundColor: '#F9FAFB',
-                  },
-                }}
-              >
-                Cancel
-              </Button>
-            )}
+            <Button
+              onClick={handleSaveAndNext}
+              variant="contained"
+              sx={{
+                width: '114px',
+                height: '36px',
+                gap: '6px',
+                opacity: 1,
+                paddingTop: '2px',
+                paddingRight: '3px',
+                paddingBottom: '2px',
+                paddingLeft: '3px',
+                borderRadius: '6px',
+                backgroundColor: '#2563EB',
+                color: '#FFFFFF',
+                boxShadow: 'none',
+                fontFamily: 'Outfit, sans-serif',
+                fontWeight: 500,
+                fontStyle: 'normal',
+                fontSize: '14px',
+                lineHeight: '20px',
+                letterSpacing: 0,
+              }}
+            >
+              {isViewMode
+                ? activeStep === STEP_LABELS.length - 1
+                  ? 'Done'
+                  : 'Next'
+                : activeStep === STEP_LABELS.length - 1
+                  ? 'Complete'
+                  : 'Save and Next'}
+            </Button>
           </Box>
-          <Button
-            onClick={handleSaveAndNext}
-            variant="contained"
-            sx={{
-              width: '114px',
-              height: '36px',
-              padding: '8px 12px',
-              borderRadius: '6px',
-              fontFamily: 'Outfit, sans-serif',
-              fontWeight: 500,
-              fontStyle: 'normal',
-              fontSize: '14px',
-              lineHeight: '20px',
-              letterSpacing: 0,
-            }}
-          >
-            {isViewMode 
-              ? (activeStep === STEP_LABELS.length - 1 ? 'Done' : 'Next')
-              : (activeStep === STEP_LABELS.length - 1 ? 'Complete' : 'Save and Next')
-            }
-          </Button>
         </Box>
 
         {/* Error and Success Notifications */}

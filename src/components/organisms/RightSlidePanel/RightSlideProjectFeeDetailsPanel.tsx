@@ -9,7 +9,6 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  FormHelperText,
   Button,
   Drawer,
   Box,
@@ -19,9 +18,14 @@ import {
 } from '@mui/material'
 import { KeyboardArrowDown as KeyboardArrowDownIcon } from '@mui/icons-material'
 import { Controller, useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined'
-import { useSaveProjectIndividualFee } from '@/hooks/useProjects'
-import { projectFeeValidationSchema } from '@/lib/validation/feeSchemas'
+import { useSaveProjectIndividualFee, useUpdateProjectIndividualFee } from '@/hooks/useProjects'
+import {
+  projectFeeValidationSchema,
+  feeDetailsFormValidationSchema,
+  type FeeDetailsFormData,
+} from '@/lib/validation/feeSchemas'
 import { convertDatePickerToZonedDateTime } from '@/utils'
 import { useFeeDropdownLabels } from '@/hooks/useFeeDropdowns'
 import { getFeeCategoryLabel } from '@/constants/mappings/feeDropdownMapping'
@@ -29,36 +33,32 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined'
+import { useProjectLabels } from '@/hooks/useProjectLabels'
+import dayjs from 'dayjs'
 
 interface RightSlidePanelProps {
   isOpen: boolean
   onClose: () => void
   onFeeAdded?: (fee: any) => void
   title?: string
+  editingFee?: any
   projectId?: string
   buildPartnerId?: string
 }
 
-interface FeeFormData {
-  feeType: string
-  frequency: string
-  debitAmount: string
-  debitAccount: string
-  feeToBeCollected: unknown
-  nextRecoveryDate: unknown
-  feePercentage: string
-  vatPercentage: string
-  currency: string
-  totalAmount: string
-}
+// Use the FeeDetailsFormData type from validation schema
 
 export const RightSlideProjectFeeDetailsPanel: React.FC<
   RightSlidePanelProps
-> = ({ isOpen, onClose, onFeeAdded, projectId, buildPartnerId }) => {
+> = ({ isOpen, onClose, onFeeAdded, editingFee, projectId }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
+  // Add dynamic labels hook
+  const { getLabel } = useProjectLabels()
+
   const addFeeMutation = useSaveProjectIndividualFee()
+  const updateFeeMutation = useUpdateProjectIndividualFee()
 
   const {
     feeCategories,
@@ -78,8 +78,10 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
     control,
     handleSubmit,
     reset,
-    formState: { errors },
-  } = useForm<FeeFormData>({
+    trigger,
+  } = useForm<FeeDetailsFormData>({
+    resolver: zodResolver(feeDetailsFormValidationSchema),
+    mode: 'onChange', // Validate on every change
     defaultValues: {
       feeType: '',
       frequency: '',
@@ -94,12 +96,91 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
     },
   })
 
-  const onSubmit = async (data: FeeFormData) => {
+
+  // Reset form when editing fee changes
+  React.useEffect(() => {
+    if (editingFee) {
+
+      // Map display values back to IDs for editing
+      const feeCategory = feeCategories.find(
+        (category: unknown) =>
+          (category as { configValue: string }).configValue === editingFee.FeeType
+      )
+      const feeFrequency = feeFrequencies.find(
+        (frequency: unknown) =>
+          (frequency as { configValue: string }).configValue === editingFee.Frequency
+      )
+      const debitAccount = debitAccounts.find(
+        (account: unknown) =>
+          (account as { configValue: string }).configValue === editingFee.DebitAccount
+      )
+      const currency = currencies.find(
+        (curr: unknown) =>
+          (curr as { configValue: string }).configValue === editingFee.Currency
+      )
+
+      const resetData = {
+        feeType: (feeCategory as { id?: number })?.id?.toString() || editingFee.FeeType || '',
+        frequency: (feeFrequency as { id?: number })?.id?.toString() || editingFee.Frequency || '',
+        debitAmount: editingFee.DebitAmount || '',
+        debitAccount: (debitAccount as { id?: number })?.id?.toString() || editingFee.DebitAccount || '',
+        feeToBeCollected: editingFee.Feetobecollected ? dayjs(editingFee.Feetobecollected) : null,
+        nextRecoveryDate: editingFee.NextRecoveryDate ? dayjs(editingFee.NextRecoveryDate) : null,
+        feePercentage: editingFee.FeePercentage || '',
+        vatPercentage: editingFee.VATPercentage || '',
+        currency: (currency as { id?: number })?.id?.toString() || editingFee.Currency || '',
+        totalAmount: editingFee.Amount || '',
+      }
+
+      reset(resetData)
+    } else {
+      reset({
+        feeType: '',
+        frequency: '',
+        debitAmount: '',
+        debitAccount: '',
+        feeToBeCollected: null,
+        nextRecoveryDate: null,
+        feePercentage: '',
+        vatPercentage: '',
+        currency: '',
+        totalAmount: '',
+      })
+    }
+  }, [editingFee, reset, feeCategories, feeFrequencies, debitAccounts, currencies])
+
+  const onSubmit = async (data: FeeDetailsFormData) => {
     try {
       setErrorMessage(null)
       setSuccessMessage(null)
-
+      
+      // Check if dropdown data is still loading
+      if (dropdownsLoading) {
+        setErrorMessage('Please wait for dropdown options to load before submitting.')
+        return
+      }
+      
+      // Validate form fields individually to provide better error messages
+      const isValid = await trigger()
+      
+      if (!isValid) {
+        // Get specific validation errors
+        const errors = []
+        if (!data.feeType) errors.push('Fee Category is required')
+        if (!data.frequency) errors.push('Frequency is required')
+        if (!data.debitAccount) errors.push('Debit Account is required')
+        if (!data.feeToBeCollected) errors.push('Fee Collection Date is required')
+        if (!data.debitAmount) errors.push('Amount is required')
+        if (!data.totalAmount) errors.push('Total Amount is required')
+        
+        if (errors.length > 0) {
+          setErrorMessage(`Please fill in the required fields: ${errors.join(', ')}`)
+        }
+        return
+      }
       const feeData = {
+        // Include ID for updates
+        ...(editingFee?.id && { id: parseInt(editingFee.id.toString()) }),
         reafCategoryDTO: {
           id: parseInt(data.feeType) || 0,
         },
@@ -109,24 +190,26 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
         reafAccountTypeDTO: {
           id: parseInt(data.debitAccount) || 0,
         },
-        reafDebitAmount: parseFloat(data.debitAmount?.replace(/,/g, '')) || 0,
-        reafTotalAmount: parseFloat(data.totalAmount?.replace(/,/g, '')) || 0,
+        reafDebitAmount:
+          parseFloat(data.debitAmount?.replace(/,/g, '') || '0') || 0,
+        reafTotalAmount:
+          parseFloat(data.totalAmount?.replace(/,/g, '') || '0') || 0,
         reafCollectionDate: data.feeToBeCollected
           ? convertDatePickerToZonedDateTime(
-              (data.feeToBeCollected as any).format('YYYY-MM-DD')
-            )
+            (data.feeToBeCollected as any).format('YYYY-MM-DD')
+          )
           : '',
         reafNextRecoveryDate: data.nextRecoveryDate
           ? convertDatePickerToZonedDateTime(
-              (data.nextRecoveryDate as any).format('YYYY-MM-DD')
-            )
+            (data.nextRecoveryDate as any).format('YYYY-MM-DD')
+          )
           : '',
         reafFeePercentage:
-          parseFloat(data.feePercentage?.replace(/%/g, '')) || 0,
+          parseFloat(data.feePercentage?.replace(/%/g, '') || '0') || 0,
         reafVatPercentage:
-          parseFloat(data.vatPercentage?.replace(/%/g, '')) || 0,
+          parseFloat(data.vatPercentage?.replace(/%/g, '') || '0') || 0,
         reafCurrencyDTO: {
-          id: parseInt(data.currency) || 0,
+          id: parseInt(data.currency || '0') || 0,
         },
         realEstateAssestDTO: {
           id: projectId ? parseInt(projectId) : undefined,
@@ -157,11 +240,15 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
         return
       }
 
-      
-
-      await addFeeMutation.mutateAsync(feeData)
-
-      setSuccessMessage('Fee added successfully!')
+      if (editingFee?.id) {
+        // Update existing fee using PUT
+        await updateFeeMutation.mutateAsync({ id: editingFee.id.toString(), feeData })
+        setSuccessMessage('Fee updated successfully!')
+      } else {
+        // Add new fee using POST
+        await addFeeMutation.mutateAsync(feeData)
+        setSuccessMessage('Fee added successfully!')
+      }
 
       if (onFeeAdded) {
         // Convert dropdown IDs to display names
@@ -172,6 +259,10 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
           feeFrequencies.find((freq) => freq.id === parseInt(data.frequency))
             ?.configValue || `Frequency ${data.frequency}`
 
+        // Get display labels for currency and debit account
+        const currencyLabel = currencies.find((curr) => curr.id === parseInt(data.currency))?.configValue || `Currency ${data.currency}`
+        const debitAccountLabel = debitAccounts.find((acc) => acc.id === parseInt(data.debitAccount))?.configValue || `Account ${data.debitAccount}`
+
         const feeForForm = {
           // Map to table column names with display labels
           FeeType: feeTypeLabel,
@@ -179,25 +270,27 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
           DebitAmount: data.debitAmount,
           Feetobecollected:
             data.feeToBeCollected &&
-            (data.feeToBeCollected as { isValid?: boolean }).isValid
+              (data.feeToBeCollected as { isValid?: boolean }).isValid
               ? (
-                  data.feeToBeCollected as {
-                    format: (format: string) => string
-                  }
-                ).format('MMM DD, YYYY')
+                data.feeToBeCollected as {
+                  format: (format: string) => string
+                }
+              ).format('MMM DD, YYYY')
               : '',
           NextRecoveryDate:
             data.nextRecoveryDate &&
-            (data.nextRecoveryDate as { isValid?: boolean }).isValid
+              (data.nextRecoveryDate as { isValid?: boolean }).isValid
               ? (
-                  data.nextRecoveryDate as {
-                    format: (format: string) => string
-                  }
-                ).format('MMM DD, YYYY')
+                data.nextRecoveryDate as {
+                  format: (format: string) => string
+                }
+              ).format('MMM DD, YYYY')
               : '',
           FeePercentage: data.feePercentage,
           VATPercentage: data.vatPercentage,
           Amount: data.totalAmount,
+          Currency: currencyLabel,
+          DebitAccount: debitAccountLabel,
           // Keep original fields for reference
           feeType: data.feeType,
           frequency: data.frequency,
@@ -316,28 +409,30 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
   }
 
   const renderTextField = (
-    name: keyof FeeFormData,
+    name: keyof FeeDetailsFormData,
     label: string,
     defaultValue = '',
     gridSize: number = 6,
-    required = false
+    required = false,
+    maxLength?: number
   ) => (
     <Grid key={name} size={{ xs: 12, md: gridSize }}>
       <Controller
         name={name}
         control={control}
         defaultValue={defaultValue}
-        rules={required ? { required: `${label} is required` } : {}}
-        render={({ field }) => (
+        render={({ field, fieldState: { error } }) => (
           <TextField
             {...field}
             label={label}
             fullWidth
-            error={!!errors[name]}
-            helperText={errors[name]?.message?.toString() || ''}
+            required={required}
+            error={!!error}
+            helperText={error?.message}
+            inputProps={{ maxLength }}
             InputLabelProps={{ sx: labelSx }}
             InputProps={{ sx: valueSx }}
-            sx={errors[name] ? errorFieldStyles : commonFieldStyles}
+            sx={error ? errorFieldStyles : commonFieldStyles}
           />
         )}
       />
@@ -345,7 +440,7 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
   )
 
   const renderApiSelectField = (
-    name: keyof FeeFormData,
+    name: keyof FeeDetailsFormData,
     label: string,
     options: unknown[],
     gridSize: number = 6,
@@ -356,17 +451,20 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
       <Controller
         name={name}
         control={control}
-        rules={required ? { required: `${label} is required` } : {}}
         defaultValue={''}
-        render={({ field }) => (
-          <FormControl fullWidth error={!!errors[name]}>
+        render={({ field, fieldState: { error } }) => (
+          <FormControl fullWidth error={!!error} required={required}>
             <InputLabel sx={labelSx}>
-              {loading ? `Loading ${label}...` : label}
+              {loading ? `Loading...` : label}
             </InputLabel>
             <Select
               {...field}
-              input={<OutlinedInput label={loading ? `Loading ${label}...` : label} />}
-              label={loading ? `Loading ${label}...` : label}
+              input={
+                <OutlinedInput
+                  label={loading ? `Loading...` : label}
+                />
+              }
+              label={loading ? `Loading...` : label}
               sx={{ ...selectStyles, ...valueSx }}
               IconComponent={KeyboardArrowDownIcon}
               disabled={loading}
@@ -385,10 +483,10 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
                 </MenuItem>
               ))}
             </Select>
-            {errors[name] && (
-              <FormHelperText error>
-                {errors[name]?.message?.toString()}
-              </FormHelperText>
+            {error && (
+              <Box sx={{ color: 'error.main', fontSize: '0.75rem', mt: 0.5, ml: 1.75 }}>
+                {error.message}
+              </Box>
             )}
           </FormControl>
         )}
@@ -397,7 +495,7 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
   )
 
   const renderDatePickerField = (
-    name: keyof FeeFormData,
+    name: keyof FeeDetailsFormData,
     label: string,
     gridSize: number = 6,
     required = false
@@ -406,9 +504,8 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
       <Controller
         name={name}
         control={control}
-        rules={required ? { required: `${label} is required` } : {}}
         defaultValue={null}
-        render={({ field }) => (
+        render={({ field, fieldState: { error } }) => (
           <DatePicker
             label={label}
             value={(field.value as any) || null}
@@ -420,9 +517,10 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
             slotProps={{
               textField: {
                 fullWidth: true,
-                error: !!errors[name],
-                helperText: errors[name]?.message?.toString() || '',
-                sx: errors[name] ? errorFieldStyles : commonFieldStyles,
+                required,
+                error: !!error,
+                helperText: error?.message,
+                sx: error ? errorFieldStyles : commonFieldStyles,
                 InputLabelProps: { sx: labelSx },
                 InputProps: {
                   sx: valueSx,
@@ -467,7 +565,7 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
             verticalAlign: 'middle',
           }}
         >
-          Add Project Fee Details
+          {getLabel('CDL_BPA_ADD_FEE_DETAILS', 'Add Project Fee Details')}
           <IconButton onClick={handleClose}>
             <CancelOutlinedIcon />
           </IconButton>
@@ -481,79 +579,92 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
                 Failed to load dropdown options. Please refresh the page.
               </Alert>
             )}
+            
+            {/* Show form validation errors */}
+            {errorMessage && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {errorMessage}
+              </Alert>
+            )}
 
             <Grid container rowSpacing={4} columnSpacing={2} mt={3}>
+              {/* Fee Category * - Mandatory Dropdown */}
               {renderApiSelectField(
                 'feeType',
-                'Fee Type',
+                getLabel('CDL_BPA_FEE_CATEGORY', 'Fee Category'),
                 feeCategories,
                 6,
-                false,
+                true, // Required
                 categoriesLoading
               )}
               {renderApiSelectField(
                 'frequency',
-                'Frequency',
+                getLabel('CDL_BPA_FREQUENCY', 'Frequency'),
                 feeFrequencies,
                 6,
-                false,
+                true, // Required
                 frequenciesLoading
               )}
               {renderApiSelectField(
+                'currency',
+                getLabel('CDL_BPA_CURRENCY', 'Currency'),
+                currencies,
+                6,
+                false, // Not required
+                currenciesLoading
+              )}
+              {renderApiSelectField(
                 'debitAccount',
-                'Debit Account',
+                getLabel('CDL_BPA_DEBIT_ACCOUNT', 'Debit Account'),
                 debitAccounts,
                 6,
-                false,
+                true, // Required
                 accountsLoading
               )}
               {renderDatePickerField(
                 'feeToBeCollected',
-                'Fee to be Collected',
+                getLabel('CDL_BPA_FEE_COLLECTION_DATE', 'Fee Collection Date'),
                 6,
-                false
+                true // Required
               )}
               {renderDatePickerField(
                 'nextRecoveryDate',
-                'Next Recovery Date',
+                getLabel('CDL_BPA_NEXT_RECOVERY_DATE', 'Next Recovery Date'),
                 6,
-                false
+                false // Not required
               )}
               {renderTextField(
                 'feePercentage',
-                'Fee Percentage',
+                getLabel('CDL_BPA_FEE_PERCENTAGE', 'Fee Percentage'),
                 '2%',
                 6,
-                false
+                false // Not required
               )}
               {renderTextField(
                 'debitAmount',
-                'Debit Amount',
+                getLabel('CDL_BPA_AMOUNT', 'Amount'),
                 '50,000',
                 6,
-                false
+                true, // Required
+                10 // Max length
               )}
+
+              {/* VAT Percentage - Optional */}
               {renderTextField(
                 'vatPercentage',
-                'VAT Percentage',
+                getLabel('CDL_BPA_VAT_PERCENTAGE', 'VAT Percentage'),
                 '18%',
                 6,
-                false
+                false // Not required
               )}
-              {renderApiSelectField(
-                'currency',
-                'Currency',
-                currencies,
-                6,
-                false,
-                currenciesLoading
-              )}
+
+              {/* Total Amount - Required */}
               {renderTextField(
                 'totalAmount',
-                'Amount Received',
+                getLabel('CDL_BPA_TOTAL_AMOUNT', 'Total Amount'),
                 '50,000',
                 12,
-                false
+                true // Required
               )}
             </Grid>
           </DialogContent>
@@ -592,7 +703,7 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
                     },
                   }}
                 >
-                  Cancel
+                  {getLabel('CDL_BPA_CANCEL', 'Cancel')}
                 </Button>
               </Grid>
               <Grid size={{ xs: 6 }}>
@@ -625,7 +736,10 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
                     },
                   }}
                 >
-                  {addFeeMutation.isPending ? 'Adding...' : 'Add'}
+                  {addFeeMutation.isPending
+                    ? getLabel('CDL_BPA_ADDING', 'Adding...')
+                    : getLabel('CDL_BPA_ADD', 'Add')
+                  }
                 </Button>
               </Grid>
             </Grid>

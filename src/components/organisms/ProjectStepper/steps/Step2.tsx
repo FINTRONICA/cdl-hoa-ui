@@ -6,17 +6,12 @@ import {
   TextField,
   Card,
   CardContent,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Grid,
   Button,
   Divider,
   Snackbar,
   Alert,
 } from '@mui/material'
-import { KeyboardArrowDown as KeyboardArrowDownIcon } from '@mui/icons-material'
 import HighlightOffOutlinedIcon from '@mui/icons-material/HighlightOffOutlined'
 import VerifiedOutlinedIcon from '@mui/icons-material/VerifiedOutlined'
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined'
@@ -35,8 +30,8 @@ import { BankAccountData } from '@/types/bankAccount'
 import dayjs from 'dayjs'
 import {
   commonFieldStyles,
-  selectStyles,
   datePickerStyles,
+  errorFieldStyles,
   labelSx,
   valueSx,
   cardStyles,
@@ -48,6 +43,7 @@ import {
   ERROR_MESSAGES,
   SUCCESS_MESSAGES,
 } from '../constants'
+import { validateAccountField } from '../validation/accountZodSchema'
 
 interface Step2Props {
   accounts: AccountData[]
@@ -56,7 +52,7 @@ interface Step2Props {
   isViewMode?: boolean
 }
 
-const Step2: React.FC<Step2Props> = React.memo(({ projectId, isViewMode = false }) => {
+const Step2: React.FC<Step2Props> = ({ projectId, isViewMode = false }) => {
   
   const { getLabel } = useProjectLabels()
 
@@ -69,12 +65,26 @@ const Step2: React.FC<Step2Props> = React.memo(({ projectId, isViewMode = false 
   const validateBankAccount = useValidateBankAccount()
   const saveMultipleBankAccounts = useSaveMultipleBankAccounts()
 
-  const getDisplayLabel = (currency: any, fallbackValue?: string): string => {
-    return currency?.configValue || fallbackValue || 'Unknown'
-  }
-
-  const { control, watch, setValue } = useFormContext<{
+  const { control, watch, setValue, formState: { errors } } = useFormContext<{
     accounts: AccountData[]
+    // Account validation fields
+    trustAccountNumber?: string
+    trustAccountIban?: string
+    trustAccountOpenedDate?: any
+    trustAccountTitle?: string
+    retentionAccountNumber?: string
+    retentionAccountIban?: string
+    retentionAccountOpenedDate?: any
+    retentionAccountTitle?: string
+    subConstructionAccountNumber?: string
+    subConstructionAccountIban?: string
+    subConstructionAccountOpenedDate?: any
+    subConstructionAccountTitle?: string
+    corporateAccountNumber?: string
+    corporateAccountIban?: string
+    corporateAccountOpenedDate?: any
+    corporateAccountTitle?: string
+    accountCurrency?: string
   }>()
 
   const [errorIndex, setErrorIndex] = useState<number | null>(null)
@@ -102,21 +112,18 @@ const Step2: React.FC<Step2Props> = React.memo(({ projectId, isViewMode = false 
     try {
       setValidatingIndex(index)
       setErrorIndex(null)
-      // Don't reset successIndex to preserve previously validated accounts
-
       const validationResponse = await validateBankAccount.mutateAsync(
         account.trustAccountNumber
       )
 
-      // Convert Unix timestamp to dayjs date
       const dateOpened = dayjs.unix(
         validationResponse.details.lastStatementDate / 1000
       )
 
-      // Get the correct account type for this index
       const accountType = ACCOUNT_TYPES[index] || 'TRUST'
 
-      // Create the bank account data object
+     
+ 
       const bankAccountData: BankAccountData = {
         accountType: accountType,
         accountNumber: validationResponse.accountNumber,
@@ -137,18 +144,12 @@ const Step2: React.FC<Step2Props> = React.memo(({ projectId, isViewMode = false 
         return newAccounts
       })
 
-      // Update form fields with validated data using setValue
-
-      // Find the correct currency ID from the dropdown options
-      const currencyOption = currencies.find(
-        (c) => c.configValue === validationResponse.currencyCode
-      )
-      const currencyId = currencyOption ? currencyOption.id : 32 // Default to ID 32 if not found
+   
 
       setValue(`accounts.${index}.ibanNumber`, validationResponse.details.iban)
       setValue(`accounts.${index}.dateOpened`, dateOpened)
       setValue(`accounts.${index}.accountTitle`, validationResponse.name)
-      setValue(`accounts.${index}.currency`, currencyId.toString())
+      setValue(`accounts.${index}.currency`, validationResponse.currencyCode)
 
       setSuccessIndexes(prev => [...prev.filter(i => i !== index), index])
       setSnackbarMessage(SUCCESS_MESSAGES.STEP_SAVED)
@@ -158,7 +159,7 @@ const Step2: React.FC<Step2Props> = React.memo(({ projectId, isViewMode = false 
       return true
     } catch (error) {
       setErrorIndex(index)
-      // Remove the current account from success indexes if it was previously validated
+     
       setSuccessIndexes(prev => prev.filter(i => i !== index))
       setSnackbarMessage(ERROR_MESSAGES.VALIDATION_FAILED)
       setSnackbarSeverity('error')
@@ -225,7 +226,7 @@ const Step2: React.FC<Step2Props> = React.memo(({ projectId, isViewMode = false 
               </Alert>
             )}
 
-          {ACCOUNT_LABELS.map((label, index) => {
+          {ACCOUNT_LABELS.map((_, index) => {
             return (
               <Box key={index} mb={4}>
                 <Grid container spacing={3}>
@@ -234,15 +235,22 @@ const Step2: React.FC<Step2Props> = React.memo(({ projectId, isViewMode = false 
                       name={`accounts.${index}.trustAccountNumber`}
                       control={control}
                       defaultValue=""
+                      rules={{
+                        validate: (value: any) => validateAccountField('trustAccountNumber', value)
+                      }}
                       render={({ field }) => (
-                    <TextField
-                    {...field}
-                    fullWidth
-                    disabled={isViewMode}
-                          label={label}
+                        <TextField
+                          {...field}
+                          fullWidth
+                          disabled={isViewMode}
+                          required={index === 0 || index === 1} 
+                          label={getLabel('CDL_BPA_ACC_NO', index === 0 ? 'Trust Account Number' : index === 1 ? 'Retention Account Number' : index === 2 ? 'Sub Construction Account Number' : 'Corporate Account Number')}
+                          error={!!errors.accounts?.[index]?.trustAccountNumber}
+                          helperText={(errors.accounts?.[index]?.trustAccountNumber?.message as string) || 'Manual entry - Numerical only (max 15 digits)'}
+                          inputProps={{ maxLength: 15 }}
                           InputLabelProps={{ sx: labelSx }}
                           InputProps={{ sx: valueSx }}
-                          sx={commonFieldStyles}
+                          sx={errors.accounts?.[index]?.trustAccountNumber ? errorFieldStyles : commonFieldStyles}
                         />
                       )}
                     />
@@ -253,15 +261,22 @@ const Step2: React.FC<Step2Props> = React.memo(({ projectId, isViewMode = false 
                       name={`accounts.${index}.ibanNumber`}
                       control={control}
                       defaultValue=""
+                      rules={{
+                        validate: (value: any) => validateAccountField('trustAccountIban', value)
+                      }}
                       render={({ field }) => (
-                    <TextField
-                    {...field}
-                    fullWidth
-                    disabled={isViewMode}
-                          label="IBAN Number*"
+                        <TextField
+                          {...field}
+                          fullWidth
+                          disabled={isViewMode}
+                          required={index === 0 || index === 1} // Required for Trust and Retention
+                          label={getLabel('CDL_BPA_ACC_IBAN', 'IBAN Number')}
+                          error={!!errors.accounts?.[index]?.ibanNumber}
+                          helperText={(errors.accounts?.[index]?.ibanNumber?.message as string) || 'Fetched from core banking'}
+                          inputProps={{ maxLength: 25 }}
                           InputLabelProps={{ sx: labelSx }}
                           InputProps={{ sx: valueSx }}
-                          sx={commonFieldStyles}
+                          sx={errors.accounts?.[index]?.ibanNumber ? errorFieldStyles : commonFieldStyles}
                         />
                       )}
                     />
@@ -273,13 +288,13 @@ const Step2: React.FC<Step2Props> = React.memo(({ projectId, isViewMode = false 
                       name={`accounts.${index}.dateOpened`}
                       control={control}
                       defaultValue={null}
+                      rules={{
+                        validate: (value: any) => validateAccountField('trustAccountOpenedDate', value)
+                      }}
                       render={({ field }) => (
-                  <DatePicker
-                    disabled={isViewMode}
-                    label={getLabel(
-                            'CDL_MF_DATE_OPENED',
-                            'Date Opened*'
-                          )}
+                        <DatePicker
+                          disabled={isViewMode}
+                          label={getLabel('CDL_BPA_ACC_OPENDATE', 'Date Opened')}
                           value={field.value}
                           onChange={field.onChange}
                           format="DD/MM/YYYY"
@@ -288,8 +303,11 @@ const Step2: React.FC<Step2Props> = React.memo(({ projectId, isViewMode = false 
                           }}
                           slotProps={{
                             textField: {
+                              required: index === 0 || index === 1, // Required for Trust and Retention
                               fullWidth: true,
-                              sx: datePickerStyles,
+                              error: !!errors.accounts?.[index]?.dateOpened,
+                              helperText: (errors.accounts?.[index]?.dateOpened?.message as string) || 'Fetched from core banking',
+                              sx: errors.accounts?.[index]?.dateOpened ? errorFieldStyles : datePickerStyles,
                               InputLabelProps: { sx: labelSx },
                               InputProps: {
                                 sx: valueSx,
@@ -308,15 +326,22 @@ const Step2: React.FC<Step2Props> = React.memo(({ projectId, isViewMode = false 
                       name={`accounts.${index}.accountTitle`}
                       control={control}
                       defaultValue=""
+                      rules={{
+                        validate: (value: any) => validateAccountField('trustAccountTitle', value)
+                      }}
                       render={({ field }) => (
-                    <TextField
-                    {...field}
-                    fullWidth
-                    disabled={isViewMode}
-                          label="Account Title*"
+                        <TextField
+                          {...field}
+                          fullWidth
+                          disabled={isViewMode}
+                          required={index === 0 || index === 1} 
+                          label={getLabel('CDL_BPA_ACC_NAME', 'Account Title')}
+                          error={!!errors.accounts?.[index]?.accountTitle}
+                          helperText={(errors.accounts?.[index]?.accountTitle?.message as string) || 'Fetched from core banking'}
+                          inputProps={{ maxLength: 100 }}
                           InputLabelProps={{ sx: labelSx }}
                           InputProps={{ sx: valueSx }}
-                          sx={commonFieldStyles}
+                          sx={errors.accounts?.[index]?.accountTitle ? errorFieldStyles : commonFieldStyles}
                         />
                       )}
                     />
@@ -329,55 +354,34 @@ const Step2: React.FC<Step2Props> = React.memo(({ projectId, isViewMode = false 
                         name={`accounts.${index}.currency`}
                         control={control}
                         defaultValue=""
+                        rules={{
+                          validate: (value: any) => validateAccountField('accountCurrency', value)
+                        }}
                         render={({ field }) => (
-                          <FormControl fullWidth>
-                            <InputLabel sx={labelSx}>
-                              {currenciesLoading
+                          <TextField
+                            {...field}
+                            fullWidth
+                            disabled={isViewMode}
+                            required={index === 0 || index === 1}
+                            label={
+                              currenciesLoading
                                 ? 'Loading...'
-                                : getLabel('CDL_MF_CURRENCY', 'Currency*')}
-                            </InputLabel>
-                    <Select
-                      {...field}
-                      disabled={isViewMode}
-                              label={
-                                currenciesLoading
-                                  ? 'Loading...'
-                                  : getLabel('CDL_MF_CURRENCY', 'Currency*')
-                              }
-                              IconComponent={KeyboardArrowDownIcon}
-                              sx={{
-                                '& .MuiOutlinedInput-notchedOutline': {
+                                : getLabel('CDL_BPA_ACC_CUR', 'Account Currency')
+                            }
+                            placeholder="Enter currency code"
+                            error={!!errors.accounts?.[index]?.currency}
+                            helperText={errors.accounts?.[index]?.currency?.message}
+                            InputLabelProps={{ sx: labelSx }}
+                            InputProps={{ sx: valueSx }}
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                '& fieldset': {
                                   border: '1px solid #d1d5db',
                                   borderRadius: '6px',
                                 },
-                              }}
-                            >
-                              {currencies.length > 0
-                                ? currencies.map((currency) => (
-                                    <MenuItem
-                                      key={currency.id}
-                                      value={currency.id.toString()}
-                                    >
-                                      {getDisplayLabel(
-                                        currency,
-                                        currency.configValue
-                                      )}
-                                    </MenuItem>
-                                  ))
-                                : // Fallback to hardcoded currencies if API fails
-                                  [
-                                    <MenuItem key="AED" value="AED">
-                                      AED
-                                    </MenuItem>,
-                                    <MenuItem key="USD" value="USD">
-                                      USD
-                                    </MenuItem>,
-                                    <MenuItem key="EUR" value="EUR">
-                                      EUR
-                                    </MenuItem>,
-                                  ]}
-                            </Select>
-                          </FormControl>
+                              },
+                            }}
+                          />
                         )}
                       />
                       <Button
@@ -472,8 +476,8 @@ const Step2: React.FC<Step2Props> = React.memo(({ projectId, isViewMode = false 
           severity={snackbarSeverity}
           sx={{ width: '100%', fontFamily: 'Outfit, sans-serif' }}
           iconMapping={{
-            success: <span style={{ fontSize: '1.2rem' }}>✅</span>,
-            error: <span style={{ fontSize: '1.2rem' }}>❌</span>,
+            success: <span style={{ fontSize: '1.2rem' }}></span>,
+            error: <span style={{ fontSize: '1.2rem' }}></span>,
           }}
         >
           {snackbarMessage}
@@ -481,6 +485,6 @@ const Step2: React.FC<Step2Props> = React.memo(({ projectId, isViewMode = false 
       </Snackbar>
     </LocalizationProvider>
   )
-})
+}
 
 export default Step2

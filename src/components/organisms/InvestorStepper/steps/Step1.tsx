@@ -1,3 +1,5 @@
+"use client"
+
 import React, {
   useState,
   forwardRef,
@@ -11,7 +13,6 @@ import { API_ENDPOINTS } from '@/constants/apiEndpoints'
 import { CapitalPartnerResponse } from '@/types/capitalPartner'
 import {
   mapStep1ToCapitalPartnerPayload,
-  validateStep1Data,
   type Step1FormData,
 } from '../../../../utils/capitalPartnerMapper'
 import { Refresh as RefreshIcon } from '@mui/icons-material'
@@ -29,7 +30,6 @@ import {
   Card,
   CardContent,
   FormControl,
-  FormHelperText,
   Grid,
   InputAdornment,
   InputLabel,
@@ -44,6 +44,8 @@ import { Controller, useFormContext } from 'react-hook-form'
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import dayjs from 'dayjs'
+import { CapitalPartnerStep1Schema } from '@/lib/validation'
+import { FormError } from '../../../atoms/FormError'
 
 interface Step1Props {
   onSaveAndNext?: (data: any) => void
@@ -65,6 +67,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
       control,
       watch,
       setValue,
+      trigger,
       formState: { errors },
     } = useFormContext()
 
@@ -96,7 +99,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
       data: existingCapitalPartnerData,
       isLoading: isLoadingExistingData,
     } = useGetEnhanced<CapitalPartnerResponse>(
-      API_ENDPOINTS.OWNER_REGISTRY.GET_BY_ID(
+      API_ENDPOINTS.CAPITAL_PARTNER.GET_BY_ID(
         (capitalPartnerId || 0).toString()
       ),
       {},
@@ -186,7 +189,13 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
         setIsGeneratingId(true)
         const newIdResponse = investorIdService.generateNewId()
         setInvestorId(newIdResponse.id)
-        setValue('investorId', newIdResponse.id)
+        // Update RHF state and re-validate so any prior error clears immediately
+        setValue('investorId', newIdResponse.id, {
+          shouldValidate: true,
+          shouldDirty: true,
+          shouldTouch: true,
+        })
+        await trigger('investorId')
       } catch (error) {
       } finally {
         setIsGeneratingId(false)
@@ -194,7 +203,10 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
     }
     const handleSaveAndNext = async () => {
       try {
+        
         setSaveError(null)
+        
+        // Build current form data for schema validation and payload mapping
         const formData: Step1FormData = {
           investorType: watch('investorType'),
           investorId: watch('investorId'),
@@ -211,11 +223,20 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
           mobileNumber: watch('mobileNumber'),
           email: watch('email'),
         }
-        const validationErrors = validateStep1Data(formData)
-        if (validationErrors.length > 0) {
-          setSaveError(validationErrors.join(', '))
+        
+    
+        const zodResult = CapitalPartnerStep1Schema.safeParse(formData)
+        if (!zodResult.success) {
+          
+          await trigger()
+          
           return
         }
+        
+    
+        await trigger()
+    
+        
         const payload = mapStep1ToCapitalPartnerPayload(
           formData,
           investorTypes,
@@ -329,14 +350,22 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
       },
     }
 
-    const labelSx = {
-      color: '#6A7282',
-      fontFamily: 'Outfit',
-      fontWeight: 400,
+    const getLabelSx = () => ({
+      color: '#374151',
+      fontFamily:
+        'Outfit, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontWeight: 500,
       fontStyle: 'normal',
-      fontSize: '12px',
-      letterSpacing: 0,
-    }
+      fontSize: '13px',
+      letterSpacing: '0.025em',
+      marginBottom: '4px',
+      '&.Mui-focused': {
+        color: '#2563EB',
+      },
+      '&.MuiFormLabel-filled': {
+        color: '#374151',
+      },
+    })
 
     const valueSx = {
       color: '#1E2939',
@@ -369,7 +398,8 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
       name: string,
       configId: string,
       fallbackLabel: string,
-      defaultValue = ''
+      defaultValue = '',
+      required = false
     ) => {
       const label = getLabel(configId, currentLanguage, fallbackLabel)
       return (
@@ -379,25 +409,65 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
             control={control}
             defaultValue={defaultValue}
             render={({ field }) => (
-              <TextField
-                {...field}
-                label={label}
-                fullWidth
-                disabled={isViewMode}
-                InputLabelProps={{ sx: labelSx }}
-                InputProps={{ sx: valueSx }}
-                sx={commonFieldStyles}
-              />
+              <>
+                <TextField
+                  {...field}
+                  label={label}
+                  fullWidth
+                  required={required}
+                  disabled={isViewMode}
+                  error={!!errors[name] && !isViewMode}
+                  InputLabelProps={{
+                    sx: {
+                      ...getLabelSx(),
+                      ...(!!errors[name] && !isViewMode && {
+                        color: '#d32f2f',
+                        '&.Mui-focused': { color: '#d32f2f' },
+                        '&.MuiFormLabel-filled': { color: '#d32f2f' },
+                      }),
+                    },
+                  }}
+                  InputProps={{
+                    sx: {
+                      ...valueSx,
+                      ...(isViewMode && {
+                        backgroundColor: '#F9FAFB',
+                        color: '#6B7280',
+                        '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E5E7EB' },
+                      }),
+                    },
+                  }}
+                  sx={{
+                    ...commonFieldStyles,
+                    ...(isViewMode && {
+                      '& .MuiOutlinedInput-root': {
+                        '& fieldset': { borderColor: '#E5E7EB' },
+                        '&:hover fieldset': { borderColor: '#E5E7EB' },
+                        '&.Mui-focused fieldset': { borderColor: '#E5E7EB' },
+                      },
+                    }),
+                    ...(!!errors[name] && !isViewMode && {
+                      '& .MuiOutlinedInput-root': {
+                        '& fieldset': { borderColor: '#d32f2f', borderWidth: '1px' },
+                        '&:hover fieldset': { borderColor: '#d32f2f', borderWidth: '1px' },
+                        '&.Mui-focused fieldset': { borderColor: '#d32f2f', borderWidth: '1px' },
+                      },
+                    }),
+                  }}
+                />
+                <FormError error={errors[name]?.message as string} touched={true} />
+              </>
             )}
           />
         </Grid>
       )
     }
 
-    const renderOwnerRegistryIdField = (
+    const renderInvestorIdField = (
       name: string,
       label: string,
-      gridSize: number = 6
+      gridSize: number = 6,
+      required: boolean = false
     ) => (
       <Grid key={name} size={{ xs: 12, md: gridSize }}>
         <Controller
@@ -405,53 +475,65 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
           control={control}
           defaultValue=""
           render={({ field }) => (
-            <TextField
-              {...field}
-              fullWidth
-              label={label}
-              value={investorId}
-              disabled={isViewMode}
-              onChange={(e) => {
-                setInvestorId(e.target.value)
-                field.onChange(e)
-              }}
-              InputProps={{
-                endAdornment: !isViewMode ? (
-                  <InputAdornment position="end" sx={{ mr: 0 }}>
-                    <Button
-                      variant="contained"
-                      size="small"
-                      startIcon={<RefreshIcon />}
-                      onClick={handleGenerateNewId}
-                      disabled={isGeneratingId}
-                      sx={{
-                        color: '#FFFFFF',
-                        borderRadius: '8px',
-                        textTransform: 'none',
-                        background: '#2563EB',
-                        '&:hover': {
-                          background: '#1D4ED8',
-                        },
-                        minWidth: '100px',
-                        height: '32px',
-                        fontFamily: 'Outfit, sans-serif',
-                        fontWeight: 500,
-                        fontStyle: 'normal',
-                        fontSize: '11px',
-                        lineHeight: '14px',
-                        letterSpacing: '0.3px',
-                        px: 1,
-                      }}
-                    >
-                      {isGeneratingId ? 'Generating...' : 'Generate ID'}
-                    </Button>
-                  </InputAdornment>
-                ) : undefined,
-                sx: valueSx,
-              }}
-              InputLabelProps={{ sx: labelSx }}
-              sx={commonFieldStyles}
-            />
+            <>
+              <TextField
+                {...field}
+                fullWidth
+                label={label}
+                value={investorId}
+                required={required}
+                disabled={isViewMode}
+                error={!!errors[name] && !isViewMode}
+                onChange={(e) => {
+                  setInvestorId(e.target.value)
+                  field.onChange(e)
+                }}
+                InputProps={{
+                  endAdornment: !isViewMode ? (
+                    <InputAdornment position="end" sx={{ mr: 0 }}>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={<RefreshIcon />}
+                        onClick={handleGenerateNewId}
+                        disabled={isGeneratingId}
+                        sx={{
+                          color: '#FFFFFF',
+                          borderRadius: '8px',
+                          textTransform: 'none',
+                          background: '#2563EB',
+                          '&:hover': { background: '#1D4ED8' },
+                          minWidth: '100px',
+                          height: '32px',
+                          fontFamily: 'Outfit, sans-serif',
+                          fontWeight: 500,
+                          fontStyle: 'normal',
+                          fontSize: '11px',
+                          lineHeight: '14px',
+                          letterSpacing: '0.3px',
+                          px: 1,
+                        }}
+                      >
+                        {isGeneratingId ? 'Generating...' : 'Generate ID'}
+                      </Button>
+                    </InputAdornment>
+                  ) : undefined,
+                  sx: valueSx,
+                }}
+                InputLabelProps={{ sx: getLabelSx() }}
+                sx={{
+                  ...commonFieldStyles,
+                  ...(!!errors[name] && !isViewMode && {
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': { borderColor: '#d32f2f', borderWidth: '1px' },
+                      '&:hover fieldset': { borderColor: '#d32f2f', borderWidth: '1px' },
+                      '&.Mui-focused fieldset': { borderColor: '#d32f2f', borderWidth: '1px' },
+                    },
+                  }),
+                }}
+              />
+              <FormError error={errors[name]?.message as string} touched={true} />
+            </>
           )}
         />
       </Grid>
@@ -464,7 +546,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
       fallbackLabel: string,
       options: { id: number; displayName: string; settingValue: string }[],
       gridSize: number = 6,
-      required = false,
+      _required = false,
       loading = false
     ) => {
       const label = getLabel(configId, currentLanguage, fallbackLabel)
@@ -473,46 +555,52 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
           <Controller
             name={name}
             control={control}
-            rules={required ? { required: `${label} is required` } : {}}
+            rules={{}}
             defaultValue={''}
             render={({ field }) => (
-              <FormControl fullWidth error={!!errors[name]}>
-                <InputLabel sx={labelSx}>
-                  {loading ? `Loading ${label}...` : label}
-                </InputLabel>
-                <Select
-                  {...field}
-                  label={loading ? `Loading ${label}...` : label}
-                  // sx={{ ...selectStyles, ...valueSx }}
-                  sx={{
-                    ...selectStyles,
-                    ...valueSx,
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                    },
-                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                      border: '1px solid #9ca3af',
-                    },
-                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                      border: '2px solid #2563eb',
-                    },
-                  }}
-                  IconComponent={KeyboardArrowDownIcon}
-                  disabled={loading || isViewMode}
+              <>
+                <FormControl fullWidth error={!!errors[name] && !isViewMode}
+                  required={_required}
+                  sx={{ '& .MuiFormLabel-asterisk': { color: '#6A7282 !important' } }}
                 >
-                  {options.map((option) => (
-                    <MenuItem key={option.id} value={option.settingValue}>
-                      {option.displayName}
-                    </MenuItem>
-                  ))}
-                </Select>
-                {errors[name] && (
-                  <FormHelperText error>
-                    {errors[name]?.message?.toString()}
-                  </FormHelperText>
-                )}
-              </FormControl>
+                  <InputLabel sx={getLabelSx()}>
+                    {loading ? `Loading...` : label}
+                  </InputLabel>
+                  <Select
+                    {...field}
+                    label={loading ? `Loading...` : label}
+                    sx={{
+                      ...selectStyles,
+                      ...valueSx,
+                      ...(isViewMode && {
+                        backgroundColor: '#F9FAFB',
+                        color: '#6B7280',
+                        '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E5E7EB' },
+                      }),
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': { border: '1px solid #9ca3af' },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { border: '2px solid #2563eb' },
+                      ...(!!errors[name] && !isViewMode && {
+                        '& .MuiOutlinedInput-notchedOutline': { border: '1px solid #d32f2f' },
+                        '&:hover .MuiOutlinedInput-notchedOutline': { border: '1px solid #d32f2f' },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { border: '1px solid #d32f2f' },
+                      }),
+                    }}
+                    IconComponent={KeyboardArrowDownIcon}
+                    disabled={loading || isViewMode}
+                  >
+                    {options.map((option) => (
+                      <MenuItem key={option.id} value={option.settingValue}>
+                        {option.displayName}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormError error={errors[name]?.message as string} touched={true} />
+              </>
             )}
           />
         </Grid>
@@ -523,9 +611,9 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
       switch (key) {
         case 'investorType':
           return [
-            { id: 1, displayName: 'Individual', settingValue: 'OWR_INDIVIDUAL' },
-            { id: 2, displayName: 'Company', settingValue: 'OWR_COMPANY' },
-            { id: 3, displayName: 'Joint', settingValue: 'OWR_JOINT' },
+            { id: 1, displayName: 'Individual', settingValue: 'CP_INDIVIDUAL' },
+            { id: 2, displayName: 'Company', settingValue: 'CP_COMPANY' },
+            { id: 3, displayName: 'Joint', settingValue: 'CP_JOINT' },
           ]
         case 'investorIdType':
           return [
@@ -591,7 +679,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                 }}
               >
                 <Typography variant="body2" color="error">
-                  ⚠️ {saveError}
+                  ⚠️ 123{saveError} 456
                 </Typography>
               </Box>
             )}
@@ -599,8 +687,8 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
             <Grid container rowSpacing={4} columnSpacing={2}>
               {renderApiSelectField(
                 'investorType',
-                'CDL_OWR_TYPE',
-                'Owner Registry Type*',
+                'CDL_OWN_TYPE',
+                'Owner Registry Type', // ← Changed from 'Investor Type' to 'Capital Partner Type'
                 investorTypes?.length
                   ? investorTypes
                   : getFallbackOptions('investorType'),
@@ -608,39 +696,43 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                 true,
                 loadingInvestorTypes
               )}
-              {renderOwnerRegistryIdField(
+              {renderInvestorIdField(
                 'investorId',
-                getLabel('CDL_OWR_REFID', currentLanguage, 'Owner Registry ID*')
+                getLabel('CDL_OWN_REFID', currentLanguage, 'Owner Reference ID'),
+                6,
+                true
               )}
               {renderTextField(
                 'investorFirstName',
-                'CDL_OWR_FIRSTNAME',
-                'Owner Registry Name*'
+                'CDL_OWN_FIRSTNAME',
+                'Owner Name',
+                '',
+                true
               )}
               {renderTextField(
                 'investorMiddleName',
-                'CDL_OWR_MIDDLENAME',
-                'Middle Name*'
+                'CDL_OWN_MIDDLENAME',
+                'Middle Name'
               )}
               {renderTextField(
                 'investorLastName',
-                'CDL_OWR_LASTNAME',
-                'Last Name*'
+                'CDL_OWN_LASTNAME',
+                'Last Name'
               )}
               {renderTextField(
                 'arabicName',
-                'CDL_OWR_LOCALE_NAME',
-                'Arabic Name'
+                'CDL_OWN_LOCALE_NAME',
+                'Local Language Name'
               )}
               {renderTextField(
                 'ownership',
-                'CDL_OWR_OWNERSHIP',
-                'Ownership Percentage'
+                'CDL_OWN_OWNERSHIP',
+                'Owner Share Percentage(%)'
               )}
               {renderApiSelectField(
                 'investorIdType',
-                'CDL_OWR_ID_TYPE',
-                'Owner Registry ID Type*',
+                'CDL_OWN_ID_TYPE',
+                'Owner Identification Type',
                 idTypes?.length
                   ? idTypes
                   : getFallbackOptions('investorIdType'),
@@ -648,66 +740,77 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                 true,
                 loadingIdTypes
               )}
-              {renderTextField('idNumber', 'CDL_OWR_DOC_NO', 'ID No.')}
+              {renderTextField('idNumber', 'CDL_OWN_DOC_NO', 'Identification Document Number.', '', true)}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="idExpiryDate"
                   control={control}
                   defaultValue={null}
                   render={({ field }) => (
-                    <DatePicker
-                      label={getLabel(
-                        'CDL_OWR_ID_EXP',
-                        currentLanguage,
-                        'ID Expiry Date'
-                      )}
-                      value={field.value}
-                      onChange={field.onChange}
-                      format="DD/MM/YYYY"
-                      disabled={isViewMode}
-                      slots={{
-                        openPickerIcon: StyledCalendarIcon,
-                      }}
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          error: !!errors.idExpiryDate,
-                          sx: datePickerStyles,
-                          InputLabelProps: { sx: labelSx },
-                          InputProps: {
-                            sx: valueSx,
-                            style: { height: '46px' },
+                    <>
+                      <DatePicker
+                        label={getLabel(
+                          'CDL_OWN_ID_EXP',
+                          currentLanguage,
+                          'Identification Expiry Date'
+                        )}
+                        value={field.value}
+                        onChange={field.onChange}
+                        format="DD/MM/YYYY"
+                        disabled={isViewMode}
+                        slots={{ openPickerIcon: StyledCalendarIcon }}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            error: !!errors.idExpiryDate && !isViewMode,
+                            helperText: '',
+                            sx: {
+                              ...datePickerStyles,
+                              ...(!!errors.idExpiryDate && !isViewMode && {
+                                '& .MuiOutlinedInput-root': {
+                                  '& fieldset': { borderColor: '#d32f2f' },
+                                  '&:hover fieldset': { borderColor: '#d32f2f' },
+                                  '&.Mui-focused fieldset': { borderColor: '#d32f2f' },
+                                },
+                              }),
+                            },
+                            InputLabelProps: { sx: getLabelSx() },
+                            InputProps: { sx: valueSx, style: { height: '46px' } },
                           },
-                        },
-                      }}
-                    />
+                        }}
+                      />
+                      <FormError error={(errors as any).idExpiryDate?.message as string} touched={true} />
+                    </>
                   )}
                 />
               </Grid>
               {renderApiSelectField(
                 'nationality',
-                'CDL_OWR_NATIONALITY',
-                'Nationality*',
+                'CDL_OWN_NATIONALITY',
+                'Nationality',
                 countries?.length
                   ? countries
                   : getFallbackOptions('nationality'),
                 6,
-                true,
+                false,
                 loadingCountries
               )}
               {renderTextField(
                 'accountContact',
-                'CDL_OWR_TELEPHONE',
-                'Account Contact Number',
+                'CDL_OWN_TELEPHONE',
+                'Account Contact Telephone',
                 ''
               )}
               {renderTextField(
                 'mobileNumber',
-                'CDL_OWR_MOBILE',
-                'Mobile Number',
+                'CDL_OWN_MOBILE',
+                'Primary Mobile Number',
                 ''
               )}
-              {renderTextField('email', 'CDL_OWR_EMAIL', 'Email Address', '')}
+             
+              {renderTextField('email', 'CDL_OWN_EMAIL', 'Email Address', '')}
+              {renderTextField('email', 'CDL_OWN_FLOOR', 'Floor', '')}
+              {renderTextField('email', 'CDL_OWN_NO_OF_BED', 'No of Bedroom', '')}
             </Grid>
           </CardContent>
         </Card>

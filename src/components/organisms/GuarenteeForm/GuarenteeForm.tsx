@@ -26,18 +26,17 @@ export const GuaranteeForm = () => {
 
   const handleClosePanel = () => {
     setIsPanelOpen(false)
-    // setSelectedReport(null)
+    
   }
 
   const [uploadedDocuments, setUploadedDocuments] = useState<DocumentItem[]>([]); // Add state for uploaded documents
-  // State for the menu
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedDocument, setSelectedDocument] = useState<DocumentItem | null>(null);
 
   const handleFileData = (data: []) => {
 
     data.map((file: any) => { setUploadedDocuments((prev) => [...prev, { name: file.name, date: new Date().toLocaleDateString(), type: file.type }]); });
-    // setUploadedDocuments(data);
+  
   };
 
   const handleFileChange = (e: any) => {
@@ -77,7 +76,7 @@ export const GuaranteeForm = () => {
     handleCloseMenu();
   };
 
-  // Common styles for form components
+  
   const commonFieldStyles = {
     '& .MuiOutlinedInput-root': {
       height: '46px',
@@ -322,7 +321,7 @@ export const GuaranteeForm = () => {
           <Grid container rowSpacing={4} columnSpacing={2}>
             {renderTextField('guaranteeRefNo', 'Guarantee Reference Number*')}
             {renderSelectField('guaranteeType', 'Guarantee Type*', ['Performance Guarantee', 'Financial Guarantee', 'Advance Payment Guarantee', 'Bid Bond', 'Retention Money Guarantee', 'Customs Guarantee',])}
-            {renderDatePickerField('guaranteeDate', 'Guarantee Date*')}
+            {renderDatePickerField('guaranteeDate', 'Guarantee Date456*')}
             {renderTextField('projectCif', 'Project CIF*')}
             {renderSelectField('projectName', 'Project Name*', ['Ajman Heights', 'Dubai Creek Towers', 'Marina Bay Residency', 'Palm View Villas', 'Sharjah Central Mall',])}
             {renderTextField('develperName', 'Developer/Contractor Name*')}
@@ -347,8 +346,8 @@ export const GuaranteeForm = () => {
                 fontWeight: 500,
                 fontStyle: 'normal',
                 fontSize: '18px',
-                lineHeight: '28px',        // Assuming "Title Large" line height
-                letterSpacing: '0.15px',   // Conservative tracking
+                lineHeight: '28px',        
+                letterSpacing: '0.15px',   
                 verticalAlign: 'middle',
               }}>
                 Supported Documents
@@ -360,10 +359,10 @@ export const GuaranteeForm = () => {
                 sx={{
                   textTransform: 'none',
                   fontFamily: 'Outfit, sans-serif',
-                  fontWeight: 500,         // Medium
+                  fontWeight: 500,         
                   fontStyle: 'normal',
-                  fontSize: '14px',        // text-sm
-                  lineHeight: '20px',      // from design token for text-sm
+                  fontSize: '14px',        
+                  lineHeight: '20px',      
                   letterSpacing: '0px',
 
                 }}

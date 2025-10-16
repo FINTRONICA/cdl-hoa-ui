@@ -1,8 +1,14 @@
 'use client'
 
 import React from 'react'
-import { ProjectSelector, ProjectOption } from '@/components/molecules/ProjectSelector'
-import { DeveloperSelector, DeveloperOption } from '@/components/molecules/DeveloperSelector'
+import {
+  ProjectSelector,
+  ProjectOption,
+} from '@/components/molecules/ProjectSelector'
+import {
+  DeveloperSelector,
+  DeveloperOption,
+} from '@/components/molecules/DeveloperSelector'
 
 interface ReportField {
   id: string
@@ -30,15 +36,20 @@ export const ReportFormFields: React.FC<ReportFormFieldsProps> = ({
     switch (field.type) {
       case 'select':
         // Use ProjectSelector for project fields
-        if (field.id === 'projectId') {
-          const projectOptions: ProjectOption[] = field.options?.map(option => {
-            const originalId = option.value.includes('-') ? option.value.split('-')[0] : option.value
-            return {
-              value: option.value,
-              label: option.label,
-              ...(originalId && originalId !== option.value ? { originalId } : {})
-            }
-          }) || []
+        if (field.id === 'projectId' || field.id === 'project') {
+          const projectOptions: ProjectOption[] =
+            field.options?.map((option) => {
+              const originalId = option.value.includes('-')
+                ? option.value.split('-')[0]
+                : option.value
+              return {
+                value: option.value,
+                label: option.label,
+                ...(originalId && originalId !== option.value
+                  ? { originalId }
+                  : {}),
+              }
+            }) || []
 
           return (
             <div key={field.id} className="flex flex-col gap-1">
@@ -50,7 +61,9 @@ export const ReportFormFields: React.FC<ReportFormFieldsProps> = ({
                 value={value as string}
                 onChange={(selectedValue) => onChange(field.id, selectedValue)}
                 options={projectOptions}
-                placeholder={field.placeholder || 'Search and select project...'}
+                placeholder={
+                  field.placeholder || 'Search and select project...'
+                }
                 required={field.required}
                 className="text-sm"
               />
@@ -59,12 +72,15 @@ export const ReportFormFields: React.FC<ReportFormFieldsProps> = ({
         }
 
         // Use DeveloperSelector for developer fields
-        if (field.id === 'developerId') {
-          const developerOptions: DeveloperOption[] = field.options?.map(option => ({
-            value: option.value,
-            label: option.label,
-            ...(option.value !== option.label ? { originalId: option.value } : {})
-          })) || []
+        if (field.id === 'developerId' || field.id === 'developer') {
+          const developerOptions: DeveloperOption[] =
+            field.options?.map((option) => ({
+              value: option.value,
+              label: option.label,
+              ...(option.value !== option.label
+                ? { originalId: option.value }
+                : {}),
+            })) || []
 
           return (
             <div key={field.id} className="flex flex-col gap-1">
@@ -76,7 +92,9 @@ export const ReportFormFields: React.FC<ReportFormFieldsProps> = ({
                 value={value as string}
                 onChange={(selectedValue) => onChange(field.id, selectedValue)}
                 options={developerOptions}
-                placeholder={field.placeholder || 'Search and select developer...'}
+                placeholder={
+                  field.placeholder || 'Search and select developer...'
+                }
                 required={field.required}
                 className="text-sm"
               />
@@ -106,13 +124,18 @@ export const ReportFormFields: React.FC<ReportFormFieldsProps> = ({
                   </option>
                 ))}
               </select>
-              <svg 
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none w-3 h-3" 
-                fill="none" 
-                stroke="currentColor" 
+              <svg
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none w-3 h-3"
+                fill="none"
+                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </div>
           </div>
@@ -197,7 +220,9 @@ export const ReportFormFields: React.FC<ReportFormFieldsProps> = ({
     return (
       <div className="flex flex-col items-center justify-center py-8 text-gray-500">
         <p className="text-sm font-medium mb-1">No form fields configured</p>
-        <p className="text-xs">This report does not require any input parameters.</p>
+        <p className="text-xs">
+          This report does not require any input parameters.
+        </p>
       </div>
     )
   }

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useCallback, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { TablePageLayout } from '../../../components/templates/TablePageLayout'
 import { ExpandableDataTable } from '../../../components/organisms/ExpandableDataTable'
 import { useTableState } from '../../../hooks/useTableState'
@@ -10,41 +11,25 @@ import { Tab } from '../../../types/activities'
 import { RightSlideWorkflowTransactionStatePanel } from '@/components/organisms/RightSlidePanel'
 import { type AwaitingActionsUIData } from '@/services/api/workflowApi/workflowRequestService'
 import { displayValue } from '@/utils/nullHandling'
+import { getLabelByConfigId as getWorkflowRequestLabel } from '@/constants/mappings/workflowMapping'
+import { formatDateOnly, truncateWords } from '@/utils'
 import { useAppStore } from '@/store'
-import {
-  useAwaitingActionsUIData,
-  useDeleteWorkflowRequest,
-} from '@/hooks/workflow/useWorkflowRequest'
-import { workflowRequestService } from '@/services/api/workflowApi/workflowRequestService'
+import { useAwaitingActionsUIData } from '@/hooks/workflow/useWorkflowRequest'
 import type { WorkflowRequestFilters } from '@/services/api/workflowApi/workflowRequestService'
-// Removed unused imports - now using queue APIs directly in the panel
-
-export const WORKFLOW_REQUEST_LABELS = {
-  ID: 'ID',
-  REFERENCE_ID: 'Reference ID',
-  REFERENCE_TYPE: 'Reference Type',
-  MODULE_NAME: 'Module Name',
-  ACTION_KEY: 'Action Key',
-  AMOUNT: 'Amount',
-  CURRENCY: 'Currency',
-  PAYLOAD_JSON: 'Payload',
-  CURRENT_STAGE_ORDER: 'Current Stage Order',
-  CREATED_BY: 'Created By',
-  CREATED_AT: 'Created At',
-  LAST_UPDATED_AT: 'Last Updated At',
-  VERSION: 'Version',
-  WORKFLOW_DEFINITION_DTO: 'Workflow Definition',
-  WORKFLOW_REQUEST_STAGE_DTOS: 'Workflow Request Stages',
-  TASK_STATUS_DTO: 'Task Status',
-}
+import { useWorkflowRequestLabelsWithCache } from '@/hooks/workflow'
 interface WorkflowRequestData
   extends AwaitingActionsUIData,
     Record<string, unknown> {
   payloadJson?: {
     bpName?: string
+    bpCifrera?: string
+    bpLicenseNo?: string
     [key: string]: unknown
   }
   payloadName?: string
+  bpCifrera?: string
+  bpLicenseNo?: string
+  taskStatusName?: string
 }
 
 const tabs: Tab[] = [
@@ -55,11 +40,12 @@ const tabs: Tab[] = [
   { id: 'suretyBond', label: 'Surety Bond' },
 ]
 const statusOptions = [
-  'Incomplete',
-  'In Review',
-  'Rejected',
-  'Approved',
-  'Pending',
+  'PENDING',
+  'APPROVED',
+  'REJECTED',
+  'IN_PROGRESS',
+  'DRAFT',
+  'INITIATED',
 ]
 
 const TAB_TO_MODULE_MAP: Record<string, string> = {
@@ -71,6 +57,7 @@ const TAB_TO_MODULE_MAP: Record<string, string> = {
 }
 
 const PendingActivitiesPage: React.FC = () => {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState('buildPartner')
   const [commentModalOpen, setCommentModalOpen] = useState(false)
   const [isTxnPanelOpen, setIsTxnPanelOpen] = useState(false)
@@ -82,26 +69,9 @@ const PendingActivitiesPage: React.FC = () => {
   const [selectedTxnId, setSelectedTxnId] = useState<
     string | number | undefined
   >()
-  const [isDeleting, setIsDeleting] = useState(false)
   const [currentPage, setCurrentPage] = useState(0)
   const [pageSize] = useState(20)
-  // Removed unused state - now using queue APIs directly in the panel
-
   const currentLanguage = useAppStore((state) => state.language)
-
-  const getDynamicPageTitle = (
-    activeTab: string,
-    pageType: 'pending' | 'involved'
-  ): string => {
-    const tab = tabs.find((t) => t.id === activeTab)
-    const moduleName = tab?.label || 'Unknown Module'
-
-    if (pageType === 'pending') {
-      return `Pending Activities: ${moduleName}`
-    } else {
-      return `Involved Activities: ${moduleName}`
-    }
-  }
 
   const workflowFilters = useMemo((): WorkflowRequestFilters => {
     const moduleName = TAB_TO_MODULE_MAP[activeTab]
@@ -115,27 +85,29 @@ const PendingActivitiesPage: React.FC = () => {
     refetch: refetchWorkflow,
   } = useAwaitingActionsUIData(currentPage, pageSize, workflowFilters)
 
-  const workflowRequestLabels = null
-  const getLabel = useCallback(
-    (_configId: string, _language: string, fallback: string) => fallback,
-    []
-  )
-
-  const deleteMutation = useDeleteWorkflowRequest()
-
   const workflowData = useMemo((): WorkflowRequestData[] => {
     if (!workflowResponse?.content) return []
 
     return workflowResponse.content.map((item) => {
-      // Extract BP Name from payloadJson if available
-      const payloadName =
-        ((item.payloadJson as Record<string, unknown>)?.bpName as string) || '-'
+      const payloadJson = item.payloadJson as Record<string, unknown>
+      const payloadName = (payloadJson?.bpName as string) || '-'
+      const bpCifrera = (payloadJson?.bpCifrera as string) || '-'
+      const bpLicenseNo = (payloadJson?.bpLicenseNo as string) || '-'
+      const taskStatusName =
+        ((payloadJson?.taskStatusDTO as Record<string, unknown>)
+          ?.name as string) || '-'
 
-      return {
+      const result = {
         ...item,
         payloadJson: item.payloadJson,
         payloadName,
+        bpCifrera,
+        bpLicenseNo,
+        taskStatusName,
+        createdAt: formatDateOnly(item.createdAt), // Pre-format the date
       } as WorkflowRequestData
+
+      return result
     })
   }, [workflowResponse])
 
@@ -146,40 +118,41 @@ const PendingActivitiesPage: React.FC = () => {
     setCurrentPage(0)
   }, [])
 
-  const {
-    search,
-    paginated,
-    totalRows,
-    totalPages,
-    startItem,
-    endItem,
-    page,
-    rowsPerPage,
-    selectedRows,
-    expandedRows,
-    handleSearchChange,
-    handlePageChange,
-    handleRowsPerPageChange,
-    handleRowSelectionChange,
-    handleRowExpansionChange,
-  } = useTableState({
-    data: workflowData,
-    searchFields: [
-      'referenceId',
-      'referenceType',
-      'moduleName',
-      'actionKey',
-      'payloadName',
-      'createdBy',
-      'workflowDefinitionName',
-      'taskStatus',
-      'stageKey',
-      'requiredApprovals',
-      'approvalsObtained',
-      'pendingApprovals',
-    ],
-    initialRowsPerPage: 20,
-  })
+  const handleRowView = useCallback(
+    async (row: WorkflowRequestData) => {
+      try {
+        const id = row.id.toString()
+        let navigationPath = ''
+
+        // Map active tab to the appropriate navigation path
+        switch (activeTab) {
+          case 'buildPartner':
+            navigationPath = `/developers/${id}/step/1?mode=view`
+            break
+          case 'buildPartnerAsset':
+            navigationPath = `/projects/${id}?view=true`
+            break
+          case 'capitalPartner':
+            navigationPath = `/investors/new/${id}?step=1&mode=view`
+            break
+          case 'suretyBond':
+            navigationPath = `/guarantee/new/${id}?step=0&mode=view`
+            break
+          case 'payments':
+            navigationPath = `/transactions/manual/new/${id}?step=0&mode=view`
+            break
+          default:
+            return
+        }
+
+        // Navigate to the appropriate path
+        router.push(navigationPath)
+      } catch (error) {
+        console.log(error)
+      }
+    },
+    [activeTab, router]
+  )
 
   const handleCommentClick = (
     _column: string,
@@ -207,31 +180,54 @@ const PendingActivitiesPage: React.FC = () => {
     }
   }
 
-  const handleRowDelete = useCallback(async () => {
-    if (isDeleting || deleteMutation.isPending) {
-      return
-    }
+  const getDynamicPageTitle = (
+    activeTab: string,
+    pageType: 'pending' | 'involved'
+  ): string => {
+    const tab = tabs.find((t) => t.id === activeTab)
+    const moduleName = tab?.label || 'Unknown Module'
 
-    try {
-      setIsDeleting(true)
-      deleteMutation.mutate()
-
-      refetchWorkflow()
-    } catch (error) {
-      console.log(error)
-    } finally {
-      setIsDeleting(false)
+    if (pageType === 'pending') {
+      return `Pending Activities: ${moduleName}`
+    } else {
+      return `Involved Activities: ${moduleName}`
     }
-  }, [isDeleting, deleteMutation, refetchWorkflow])
+  }
 
-  const handleRowView = useCallback(async (row: WorkflowRequestData) => {
-    try {
-      const workflowRequest =
-        await workflowRequestService.getWorkflowRequestById(row.id.toString())
-    } catch (error) {
-      console.log(error)
-    }
-  }, [])
+  const {
+    search,
+    paginated,
+    totalRows,
+    totalPages,
+    startItem,
+    endItem,
+    page,
+    rowsPerPage,
+    selectedRows,
+    expandedRows,
+    handleSearchChange,
+    handlePageChange,
+    handleRowsPerPageChange,
+    handleRowSelectionChange,
+    handleRowExpansionChange,
+  } = useTableState({
+    data: workflowData,
+    searchFields: [
+      'moduleName',
+      'amount',
+      'currency',
+      'stageKey',
+      'createdAt',
+      'taskStatus',
+      'payloadName',
+      'bpCifrera',
+      'taskStatusName',
+    ],
+    initialRowsPerPage: 20,
+  })
+
+  const { data: workflowRequestLabels, getLabel } =
+    useWorkflowRequestLabelsWithCache()
 
   const getWorkflowRequestLabelDynamic = useCallback(
     (configId: string): string => {
@@ -239,277 +235,88 @@ const PendingActivitiesPage: React.FC = () => {
         return getLabel(
           configId,
           currentLanguage,
-          WORKFLOW_REQUEST_LABELS[
-            configId as keyof typeof WORKFLOW_REQUEST_LABELS
-          ] || configId
+          getWorkflowRequestLabel(configId)
         )
       }
-      return (
-        WORKFLOW_REQUEST_LABELS[
-          configId as keyof typeof WORKFLOW_REQUEST_LABELS
-        ] || configId
-      )
+      return getWorkflowRequestLabel(configId)
     },
     [workflowRequestLabels, currentLanguage, getLabel]
   )
 
-  // const renderExpandedContent = (row: WorkflowRequestData) => (
-  //   <div className="grid grid-cols-2 gap-8">
-  //     <div className="space-y-4">
-  //       <h4 className="mb-4 text-sm font-semibold text-gray-900">Details</h4>
-  //       <div className="grid grid-cols-2 gap-4 text-sm">
-  //         <div>
-  //           <span className="text-gray-600">
-  //             {getWorkflowRequestLabelDynamic('ID')}:
-  //           </span>
-  //           <span className="ml-2 font-medium text-gray-800">
-  //             {displayValue(row.id)}
-  //           </span>
-  //         </div>
-  //         <div>
-  //           <span className="text-gray-600">
-  //             {getWorkflowRequestLabelDynamic('REFERENCE_ID')}:
-  //           </span>
-  //           <span className="ml-2 font-medium text-gray-800">
-  //             {displayValue(row.referenceId)}
-  //           </span>
-  //         </div>
-  //         <div>
-  //           <span className="text-gray-600">
-  //             {getWorkflowRequestLabelDynamic('REFERENCE_TYPE')}:
-  //           </span>
-  //           <span className="ml-2 font-medium text-gray-800">
-  //             {displayValue(row.referenceType)}
-  //           </span>
-  //         </div>
-  //         <div>
-  //           <span className="text-gray-600">
-  //             {getWorkflowRequestLabelDynamic('MODULE_NAME')}:
-  //           </span>
-  //           <span className="ml-2 font-medium text-gray-800">
-  //             {displayValue(row.moduleName)}
-  //           </span>
-  //         </div>
-  //         <div>
-  //           <span className="text-gray-600">
-  //             {getWorkflowRequestLabelDynamic('ACTION_KEY')}:
-  //           </span>
-  //           <span className="ml-2 font-medium text-gray-800">
-  //             {displayValue(row.actionKey)}
-  //           </span>
-  //         </div>
-  //         <div>
-  //           <span className="text-gray-600">BP Name:</span>
-  //           <span className="ml-2 font-medium text-gray-800">
-  //             {displayValue((row as WorkflowRequestData).payloadName)}
-  //           </span>
-  //         </div>
-  //         <div>
-  //           <span className="text-gray-600">
-  //             {getWorkflowRequestLabelDynamic('CURRENT_STAGE_ORDER')}:
-  //           </span>
-  //           <span className="ml-2 font-medium text-gray-800">
-  //             {displayValue(row.currentStageOrder)}
-  //           </span>
-  //         </div>
-  //         <div>
-  //           <span className="text-gray-600">Stage Key:</span>
-  //           <span className="ml-2 font-medium text-gray-800">
-  //             {displayValue(row.stageKey)}
-  //           </span>
-  //         </div>
-  //         <div>
-  //           <span className="text-gray-600">Required Approvals:</span>
-  //           <span className="ml-2 font-medium text-gray-800">
-  //             {displayValue(row.requiredApprovals)}
-  //           </span>
-  //         </div>
-  //         <div>
-  //           <span className="text-gray-600">Approvals Obtained:</span>
-  //           <span className="ml-2 font-medium text-gray-800">
-  //             {displayValue(row.approvalsObtained)}
-  //           </span>
-  //         </div>
-  //         <div>
-  //           <span className="text-gray-600">Pending Approvals:</span>
-  //           <span className="ml-2 font-medium text-gray-800">
-  //             {displayValue(row.pendingApprovals)}
-  //           </span>
-  //         </div>
-  //         <div>
-  //           <div>
-  //             <span className="text-gray-600">
-  //               {getWorkflowRequestLabelDynamic('CDL_WD_CREATED_AT')}:
-  //             </span>
-  //             <span className="ml-2 font-medium text-gray-800">
-  //               {row?.createdAt &&
-  //               row.createdAt !== '-' &&
-  //               row.createdAt !== 'null'
-  //                 ? (() => {
-  //                     const date = new Date(row.createdAt)
-  //                     if (isNaN(date.getTime())) {
-  //                       return displayValue(row?.createdAt)
-  //                     }
-  //                     const day = date.getDate()
-  //                     const month = date.toLocaleString('en-US', {
-  //                       month: 'long',
-  //                     })
-  //                     const year = date.getFullYear()
-  //                     const hours = date.getHours()
-  //                     const minutes = date
-  //                       .getMinutes()
-  //                       .toString()
-  //                       .padStart(2, '0')
-  //                     const ampm = hours >= 12 ? 'PM' : 'AM'
-  //                     const displayHours = hours % 12 || 12
-  //                     return `${day} ${month} ${year} ${displayHours}:${minutes} ${ampm}`
-  //                   })()
-  //                 : displayValue(row?.createdAt)}
-  //             </span>
-  //           </div>
-  //         </div>
-  //       </div>
-  //     </div>
-  //     <div className="space-y-4">
-  //       <h4 className="mb-4 text-sm font-semibold text-gray-900">Actions</h4>
-  //       <div className="space-y-3">
-  //         <button
-  //           onClick={() => handleRowView(row)}
-  //           className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50"
-  //         >
-  //           View Workflow Request
-  //         </button>
-  //         <button
-  //           onClick={() => handleRowDelete()}
-  //           className="w-full p-3 text-sm text-left text-red-700 transition-colors bg-white border border-red-200 rounded-lg shadow-sm hover:bg-red-50"
-  //         >
-  //           Delete Workflow Request
-  //         </button>
-  //       </div>
-  //     </div>
-  //   </div>
-  // )
-
   const tableColumns = [
-    {
-      key: 'id',
-      label: getWorkflowRequestLabelDynamic('ID'),
-      type: 'text' as const,
-      width: 'w-20',
-      sortable: true,
-      render: (value: string | number | null | undefined) =>
-        displayValue(value),
-    },
-    {
-      key: 'referenceId',
-      label: getWorkflowRequestLabelDynamic('REFERENCE_ID'),
-      type: 'text' as const,
-      width: 'w-32',
-      sortable: true,
-      render: (value: string | number | null | undefined) =>
-        displayValue(value),
-    },
-    {
-      key: 'referenceType',
-      label: getWorkflowRequestLabelDynamic('REFERENCE_TYPE'),
-      type: 'text' as const,
-      width: 'w-32',
-      sortable: true,
-      render: (value: string | number | null | undefined) =>
-        displayValue(value),
-    },
     {
       key: 'moduleName',
       label: getWorkflowRequestLabelDynamic('MODULE_NAME'),
       type: 'text' as const,
-      width: 'w-32',
+      width: 'w-40',
       sortable: true,
       render: (value: string | number | null | undefined) =>
-        displayValue(value),
+        truncateWords(value, 15),
     },
     {
-      key: 'actionKey',
-      label: getWorkflowRequestLabelDynamic('ACTION_KEY'),
+      key: 'stageKey',
+      label: getWorkflowRequestLabelDynamic('STAGE_KEY'),
       type: 'text' as const,
-      width: 'w-24',
+      width: 'w-30',
       sortable: true,
       render: (value: string | number | null | undefined) =>
         displayValue(value),
     },
     {
       key: 'payloadName',
-      label: 'BP Name',
+      label: getWorkflowRequestLabelDynamic('BP_NAME'),
       type: 'text' as const,
-      width: 'w-48',
+      width: 'w-40',
       sortable: true,
       render: (value: string | number | null | undefined) =>
-        displayValue(value),
+        truncateWords(value, 15),
     },
     {
-      key: 'currentStageOrder',
-      label: getWorkflowRequestLabelDynamic('CURRENT_STAGE_ORDER'),
-      type: 'text' as const,
-      width: 'w-24',
-      sortable: true,
-      render: (value: string | number | null | undefined) =>
-        displayValue(value),
-    },
-    {
-      key: 'stageKey',
-      label: 'Stage Key',
+      key: 'amount',
+      label: getWorkflowRequestLabelDynamic('AMOUNT'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
       render: (value: string | number | null | undefined) =>
         displayValue(value),
     },
+
     {
-      key: 'requiredApprovals',
-      label: 'Required Approvals',
+      key: 'currency',
+      label: getWorkflowRequestLabelDynamic('CURRENCY'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
       render: (value: string | number | null | undefined) =>
         displayValue(value),
     },
+
     {
-      key: 'approvalsObtained',
-      label: 'Approvals Obtained',
+      key: 'bpCifrera',
+      label: getWorkflowRequestLabelDynamic('BP_CIFRERA'),
       type: 'text' as const,
-      width: 'w-24',
-      sortable: true,
-      render: (value: string | number | null | undefined) =>
-        displayValue(value),
-    },
-    {
-      key: 'pendingApprovals',
-      label: 'Pending Approvals',
-      type: 'text' as const,
-      width: 'w-24',
-      sortable: true,
-      render: (value: string | number | null | undefined) =>
-        displayValue(value),
-    },
-    {
-      key: 'taskStatus',
-      label: getWorkflowRequestLabelDynamic('TASK_STATUS_DTO'),
-      type: 'status' as const,
       width: 'w-30',
       sortable: true,
       render: (value: string | number | null | undefined) =>
         displayValue(value),
     },
-
     {
       key: 'createdAt',
       label: getWorkflowRequestLabelDynamic('CREATED_AT'),
       type: 'text' as const,
-      width: 'w-40',
+      width: 'w-28',
       sortable: true,
-      render: (value: string | number | null | undefined) =>
-        displayValue(value),
+      render: (value: string | number | null | undefined) => {
+        return displayValue(value) // Since we pre-formatted the data
+      },
     },
-
+    {
+      key: 'taskStatusName',
+      label: getWorkflowRequestLabelDynamic('STAGE_STATUS'),
+      type: 'status' as const,
+      width: 'w-35',
+      sortable: true,
+    },
     {
       key: 'actions',
       label: 'Actions',
@@ -529,7 +336,7 @@ const PendingActivitiesPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50">
           <div className="text-center">
             <Spinner size="lg" />
-            <p className="mt-4 text-gray-600">Loading workflow requests...</p>
+            <p className="mt-4 text-gray-600">Loading...</p>
           </div>
         </div>
       </TablePageLayout>
@@ -624,13 +431,10 @@ const PendingActivitiesPage: React.FC = () => {
             onRowSelectionChange={handleRowSelectionChange}
             expandedRows={expandedRows}
             onRowExpansionChange={handleRowExpansionChange}
-            // renderExpandedContent={renderExpandedContent}
             statusOptions={statusOptions}
             renderCustomCell={handleCommentClick}
             onRowTransaction={handleRowTransaction}
-            // onRowDelete={handleRowDelete}
             onRowView={handleRowView}
-            // showDeleteAction={true}
             showViewAction={true}
           />
         )}

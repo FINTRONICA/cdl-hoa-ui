@@ -154,8 +154,6 @@ export const processStepData = (activeStep: number, stepStatus: any): any => {
 
   const stepDataProcessors = {
     contactData: () => processContactData(stepStatus.stepData.step2),
-    fees: () => processFeeData(stepStatus.stepData.step3),
-    beneficiaries: () => processBeneficiaryData(stepStatus.stepData.step4),
   }
 
   Object.entries(stepDataProcessors).forEach(([key, processor]) => {

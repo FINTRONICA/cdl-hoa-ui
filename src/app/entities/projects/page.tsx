@@ -23,7 +23,16 @@ import { useTemplateDownload } from '@/hooks/useRealEstateDocumentTemplate'
 import { TEMPLATE_FILES } from '@/constants'
 import { useDeleteConfirmation } from '@/store/confirmationDialogStore'
 
-const statusOptions = ['PENDING', 'APPROVED', 'REJECTED', 'IN_PROGRESS', 'DRAFT', 'INITIATED']
+const statusOptions = [
+  'PENDING',
+  'APPROVED',
+  'REJECTED',
+  'IN_PROGRESS',
+  'DRAFT',
+  'INITIATED',
+]
+
+const buildPartnerStatusOptions = ['ACTIVE', 'INACTIVE']
 
 const ProjectsPage: React.FC = () => {
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false)
@@ -36,12 +45,17 @@ const ProjectsPage: React.FC = () => {
   const currentLanguage = useAppStore((state) => state.language)
   const { getLabelResolver } = useSidebarConfig()
   const projectsTitle = getLabelResolver
-    ? getLabelResolver('projects', 'Projects')
-    : 'Projects'
-  
+    ? getLabelResolver('managementFirms', 'Management Firms')
+    : 'Management Firms'
+
   // Template download hook
-  const { downloadTemplate, isLoading: isDownloading, error: downloadError, clearError } = useTemplateDownload()
-  
+  const {
+    downloadTemplate,
+    isLoading: isDownloading,
+    error: downloadError,
+    clearError,
+  } = useTemplateDownload()
+
   // Fetch build partner asset labels from BUILD_PARTNER_ASSET API with localStorage cache
   const { data: buildPartnerAssetLabels, getLabel } =
     useBuildPartnerAssetLabelsWithCache()
@@ -83,51 +97,53 @@ const ProjectsPage: React.FC = () => {
   const tableColumns = [
     {
       key: 'name',
-      label: getBuildPartnerAssetLabelDynamic('CDL_MF_NAME'),
+      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_NAME'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
       key: 'developerId',
-      label: getBuildPartnerAssetLabelDynamic('CDL_MF_BP_ID'),
+      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_BP_ID'),
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
     },
     {
       key: 'developerCif',
-      label: getBuildPartnerAssetLabelDynamic('CDL_MF_BP_CIF'),
+      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_BP_CIF'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
       key: 'developerName',
-      label: getBuildPartnerAssetLabelDynamic('CDL_MF_BP_NAME'),
+      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_BP_NAME'),
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
     },
     {
       key: 'projectStatus',
-      label: getBuildPartnerAssetLabelDynamic('CDL_MF_BP_STATUS'),
+      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_BP_STATUS'),
       type: 'status' as const,
-      width: 'w-32',
+      width: 'w-40',
       sortable: true,
+      statusOptions: buildPartnerStatusOptions,
     },
     {
       key: 'approvalStatus',
-      label: getBuildPartnerAssetLabelDynamic('CDL_MF_BP_APPROVAL_STATUS'),
+      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_BP_APPROVAL_STATUS'),
       type: 'status' as const,
-      width: 'w-32',
+      width: 'w-40',
       sortable: true,
+      statusOptions: statusOptions,
     },
     {
       key: 'actions',
-      label: getBuildPartnerAssetLabelDynamic('CDL_MF_DOC_ACTION'),
+      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_DOC_ACTION'),
       type: 'actions' as const,
-      width: 'w-20',
+      width: 'w-24',
     },
   ]
 
@@ -163,9 +179,9 @@ const ProjectsPage: React.FC = () => {
   })
 
   const handlePageChange = (newPage: number) => {
-    const hasActiveSearch = Object.values(search).some((value) => value.trim())
+    const hasSearch = Object.values(search).some((value) => value.trim())
 
-    if (hasActiveSearch) {
+    if (hasSearch) {
       localHandlePageChange(newPage)
     } else {
       setCurrentApiPage(newPage)
@@ -183,17 +199,19 @@ const ProjectsPage: React.FC = () => {
   const apiTotal = apiPagination?.totalElements || 0
   const apiTotalPages = apiPagination?.totalPages || 1
 
-  const effectiveTotalRows = Object.values(search).some((value) => value.trim())
-    ? localTotalRows
-    : apiTotal
-  const effectiveTotalPages = Object.values(search).some((value) =>
-    value.trim()
-  )
-    ? localTotalPages
-    : apiTotalPages
-  const effectivePage = Object.values(search).some((value) => value.trim())
-    ? localPage
-    : currentApiPage
+  const hasActiveSearch = Object.values(search).some((value) => value.trim())
+
+  const effectiveTotalRows = hasActiveSearch ? localTotalRows : apiTotal
+  const effectiveTotalPages = hasActiveSearch ? localTotalPages : apiTotalPages
+  const effectivePage = hasActiveSearch ? localPage : currentApiPage
+
+  // Calculate effective startItem and endItem based on pagination type
+  const effectiveStartItem = hasActiveSearch
+    ? startItem
+    : (currentApiPage - 1) * currentApiSize + 1
+  const effectiveEndItem = hasActiveSearch
+    ? endItem
+    : Math.min(currentApiPage * currentApiSize, apiTotal)
 
   const handleRowDelete = (row: ProjectData) => {
     if (isDeleting) {
@@ -212,19 +230,22 @@ const ProjectsPage: React.FC = () => {
 
           await new Promise((resolve) => setTimeout(resolve, 500))
 
-          await queryClient.invalidateQueries({ queryKey: [PROJECTS_QUERY_KEY] })
+          await queryClient.invalidateQueries({
+            queryKey: [PROJECTS_QUERY_KEY],
+          })
 
           updatePagination(Math.max(0, currentApiPage - 1), currentApiSize)
 
           setTableKey((prev) => prev + 1)
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error occurred'
           console.error(`Failed to delete project: ${errorMessage}`)
           throw error // Re-throw to keep dialog open on error
         } finally {
           setIsDeleting(false)
         }
-      }
+      },
     })
   }
 
@@ -245,23 +266,20 @@ const ProjectsPage: React.FC = () => {
   const handleDownloadTemplate = async () => {
     try {
       await downloadTemplate(TEMPLATE_FILES.BUILD_PARTNER_ASSET)
-     
-    } catch (error) {
-     
-    }
+    } catch (error) {}
   }
 
   const renderExpandedContent = (row: ProjectData) => (
     <div className="grid grid-cols-2 gap-8">
       <div className="space-y-4">
         <div>
-          <span className="font-semibold">Firm Name:</span> {row.name}
+          <span className="font-semibold">Project Name:</span> {row.name}
         </div>
         <div>
-          <span className="font-semibold">Firm ID:</span> {row.developerId}
+          <span className="font-semibold">Developer ID:</span> {row.developerId}
         </div>
         <div>
-          <span className="font-semibold">Firm CIF:</span>{' '}
+          <span className="font-semibold">Developer CIF:</span>{' '}
           {row.developerCif}
         </div>
       </div>
@@ -278,7 +296,7 @@ const ProjectsPage: React.FC = () => {
 
   if (projectsLoading) {
     return (
-      <DashboardLayout title={"Management Firms"}>
+      <DashboardLayout title={projectsTitle}>
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50">
           <div className="text-lg">Loading...</div>
         </div>
@@ -288,7 +306,7 @@ const ProjectsPage: React.FC = () => {
 
   if (projectsError) {
     return (
-      <DashboardLayout title={"Management Firms"}>
+      <DashboardLayout title={projectsTitle}>
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50">
           <div className="text-lg text-red-600">
             Error loading: {projectsError.message}
@@ -311,7 +329,9 @@ const ProjectsPage: React.FC = () => {
       {downloadError && (
         <div className="fixed z-50 px-4 py-3 text-red-700 bg-red-100 border border-red-400 rounded shadow-lg top-4 right-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Download Error: {downloadError}</span>
+            <span className="text-sm font-medium">
+              Download Error: {downloadError}
+            </span>
             <button
               onClick={clearError}
               className="ml-4 text-red-500 hover:text-red-700"
@@ -322,11 +342,11 @@ const ProjectsPage: React.FC = () => {
         </div>
       )}
 
-      <DashboardLayout title={"Management Firms"}>
+      <DashboardLayout title={projectsTitle}>
         <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
           <div className="sticky top-0 z-10 bg-[#FFFFFFBF] border-b border-gray-200 rounded-t-2xl">
-            <PageActionButtons 
-              entityType="project" 
+            <PageActionButtons
+              entityType="project"
               onDownloadTemplate={handleDownloadTemplate}
               isDownloading={isDownloading}
             />
@@ -345,8 +365,8 @@ const ProjectsPage: React.FC = () => {
                   rowsPerPage: rowsPerPage,
                   totalRows: effectiveTotalRows,
                   totalPages: effectiveTotalPages,
-                  startItem,
-                  endItem,
+                  startItem: effectiveStartItem,
+                  endItem: effectiveEndItem,
                 }}
                 onPageChange={handlePageChange}
                 onRowsPerPageChange={handleRowsPerPageChange}

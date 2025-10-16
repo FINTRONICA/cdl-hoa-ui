@@ -2,15 +2,12 @@ import { useCallback, useEffect } from 'react'
 import {
   Step1,
   Step2,
-  Step3,
-  Step4,
   Step5,
   DocumentUploadStep,
   LazyStepWrapper,
   preloadNextStep,
 } from './lazyComponents'
 import { StepContentProps } from './types'
-
 
 export const useStepContentRenderer = ({
   developerId,
@@ -61,36 +58,13 @@ export const useStepContentRenderer = ({
             </LazyStepWrapper>
           )
         },
-        3: () => {
-          const watchedFees = methods.watch('fees')
-          return (
-            <LazyStepWrapper>
-              <Step3
-                fees={watchedFees}
-                onFeesChange={(fees) => {
-                  methods.setValue('fees', fees)
-                }}
-                buildPartnerId={developerId || ''}
-                isReadOnly={isReadOnly}
-              />
-            </LazyStepWrapper>
-          )
-        },
-        4: () => (
+        3: () => (
           <LazyStepWrapper>
-            <Step4
-              beneficiaries={methods.watch('beneficiaries')}
-              onBeneficiariesChange={(beneficiaries) =>
-                methods.setValue('beneficiaries', beneficiaries)
-              }
-              buildPartnerId={developerId || ''}
+            <Step5
+              developerId={developerId}
+              onEditStep={onEditStep || undefined}
               isReadOnly={isReadOnly}
             />
-          </LazyStepWrapper>
-        ),
-        5: () => (
-          <LazyStepWrapper>
-            <Step5 developerId={developerId} onEditStep={onEditStep || undefined} isReadOnly={isReadOnly} />
           </LazyStepWrapper>
         ),
       }

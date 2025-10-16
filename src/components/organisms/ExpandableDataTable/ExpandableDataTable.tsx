@@ -34,6 +34,7 @@ interface Column {
     | 'user'
     | 'comment'
   options?: { value: string; label: string }[]
+  statusOptions?: string[]
 }
 
 interface ExpandableDataTableProps<T = Record<string, unknown>> {
@@ -178,271 +179,268 @@ const ExpandableDataTableComponent = <T extends Record<string, unknown>>({
   return (
     <div className={`${className} flex flex-col h-full`}>
       <div className="flex-1 overflow-auto">
-        <div className="overflow-auto w-full">
-          <table className="w-full min-w-[1200px] table-fixed">
-            <thead className="sticky top-0 z-20 bg-[#FFFFFF]">
-              <tr className="border-gray-200">
-                {columns.map((column) => (
-                  <th
-                    key={column.key}
-                    className={`${column.width || 'w-auto'} text-xs font-semibold px-4 py-3.5 text-[#1E2939] ${column.type === 'checkbox' ? 'border-r border-[#CAD5E2] text-center w-4 h-4' : 'text-left'}`}
-                  >
-                    {column.type === 'checkbox' ? (
-                      <div className="flex items-center justify-center w-4 h-4">
-                        <Checkbox
-                          checked={
-                            data.length > 0 &&
-                            selectedRows.length === data.length
-                          }
-                          onChange={toggleSelectAll}
-                          className="w-4 h-4"
-                        />
-                      </div>
-                    ) : (
-                      <div
-                        className={`flex items-center gap-1 font-sans font-normal leading-[16px] tracking-normal ${
-                          column.sortable
-                            ? 'cursor-pointer hover:text-[#155DFC]'
-                            : ''
-                        }`}
-                        onClick={() => column.sortable && onSort?.(column.key)}
-                      >
-                        {column.label}
-                        {column.sortable && (
-                          <>
-                            {sortConfig?.key === column.key ? (
-                              sortConfig.direction === 'asc' ? (
-                                <ArrowUp className="w-[16px] h-[16px] text-[#155DFC]" />
-                              ) : (
-                                <ArrowDown className="w-[16px] h-[16px] text-[#155DFC]" />
-                              )
+        <table className="w-full min-w-[1200px] table-fixed">
+          <thead className="sticky top-0 z-20 bg-[#FFFFFF]">
+            <tr className="border-gray-200">
+              {columns.map((column) => (
+                <th
+                  key={column.key}
+                  className={`${column.width || 'w-auto'} text-xs font-semibold px-4 py-3.5 text-[#1E2939] ${column.type === 'checkbox' ? 'border-r border-[#CAD5E2] text-center w-4 h-4' : 'text-left'}`}
+                >
+                  {column.type === 'checkbox' ? (
+                    <div className="flex items-center justify-center w-4 h-4">
+                      <Checkbox
+                        checked={
+                          data.length > 0 && selectedRows.length === data.length
+                        }
+                        onChange={toggleSelectAll}
+                        className="w-4 h-4"
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      className={`flex items-center gap-1 font-sans font-normal leading-[16px] tracking-normal ${
+                        column.sortable
+                          ? 'cursor-pointer hover:text-[#155DFC]'
+                          : ''
+                      }`}
+                      onClick={() => column.sortable && onSort?.(column.key)}
+                    >
+                      {column.label}
+                      {column.sortable && (
+                        <>
+                          {sortConfig?.key === column.key ? (
+                            sortConfig.direction === 'asc' ? (
+                              <ArrowUp className="w-[16px] h-[16px] text-[#155DFC]" />
                             ) : (
-                              <ArrowDownUp className="w-[16px] h-[16px] text-[#90A1B9]" />
-                            )}
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </th>
-                ))}
-              </tr>
-              {/* Search Row */}
-              <TableSearchRow
-                columns={columns}
-                search={searchState}
-                onSearchChange={onSearchChange}
-                statusOptions={statusOptions}
-              />
-            </thead>
-            <tbody className="divide-y divide-[#E2E8F0]">
-              {data.map((row, index) => (
-                <React.Fragment key={index}>
-                  <tr
-                    className={`transition-colors min-h-[64px] ${
-                      selectedRows.includes(index)
-                        ? 'bg-blue-50 border-l-4 border-blue-500'
-                        : ''
-                    } ${onRowClick ? ' hover:bg-gray-50' : ''}`}
-                    onClick={
-                      onRowClick ? () => onRowClick(row, index) : undefined
-                    }
-                  >
-                    {columns.map((column) => {
-                      if (column.type === 'expand') {
-                        return (
-                          <td
-                            key={column.key}
-                            className="w-8 px-2.5 py-1.5 whitespace-nowrap justify-center items-center"
+                              <ArrowDown className="w-[16px] h-[16px] text-[#155DFC]" />
+                            )
+                          ) : (
+                            <ArrowDownUp className="w-[16px] h-[16px] text-[#90A1B9]" />
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </th>
+              ))}
+            </tr>
+            {/* Search Row */}
+            <TableSearchRow
+              columns={columns}
+              search={searchState}
+              onSearchChange={onSearchChange}
+              statusOptions={statusOptions}
+            />
+          </thead>
+          <tbody className="divide-y divide-[#E2E8F0]">
+            {data.map((row, index) => (
+              <React.Fragment key={index}>
+                <tr
+                  className={`transition-colors min-h-[64px] ${
+                    selectedRows.includes(index)
+                      ? 'bg-blue-50 border-l-4 border-blue-500'
+                      : ''
+                  } ${onRowClick ? ' hover:bg-gray-50' : ''}`}
+                  onClick={
+                    onRowClick ? () => onRowClick(row, index) : undefined
+                  }
+                >
+                  {columns.map((column) => {
+                    if (column.type === 'expand') {
+                      return (
+                        <td
+                          key={column.key}
+                          className="w-8 px-2.5 py-1.5 whitespace-nowrap justify-center items-center"
+                        >
+                          <button
+                            className="p-1 transition-colors rounded hover:bg-gray-100"
+                            onClick={() => toggleExpandedRow(index)}
                           >
-                            <button
-                              className="p-1 transition-colors rounded hover:bg-gray-100"
-                              onClick={() => toggleExpandedRow(index)}
-                            >
-                              {expandedRows.includes(index) ? (
-                                <img
-                                  src="/chevron-down.svg"
-                                  alt="chevron-down icon"
-                                />
-                              ) : (
-                                <img
-                                  src="/chevron-right.svg"
-                                  alt="chevron-right icon"
-                                />
-                              )}
-                            </button>
-                          </td>
-                        )
-                      }
-
-                      if (column.type === 'checkbox') {
-                        return (
-                          <td
-                            key={column.key}
-                            className="w-8 px-2.5 py-1.5 whitespace-nowrap justify-center items-center"
-                          >
-                            <Checkbox
-                              checked={selectedRows.includes(index)}
-                              onChange={() => toggleRow(index)}
-                              className="w-4 h-4"
-                            />
-                          </td>
-                        )
-                      }
-
-                      if (column.type === 'actions') {
-                        return (
-                          <td
-                            key={column.key}
-                            className="w-20 px-2.5 py-1.5 whitespace-nowrap"
-                          >
-                            {renderActions ? (
-                              renderActions(row, index)
+                            {expandedRows.includes(index) ? (
+                              <img
+                                src="/chevron-down.svg"
+                                alt="chevron-down icon"
+                              />
                             ) : (
-                              <ActionDropdown
-                                {...(onRowDelete && {
-                                  onDelete: () => onRowDelete(row, index),
-                                })}
-                                {...(onRowView && {
-                                  onView: () => onRowView(row, index),
-                                })}
-                                {...(onRowEdit && {
-                                  onEdit: () => onRowEdit(row, index),
-                                })}
-                                {...(onRowGallery && {
-                                  onGallery: () => onRowGallery(row, index),
-                                })}
-                                {...(onRowTransaction && {
-                                  onTransaction: () =>
-                                    onRowTransaction(row, index),
-                                })}
-                                showDelete={showDeleteAction}
-                                showView={showViewAction}
-                                showEdit={showEditAction}
-                                showGallery={showGalleryAction}
-                                showTransaction={showTransactionAction}
+                              <img
+                                src="/chevron-right.svg"
+                                alt="chevron-right icon"
                               />
                             )}
-                          </td>
-                        )
-                      }
-                      const value = row[column.key]
-                      const displayValue = value
+                          </button>
+                        </td>
+                      )
+                    }
 
-                      if (column.type === 'date' && value) {
-                        const formattedDate = formatDateForDisplay(
-                          value as string
-                        )
-                        return (
-                          <td
-                            key={column.key}
-                            className={`${column.width || 'w-auto'} px-4 py-3.5 text-sm text-[#1E2939]`}
-                          >
-                            <div className="flex flex-col">
-                              <span className="font-sans font-normal text-[14px] leading-[16px] align-middle tracking-[0] text-[#1E2939]">
-                                {formattedDate.date}
-                              </span>
-                              <span className="font-sans font-normal text-[14px] leading-[16px] align-middle tracking-[0] text-[#1E2939]">
-                                {formattedDate.time}
-                              </span>
-                            </div>
-                          </td>
-                        )
-                      }
+                    if (column.type === 'checkbox') {
+                      return (
+                        <td
+                          key={column.key}
+                          className="w-8 px-2.5 py-1.5 whitespace-nowrap justify-center items-center"
+                        >
+                          <Checkbox
+                            checked={selectedRows.includes(index)}
+                            onChange={() => toggleRow(index)}
+                            className="w-4 h-4"
+                          />
+                        </td>
+                      )
+                    }
 
-                      if (column.type === 'status' && value) {
-                        return (
-                          <td
-                            key={column.key}
-                            className={`${column.width || 'w-auto'} px-4 py-3.5 text-sm text-[#1E2939]`}
-                          >
-                            <StatusBadge status={value as string} />
-                          </td>
-                        )
-                      }
-
-                      if (column.type === 'select' && column.options) {
-                        return (
-                          <td
-                            key={column.key}
-                            className={`${column.width || 'w-auto'} px-4 py-3.5 text-sm text-[#1E2939]`}
-                          >
-                            <MultiSelect
-                              options={column.options}
-                              value={Array.isArray(value) ? value : [value]}
-                              onChange={(newValue) =>
-                                onDataChange?.(index, column.key, newValue)
-                              }
+                    if (column.type === 'actions') {
+                      return (
+                        <td
+                          key={column.key}
+                          className="w-20 px-2.5 py-1.5 whitespace-nowrap"
+                        >
+                          {renderActions ? (
+                            renderActions(row, index)
+                          ) : (
+                            <ActionDropdown
+                              {...(onRowDelete && {
+                                onDelete: () => onRowDelete(row, index),
+                              })}
+                              {...(onRowView && {
+                                onView: () => onRowView(row, index),
+                              })}
+                              {...(onRowEdit && {
+                                onEdit: () => onRowEdit(row, index),
+                              })}
+                              {...(onRowGallery && {
+                                onGallery: () => onRowGallery(row, index),
+                              })}
+                              {...(onRowTransaction && {
+                                onTransaction: () =>
+                                  onRowTransaction(row, index),
+                              })}
+                              showDelete={showDeleteAction}
+                              showView={showViewAction}
+                              showEdit={showEditAction}
+                              showGallery={showGalleryAction}
+                              showTransaction={showTransactionAction}
                             />
-                          </td>
-                        )
-                      }
+                          )}
+                        </td>
+                      )
+                    }
+                    const value = row[column.key]
+                    const displayValue = value
 
-                      if (column.type === 'custom' && renderCustomCell) {
-                        return (
-                          <td
-                            key={column.key}
-                            className={`${column.width || 'w-auto'} px-4 py-3.5 text-sm text-[#1E2939] max-w-0`}
-                          >
-                            <div className="truncate">
-                              {renderCustomCell(column.key, value, row, index)}
-                            </div>
-                          </td>
-                        )
-                      }
+                    if (column.type === 'date' && value) {
+                      const formattedDate = formatDateForDisplay(
+                        value as string
+                      )
+                      return (
+                        <td
+                          key={column.key}
+                          className={`${column.width || 'w-auto'} px-4 py-3.5 text-sm text-[#1E2939]`}
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-sans font-normal text-[14px] leading-[16px] align-middle tracking-[0] text-[#1E2939]">
+                              {formattedDate.date}
+                            </span>
+                            <span className="font-sans font-normal text-[14px] leading-[16px] align-middle tracking-[0] text-[#1E2939]">
+                              {formattedDate.time}
+                            </span>
+                          </div>
+                        </td>
+                      )
+                    }
 
-                      if (
-                        column.type === 'comment' &&
-                        typeof value === 'object' &&
-                        value !== null
-                      ) {
-                        return (
-                          <td
-                            key={column.key}
-                            className={`${column.width || 'w-auto'} px-4 py-3.5 text-sm text-[#1E2939]`}
-                          >
-                            <button
-                              className="text-blue-600 underline hover:text-blue-800"
-                              onClick={() => {
-                                // Handle comment click
-                              }}
-                            >
-                              View Comment
-                            </button>
-                          </td>
-                        )
-                      }
+                    if (column.type === 'status' && value) {
+                      return (
+                        <td
+                          key={column.key}
+                          className={`${column.width || 'w-auto'} px-4 py-3.5 text-sm text-[#1E2939]`}
+                        >
+                          <StatusBadge status={value as string} />
+                        </td>
+                      )
+                    }
 
-                      // Default cell for all other types
+                    if (column.type === 'select' && column.options) {
+                      return (
+                        <td
+                          key={column.key}
+                          className={`${column.width || 'w-auto'} px-4 py-3.5 text-sm text-[#1E2939]`}
+                        >
+                          <MultiSelect
+                            options={column.options}
+                            value={Array.isArray(value) ? value : [value]}
+                            onChange={(newValue) =>
+                              onDataChange?.(index, column.key, newValue)
+                            }
+                          />
+                        </td>
+                      )
+                    }
+
+                    if (column.type === 'custom' && renderCustomCell) {
                       return (
                         <td
                           key={column.key}
                           className={`${column.width || 'w-auto'} px-4 py-3.5 text-sm text-[#1E2939] max-w-0`}
                         >
-                          <div
-                            className="truncate"
-                            title={displayValue as string}
-                          >
-                            {displayValue as string}
+                          <div className="truncate">
+                            {renderCustomCell(column.key, value, row, index)}
                           </div>
                         </td>
                       )
-                    })}
-                  </tr>
-                  {expandedRows.includes(index) && renderExpandedContent && (
-                    <tr>
+                    }
+
+                    if (
+                      column.type === 'comment' &&
+                      typeof value === 'object' &&
+                      value !== null
+                    ) {
+                      return (
+                        <td
+                          key={column.key}
+                          className={`${column.width || 'w-auto'} px-4 py-3.5 text-sm text-[#1E2939]`}
+                        >
+                          <button
+                            className="text-blue-600 underline hover:text-blue-800"
+                            onClick={() => {
+                              // Handle comment click
+                            }}
+                          >
+                            View Comment
+                          </button>
+                        </td>
+                      )
+                    }
+
+                    // Default cell for all other types
+                    return (
                       <td
-                        colSpan={columns.length}
-                        className="px-4 py-4 bg-gray-50"
+                        key={column.key}
+                        className={`${column.width || 'w-auto'} px-4 py-3.5 text-sm text-[#1E2939] max-w-0`}
                       >
-                        {renderExpandedContent(row, index)}
+                        <div
+                          className="truncate"
+                          title={displayValue as string}
+                        >
+                          {displayValue as string}
+                        </div>
                       </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    )
+                  })}
+                </tr>
+                {expandedRows.includes(index) && renderExpandedContent && (
+                  <tr>
+                    <td
+                      colSpan={columns.length}
+                      className="px-4 py-4 bg-gray-50"
+                    >
+                      {renderExpandedContent(row, index)}
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {/* Pagination */}

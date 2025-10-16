@@ -33,14 +33,13 @@ const statusOptions = [
 const FeeRepushPage: React.FC = () => {
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(false)
 
-  // Get current language from store
   const currentLanguage = useAppStore((state) => state.language)
 
-  // Notification hooks
+
   const showSuccess = useSuccessNotification()
   const showError = useErrorNotification()
 
-  // Fetch fee repush data using the hook with dynamic pagination
+
   const {
     data: feeRepushData,
     loading: feeRepushLoading,
@@ -50,9 +49,9 @@ const FeeRepushPage: React.FC = () => {
     feeRepush,
     updatePagination,
     pagination,
-  } = useFeeRepush(0, 20) // Start with page 0, size 20
+  } = useFeeRepush(0, 20) 
 
-  // Fetch fee repush labels from API with cache
+
   const {
     data: feeRepushLabels,
     labelMap: feeRepushLabelMap,
@@ -61,17 +60,17 @@ const FeeRepushPage: React.FC = () => {
     getLabel: getFeeRepushLabelFromAPI,
   } = useFeeRepushLabelsWithCache(currentLanguage)
 
-  // Create dynamic label getter function that prioritizes API labels
+  
   const getFeeRepushLabelDynamic = React.useCallback(
     (configId: string): string => {
       const fallbackLabel = getFeeRepushLabel(configId)
 
-      // First try to get from API labels
+ 
       if (feeRepushLabelMap && feeRepushLabelMap[configId]) {
         return feeRepushLabelMap[configId]
       }
 
-      // Use hook's getLabel method as secondary option
+    
       if (getFeeRepushLabelFromAPI) {
         const apiLabel = getFeeRepushLabelFromAPI(configId)
         if (apiLabel !== configId) {
@@ -84,18 +83,18 @@ const FeeRepushPage: React.FC = () => {
     [feeRepushLabelMap, getFeeRepushLabelFromAPI]
   )
 
-  // Define table columns with dynamic labels using API-based configIds
+
   const tableColumns = [
     {
       key: 'projectName',
-      label: getFeeRepushLabelDynamic('CDL_FEE_BPA_NAME'), // API: "Build Partner Assets Name"
+      label: getFeeRepushLabelDynamic('CDL_FEE_BPA_NAME'), 
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
     },
     {
       key: 'feeType',
-      label: getFeeRepushLabelDynamic('CDL_FEE_TYPE'), // API: "Fee Type"
+      label: getFeeRepushLabelDynamic('CDL_FEE_TYPE'), 
       type: 'text' as const,
       width: 'w-48',
       sortable: true,

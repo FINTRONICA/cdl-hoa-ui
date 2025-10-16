@@ -131,7 +131,7 @@ const TasStep2: React.FC = () => {
         minHeight="400px"
       >
         <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Loading TAS payment details...</Typography>
+        <Typography sx={{ ml: 2 }}>Loading...</Typography>
       </Box>
     )
   }

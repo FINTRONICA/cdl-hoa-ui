@@ -8,6 +8,7 @@ import timezone from 'dayjs/plugin/timezone'
 import utc from 'dayjs/plugin/utc'
 import { JWTParser } from '@/utils/jwtParser';
 import { JWTPayload } from '@/types/auth';
+import { displayValue } from './nullHandling'
 
 // Status utilities
 export * from './statusUtils'
@@ -435,4 +436,37 @@ export function generateDeveloperId(): string {
 
 export function generateReaId(): string {
   return generateId('REA');
+}
+
+
+// Utility function to format date as "DD/MM/YYYY"
+export const formatDateOnly = (dateString: string | number | null | undefined): string => {
+  if (!dateString || dateString === '-' || dateString === 'null') {
+    return '-'
+  }
+  try {
+    const date = new Date(dateString.toString())
+    
+    if (isNaN(date.getTime())) {
+      return displayValue(dateString)
+    }
+    const day = date.getDate().toString().padStart(2, '0')
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const year = date.getFullYear()
+    return `${day}/${month}/${year}`
+  } catch {
+    return displayValue(dateString)
+  }
+}
+
+// Utility function to truncate words "ABC DEF GHI JKL MNO PQR STU VWX YZ" to "ABC DEF GHI..."
+export function truncateWords(
+  value: string | number | null | undefined,
+  maxWords: number = 15
+): string {
+  const text = displayValue(value).trim()
+  if (!text || text === '-') return ''
+  const words = text.split(/\s+/)
+  if (words.length <= maxWords) return text
+  return words.slice(0, maxWords).join(' ') + '...'
 }

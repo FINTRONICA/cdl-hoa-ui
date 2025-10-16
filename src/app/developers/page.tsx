@@ -8,7 +8,7 @@ const DevelopersPageClient = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50">
+      <div className="fixed inset-0 flex items-center justify-center bg-gray-50 z-50">
         Loading...
       </div>
     ),
@@ -19,14 +19,12 @@ import { useCallback, useState, useMemo } from 'react'
 import { DashboardLayout } from '../../components/templates/DashboardLayout'
 import { ExpandableDataTable } from '../../components/organisms/ExpandableDataTable'
 import { useTableState } from '../../hooks/useTableState'
-import { getStatusCardConfig } from '../../utils/statusUtils'
-import { StatusCards } from '../../components/molecules/StatusCards'
 import { PageActionButtons } from '../../components/molecules/PageActionButtons'
 import LeftSlidePanel from '@/components/organisms/LeftSlidePanel/LeftSlidePanel'
 import { useBuildPartnerLabelsWithCache } from '../../hooks/useBuildPartnerLabelsWithCache'
 import { getBuildPartnerLabel } from '../../constants/mappings/buildPartnerMapping'
 import { useAppStore } from '@/store'
-import { Spinner } from '@/components/atoms/Spinner'
+
 import {
   useBuildPartners,
   useDeleteBuildPartner,
@@ -36,7 +34,6 @@ import {
   type BuildPartnerUIData,
 } from '@/services/api/buildPartnerService'
 import type {
-  BuildPartner,
   BuildPartnerFilters,
 } from '@/services/api/buildPartnerService'
 
@@ -50,8 +47,8 @@ const ErrorMessage: React.FC<{ error: Error; onRetry?: () => void }> = ({
   error,
   onRetry,
 }) => (
-  <div className="flex items-center justify-center min-h-screen px-4 bg-gray-50">
-    <div className="w-full max-w-md text-center">
+  <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="max-w-md w-full text-center">
       <div className="mb-8">
         <div className="flex items-center justify-center w-24 h-24 mx-auto mb-6 bg-red-100 rounded-full">
           <svg
@@ -71,7 +68,7 @@ const ErrorMessage: React.FC<{ error: Error; onRetry?: () => void }> = ({
         <h1 className="mb-4 text-2xl font-semibold text-gray-900">
           Failed to load developers
         </h1>
-        <p className="mb-4 text-gray-600">
+        <p className="text-gray-600 mb-4">
           {error.message ||
             'An error occurred while loading the data. Please try again.'}
         </p>
@@ -103,7 +100,7 @@ const LoadingSpinner: React.FC = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-50">
     <div className="text-center">
       {/* <Spinner size="lg" /> */}
-      <p className="text-gray-600">Loading123...</p>
+      <p className="text-gray-600">Loading...</p>
     </div>
   </div>
 )
@@ -162,13 +159,10 @@ const DevelopersPageImpl: React.FC = () => {
     refetch: refetchDevelopers,
   } = useBuildPartners(currentPage, pageSize, filters)
 
-  console.log('apiResponse :', apiResponse)
-
   // Delete mutation
   const deleteMutation = useDeleteBuildPartner()
 
   const developersData = useMemo(() => {
-    console.log('apiResponse 1:', apiResponse)
     if (apiResponse?.content) {
       return apiResponse.content.map((item) =>
         mapBuildPartnerToUIData(item)
@@ -198,42 +192,42 @@ const DevelopersPageImpl: React.FC = () => {
   const tableColumns = [
     {
       key: 'name',
-      label: getBuildPartnerLabelDynamic('CDL_AR_NAME'),
+      label: getBuildPartnerLabelDynamic('CDL_BP_NAME'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
       key: 'developerId',
-      label: getBuildPartnerLabelDynamic('CDL_AR_ID'),
+      label: getBuildPartnerLabelDynamic('CDL_BP_ID'),
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
     },
     {
       key: 'developerCif',
-      label: getBuildPartnerLabelDynamic('CDL_AR_CIF'),
+      label: getBuildPartnerLabelDynamic('CDL_BP_CIF'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
       key: 'localeNames',
-      label: getBuildPartnerLabelDynamic('CDL_AR_NAME_LOCALE'),
+      label: getBuildPartnerLabelDynamic('CDL_BP_NAME_LOCALE'),
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
     },
     {
       key: 'status',
-      label: getBuildPartnerLabelDynamic('CDL_AR_STATUS'),
+      label: getBuildPartnerLabelDynamic('CDL_BP_STATUS'),
       type: 'status' as const,
       width: 'w-32',
       sortable: true,
     },
     {
       key: 'actions',
-      label: getBuildPartnerLabelDynamic('CDL_AR_DOC_ACTION'),
+      label: getBuildPartnerLabelDynamic('CDL_BP_DOC_ACTION'),
       type: 'actions' as const,
       width: 'w-20',
     },
@@ -270,37 +264,7 @@ const DevelopersPageImpl: React.FC = () => {
     initialRowsPerPage: 20,
   })
 
-  // Generate status cards data
-  const statusCards = [
-    {
-      label: 'Rejected',
-      count:
-        developersData?.filter((item) => item.status === 'Rejected').length ||
-        0,
-      ...getStatusCardConfig('Rejected'),
-    },
-    {
-      label: 'Incomplete',
-      count:
-        developersData?.filter((item) => item.status === 'Incomplete').length ||
-        0,
-      ...getStatusCardConfig('Incomplete'),
-    },
-    {
-      label: 'In Review',
-      count:
-        developersData?.filter((item) => item.status === 'In Review').length ||
-        0,
-      ...getStatusCardConfig('In Review'),
-    },
-    {
-      label: 'Approved',
-      count:
-        developersData?.filter((item) => item.status === 'Approved').length ||
-        0,
-      ...getStatusCardConfig('Approved'),
-    },
-  ]
+
 
   // Action buttons - removed unnecessary buttons
   const actionButtons: Array<{
@@ -314,7 +278,6 @@ const DevelopersPageImpl: React.FC = () => {
 
   // Handle row actions
   const handleRowDelete = (row: DeveloperData, index: number) => {
-    console.log('Delete developer:', row, 'at index:', index)
     if (
       confirm(
         `Are you sure you want to delete developer: ${row.name} (ID: ${row.developerId})?`
@@ -322,11 +285,9 @@ const DevelopersPageImpl: React.FC = () => {
     ) {
       deleteMutation.mutate(row.id, {
         onSuccess: () => {
-          console.log('Developer deleted successfully')
           // The query will automatically refetch due to invalidation
         },
         onError: (error) => {
-          console.error('Failed to delete developer:', error)
           alert(`Failed to delete developer: ${error.message}`)
         },
       })
@@ -334,7 +295,6 @@ const DevelopersPageImpl: React.FC = () => {
   }
 
   const handleRowView = (row: DeveloperData, index: number) => {
-    console.log('View developer:', row, 'at index:', index)
     // Add your view logic here
     alert(`View developer: ${row.name} (ID: ${row.developerId})`)
   }
@@ -344,23 +304,23 @@ const DevelopersPageImpl: React.FC = () => {
     <div className="grid grid-cols-2 gap-8">
       {/* <div className="space-y-4">
         <h4 className="mb-4 text-sm font-semibold text-gray-900">
-          {getBuildPartnerLabel('CDL_AR_DETAILS')}
+          {getBuildPartnerLabel('CDL_BP_DETAILS')}
         </h4>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <span className="text-gray-600">{getBuildPartnerLabel('CDL_AR_NAME')}:</span>
+            <span className="text-gray-600">{getBuildPartnerLabel('CDL_BP_NAME')}:</span>
             <span className="ml-2 font-medium text-gray-800">
               {row.name as string}
             </span>
           </div>
           <div>
-            <span className="text-gray-600">{getBuildPartnerLabel('CDL_AR_ID')}:</span>
+            <span className="text-gray-600">{getBuildPartnerLabel('CDL_BP_ID')}:</span>
             <span className="ml-2 font-medium text-gray-800">
               {row.developerId as string}
             </span>
           </div>
           <div>
-            <span className="text-gray-600">{getBuildPartnerLabel('CDL_AR_CIF')}:</span>
+            <span className="text-gray-600">{getBuildPartnerLabel('CDL_BP_CIF')}:</span>
             <span className="ml-2 font-medium text-gray-800">
               {row.developerCif as string}
             </span>
@@ -370,14 +330,14 @@ const DevelopersPageImpl: React.FC = () => {
             <span className="ml-2 font-medium text-gray-800">20 Mar 2024</span>
           </div>
           <div>
-            <span className="text-gray-600">{getBuildPartnerLabel('CDL_AR_AUTH_NAME')}:</span>
+            <span className="text-gray-600">{getBuildPartnerLabel('CDL_BP_AUTH_NAME')}:</span>
             <span className="ml-2 font-medium text-gray-800">John Doe</span>
           </div>
         </div>
       </div>
       <div className="space-y-4">
         <h4 className="mb-4 text-sm font-semibold text-gray-900">
-          {getBuildPartnerLabel('CDL_AR_DOC_MANAGEMENT')}
+          {getBuildPartnerLabel('CDL_BP_DOC_MANAGEMENT')}
         </h4>
         <div className="space-y-3">
           <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
@@ -420,9 +380,7 @@ const DevelopersPageImpl: React.FC = () => {
         <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
           {/* Sticky Header Section */}
           <div className="sticky top-0 z-10 bg-[#FFFFFFBF] border-b border-gray-200 rounded-t-2xl">
-            {/* <div className="px-4 py-6">
-              <StatusCards cards={statusCards} />
-            </div> */}
+            
             <PageActionButtons
               entityType="developer"
               customActionButtons={actionButtons}
@@ -432,7 +390,32 @@ const DevelopersPageImpl: React.FC = () => {
           {/* Table Container with Fixed Pagination */}
           <div className="flex flex-col flex-1 min-h-0">
             <div className="flex-1 overflow-auto">
-              
+              <ExpandableDataTable<DeveloperData>
+                data={paginated}
+                columns={tableColumns}
+                searchState={search}
+                onSearchChange={handleSearchChange}
+                paginationState={{
+                  page,
+                  rowsPerPage,
+                  totalRows,
+                  totalPages,
+                  startItem,
+                  endItem,
+                }}
+                onPageChange={handlePageChange}
+                onRowsPerPageChange={handleRowsPerPageChange}
+                selectedRows={selectedRows}
+                onRowSelectionChange={handleRowSelectionChange}
+                expandedRows={expandedRows}
+                onRowExpansionChange={handleRowExpansionChange}
+                renderExpandedContent={renderExpandedContent}
+                statusOptions={statusOptions}
+                onRowDelete={handleRowDelete}
+                onRowView={handleRowView}
+                showDeleteAction={true}
+                showViewAction={true}
+              />
             </div>
           </div>
         </div>

@@ -42,3 +42,133 @@ export const projectFeeValidationSchema = z.object({
     id: z.number().min(1, 'Currency is required'),
   }),
 });
+
+// Form-level validation schema for Step 4: Fee Details
+export const feeDetailsFormValidationSchema = z.object({
+  // Fee Category * - Dropdown - Mandatory
+  feeType: z.any().refine((val) => val && val !== '' && val !== null && val !== undefined, {
+    message: 'Fee Category is required'
+  }),
+  
+  // Frequency * - Dropdown - Mandatory  
+  frequency: z.any().refine((val) => val && val !== '' && val !== null && val !== undefined, {
+    message: 'Frequency is required'
+  }),
+  
+  // Currency - Dropdown - Optional
+  currency: z.any().optional(),
+  
+  // Debit Account* - Dropdown - Mandatory
+  debitAccount: z.any().refine((val) => val && val !== '' && val !== null && val !== undefined, {
+    message: 'Debit Account is required'
+  }),
+  
+  // Date Fee to be collected - Calendar - Mandatory
+  feeToBeCollected: z.any().refine((val) => val && val.isValid, 'Fee Collection Date is required'),
+  
+  // Next Recovery Date - Calendar - Optional
+  nextRecoveryDate: z.any().optional(),
+  
+  // Amount* - Text Box - Mandatory, Numerical only, max 10 characters
+  debitAmount: z.string()
+    .min(1, 'Amount is required')
+    .max(10, 'Amount must be maximum 10 characters')
+    .regex(/^[0-9,\s]+$/, 'Amount must contain only numbers and commas'),
+  
+  // Fee Percentage - Optional with validation when provided
+  feePercentage: z.string().optional().refine((val) => {
+    if (!val || val === '') return true; // Allow empty
+    // Allow numbers, commas, dots, and % symbols
+    return /^[0-9,.\s%]+$/.test(val); // Validate format if provided
+  }, 'Fee Percentage must contain only numbers, commas, dots, and %'),
+  
+  // VAT Percentage - Optional with validation when provided
+  vatPercentage: z.string().optional().refine((val) => {
+    if (!val || val === '') return true; // Allow empty
+    // Allow numbers, commas, dots, and % symbols
+    return /^[0-9,.\s%]+$/.test(val); // Validate format if provided
+  }, 'VAT Percentage must contain only numbers, commas, dots, and %'),
+  
+  // Total Amount - Required
+  totalAmount: z.string()
+    .min(1, 'Total Amount is required')
+    .max(10, 'Total Amount must be maximum 10 characters')
+    .regex(/^[0-9,\s]+$/, 'Total Amount must contain only numbers and commas'),
+});
+
+// Field-level validation rules for Step 4: Fee Details
+export const FEE_DETAILS_FIELD_VALIDATION_RULES = {
+  feeType: {
+    required: true,
+    message: 'Fee Category is required'
+  },
+  frequency: {
+    required: true,
+    message: 'Frequency is required'
+  },
+  currency: {
+    maxLength: 10,
+    message: 'Currency must be maximum 10 characters'
+  },
+  debitAccount: {
+    required: true,
+    message: 'Debit Account is required'
+  },
+  feeToBeCollected: {
+    required: true,
+    message: 'Fee Collection Date is required'
+  },
+  nextRecoveryDate: {
+    required: false,
+    message: 'Next Recovery Date is optional'
+  },
+  debitAmount: {
+    required: true,
+    maxLength: 10,
+    pattern: /^[0-9,]+$/,
+    message: 'Amount is required and must contain only numbers and commas (max 10 characters)'
+  },
+  feePercentage: {
+    required: false,
+    message: 'Fee Percentage is optional'
+  },
+  vatPercentage: {
+    required: false,
+    message: 'VAT Percentage is optional'
+  },
+  totalAmount: {
+    required: true,
+    maxLength: 10,
+    pattern: /^[0-9,]+$/,
+    message: 'Total Amount is required and must contain only numbers and commas (max 10 characters)'
+  }
+} as const;
+
+// Individual field validation function for Step 4: Fee Details
+export const validateFeeDetailsField = (fieldName: string, value: any): string | true => {
+  const rules = FEE_DETAILS_FIELD_VALIDATION_RULES[fieldName as keyof typeof FEE_DETAILS_FIELD_VALIDATION_RULES];
+  
+  if (!rules) return true;
+  
+  // Required validation
+  if ('required' in rules && rules.required && (!value || value === '')) {
+    return rules.message;
+  }
+  
+  // Skip other validations if field is empty and not required
+  if (!value || value === '') return true;
+  
+  // Max length validation
+  if ('maxLength' in rules && typeof value === 'string' && value.length > rules.maxLength) {
+    return rules.message;
+  }
+  
+  // Pattern validation
+  if ('pattern' in rules && typeof value === 'string' && !rules.pattern.test(value)) {
+    return rules.message;
+  }
+  
+  return true;
+};
+
+export type FeeDetailsFormData = z.infer<typeof feeDetailsFormValidationSchema>;

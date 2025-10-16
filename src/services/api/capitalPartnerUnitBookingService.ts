@@ -3,13 +3,13 @@ import { buildApiUrl, API_ENDPOINTS } from '@/constants/apiEndpoints'
 
 // ---------- Request DTO ----------
 export interface CapitalPartnerUnitBookingRequest {
-  owrubAmountPaid?: number
-  owrubAreaSize?: number
-  owrubForFeitAmount?: number
-  owrubDldAmount?: number
-  owrubRefundAmount?: number
-  owrubRemarks?: string
-  owrubTransferredAmount?: number
+  cpubAmountPaid?: number
+  cpubAreaSize?: number
+  cpubForFeitAmount?: number
+  cpubDldAmount?: number
+  cpubRefundAmount?: number
+  cpubRemarks?: string
+  cpubTransferredAmount?: number
   capitalPartnerUnitDTOS?: Array<{ id: number }>
   deleted?: boolean
 }
@@ -17,13 +17,13 @@ export interface CapitalPartnerUnitBookingRequest {
 // ---------- Response DTO ----------
 export interface CapitalPartnerUnitBookingResponse {
   id: number
-  owrubAmountPaid?: number
-  owrubAreaSize?: number
-  owrubForFeitAmount?: number
-  owrubDldAmount?: number
-  owrubRefundAmount?: number
-  owrubRemarks?: string
-  owrubTransferredAmount?: number
+  cpubAmountPaid?: number
+  cpubAreaSize?: number
+  cpubForFeitAmount?: number
+  cpubDldAmount?: number
+  cpubRefundAmount?: number
+  cpubRemarks?: string
+  cpubTransferredAmount?: number
   capitalPartnerUnitDTOS?: Array<{ id: number }>
   deleted: boolean
   createdAt?: string
@@ -36,7 +36,7 @@ class CapitalPartnerUnitBookingService {
     id: number
   ): Promise<CapitalPartnerUnitBookingResponse> {
     const url = buildApiUrl(
-      API_ENDPOINTS.OWNER_REGISTRY_UNIT_BOOKING.GET_BY_ID(id.toString())
+      API_ENDPOINTS.CAPITAL_PARTNER_UNIT_BOOKING.GET_BY_ID(id.toString())
     )
     const data = await apiClient.get<CapitalPartnerUnitBookingResponse>(url)
     return data
@@ -47,7 +47,7 @@ class CapitalPartnerUnitBookingService {
     payload: Partial<CapitalPartnerUnitBookingRequest>
   ): Promise<CapitalPartnerUnitBookingResponse> {
     const url = buildApiUrl(
-      API_ENDPOINTS.OWNER_REGISTRY_UNIT_BOOKING.UPDATE(id.toString())
+      API_ENDPOINTS.CAPITAL_PARTNER_UNIT_BOOKING.UPDATE(id.toString())
     )
     const response = await apiClient.put(url, payload)
     return response as CapitalPartnerUnitBookingResponse
@@ -55,7 +55,7 @@ class CapitalPartnerUnitBookingService {
 
   async deleteCapitalPartnerUnitBooking(id: number): Promise<void> {
     const url = buildApiUrl(
-      API_ENDPOINTS.OWNER_REGISTRY_UNIT_BOOKING.DELETE(id.toString())
+      API_ENDPOINTS.CAPITAL_PARTNER_UNIT_BOOKING.DELETE(id.toString())
     )
     await apiClient.delete(url)
   }
@@ -63,7 +63,7 @@ class CapitalPartnerUnitBookingService {
   async createCapitalPartnerUnitBooking(
     payload: any
   ): Promise<CapitalPartnerUnitBookingResponse> {
-    const url = buildApiUrl(API_ENDPOINTS.OWNER_REGISTRY_UNIT_BOOKING.SAVE)
+    const url = buildApiUrl(API_ENDPOINTS.CAPITAL_PARTNER_UNIT_BOOKING.SAVE)
     const response = await apiClient.post(url, payload)
     return response as CapitalPartnerUnitBookingResponse
   }

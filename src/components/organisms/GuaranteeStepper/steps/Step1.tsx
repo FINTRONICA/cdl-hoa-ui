@@ -23,6 +23,7 @@ import {
 } from '@mui/icons-material'
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers'
 import { Controller, useFormContext } from 'react-hook-form'
+import { FormError } from '../../../atoms/FormError'
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { idService } from '../../../../services/api/developerIdService'
@@ -41,26 +42,19 @@ interface Step1Props {
 }
 
 const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
-  // Form context
-  const { control, setValue, watch } = useFormContext()
 
-  // State for guarantee reference ID generation
+  const { control, setValue, watch, trigger, formState: { errors } } = useFormContext()
+
   const [guaranteeRefId, setGuaranteeRefId] = useState<string>('')
   const [isGeneratingId, setIsGeneratingId] = useState<boolean>(false)
-
-  // State for developer names and build partners
   const [developerNames, setDeveloperNames] = useState<string[]>([])
-
-  // State for real estate assets
   const [realEstateAssets, setRealEstateAssets] = useState<any[]>([])
 
-  // Use application settings hooks
   const { data: guaranteeTypes, loading: guaranteeTypesLoading } =
     useApplicationSettings('SURETY_BOND_TYPE')
   const { data: guaranteeStatuses, loading: guaranteeStatusesLoading } =
     useApplicationSettings('SURETY_BOND_STATUS')
 
-  // Use financial institutions hook for issuer banks with pagination
   const {
     dropdownOptions: issuerBankOptions,
     loading: issuerBanksLoading,
@@ -69,21 +63,21 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
     totalElements: totalBanks,
   } = useEnabledFinancialInstitutionsDropdown()
 
-  // Use surety bond translations for labels
+
   const { translations: sbTranslations, loading: sbTranslationsLoading } =
     useSuretyBondTranslationsByPattern('CDL_SB_')
 
-  // Fetch surety bond data by ID if in edit mode or view mode
+
   const {
     suretyBond,
     loading: suretyBondLoading,
     error: suretyBondError,
   } = useSuretyBond((isEditMode || isViewMode) && savedId ? savedId : '')
 
-  // Real estate assets hook
+  
   const { assets, loading: assetsLoading } = useRealEstateAssets(0, 20)
 
-  // Fetch developer names from BuildPartnerService
+
   useEffect(() => {
     const fetchDeveloperNames = async () => {
       try {
@@ -101,28 +95,29 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
     fetchDeveloperNames()
   }, [])
 
-  // Populate real estate assets
+  
   useEffect(() => {
     if (assets.length > 0) {
       setRealEstateAssets(assets)
     }
   }, [assets])
 
-  // Function to generate new guarantee reference ID
+ 
   const handleGenerateGuaranteeRefId = async () => {
     try {
       setIsGeneratingId(true)
       const newIdResponse = idService.generateNewId('GUA')
       setGuaranteeRefId(newIdResponse.id)
-      setValue('guaranteeRefNo', newIdResponse.id)
+      setValue('guaranteeRefNo', newIdResponse.id, { shouldValidate: true })
+      trigger('guaranteeRefNo')
     } catch (error) {
-      console.error('Error generating guarantee reference ID:', error)
+      throw error
     } finally {
       setIsGeneratingId(false)
     }
   }
 
-  // Initialize guarantee reference ID from form value
+
   useEffect(() => {
     const currentId = watch('guaranteeRefNo')
     if (currentId && currentId !== guaranteeRefId) {
@@ -130,7 +125,7 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
     }
   }, [watch, guaranteeRefId])
 
-  // Helper function to get translated label
+
   const getTranslatedLabel = (configId: string, fallback: string): string => {
     if (sbTranslationsLoading || !sbTranslations.length) {
       return fallback
@@ -140,7 +135,7 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
     return translation?.configValue || fallback
   }
 
-  // Handle data prepopulation when in edit mode or view mode
+
   useEffect(() => {
     if (
       (isEditMode || isViewMode) &&
@@ -160,7 +155,7 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
           'guaranteeDate',
           suretyBond.suretyBondDate ? dayjs(suretyBond.suretyBondDate) : null
         )
-        setValue('projectCif', '') // This would need to be fetched from the real estate asset
+        setValue('projectCif', '') 
         setValue(
           'projectName',
           suretyBond.realEstateAssestDTO?.id?.toString() || ''
@@ -170,7 +165,7 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
           suretyBond.buildPartnerDTO?.id?.toString() || ''
         )
         setValue('openEndedGuarantee', suretyBond.suretyBondOpenEnded || false)
-        setValue('projectCompletionDate', null) // This would need to be fetched from the real estate asset
+        setValue('projectCompletionDate', null) 
         setValue('noOfAmendments', suretyBond.suretyBondNoOfAmendment || '')
         setValue(
           'guaranteeExpirationDate',
@@ -189,12 +184,12 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
         setValue('issuerBank', suretyBond.issuerBankDTO?.id?.toString() || '')
         setValue('status', '')
       } catch (error) {
-        console.error('Step1: Failed to prepopulate form data:', error)
+        throw error
       }
     }
   }, [isEditMode, isViewMode, savedId, suretyBond, suretyBondLoading, setValue])
 
-  // Watch for project name changes and auto-populate CIF and completion date
+
   useEffect(() => {
     const subscription = watch((value, { name }) => {
       if (name === 'projectName' && value.projectName) {
@@ -202,16 +197,19 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
           (asset) => asset.id === parseInt(value.projectName)
         )
         if (selectedAsset) {
-          // Auto-populate CIF
+          
           if (selectedAsset.reaCif) {
-            setValue('projectCif', selectedAsset.reaCif)
+            setValue('projectCif', selectedAsset.reaCif, { shouldValidate: true })
+            trigger('projectCif')
           }
-          // Auto-populate project completion date
+          
           if (selectedAsset.reaCompletionDate) {
             setValue(
               'projectCompletionDate',
-              dayjs(selectedAsset.reaCompletionDate)
+              dayjs(selectedAsset.reaCompletionDate),
+              { shouldValidate: true }
             )
+            trigger('projectCompletionDate')
           }
         }
       }
@@ -219,7 +217,7 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
     return () => subscription.unsubscribe()
   }, [watch, setValue, realEstateAssets])
 
-  // Common styles
+
   const commonFieldStyles = {
     '& .MuiOutlinedInput-root': {
       height: '46px',
@@ -294,7 +292,7 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
     },
   }
 
-  const labelSx = {
+  const getLabelSx = () => ({
     color: '#374151',
     fontFamily:
       'Outfit, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -309,7 +307,7 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
     '&.MuiFormLabel-filled': {
       color: '#374151',
     },
-  }
+  })
 
   const valueSx = {
     color: '#111827',
@@ -346,71 +344,93 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
     label: string,
     gridSize = 6,
     defaultValue = '',
-    isRequired = false
+    required = false
   ) => {
-    const validationRules: any = {}
-
-    if (isRequired && !isViewMode) {
-      validationRules.required = `${label} is required`
-    }
-
-    if (name === 'guaranteeAmount' || name === 'newReading') {
-      validationRules.pattern = {
-        value: /^\d+(\.\d{1,2})?$/,
-        message:
-          'Please enter a valid amount (numbers and up to 2 decimal places)',
-      }
-      validationRules.min = {
-        value: 0,
-        message: 'Amount must be greater than or equal to 0',
-      }
-    }
-
     return (
       <Grid key={name} size={{ xs: 12, md: gridSize }}>
         <Controller
           name={name}
           control={control}
-          rules={validationRules}
           defaultValue={defaultValue}
-          render={({ field, fieldState: { error } }) => (
-            <TextField
-              {...field}
-              label={label}
-              fullWidth
-              disabled={!!isViewMode}
-              error={!!error && !isViewMode}
-              helperText={isViewMode ? '' : error?.message}
-              InputLabelProps={{ sx: labelSx }}
-              InputProps={{
-                sx: {
-                  ...valueSx,
+          render={({ field }) => (
+            <>
+              <TextField
+                {...field}
+                label={label}
+                required={required}
+                fullWidth
+                disabled={!!isViewMode}
+                error={!!errors[name] && !isViewMode}
+                InputLabelProps={{ 
+                  sx: {
+                    ...getLabelSx(),
+                    '& .MuiFormLabel-asterisk': {
+                      color: '#6A7282 !important',
+                      fontSize: 'inherit',
+                      fontWeight: 'bold',
+                    },
+                    ...(!!errors[name] && !isViewMode && {
+                      color: '#d32f2f',
+                      '&.Mui-focused': {
+                        color: '#d32f2f',
+                      },
+                      '&.MuiFormLabel-filled': {
+                        color: '#d32f2f',
+                      },
+                    }),
+                  }
+                }}
+                InputProps={{
+                  sx: {
+                    ...valueSx,
+                    ...(isViewMode && {
+                      backgroundColor: '#F9FAFB',
+                      color: '#6B7280',
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#E5E7EB',
+                      },
+                    }),
+                  },
+                }}
+                sx={{
+                  ...commonFieldStyles,
                   ...(isViewMode && {
-                    backgroundColor: '#F9FAFB',
-                    color: '#6B7280',
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#E5E7EB',
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': {
+                        borderColor: '#E5E7EB',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: '#E5E7EB',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#E5E7EB',
+                      },
                     },
                   }),
-                },
-              }}
-              sx={{
-                ...commonFieldStyles,
-                ...(isViewMode && {
-                  '& .MuiOutlinedInput-root': {
-                    '& fieldset': {
-                      borderColor: '#E5E7EB',
+                 
+                  ...(!!errors[name] && !isViewMode && {
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': {
+                        borderColor: '#d32f2f',
+                        borderWidth: '1px',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: '#d32f2f',
+                        borderWidth: '1px',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#d32f2f',
+                        borderWidth: '1px',
+                      },
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#E5E7EB',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#E5E7EB',
-                    },
-                  },
-                }),
-              }}
-            />
+                  }),
+                }}
+              />
+              <FormError 
+                error={errors[name]?.message as string} 
+                touched={true}
+              />
+            </>
           )}
         />
       </Grid>
@@ -420,61 +440,97 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
   const renderGuaranteeRefIdField = (
     name: string,
     label: string,
-    gridSize: number = 6
+    gridSize: number = 6,
+    required: boolean = false
   ) => (
     <Grid key={name} size={{ xs: 12, md: gridSize }}>
       <Controller
         name={name}
         control={control}
         defaultValue=""
-        render={({ field }) => (
-          <TextField
-            {...field}
-            fullWidth
-            label={label}
-            value={guaranteeRefId}
-            onChange={(e) => {
-              setGuaranteeRefId(e.target.value)
-              field.onChange(e)
-            }}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end" sx={{ mr: 0 }}>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={<RefreshIcon />}
-                    onClick={handleGenerateGuaranteeRefId}
-                    disabled={isGeneratingId || !!isViewMode}
-                    sx={{
-                      color: '#FFFFFF',
-                      borderRadius: '8px',
-                      textTransform: 'none',
-                      background: '#2563EB',
-                      '&:hover': {
-                        background: '#1D4ED8',
+          render={({ field }) => (
+            <>
+              <TextField
+                {...field}
+                fullWidth
+                label={label}
+                required={required}
+                value={guaranteeRefId}
+                onChange={(e) => {
+                  setGuaranteeRefId(e.target.value)
+                  field.onChange(e)
+                }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end" sx={{ mr: 0 }}>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={<RefreshIcon />}
+                        onClick={handleGenerateGuaranteeRefId}
+                        disabled={isGeneratingId || !!isViewMode}
+                        sx={{
+                          color: '#FFFFFF',
+                          borderRadius: '8px',
+                          textTransform: 'none',
+                          background: '#2563EB',
+                          '&:hover': {
+                            background: '#1D4ED8',
+                          },
+                          minWidth: '100px',
+                          height: '32px',
+                          fontFamily: 'Outfit, sans-serif',
+                          fontWeight: 500,
+                          fontStyle: 'normal',
+                          fontSize: '11px',
+                          lineHeight: '14px',
+                          letterSpacing: '0.3px',
+                          px: 1,
+                        }}
+                      >
+                        {isGeneratingId ? 'Generating...' : 'Generate ID'}
+                      </Button>
+                    </InputAdornment>
+                  ),
+                  sx: valueSx,
+                }}
+                InputLabelProps={{ 
+                  sx: {
+                    ...getLabelSx(),
+                    '& .MuiFormLabel-asterisk': {
+                      color: '#6A7282 !important',
+                      fontSize: 'inherit',
+                      fontWeight: 'bold',
+                    },
+                  }
+                }}
+                sx={{
+                  ...commonFieldStyles,
+                  
+                  ...(!!errors[name] && !isViewMode && {
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': {
+                        borderColor: '#d32f2f',
+                        borderWidth: '1px',
                       },
-                      minWidth: '100px',
-                      height: '32px',
-                      fontFamily: 'Outfit, sans-serif',
-                      fontWeight: 500,
-                      fontStyle: 'normal',
-                      fontSize: '11px',
-                      lineHeight: '14px',
-                      letterSpacing: '0.3px',
-                      px: 1,
-                    }}
-                  >
-                    {isGeneratingId ? 'Generating...' : 'Generate ID'}
-                  </Button>
-                </InputAdornment>
-              ),
-              sx: valueSx,
-            }}
-            InputLabelProps={{ sx: labelSx }}
-            sx={commonFieldStyles}
-          />
-        )}
+                      '&:hover fieldset': {
+                        borderColor: '#d32f2f',
+                        borderWidth: '1px',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#d32f2f',
+                        borderWidth: '1px',
+                      },
+                    },
+                  }),
+                }}
+              />
+              <FormError 
+                error={errors[name]?.message as string} 
+                touched={true}
+              />
+            </>
+          )}
       />
     </Grid>
   )
@@ -484,27 +540,57 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
     label: string,
     options: any[],
     gridSize = 6,
-    isRequired = true
+    required = false
   ) => {
-    const validationRules: any = {}
-
-    if (isRequired && !isViewMode) {
-      validationRules.required = `${label} is required`
-    }
-
     return (
       <Grid key={name} size={{ xs: 12, md: gridSize }}>
         <Controller
           name={name}
           control={control}
-          rules={validationRules}
           defaultValue={''}
-          render={({ field, fieldState: { error } }) => (
-            <FormControl fullWidth error={!!error && !isViewMode}>
-              <InputLabel sx={labelSx}>{label}</InputLabel>
+          render={({ field }) => (
+            <>
+              <FormControl 
+                fullWidth 
+                error={!!errors[name] && !isViewMode}
+                sx={{
+                  '& .MuiFormLabel-asterisk': {
+                    color: '#6A7282 !important',
+                  },
+                }}
+              >
+              <InputLabel 
+                required={required}
+                sx={{
+                  ...getLabelSx(),
+                  '& .MuiFormLabel-asterisk': {
+                    color: '#6A7282 !important',
+                    fontSize: 'inherit',
+                    fontWeight: 'bold',
+                  },
+                  '&.MuiInputLabel-root .MuiFormLabel-asterisk': {
+                    color: '#6A7282 !important',
+                  },
+                  '&.MuiFormLabel-root .MuiFormLabel-asterisk': {
+                    color: '#6A7282 !important',
+                  },
+                  '&.MuiInputLabel-asterisk': {
+                    color: '#6A7282 !important',
+                  },
+                  ...(!!errors[name] && !isViewMode && {
+                    color: '#d32f2f',
+                    '&.Mui-focused': {
+                      color: '#d32f2f',
+                    },
+                  }),
+                }}
+              >
+                {label}
+              </InputLabel>
               <Select
                 {...field}
                 label={label}
+                required={required}
                 disabled={!!isViewMode}
                 sx={{
                   ...selectStyles,
@@ -530,8 +616,20 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
                     border: '1px solid #9ca3af',
                   },
                   '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    border: '2px solid #2563eb',
+                    border: '1px solid #2563eb',
                   },
+                 
+                  ...(!!errors[name] && !isViewMode && {
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      border: '1px solid #d32f2f',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      border: '1px solid #d32f2f',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      border: '1px solid #d32f2f',
+                    },
+                  }),
                 }}
                 IconComponent={isViewMode ? () => null : KeyboardArrowDownIcon}
                 MenuProps={{
@@ -572,7 +670,7 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
                   -- Select --
                 </MenuItem>
                 {options.map((opt, index) => {
-                  // Handle special options like "Load More"
+                  
                   if (opt.settingValue === '__LOAD_MORE__') {
                     return (
                       <MenuItem
@@ -662,7 +760,12 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
                   )
                 })}
               </Select>
-            </FormControl>
+              </FormControl>
+              <FormError 
+                error={errors[name]?.message as string} 
+                touched={true}
+              />
+            </>
           )}
         />
       </Grid>
@@ -717,23 +820,17 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
     name: string,
     label: string,
     gridSize: number = 6,
-    isRequired = false
+    required: boolean = false
   ) => {
-    const validationRules: any = {}
-
-    if (isRequired && !isViewMode) {
-      validationRules.required = `${label} is required`
-    }
-
     return (
       <Grid key={name} size={{ xs: 12, md: gridSize }}>
         <Controller
           name={name}
           control={control}
-          rules={validationRules}
           defaultValue={null}
-          render={({ field, fieldState: { error } }) => (
-            <DatePicker
+          render={({ field }) => (
+            <>
+              <DatePicker
               label={label}
               value={field.value}
               onChange={field.onChange}
@@ -745,8 +842,9 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
               slotProps={{
                 textField: {
                   fullWidth: true,
-                  error: !!error && !isViewMode,
-                  helperText: isViewMode ? '' : error?.message,
+                  required: required,
+                  error: !!errors[name] && !isViewMode,
+                  helperText: '',
                   sx: {
                     ...datePickerStyles,
                     ...(isViewMode && {
@@ -764,8 +862,47 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
                         },
                       },
                     }),
+                    
+                    ...(!!errors[name] && !isViewMode && {
+                      '& .MuiOutlinedInput-root': {
+                        '& fieldset': {
+                          borderColor: '#d32f2f',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: '#d32f2f',
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: '#d32f2f',
+                        },
+                      },
+                    }),
                   },
-                  InputLabelProps: { sx: labelSx },
+                  InputLabelProps: { 
+                    required: required,
+                    sx: {
+                      ...getLabelSx(),
+                      '& .MuiFormLabel-asterisk': {
+                        color: '#6A7282 !important',
+                        fontSize: 'inherit',
+                        fontWeight: 'bold',
+                      },
+                      '&.MuiInputLabel-root .MuiFormLabel-asterisk': {
+                        color: '#6A7282 !important',
+                      },
+                      '&.MuiFormLabel-root .MuiFormLabel-asterisk': {
+                        color: '#6A7282 !important',
+                      },
+                      '&.MuiInputLabel-asterisk': {
+                        color: '#6A7282 !important',
+                      },
+                      ...(!!errors[name] && !isViewMode && {
+                        color: '#d32f2f',
+                        '&.Mui-focused': {
+                          color: '#d32f2f',
+                        },
+                      }),
+                    }
+                  },
                   InputProps: {
                     sx: {
                       ...valueSx,
@@ -777,14 +914,19 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
                   },
                 },
               }}
-            />
+              />
+              <FormError 
+                error={errors[name]?.message as string} 
+                touched={true}
+              />
+            </>
           )}
         />
       </Grid>
     )
   }
 
-  // Show loading state while fetching surety bond data in edit mode or view mode
+  
   if ((isEditMode || isViewMode) && suretyBondLoading) {
     return (
       <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -807,7 +949,7 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
                 <Typography variant="h6" sx={{ mb: 2 }}>
                   {getTranslatedLabel(
                     'CDL_SB_LOADING',
-                    'Loading Surety Bond Details...'
+                    'Loading...'
                   )}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -824,7 +966,7 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
     )
   }
 
-  // Show error state if there's an error fetching surety bond data in edit mode or view mode
+ 
   if ((isEditMode || isViewMode) && suretyBondError) {
     return (
       <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -888,35 +1030,36 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
               'guaranteeRefNo',
               getTranslatedLabel(
                 'CDL_SB_REF_NO',
-                'Guarantee Reference Number*'
+                'Surety Bond Ref No'
               ),
-              6
+              6,
+              true
             )}
             {renderSelectField(
               'guaranteeType',
-              getTranslatedLabel('CDL_SB_TYPE', 'Guarantee Type*'),
+              getTranslatedLabel('CDL_SB_TYPE', 'Surety Bond Type'),
               guaranteeTypesLoading
-                ? [{ id: 'loading', displayName: 'Loading guarantee types...' }]
+                ? [{ id: 'loading', displayName: 'Loading...' }]
                 : guaranteeTypes || [],
               6,
               true
             )}
             {renderDatePickerField(
               'guaranteeDate',
-              getTranslatedLabel('CDL_SB_DATE', 'Guarantee Date*'),
+              getTranslatedLabel('CDL_SB_DATE', 'Surety Bond Date'),
               6,
               true
             )}
             {renderTextField(
               'projectCif',
-              getTranslatedLabel('CDL_SB_BPA_CIF', 'Project CIF*'),
+              getTranslatedLabel('CDL_SB_BPA_CIF', 'Build Partner Assets  CIF'),
               6,
               '',
               true
             )}
             {renderSelectField(
               'projectName',
-              getTranslatedLabel('CDL_SB_BPA_NAME', 'Project Name*'),
+              getTranslatedLabel('CDL_SB_BPA_NAME', 'Build Partner Assets Name'),
               assetsLoading
                 ? [{ id: 'loading', displayName: 'Loading...' }]
                 : realEstateAssets.length > 0
@@ -931,7 +1074,7 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
                   : [
                       {
                         id: 'no-projects',
-                        displayName: 'No projects available',
+                        displayName: 'No Build Partner Assets available',
                       },
                     ],
               6,
@@ -939,46 +1082,47 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
             )}
             {renderSelectField(
               'developerName',
-              getTranslatedLabel('CDL_SB_BP_NAME', 'Build Partner Name*'),
+              getTranslatedLabel('CDL_SB_BP_NAME', 'Build Partner Name'),
               developerNames.length > 0
                 ? developerNames.map((name) => ({
                     id: name,
                     displayName: name,
                   }))
-                : [{ id: 'loading', displayName: 'Loading build partners...' }],
+                : [{ id: 'loading', displayName: 'Loading...' }],
               6,
               true
             )}
             {renderCheckboxField(
               'openEndedGuarantee',
-              getTranslatedLabel('CDL_SB_OPEN_ENDED', 'Open Ended Guarantee'),
+              getTranslatedLabel('CDL_SB_OPEN_ENDED', 'Open Ended'),
               3
             )}
             {renderDatePickerField(
               'projectCompletionDate',
               getTranslatedLabel(
                 'CDL_SB_BPA_COMPLETION_DATE',
-                'Project completion date'
+                'Completion Date'
               ),
-              3
+              3,
+              !!watch('openEndedGuarantee')
             )}
             {renderTextField(
               'noOfAmendments',
-              getTranslatedLabel('CDL_SB_NO_OF_AMEND', 'No of Amendments'),
+              getTranslatedLabel('CDL_SB_NO_OF_AMEND', 'No Of Amendments'),
               3
             )}
             {renderDatePickerField(
               'guaranteeExpirationDate',
               getTranslatedLabel(
                 'CDL_SB_EXPIARY_DATE',
-                'Guarantee Expiration Date*'
+                'Expiry Date'
               ),
               3,
-              true
+              !watch('openEndedGuarantee')
             )}
             {renderTextField(
               'guaranteeAmount',
-              getTranslatedLabel('CDL_SB_AMOUNT', 'Guarantee Amount*'),
+              getTranslatedLabel('CDL_SB_AMOUNT', 'Amount'),
               4,
               '',
               true
@@ -987,16 +1131,16 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
               'suretyBondNewReadingAmendment',
               getTranslatedLabel(
                 'CDL_SB_NEW_READING',
-                'New Reading (Amendments)'
+                'New Reading(Amendments)'
               ),
               4,
               ''
             )}
             {renderSelectField(
               'issuerBank',
-              getTranslatedLabel('CDL_SB_BANK', 'Issuer Bank*'),
+              getTranslatedLabel('CDL_SB_BANK', 'Issuer Bank'),
               issuerBanksLoading
-                ? [{ id: 'loading', displayName: 'Loading banks...' }]
+                ? [{ id: 'loading', displayName: 'Loading...' }]
                 : issuerBankOptions.length > 0
                   ? issuerBankOptions.map((option: any) => ({
                       id: option.id,
@@ -1009,17 +1153,16 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
             )}
             {renderSelectField(
               'status',
-              getTranslatedLabel('CDL_SB_STATUS', 'Status*'),
+              getTranslatedLabel('CDL_SB_STATUS', 'Status'),
               guaranteeStatusesLoading
                 ? [
                     {
                       id: 'loading',
-                      displayName: 'Loading guarantee statuses...',
+                      displayName: 'Loading...',
                     },
                   ]
                 : guaranteeStatuses || [],
-              4,
-              true
+              4
             )}
           </Grid>
         </CardContent>

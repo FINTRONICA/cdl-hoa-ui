@@ -56,7 +56,7 @@ export function useLogin(): UseLoginReturn {
         success: 'Login successful! Redirecting...' 
       }));
       
-      console.log('About to redirect to dashboard...');
+     
       
       // Start session service for client-side session management
       SessionService.startSession();

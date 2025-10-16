@@ -30,72 +30,72 @@ type InvestorData = CapitalPartnerUIData
 const getTableColumns = (getLabel: (configId: string) => string) => [
   {
     key: 'investor',
-    label: getLabel('CDL_OWR_FIRSTNAME'),
+    label: getLabel('CDL_OWN_FIRSTNAME'),
     type: 'text' as const,
     width: 'w-40',
     sortable: true,
   },
   {
     key: 'investorId',
-    label: getLabel('CDL_OWR_REFID'),
+    label: getLabel('CDL_OWN_REFID'),
     type: 'text' as const,
     width: 'w-32',
     sortable: true,
   },
   {
     key: 'buildPartnerName',
-    label: getLabel('CDL_OWR_BP_NAME'),
+    label: getLabel('CDL_OWN_BP_NAME'),
     type: 'text' as const,
     width: 'w-48',
     sortable: true,
   },
   {
     key: 'buildPartnerId',
-    label: getLabel('CDL_OWR_BP_ID'),
+    label: getLabel('CDL_OWN_BP_ID'),
     type: 'text' as const,
     width: 'w-48',
     sortable: true,
   },
   {
     key: 'buildPartnerCif',
-    label: getLabel('CDL_OWR_BP_CIF'),
+    label: getLabel('CDL_OWN_BP_CIF'),
     type: 'text' as const,
     width: 'w-40',
     sortable: true,
   },
   {
     key: 'projectName',
-    label: getLabel('CDL_OWR_BPA_NAME'),
+    label: getLabel('CDL_OWN_BPA_NAME'),
     type: 'text' as const,
     width: 'w-48',
     sortable: true,
   },
   {
     key: 'projectCIF',
-    label: getLabel('CDL_OWR_BPA_CIF'),
+    label: getLabel('CDL_OWN_BPA_CIF'),
     type: 'text' as const,
     width: 'w-48',
     sortable: true,
   },
   {
     key: 'unitNumber',
-    label: getLabel('CDL_OWR_UNIT_NUMBER'),
+    label: getLabel('CDL_OWN_UNIT_NUMBER'),
     type: 'text' as const,
     width: 'w-40',
     sortable: true,
   },
   {
     key: 'approvalStatus',
-    label: getLabel('CDL_OWR_APPROVAL_STATUS'),
+    label: getLabel('CDL_OWN_APPROVAL_STATUS'),
     type: 'status' as const,
-    width: 'w-32',
+    width: 'w-40',
     sortable: true,
   },
   {
     key: 'actions',
-    label: getLabel('CDL_OWR_ACTION'),
+    label: getLabel('CDL_OWN_ACTION'),
     type: 'actions' as const,
-    width: 'w-20',
+    width: 'w-26',
   },
 ]
 
@@ -115,8 +115,8 @@ const InvestorsPage: React.FC = () => {
   const currentLanguage = useAppStore((state) => state.language)
   const { getLabelResolver } = useSidebarConfig()
   const investorsTitle = getLabelResolver
-    ? getLabelResolver('investors', 'Investor')
-    : 'Investor'
+    ? getLabelResolver('ownerRegistry', 'Owner Registry')
+    : 'Owner Registry'
   const { getLabel } = useCapitalPartnerLabelsApi()
   const confirmDelete = useDeleteConfirmation()
 
@@ -322,30 +322,30 @@ const InvestorsPage: React.FC = () => {
     <div className="grid grid-cols-2 gap-8">
       <div className="space-y-4">
         <h4 className="mb-4 text-sm font-semibold text-gray-900">
-          {getCapitalPartnerLabelDynamic('CDL_OWR_BASIC_INFO')}
+          {getCapitalPartnerLabelDynamic('CDL_OWN_BASIC_INFO')}
         </h4>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-gray-600">
-              {getCapitalPartnerLabelDynamic('CDL_OWR_FIRSTNAME')}:
+              {getCapitalPartnerLabelDynamic('CDL_OWN_FIRSTNAME')}:
             </span>
             <span className="ml-2">{row.investor}</span>
           </div>
           <div>
             <span className="text-gray-600">
-              {getCapitalPartnerLabelDynamic('CDL_OWR_REFID')}:
+              {getCapitalPartnerLabelDynamic('CDL_OWN_REFID')}:
             </span>
             <span className="ml-2">{row.investorId}</span>
           </div>
           <div>
             <span className="text-gray-600">
-              {getCapitalPartnerLabelDynamic('CDL_OWR_UNIT_NUMBER')}:
+              {getCapitalPartnerLabelDynamic('CDL_OWN_UNIT_NUMBER')}:
             </span>
             <span className="ml-2">{row.unitNumber || 'N/A'}</span>
           </div>
           <div>
             <span className="text-gray-600">
-              {getCapitalPartnerLabelDynamic('CDL_OWR_APPROVAL_STATUS')}:
+              {getCapitalPartnerLabelDynamic('CDL_OWN_APPROVAL_STATUS')}:
             </span>
             <span className="ml-2">{row.approvalStatus}</span>
           </div>
@@ -361,7 +361,7 @@ const InvestorsPage: React.FC = () => {
             <span className="ml-2">{row.buildPartnerName}</span>
           </div>
           <div>
-            <span className="text-gray-600">Firm CIF:</span>
+            <span className="text-gray-600">Build Partner CIF:</span>
             <span className="ml-2">{row.buildPartnerCif}</span>
           </div>
         </div>
@@ -371,7 +371,7 @@ const InvestorsPage: React.FC = () => {
 
   if (loadingData) {
     return (
-      <DashboardLayout title={"Owner Register"}>
+      <DashboardLayout title={investorsTitle}>
         <div className="flex items-center justify-center h-64">
           <div className="w-8 h-8 border-b-2 border-blue-600 rounded-full animate-spin"></div>
         </div>
@@ -381,7 +381,7 @@ const InvestorsPage: React.FC = () => {
 
   if (errorData) {
     return (
-      <DashboardLayout title={"Owner Register"}>
+      <DashboardLayout title={investorsTitle}>
         <div className="p-6 text-red-600">{errorData}</div>
       </DashboardLayout>
     )
@@ -413,7 +413,7 @@ const InvestorsPage: React.FC = () => {
         </div>
       )}
 
-      <DashboardLayout title={"Owner Register"}>
+      <DashboardLayout title={investorsTitle}>
         <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
           <div className="sticky top-0 z-10 bg-[#FFFFFFBF] border-b border-gray-200 rounded-t-2xl">
             <PageActionButtons

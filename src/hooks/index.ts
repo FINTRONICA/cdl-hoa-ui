@@ -4,11 +4,11 @@ export { useDataLoader } from './useDataLoader'
 export { useLogin } from './useLogin'
 
 // Project hooks
-export { 
-  useProjects, 
-  useProject, 
-  useCreateProject, 
-  useUpdateProject, 
+export {
+  useProjects,
+  useProject,
+  useCreateProject,
+  useUpdateProject,
   useDeleteProject,
   useProjectStats,
   useRefreshProjects,
@@ -19,19 +19,29 @@ export {
   useSaveProjectFees,
   useSaveProjectIndividualFee,
   useSaveProjectIndividualBeneficiary,
+  useSoftDeleteProjectBeneficiary,
   useSaveProjectBeneficiary,
   useSaveProjectPaymentPlan,
   useSaveProjectFinancial,
   useSaveProjectClosure,
   useSaveProjectReview,
-  useValidateProjectStep
+  useValidateProjectStep,
 } from './useProjects'
 
 // Project Dropdown hooks
-export { useProjectTypes, useProjectStatuses, useProjectCurrencies, useBankAccountStatuses } from './useProjectDropdowns'
+export {
+  useProjectTypes,
+  useProjectStatuses,
+  useProjectCurrencies,
+  useBankAccountStatuses,
+} from './useProjectDropdowns'
 
 // Bank Account hooks
-export { useValidateBankAccount, useSaveBankAccount, useSaveMultipleBankAccounts } from './useBankAccount'
+export {
+  useValidateBankAccount,
+  useSaveBankAccount,
+  useSaveMultipleBankAccounts,
+} from './useBankAccount'
 export { useDebounce } from './useDebounce'
 export { useLocalStorage } from './useLocalStorage'
 export { useIntersectionObserver } from './useIntersectionObserver'
@@ -131,14 +141,18 @@ export {
   useSaveBuildPartnerContact,
   useSaveBuildPartnerFees,
   useSaveBuildPartnerBeneficiary,
+  useBuildPartnerContacts,
+  useBuildPartnerFees,
   useBuildPartnerBeneficiaries,
+  useBuildPartnerBeneficiaryById,
   useUpdateBuildPartnerBeneficiary,
   useDeleteBuildPartnerBeneficiary,
+  useSoftDeleteBuildPartnerBeneficiary,
   useSaveBuildPartnerReview,
   useBuildPartnerStepData,
   useValidateBuildPartnerStep,
   useBuildPartnerStepManager,
-  useBuildPartnerStepStatus
+  useBuildPartnerStepStatus,
 } from './useBuildPartners'
 
 // Validation hooks

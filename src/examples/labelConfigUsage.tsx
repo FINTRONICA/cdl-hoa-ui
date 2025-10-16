@@ -28,7 +28,7 @@ export function LabelConfigExample() {
     clearCache
   } = useLabelConfigApi()
 
-  if (isLoading) return <div>Loading labels...</div>
+  if (isLoading) return <div>Loading...</div>
   if (error) return <div>Error: {error}</div>
   if (!hasLabels()) return <div>No labels available</div>
 
@@ -88,7 +88,7 @@ export function LabelConfigExample() {
 export function LabelConfigQueryExample() {
   const { data: labels, isLoading, error, refetch } = useLabelConfigQuery()
 
-  if (isLoading) return <div>Loading labels with React Query...</div>
+  if (isLoading) return <div>Loading...</div>
   if (error) return <div>Error: {error.message}</div>
 
   return (
@@ -111,7 +111,7 @@ export function LabelConfigQueryExample() {
 export function SpecificLabelExample() {
   const { label, isLoading, error } = useLabelQuery('CDL_TRANS_BP_NAME', 'EN')
 
-  if (isLoading) return <div>Loading specific label...</div>
+  if (isLoading) return <div>Loading...</div>
   if (error) return <div>Error: {error.message}</div>
 
   return (
@@ -126,7 +126,7 @@ export function SpecificLabelExample() {
 export function ModuleLabelsExample() {
   const { labels, isLoading, error, labelMap } = useLabelsByModuleQuery('CDLTRANSACTIONSV1', 'EN')
 
-  if (isLoading) return <div>Loading module labels...</div>
+  if (isLoading) return <div>Loading...</div>
   if (error) return <div>Error: {error.message}</div>
 
   return (

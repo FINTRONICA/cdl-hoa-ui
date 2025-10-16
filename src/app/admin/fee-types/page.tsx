@@ -36,7 +36,7 @@ const FeeTypePage: React.FC = () => {
   const {
     getLabel: getLabelFromApi,
     isLoading: labelsLoading,
-    error: labelsError
+    error: labelsError,
   } = useGroupManagementLabelApi()
 
   // Dynamic label function
@@ -55,21 +55,24 @@ const FeeTypePage: React.FC = () => {
   )
 
   // Table columns with dynamic labels
-  const tableColumns = React.useMemo(() => [
-    {
-      key: 'groupName',
-      label: getGroupManagementLabelDynamic('CDL_ACCESS_GRANT_NAME'),
-      type: 'text' as const,
-      width: 'w-full',
-      sortable: true,
-    },
-    {
-      key: 'actions',
-      label: getGroupManagementLabelDynamic('CDL_ACCESS_GRANT_ACTION'),
-      type: 'custom' as const,
-      width: 'w-20',
-    },
-  ], [getGroupManagementLabelDynamic])
+  const tableColumns = React.useMemo(
+    () => [
+      {
+        key: 'groupName',
+        label: getGroupManagementLabelDynamic('CDL_ACCESS_GRANT_NAME'),
+        type: 'text' as const,
+        width: 'w-full',
+        sortable: true,
+      },
+      {
+        key: 'actions',
+        label: getGroupManagementLabelDynamic('CDL_ACCESS_GRANT_ACTION'),
+        type: 'custom' as const,
+        width: 'w-20',
+      },
+    ],
+    [getGroupManagementLabelDynamic]
+  )
   const [isGroupPanelOpen, setIsGroupPanelOpen] = useState(false)
   const [currentGroup, setCurrentGroup] = useState<GroupManagementData | null>(
     null
@@ -82,7 +85,7 @@ const FeeTypePage: React.FC = () => {
     isLoading: fetching,
     error,
     refetch: refreshGroups,
-  } = useGroups(0, 20)
+  } = useGroups(0, 999)
 
   // Use the group manager hook for CRUD operations
   const { createGroup, deleteGroup, createError, deleteError } =
@@ -163,7 +166,7 @@ const FeeTypePage: React.FC = () => {
   } = useTableState({
     data: groupData,
     searchFields: ['groupName', 'groupId', 'description', 'status'],
-    initialRowsPerPage: 20,
+    initialRowsPerPage: 100,
   })
 
   // Render expanded content
@@ -342,10 +345,10 @@ const FeeTypePage: React.FC = () => {
               <div className="flex flex-col items-center gap-2">
                 <div className="text-gray-500 text-sm">
                   {fetching && labelsLoading
-                    ? 'Loading groups and labels...'
+                    ? 'Loading...'
                     : fetching
-                    ? 'Loading groups...'
-                    : 'Loading labels...'}
+                      ? 'Loading...'
+                      : 'Loading...'}
                 </div>
                 <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
               </div>

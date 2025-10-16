@@ -146,7 +146,7 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
   const {
     getLabel: getLabelFromApi,
     isLoading: labelsLoading,
-    error: labelsError
+    error: labelsError,
   } = useUserManagementLabelApi()
 
   // Dynamic label function
@@ -204,7 +204,9 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
 
       mutation.mutate(payload, {
         onSuccess: () => {
-          alert(`Role ${roleName} ${checked ? 'assigned' : 'unassigned'} successfully`)
+          alert(
+            `Role ${roleName} ${checked ? 'assigned' : 'unassigned'} successfully`
+          )
 
           // If we're updating the current user's permissions, refresh them
           if (userData.userId === currentUserId && currentUserId) {
@@ -257,7 +259,9 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
 
       mutation.mutate(payload, {
         onSuccess: () => {
-          alert(`Group ${groupId} ${checked ? 'assigned' : 'unassigned'} successfully`)
+          alert(
+            `Group ${groupId} ${checked ? 'assigned' : 'unassigned'} successfully`
+          )
 
           // If we're updating the current user's permissions, refresh them
           if (userData.userId === currentUserId && currentUserId) {
@@ -589,7 +593,19 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
                 label="Status"
                 disabled={mode === 'edit' && !isEditMode}
                 IconComponent={KeyboardArrowDownIcon}
-                sx={selectStyles}
+                sx={{
+                  ...selectStyles,
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    border: '1px solid #9ca3af',
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    border: '2px solid #2563eb',
+                  },
+                }}
               >
                 {statusOptions.map((option) => (
                   <MenuItem key={option.value} value={option.value}>
@@ -615,7 +631,8 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
             <>
               <Grid size={{ xs: 12 }}>
                 <span className="font-sans font-medium text-[18px] leading-7 text-[#1E2939]">
-                  {getUserLabelDynamic('CDL_ROLES')} and {getUserLabelDynamic('CDL_PERMISSIONS')}
+                  {getUserLabelDynamic('CDL_ROLES')} and{' '}
+                  {getUserLabelDynamic('CDL_PERMISSIONS')}
                 </span>
               </Grid>
 
@@ -634,7 +651,7 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
                   </Typography>
                   {isLoadingAllRoles ? (
                     <Typography variant="body2" color="text.secondary">
-                      Loading available roles...
+                      Loading...
                     </Typography>
                   ) : allAvailableRoles && allAvailableRoles.length > 0 ? (
                     <Box
@@ -700,7 +717,7 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
                   </Typography>
                   {isLoadingAllGroups ? (
                     <Typography variant="body2" color="text.secondary">
-                      Loading available groups...
+                      Loading...
                     </Typography>
                   ) : allAvailableGroups && allAvailableGroups.length > 0 ? (
                     <Box
@@ -765,7 +782,7 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
                     }}
                   >
                     <Typography variant="body2" color="text.secondary">
-                      Loading user roles and groups...
+                      Loading...
                     </Typography>
                   </Box>
                 </Grid>
@@ -828,7 +845,9 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
           color="primary"
           onClick={mode === 'edit' ? handleSaveUser : handleAddUser}
         >
-          {mode === 'edit' ? getUserLabelDynamic('CDL_SAVE') : getUserLabelDynamic('CDL_ADD_NEW_USER')}
+          {mode === 'edit'
+            ? getUserLabelDynamic('CDL_SAVE')
+            : getUserLabelDynamic('CDL_ADD_NEW_USER')}
         </Button>
       </Box>
     </Drawer>

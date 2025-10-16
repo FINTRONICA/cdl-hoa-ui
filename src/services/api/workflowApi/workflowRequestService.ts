@@ -152,6 +152,7 @@ export interface AwaitingActionsUIData {
   requiredApprovals: number
   approvalsObtained: number
   pendingApprovals: number
+  payloadJson?: Record<string, unknown>
   [key: string]: unknown
 }
 
@@ -199,6 +200,7 @@ export interface EngagementsActionsUIData {
   myRemarks: string
   myActionDate: string
   requestStatus: string
+  payloadJson?: Record<string, unknown>
   [key: string]: unknown
 }
 
@@ -413,6 +415,7 @@ export const mapToAwaitingActionsUIData = (
     requiredApprovals: apiData.requiredApprovals,
     approvalsObtained: apiData.approvalsObtained,
     pendingApprovals: apiData.pendingApprovals,
+    payloadJson: apiData.payloadJson,
   }
 }
 
@@ -453,6 +456,7 @@ export const mapToEngagementsActionsUIData = (
     myRemarks: formatValue(apiData.myRemarks),
     myActionDate: apiData.myActionDate,
     requestStatus: formatValue(apiData.requestStatus),
+    payloadJson: apiData.payloadJson,
   }
 }
 

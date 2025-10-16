@@ -357,7 +357,7 @@ const createTableColumns = (
       MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.APPROVAL_STATUS
     ),
     type: 'status' as const,
-    width: 'w-32',
+    width: 'w-40',
     sortable: true,
   },
   {
@@ -496,17 +496,19 @@ const ManualPaymentPage: React.FC = () => {
   const apiTotalPages = apiPagination.totalPages
 
   // Determine which pagination values to use
-  const effectiveTotalRows = Object.values(search).some((value) => value.trim())
-    ? localTotalRows
-    : apiTotal
-  const effectiveTotalPages = Object.values(search).some((value) =>
-    value.trim()
-  )
-    ? localTotalPages
-    : apiTotalPages
-  const effectivePage = Object.values(search).some((value) => value.trim())
-    ? localPage
-    : currentApiPage
+  const hasActiveSearch = Object.values(search).some((value) => value.trim())
+
+  const effectiveTotalRows = hasActiveSearch ? localTotalRows : apiTotal
+  const effectiveTotalPages = hasActiveSearch ? localTotalPages : apiTotalPages
+  const effectivePage = hasActiveSearch ? localPage : currentApiPage
+
+  // Calculate effective startItem and endItem based on pagination type
+  const effectiveStartItem = hasActiveSearch
+    ? startItem
+    : (currentApiPage - 1) * currentApiSize + 1
+  const effectiveEndItem = hasActiveSearch
+    ? endItem
+    : Math.min(currentApiPage * currentApiSize, apiTotal)
 
   // Action handlers
   const handleViewPayment = useCallback(
@@ -744,8 +746,8 @@ const ManualPaymentPage: React.FC = () => {
                   rowsPerPage: rowsPerPage,
                   totalRows: effectiveTotalRows,
                   totalPages: effectiveTotalPages,
-                  startItem,
-                  endItem,
+                  startItem: effectiveStartItem,
+                  endItem: effectiveEndItem,
                 }}
                 onPageChange={handlePageChange}
                 onRowsPerPageChange={handleRowsPerPageChange}

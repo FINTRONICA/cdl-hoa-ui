@@ -52,12 +52,10 @@ export const useSidebarConfigWithLoading = (): {
   const { currentLanguage } = useSidebarLabelsStore()
   
   const sections = useMemo(() => {
-    // If we're loading, return empty sections to show loading state
     if (isLoading) {
       return []
     }
     
-    // If we have labels, use them to create the dynamic config
     if (labels && Object.keys(labels).length > 0) {
       const getLabel = (sidebarId: string, fallback: string) => 
         SidebarLabelsService.getLabelBySidebarId(labels, sidebarId, currentLanguage, fallback)
@@ -66,15 +64,12 @@ export const useSidebarConfigWithLoading = (): {
       return dynamicConfig
     }
     
-    // If no labels are available (API not accessible), use fallback labels
-    const getLabel = (sidebarId: string, fallback: string) => fallback
-    const fallbackConfig = createSidebarConfig(getLabel)
-    return fallbackConfig
-  }, [labels, currentLanguage, isLoading, error])
+    return []
+  }, [labels, currentLanguage, isLoading])
   
   return {
     sections,
-    isLoading: isLoading,
+    isLoading: isLoading || !labels || Object.keys(labels).length === 0,
     error
   }
 }
