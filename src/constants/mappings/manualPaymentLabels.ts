@@ -5,7 +5,7 @@
 
 export const MANUAL_PAYMENT_LABELS = {
   // Page Title
-  PAGE_TITLE: 'CDL_PAYMENTS', // "Payment Overview"
+  PAGE_TITLE: '', // "Payment Overview"
   
   // Step Labels
   STEPS: {
@@ -25,6 +25,74 @@ export const MANUAL_PAYMENT_LABELS = {
 
   // Form Field Labels
   FORM_FIELDS: {
+    // Voucher Details
+    VOUCHER_NUMBER: 'CDL_VOUCHER_NO', // "Voucher Number" | Type: text | Validation: System Generated
+    DEVELOPER_MANAGEMENT_COMPANY_NAME: 'CDL_DEV_MGMT_COMPANY_NAME', // "Developer/Management Company Name" | Type: dropdown | Validation: Mandatory, All developer and management company ID and name concatenated
+    PROPERTY_NAME: 'CDL_PROPERTY_NAME', // "Property Name" | Type: text | Validation: Non-Editable Mandatory
+    PROJECT_ACCOUNT_STATUS: 'CDL_PROJECT_ACCOUNT_STATUS', // "Project Account Status" | Type: text | Validation: Auto-Populate, Non-Editable Mandatory
+    ESCROW_ACCOUNT_NO: 'CDL_ESCROW_ACCOUNT_NO', // "Escrow Account no." | Type: text | Validation: Auto-Populate, Non-Editable Mandatory
+    RESERVE_ACCOUNT_NO: 'CDL_RESERVE_ACCOUNT_NO', // "Reserve Account no." | Type: text | Validation: Auto-Populate, Non-Editable Mandatory
+    CURRENT_BALANCE_ESCROW: 'CDL_CURRENT_BAL_ESCROW', // "Current Balance in Escrow A/c" | Type: text | Validation: Auto-Populate, Non-Editable Mandatory
+    CURRENT_BALANCE_RESERVE: 'CDL_CURRENT_BAL_RESERVE', // "Current Balance in Reserve A/C" | Type: text | Validation: Auto-Populate, Non-Editable Mandatory
+    
+    RERA_APPROVAL_REF_NO: 'CDL_RERA_APPROVAL_REF_NO', // "RERA Approval Ref no." | Type: text | Validation: Optional, Alphanumeric (17,2)
+    RERA_APPROVAL_DATE: 'CDL_RERA_APPROVAL_DATE', // "RERA Approval DATE" | Type: calendar | Validation: Editable - Optional
+    PARTIAL_PAYMENT: 'CDL_PARTIAL_PAYMENT', // "Partial Payment" | Type: radio | Validation: Mandatory, Values: Yes/No (Default: No)
+    CAP_EXCEEDED_VOUCHER: 'CDL_CAP_EXCEEDED_VOUCHER', // "CAP exceeded" | Type: checkbox | Validation: Optional
+
+    INVOICE_REF_NO: 'CDL_INVOICE_REF_NO', // "Invoice Ref No." | Type: text | Validation: Mandatory, Alphanumeric (15,0)
+    INVOICE_VALUE_VOUCHER: 'CDL_INVOICE_VALUE_VOUCHER', // "Invoice Value" | Type: text | Validation: Mandatory, Numeric (17,2), Currency type dropdown available
+    INVOICE_DATE_VOUCHER: 'CDL_INVOICE_DATE_VOUCHER', // "Invoice date" | Type: calendar | Validation: Mandatory, Default to current date
+
+    RT03: 'CDL_RT03', // "RT03" | Type: text | Validation: Optional, Alphanumeric (20,2)
+    TOTAL_ELIGIBLE_AMOUNT_INVOICE: 'CDL_TOTAL_ELIGIBLE_AMT_INVOICE', // "Total eligible amount (Invoice)" | Type: text | Validation: Optional, Numeric (20,2)
+
+    AMOUNT_PAID_AGAINST_INVOICE: 'CDL_AMOUNT_PAID_AGAINST_INVOICE', // "Amount Paid against Invoice" | Type: text | Validation: Optional, Numeric (15,0)
+    
+    TOTAL_AMOUNT_PAID_PAYMENT_TYPE: 'CDL_TOTAL_AMT_PAID_PAYMENT_TYPE', // "Total amount paid (payment Type)" | Type: text | Validation: Optional, Numeric (20,2)
+    PAYMENT_CURRENCY_VOUCHER: 'CDL_PAYMENT_CURRENCY_VOUCHER', // "Payment Currency" | Type: text | Validation: Optional, Alphanumeric (20,2)
+    DEBIT_FROM_ESCROW_AED: 'CDL_DEBIT_FROM_ESCROW_AED', // "Debit from Escrow (AED)" | Type: text | Validation: Optional, Numeric (20,2)
+
+
+    CURRENT_ELIGIBLE_AMOUNT_VOUCHER: 'CDL_CURRENT_ELIGIBLE_AMT_VOUCHER', // "Current Eligible Amount" | Type: text | Validation: Optional, Numeric (20,2)
+    DEBIT_FROM_RESERVE_AED: 'CDL_DEBIT_FROM_RESERVE_AED', // "Debit from Reserve (AED)" | Type: text | Validation: Optional, Numeric (20,2)
+    TOTAL_PAYOUT_AMOUNT_VOUCHER: 'CDL_TOTAL_PAYOUT_AMT_VOUCHER', // "Total Payout Amount" | Type: text | Validation: Optional, Numeric (20,2)
+    AMOUNT_IN_TRANSIT_VOUCHER: 'CDL_AMOUNT_IN_TRANSIT_VOUCHER', // "Amount In Transit" | Type: text | Validation: Optional, Numeric (20,2)
+    
+    // Unit Cancellation Details
+    UNIT_NO_CANCEL: 'CDL_UNIT_NO_CANCEL', // "Unit No." | Type: text | Validation: Mandatory
+    TOWER_NAME_CANCEL: 'CDL_TOWER_NAME_CANCEL', // "Tower Name" | Type: text | Validation: Optional
+    UNIT_STATUS_CANCEL: 'CDL_UNIT_STATUS_CANCEL', // "Unit Status" | Type: text | Validation: Optional
+    AMOUNT_RECEIVED_FROM_UNIT_HOLDER: 'CDL_AMT_RECEIVED_UNIT_HOLDER', // "Amount received from Unit Holder" | Type: text | Validation: Mandatory, Numeric
+    
+    // Budget Details
+    BUDGET_YEAR: 'CDL_BUDGET_YEAR', // "Budget Year" | Type: dropdown | Validation: Optional
+    BUDGET_CATEGORY: 'CDL_BUDGET_CATEGORY', // "Category" | Type: dropdown | Validation: Optional
+    BUDGET_SUBCATEGORY: 'CDL_BUDGET_SUBCATEGORY', // "Subcategory" | Type: dropdown | Validation: Optional
+    BUDGET_CATEGORY_CODE: 'CDL_BUDGET_CATEGORY_CODE', // "Category Code" | Type: text | Validation: Optional, Auto-Populate based on Category from Budget Master
+    BUDGET_SUBCATEGORY_CODE: 'CDL_BUDGET_SUBCATEGORY_CODE', // "Subcategory Code" | Type: text | Validation: Optional, Auto-Populate
+    BUDGET_SERVICE_NAME: 'CDL_BUDGET_SERVICE_NAME', // "Service Name" | Type: dropdown | Validation: Optional
+    BUDGET_SERVICE_CODE: 'CDL_BUDGET_SERVICE_CODE', // "Service Code" | Type: text | Validation: Optional, Auto-Populate based on Category from Budget Master
+    PROVISIONAL_BUDGET: 'CDL_PROVISIONAL_BUDGET', // "Provisional Budget" | Type: checkbox | Validation: Optional
+    PROVISIONAL_BUDGET_CODE: 'CDL_PROVISIONAL_BUDGET_CODE', // "Provisional Budget Code" | Type: text | Validation: Optional, Auto-Populate based on Category from Budget Master
+    AVAILABLE_BUDGET_AMOUNT: 'CDL_AVAILABLE_BUDGET_AMT', // "Available Budget Amount" | Type: text | Validation: Auto-Populate based on category, subcategory, sub to sub category and service selection
+    UTILIZED_BUDGET_AMOUNT: 'CDL_UTILIZED_BUDGET_AMT', // "Utilized Budget Amount" | Type: text | Validation: Auto-Populate based on category, subcategory, sub to sub category and service selection
+    INVOICE_AMOUNT_BUDGET: 'CDL_INVOICE_AMT_BUDGET', // "Invoice Amount" | Type: text | Validation: Auto-Populate based on category, subcategory, sub to sub category and service selection
+    RERA_EXCEPTION: 'CDL_RERA_EXCEPTION', // "RERA Exception" | Type: checkbox | Validation: Optional/Default to uncheck, If checked system to utilize invoice amount as budget utilized
+    
+    // Beneficiary Details
+    BENEFICIARY_ACCOUNT_NUMBER: 'CDL_BENEFICIARY_ACCOUNT_NO', // "Beneficiary Account number" | Type: dropdown | Validation: Auto Populate from Beneficiary Master for selected payment category
+    BENEFICIARY_NAME: 'CDL_BENEFICIARY_NAME', // "Beneficiary Name" | Type: text | Validation: Auto Populate from Beneficiary Master for selected payment category, Alphanumeric (80/0)
+    BENEFICIARY_BANK: 'CDL_BENEFICIARY_BANK', // "Beneficiary Bank" | Type: text | Validation: Auto Populate from Beneficiary Master for selected payment category
+    BENEFICIARY_SWIFT: 'CDL_BENEFICIARY_SWIFT', // "Beneficiary Swift" | Type: text | Validation: Auto Populate from Beneficiary Master, Validate Swift through core integration
+    BENEFICIARY_ROUTING_CODE: 'CDL_BENEFICIARY_ROUTING_CODE', // "Beneficiary Routing code" | Type: text | Validation: Auto Populate from master, Validate with core, Alphanumeric(10,0)
+    BENEFICIARY_ACCOUNT_IBAN: 'CDL_BENEFICIARY_ACCOUNT_IBAN', // "Beneficiary Account no / IBAN" | Type: text | Validation: Auto Populate from Beneficiary Master, Validate IBAN/Currency/BIC against Core
+    TRANSFER_TYPE: 'CDL_TRANSFER_TYPE', // "Transfer Type" | Type: dropdown | Validation: Mandatory, Values: TR(Transfer), TT (Telegraphic Transfer), MC (Manager's Cheque)
+    ROUTING_SORT_CODE: 'CDL_ROUTING_SORT_CODE', // "Routing/Sort Code" | Type: text | Validation: Mandatory, Alphanumeric (20,0), non-mandatory for internal Transfer
+    
+
+
+    
     TAS_REFERENCE: 'CDL_PAYMENTS_EMS_REFNO', // "EMS Payment Reference Number"
     DEVELOPER_NAME: 'CDL_TRANS_BP_NAME', // "Build Partner Name"
     DEVELOPER_ID: 'CDL_TRANS_BP_NAME', // "Build Partner Name"
@@ -220,6 +288,7 @@ export const MANUAL_PAYMENT_LABELS = {
   // Loading Labels for Dynamic Dropdowns
   LOADING_LABELS: {
     DEVELOPER_NAME: 'Loading Developer...',
+    DEVELOPER_MANAGEMENT_COMPANY_NAME: 'Loading Developer/Management Company...',
     PROJECT_NAME: 'Loading Project...',
     PAYMENT_TYPE: 'Loading Payment Type...',
     PAYMENT_SUB_TYPE: 'Loading Payment Sub Type...',
@@ -233,11 +302,16 @@ export const MANUAL_PAYMENT_LABELS = {
     TRANSACTION_TYPE: 'Loading Transaction Type...',
     BANK_CHARGES: 'Loading Bank Charges...',
     TOTAL_AMOUNT_PAID: 'Loading Amount...',
+    BUDGET_YEAR: 'Loading Budget Year...',
+    BUDGET_CATEGORY: 'Loading Category...',
+    BUDGET_SUBCATEGORY: 'Loading Subcategory...',
+    BUDGET_SERVICE_NAME: 'Loading Service Name...',
+    BENEFICIARY_ACCOUNT_NUMBER: 'Loading Beneficiary Account...',
   },
 
   // Fallback Labels (used when API doesn't have the specific label)
   FALLBACKS: {
-    PAGE_TITLE: 'Manual Payments',
+    PAGE_TITLE: 'Voucher Details',
     STEPS: {
       DETAILS: 'Payment Details',
       DOCUMENTS: 'Documents',
@@ -251,6 +325,64 @@ export const MANUAL_PAYMENT_LABELS = {
       UNIT_CANCELLATION: 'Unit Cancellation Details',
     },
     FORM_FIELDS: {
+      // Voucher Details Fallbacks
+      VOUCHER_NUMBER: 'Voucher Number',
+      DEVELOPER_MANAGEMENT_COMPANY_NAME: 'Developer/Management Company Name',
+      PROPERTY_NAME: 'Property Name',
+      PROJECT_ACCOUNT_STATUS: 'Project Account Status',
+      ESCROW_ACCOUNT_NO: 'Escrow Account no.',
+      RESERVE_ACCOUNT_NO: 'Reserve Account no.',
+      CURRENT_BALANCE_ESCROW: 'Current Balance in Escrow A/c',
+      CURRENT_BALANCE_RESERVE: 'Current Balance in Reserve A/C',
+      RERA_APPROVAL_REF_NO: 'RERA Approval Ref no.',
+      RERA_APPROVAL_DATE: 'RERA Approval DATE',
+      PARTIAL_PAYMENT: 'Partial Payment',
+      INVOICE_REF_NO: 'Invoice Ref No.',
+      INVOICE_VALUE_VOUCHER: 'Invoice Value',
+      INVOICE_DATE_VOUCHER: 'Invoice date',
+      RT03: 'RT03',
+      TOTAL_ELIGIBLE_AMOUNT_INVOICE: 'Total eligible amount (Invoice)',
+      AMOUNT_PAID_AGAINST_INVOICE: 'Amount Paid against Invoice',
+      CAP_EXCEEDED_VOUCHER: 'CAP exceeded',
+      TOTAL_AMOUNT_PAID_PAYMENT_TYPE: 'Total amount paid (payment Type)',
+      PAYMENT_CURRENCY_VOUCHER: 'Payment Currency',
+      DEBIT_FROM_ESCROW_AED: 'Debit from Escrow (AED)',
+      CURRENT_ELIGIBLE_AMOUNT_VOUCHER: 'Current Eligible Amount',
+      DEBIT_FROM_RESERVE_AED: 'Debit from Reserve (AED)',
+      TOTAL_PAYOUT_AMOUNT_VOUCHER: 'Total Payout Amount',
+      AMOUNT_IN_TRANSIT_VOUCHER: 'Amount In Transit',
+      
+      // Unit Cancellation Details Fallbacks
+      UNIT_NO_CANCEL: 'Unit No.',
+      TOWER_NAME_CANCEL: 'Tower Name',
+      UNIT_STATUS_CANCEL: 'Unit Status',
+      AMOUNT_RECEIVED_FROM_UNIT_HOLDER: 'Amount received from Unit Holder',
+      
+      // Budget Details Fallbacks
+      BUDGET_YEAR: 'Budget Year',
+      BUDGET_CATEGORY: 'Category',
+      BUDGET_SUBCATEGORY: 'Subcategory',
+      BUDGET_CATEGORY_CODE: 'Category Code',
+      BUDGET_SUBCATEGORY_CODE: 'Subcategory Code',
+      BUDGET_SERVICE_NAME: 'Service Name',
+      BUDGET_SERVICE_CODE: 'Service Code',
+      PROVISIONAL_BUDGET: 'Provisional Budget',
+      PROVISIONAL_BUDGET_CODE: 'Provisional Budget Code',
+      AVAILABLE_BUDGET_AMOUNT: 'Available Budget Amount',
+      UTILIZED_BUDGET_AMOUNT: 'Utilized Budget Amount',
+      INVOICE_AMOUNT_BUDGET: 'Invoice Amount',
+      RERA_EXCEPTION: 'RERA Exception',
+      
+      // Beneficiary Details Fallbacks
+      BENEFICIARY_ACCOUNT_NUMBER: 'Beneficiary Account number',
+      BENEFICIARY_NAME: 'Beneficiary Name',
+      BENEFICIARY_BANK: 'Beneficiary Bank',
+      BENEFICIARY_SWIFT: 'Beneficiary Swift',
+      BENEFICIARY_ROUTING_CODE: 'Beneficiary Routing code',
+      BENEFICIARY_ACCOUNT_IBAN: 'Beneficiary Account no / IBAN',
+      TRANSFER_TYPE: 'Transfer Type',
+      ROUTING_SORT_CODE: 'Routing/Sort Code',
+      
       TAS_REFERENCE: 'Tas/EMS Payment Ref no.',
       DEVELOPER_NAME: 'Developer Name',
       DEVELOPER_ID: 'Developer ID',
@@ -413,6 +545,7 @@ export const getManualPaymentLoadingLabel = (fieldName: string, originalLabel?: 
   const loadingLabels: Record<string, string> = {
     // Form field names (lowercase)
     developerName: MANUAL_PAYMENT_LABELS.LOADING_LABELS.DEVELOPER_NAME,
+    developerManagementCompanyName: MANUAL_PAYMENT_LABELS.LOADING_LABELS.DEVELOPER_MANAGEMENT_COMPANY_NAME,
     projectName: MANUAL_PAYMENT_LABELS.LOADING_LABELS.PROJECT_NAME,
     paymentType: MANUAL_PAYMENT_LABELS.LOADING_LABELS.PAYMENT_TYPE,
     paymentSubType: MANUAL_PAYMENT_LABELS.LOADING_LABELS.PAYMENT_SUB_TYPE,
@@ -426,9 +559,15 @@ export const getManualPaymentLoadingLabel = (fieldName: string, originalLabel?: 
     transactionType: MANUAL_PAYMENT_LABELS.LOADING_LABELS.TRANSACTION_TYPE,
     bankCharges: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BANK_CHARGES,
     totalAmountPaid: MANUAL_PAYMENT_LABELS.LOADING_LABELS.TOTAL_AMOUNT_PAID,
+    budgetYear: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BUDGET_YEAR,
+    budgetCategory: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BUDGET_CATEGORY,
+    budgetSubcategory: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BUDGET_SUBCATEGORY,
+    budgetServiceName: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BUDGET_SERVICE_NAME,
+    beneficiaryAccountNumber: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BENEFICIARY_ACCOUNT_NUMBER,
     
     // API config ID names (uppercase)
     DEVELOPER_NAME: MANUAL_PAYMENT_LABELS.LOADING_LABELS.DEVELOPER_NAME,
+    DEVELOPER_MANAGEMENT_COMPANY_NAME: MANUAL_PAYMENT_LABELS.LOADING_LABELS.DEVELOPER_MANAGEMENT_COMPANY_NAME,
     PROJECT_NAME: MANUAL_PAYMENT_LABELS.LOADING_LABELS.PROJECT_NAME,
     PAYMENT_TYPE: MANUAL_PAYMENT_LABELS.LOADING_LABELS.PAYMENT_TYPE,
     PAYMENT_SUB_TYPE: MANUAL_PAYMENT_LABELS.LOADING_LABELS.PAYMENT_SUB_TYPE,
@@ -442,6 +581,11 @@ export const getManualPaymentLoadingLabel = (fieldName: string, originalLabel?: 
     TRANSACTION_TYPE: MANUAL_PAYMENT_LABELS.LOADING_LABELS.TRANSACTION_TYPE,
     BANK_CHARGES: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BANK_CHARGES,
     TOTAL_AMOUNT_PAID: MANUAL_PAYMENT_LABELS.LOADING_LABELS.TOTAL_AMOUNT_PAID,
+    BUDGET_YEAR: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BUDGET_YEAR,
+    BUDGET_CATEGORY: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BUDGET_CATEGORY,
+    BUDGET_SUBCATEGORY: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BUDGET_SUBCATEGORY,
+    BUDGET_SERVICE_NAME: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BUDGET_SERVICE_NAME,
+    BENEFICIARY_ACCOUNT_NUMBER: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BENEFICIARY_ACCOUNT_NUMBER,
   }
 
   return loadingLabels[fieldName] || (originalLabel ? `Loading ${originalLabel.replace(/\*/g, '').trim()}...` : 'Loading...')

@@ -169,6 +169,26 @@ export const createSidebarConfig = (getLabel: LabelResolver): SidebarSection[] =
           href: '/transactions/deposits',
           permissions: ['*'],
         },
+        {
+          id: 'Payment',
+          label: 'payment',
+          icon: Banknote,
+  
+          children: [
+            {
+              id: 'voucher',
+              label: 'Voucher',
+              icon: BanknoteArrowUp,
+              href: '/transactions/manual',
+            },
+            // {
+            //   id: 'online-payment',
+            //   label: 'Online Payment',
+            //   icon: BanknoteArrowUp,
+            //   href: '/admin/workflow/action',
+            // },
+          ],
+        },
       // {
       //   id: 'manual',
       //   label: getLabel('manual', 'Manual Payment'),
@@ -435,83 +455,83 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
   //     },
   //   ],
   // },
-  // {
-  //   id: 'system-admin',
-  //   label: 'SYSTEM ADMIN',
-  //   icon: UserCog,
-  //   items: [
-  //     {
-  //       id: 'bank',
-  //       label: 'Bank Management',
-  //       icon: Landmark,
-  //       href: '/admin/bank-management',
-  //     },
-  //     {
-  //       id: 'user',
-  //       label: 'User Management',
-  //       icon: UserPen,
-  //       href: '/admin/user-management',
-  //     },
-  //     {
-  //       id: 'role',
-  //       label: 'Role Management',
-  //       icon: ListChecks,
-  //       href: '/admin/role-management',
-  //     },
-  //     {
-  //       id: 'fee-type',
-  //       label: 'Fee Type',
-  //       icon: Banknote,
-  //       href: '/admin/fee-types',
-  //     },
-  //     {
-  //       id: 'security',
-  //       label: 'Security',
-  //       icon: Shield,
-  //       href: '/admin/security',
-  //     },
-  //     {
-  //       id: 'workflow',
-  //       label: 'WORK FLOW',
-  //       icon: Workflow,
+  {
+    id: 'system-admin',
+    label: 'SYSTEM ADMIN',
+    icon: UserCog,
+    items: [
+      {
+        id: 'bank',
+        label: 'Bank Management',
+        icon: Landmark,
+        href: '/admin/bank-management',
+      },
+      {
+        id: 'user',
+        label: 'User Management',
+        icon: UserPen,
+        href: '/admin/user-management',
+      },
+      {
+        id: 'role',
+        label: 'Role Management',
+        icon: ListChecks,
+        href: '/admin/role-management',
+      },
+      {
+        id: 'fee-type',
+        label: 'Fee Type',
+        icon: Banknote,
+        href: '/admin/fee-types',
+      },
+      {
+        id: 'security',
+        label: 'Security',
+        icon: Shield,
+        href: '/admin/security',
+      },
+      {
+        id: 'workflow',
+        label: 'WORK FLOW',
+        icon: Workflow,
 
-  //       children: [
-  //         {
-  //           id: 'workflow-action',
-  //           label: 'Action',
-  //           icon: BanknoteArrowUp,
-  //           href: '/admin/workflow/action',
-  //         },
-  //         {
-  //           id: 'workflow-definition',
-  //           label: 'Definition',
-  //           icon: Tv,
-  //           href: '/admin/workflow/definition',
-  //         },
+        children: [
+          {
+            id: 'workflow-action',
+            label: 'Action',
+            icon: BanknoteArrowUp,
+            href: '/admin/workflow/action',
+          },
+          {
+            id: 'workflow-definition',
+            label: 'Definition',
+            icon: Tv,
+            href: '/admin/workflow/definition',
+          },
 
-  //         {
-  //           id: 'workflow-stage-template',
-  //           label: 'Stage Template',
-  //           icon: ArrowsUpFromLine,
-  //           href: '/admin/workflow/stage-template',
-  //         },
-  //         {
-  //           id: 'workflow-amount-rule',
-  //           label: 'Amount Rule',
-  //           icon: HandCoins,
-  //           href: '/admin/workflow/amount-rule',
-  //         },
-  //         {
-  //           id: 'amount-stage-overrides',
-  //           label: 'Amount Stage ',
-  //           icon: UserPen,
-  //           href: '/admin/workflow/amount-stage-override',
+          {
+            id: 'workflow-stage-template',
+            label: 'Stage Template',
+            icon: ArrowsUpFromLine,
+            href: '/admin/workflow/stage-template',
+          },
+          {
+            id: 'workflow-amount-rule',
+            label: 'Amount Rule',
+            icon: HandCoins,
+            href: '/admin/workflow/amount-rule',
+          },
+          {
+            id: 'amount-stage-overrides',
+            label: 'Amount Stage ',
+            icon: UserPen,
+            href: '/admin/workflow/amount-stage-override',
 
-  //         },
-  //       ],
-  //     },
-  //   ],
-  // },
+          },
+        ],
+      },
+    ],
+  },
 ] as const
 
 export type { SidebarItem, SidebarSection, LabelResolver } 
