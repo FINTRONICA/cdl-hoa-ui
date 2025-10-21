@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import dayjs from 'dayjs'
-import { useManualPaymentData } from '../ManualPaymentDataProvider'
-import { idService } from '../../../../services/api/developerIdService'
-import { useManualPaymentLabelsWithCache } from '../../../../hooks/useManualPaymentLabelsWithCache'
-import { MANUAL_PAYMENT_LABELS } from '../../../../constants/mappings/manualPaymentLabels'
+import React, { useState, useEffect, useMemo } from "react";
+import dayjs from "dayjs";
+import { useManualPaymentData } from "../ManualPaymentDataProvider";
+import { idService } from "../../../../services/api/developerIdService";
+import { useManualPaymentLabelsWithCache } from "../../../../hooks/useManualPaymentLabelsWithCache";
+import { MANUAL_PAYMENT_LABELS } from "../../../../constants/mappings/manualPaymentLabels";
 // State for developer names
 
 import {
@@ -20,25 +20,28 @@ import {
   Select,
   TextField,
   Typography,
-} from '@mui/material'
+  FormLabel,
+  Radio,
+  RadioGroup,
+} from "@mui/material";
 import {
   KeyboardArrowDown as KeyboardArrowDownIcon,
   Refresh as RefreshIcon,
-} from '@mui/icons-material'
-import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers'
-import { Controller, useFormContext } from 'react-hook-form'
-import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined'
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
-import { fundEgressService } from '../../../../services/api/fundEgressService'
+} from "@mui/icons-material";
+import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
+import { Controller, useFormContext } from "react-hook-form";
+import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { fundEgressService } from "../../../../services/api/fundEgressService";
 // import { toast } from 'react-hot-toast' // Not used in this component
-import { FormError } from '../../../atoms/FormError'
-import { getFieldMaxLength } from '@/lib/validation'
+import { FormError } from "../../../atoms/FormError";
+import { getFieldMaxLength } from "@/lib/validation";
 
 interface Step1Props {
-  savedId?: string | null
-  isEditMode?: boolean
-  onDataLoaded?: () => void
-  isReadOnly?: boolean
+  savedId?: string | null;
+  isEditMode?: boolean;
+  onDataLoaded?: () => void;
+  isReadOnly?: boolean;
 }
 
 const Step1 = ({
@@ -48,17 +51,17 @@ const Step1 = ({
   isReadOnly = false,
 }: Step1Props) => {
   // Form context
-  const { control, setValue, watch, trigger } = useFormContext()
+  const { control, setValue, watch, trigger } = useFormContext();
 
   // Get dynamic labels
-  const { getLabel } = useManualPaymentLabelsWithCache('EN')
+  const { getLabel } = useManualPaymentLabelsWithCache("EN");
 
   // Get shared data from provider
-  const sharedData = useManualPaymentData()
+  const sharedData = useManualPaymentData();
 
   // State for payment reference ID generation
-  const [paymentRefId, setPaymentRefId] = useState<string>('')
-  const [isGeneratingId, setIsGeneratingId] = useState<boolean>(false)
+  const [paymentRefId, setPaymentRefId] = useState<string>("");
+  const [isGeneratingId, setIsGeneratingId] = useState<boolean>(false);
 
   // Extract data from shared provider
   const {
@@ -73,7 +76,7 @@ const Step1 = ({
     realEstateAssets,
     buildPartners,
     accountBalances,
-  } = sharedData
+  } = sharedData;
 
   // Destructure account balance functions
   const {
@@ -81,15 +84,15 @@ const Step1 = ({
     loadingStates,
     errors: accountErrors,
     fetchBalance,
-  } = accountBalances
+  } = accountBalances;
 
   // State to store additional developer/project data from prepopulated data
   const [additionalDeveloperNames, setAdditionalDeveloperNames] = useState<
     string[]
-  >([])
+  >([]);
   const [additionalProjectAssets, setAdditionalProjectAssets] = useState<
     { id: number; reaName: string; reaId: string }[]
-  >([])
+  >([]);
 
   // Memoize developer names from build partners data + any additional names
   const developerNames = useMemo(() => {
@@ -98,155 +101,155 @@ const Step1 = ({
         ? buildPartners.data
             .map((bp: any) => bp.bpName)
             .filter((name: string | null) => !!name)
-        : []
+        : [];
 
     // Combine base names with additional names, removing duplicates
-    const allNames = [...baseNames, ...additionalDeveloperNames]
-    return [...new Set(allNames)].filter(Boolean)
-  }, [buildPartners.data, additionalDeveloperNames])
+    const allNames = [...baseNames, ...additionalDeveloperNames];
+    return [...new Set(allNames)].filter(Boolean);
+  }, [buildPartners.data, additionalDeveloperNames]);
 
   // Memoize project assets from real estate assets data + any additional assets
   const projectAssets = useMemo(() => {
     const baseAssets =
       realEstateAssets.data && realEstateAssets.data.length > 0
         ? realEstateAssets.data
-        : []
+        : [];
 
     // Combine base assets with additional assets, removing duplicates by ID
-    const allAssets = [...baseAssets, ...additionalProjectAssets]
+    const allAssets = [...baseAssets, ...additionalProjectAssets];
     const uniqueAssets = allAssets.reduce((acc: any[], asset: any) => {
       if (!acc.find((a: any) => a.id === asset.id)) {
-        acc.push(asset)
+        acc.push(asset);
       }
-      return acc
-    }, [])
+      return acc;
+    }, []);
 
-    return uniqueAssets
-  }, [realEstateAssets.data, additionalProjectAssets])
+    return uniqueAssets;
+  }, [realEstateAssets.data, additionalProjectAssets]);
 
   // State to track if prepopulation has been attempted
   const [prepopulationAttempted, setPrepopulationAttempted] =
-    useState<boolean>(false)
+    useState<boolean>(false);
 
   // Handle data prepopulation when in edit mode
   useEffect(() => {
     const prepopulateData = async () => {
       if (isEditMode && savedId && !prepopulationAttempted) {
         try {
-          const savedData = await fundEgressService.getFundEgressById(savedId)
+          const savedData = await fundEgressService.getFundEgressById(savedId);
 
           // Map the saved data to form format - comprehensive field mapping
           const formData = {
             // Basic Payment Information
-            tasReference: savedData.fePaymentRefNumber || '',
+            tasReference: savedData.fePaymentRefNumber || "",
 
             // Developer Information
-            developerName: savedData.buildPartnerDTO?.bpName || '',
-            developerId: savedData.buildPartnerDTO?.bpDeveloperId || '',
+            developerName: savedData.buildPartnerDTO?.bpName || "",
+            developerId: savedData.buildPartnerDTO?.bpDeveloperId || "",
 
             // Project Information
-            projectName: savedData.realEstateAssestDTO?.id?.toString() || '',
-            projectId: savedData.realEstateAssestDTO?.reaId || '',
+            projectName: savedData.realEstateAssestDTO?.id?.toString() || "",
+            projectId: savedData.realEstateAssestDTO?.reaId || "",
 
             // Narrations and Remarks
-            narration1: savedData.feNarration1 || '',
-            narration2: savedData.feNarration2 || '',
-            remarks: savedData.feRemark || '',
+            narration1: savedData.feNarration1 || "",
+            narration2: savedData.feNarration2 || "",
+            remarks: savedData.feRemark || "",
 
             // Payment Type Information (use expenseTypeDTO instead of voucherPaymentTypeDTO)
             paymentType:
               (savedData.expenseTypeDTO as any)?.id?.toString() ||
               savedData.voucherPaymentTypeDTO?.id?.toString() ||
-              '',
+              "",
             paymentSubType:
               (savedData.expenseSubTypeDTO as any)?.id?.toString() ||
               savedData.voucherPaymentSubTypeDTO?.id?.toString() ||
-              '',
+              "",
 
             // Payment Details
-            paymentMode: savedData.paymentModeDTO?.id?.toString() || '',
-            invoiceCurrency: savedData.invoiceCurrencyDTO?.id?.toString() || '',
-            paymentCurrency: savedData.paymentCurrencyDTO?.id?.toString() || '',
-            chargeCode: savedData.chargedCodeDTO?.id?.toString() || '',
-            transactionType: savedData.transactionTypeDTO?.id?.toString() || '',
+            paymentMode: savedData.paymentModeDTO?.id?.toString() || "",
+            invoiceCurrency: savedData.invoiceCurrencyDTO?.id?.toString() || "",
+            paymentCurrency: savedData.paymentCurrencyDTO?.id?.toString() || "",
+            chargeCode: savedData.chargedCodeDTO?.id?.toString() || "",
+            transactionType: savedData.transactionTypeDTO?.id?.toString() || "",
 
             // Financial Fields
-            invoiceRef: savedData.feInvoiceRefNo || '',
-            invoiceValue: savedData.feInvoiceValue?.toString() || '',
+            invoiceRef: savedData.feInvoiceRefNo || "",
+            invoiceValue: savedData.feInvoiceValue?.toString() || "",
             invoiceDate:
-              savedData.feInvoiceDate && savedData.feInvoiceDate !== ''
+              savedData.feInvoiceDate && savedData.feInvoiceDate !== ""
                 ? dayjs(savedData.feInvoiceDate)
                 : null,
             paymentDate:
-              savedData.fePaymentDate && savedData.fePaymentDate !== ''
+              savedData.fePaymentDate && savedData.fePaymentDate !== ""
                 ? dayjs(savedData.fePaymentDate)
                 : null,
-            paymentAmount: savedData.fePaymentAmount?.toString() || '',
-            totalAmountPaid: savedData.feTotalAmountPaid?.toString() || '',
+            paymentAmount: savedData.fePaymentAmount?.toString() || "",
+            totalAmountPaid: savedData.feTotalAmountPaid?.toString() || "",
 
             // Account Balances
-            escrowBalance: savedData.feCurBalInEscrowAcc?.toString() || '',
+            escrowBalance: savedData.feCurBalInEscrowAcc?.toString() || "",
             retentionBalance:
-              savedData.feCurBalInRetentionAcc?.toString() || '',
-            corporateBalance: savedData.feCorporateAccBalance?.toString() || '',
-            subConsBalance: savedData.feSubConsAccBalance?.toString() || '',
+              savedData.feCurBalInRetentionAcc?.toString() || "",
+            corporateBalance: savedData.feCorporateAccBalance?.toString() || "",
+            subConsBalance: savedData.feSubConsAccBalance?.toString() || "",
 
             // Debit/Credit Amounts
-            debitFromEscrow: savedData.feDebitFromEscrow?.toString() || '',
+            debitFromEscrow: savedData.feDebitFromEscrow?.toString() || "",
             debitFromRetention:
-              savedData.feDebitFromRetention?.toString() || '',
+              savedData.feDebitFromRetention?.toString() || "",
 
             // Engineer Fee Information (using correct field names)
             engineerApprovedAmount:
-              savedData.feEngineerApprovedAmt?.toString() || '',
+              savedData.feEngineerApprovedAmt?.toString() || "",
             corporatePaymentEngFee:
-              savedData.feCorporatePaymentEngFee?.toString() || '',
+              savedData.feCorporatePaymentEngFee?.toString() || "",
 
             // Additional Financial Fields (using correct field names)
             totalEligibleAmount:
-              savedData.feTotalEligibleAmtInv?.toString() || '',
-            amountPaid: savedData.feAmtPaidAgainstInv?.toString() || '',
-            currentEligibleAmt: savedData.feCurEligibleAmt?.toString() || '',
-            totalPayoutAmt: savedData.feTotalPayoutAmt?.toString() || '',
-            amountInTransit: savedData.feAmountInTransit?.toString() || '',
-            indicativeRate: savedData.feIndicativeRate?.toString() || '',
+              savedData.feTotalEligibleAmtInv?.toString() || "",
+            amountPaid: savedData.feAmtPaidAgainstInv?.toString() || "",
+            currentEligibleAmt: savedData.feCurEligibleAmt?.toString() || "",
+            totalPayoutAmt: savedData.feTotalPayoutAmt?.toString() || "",
+            amountInTransit: savedData.feAmountInTransit?.toString() || "",
+            indicativeRate: savedData.feIndicativeRate?.toString() || "",
             amountToBeReleased:
-              savedData.feAmountToBeReleased?.toString() || '',
-            beneVatPaymentAmt: savedData.feBeneVatPaymentAmt?.toString() || '',
+              savedData.feAmountToBeReleased?.toString() || "",
+            beneVatPaymentAmt: savedData.feBeneVatPaymentAmt?.toString() || "",
 
             // Boolean Flags
-            corporatePayment: savedData.feCorporatePayment ? 'true' : 'false',
-            specialRate: savedData.feSpecialRate ? 'true' : 'false',
-            isEngineerFee: savedData.feIsEngineerFee ? 'true' : 'false',
-            forFeit: savedData.feForFeit ? 'true' : 'false',
+            corporatePayment: savedData.feCorporatePayment ? "true" : "false",
+            specialRate: savedData.feSpecialRate ? "true" : "false",
+            isEngineerFee: savedData.feIsEngineerFee ? "true" : "false",
+            forFeit: savedData.feForFeit ? "true" : "false",
             refundToUnitHolder: savedData.feRefundToUnitHolder
-              ? 'true'
-              : 'false',
+              ? "true"
+              : "false",
             transferToOtherUnit: savedData.feTransferToOtherUnit
-              ? 'true'
-              : 'false',
-            docVerified: savedData.feDocVerified ? 'true' : 'false',
+              ? "true"
+              : "false",
+            docVerified: savedData.feDocVerified ? "true" : "false",
 
             // Forfeit Amount
-            forFeitAmt: savedData.feForFeitAmt?.toString() || '',
+            forFeitAmt: savedData.feForFeitAmt?.toString() || "",
 
             // Date Fields
             unitTransferAppDate:
               savedData.feUnitTransferAppDate &&
-              savedData.feUnitTransferAppDate !== ''
+              savedData.feUnitTransferAppDate !== ""
                 ? dayjs(savedData.feUnitTransferAppDate)
                 : null,
             paymentSubType1:
               savedData.feReraApprovedDate &&
-              savedData.feReraApprovedDate !== ''
+              savedData.feReraApprovedDate !== ""
                 ? dayjs(savedData.feReraApprovedDate)
                 : null, // Regular approval date
             engineerFeePayment1:
               savedData.feBeneDateOfPayment &&
-              savedData.feBeneDateOfPayment !== ''
+              savedData.feBeneDateOfPayment !== ""
                 ? dayjs(savedData.feBeneDateOfPayment)
                 : null, // Payment date
-          }
+          };
 
           // Add developer name to additional names if not in current list
           if (
@@ -256,23 +259,23 @@ const Step1 = ({
             setAdditionalDeveloperNames((prev) => [
               ...prev,
               formData.developerName,
-            ])
+            ]);
           }
 
           // Add project asset to additional assets if not in current list (by ID)
           if (savedData.realEstateAssestDTO && formData.projectName) {
-            const projectId = parseInt(formData.projectName)
+            const projectId = parseInt(formData.projectName);
             const existingAsset = projectAssets.find(
               (asset: any) => asset.id === projectId
-            )
+            );
 
             if (!existingAsset) {
               const newAsset = {
                 id: savedData.realEstateAssestDTO.id,
                 reaName: savedData.realEstateAssestDTO.reaName,
                 reaId: savedData.realEstateAssestDTO.reaId,
-              }
-              setAdditionalProjectAssets((prev) => [...prev, newAsset])
+              };
+              setAdditionalProjectAssets((prev) => [...prev, newAsset]);
             }
           }
 
@@ -284,31 +287,30 @@ const Step1 = ({
                 shouldDirty: true,
                 shouldTouch: true,
                 shouldValidate: false,
-              })
+              });
 
-              if (key === 'tasReference') {
-                setPaymentRefId(value)
+              if (key === "tasReference") {
+                setPaymentRefId(value);
               }
             }
-          })
+          });
 
           // Mark prepopulation as attempted to prevent multiple attempts
-          setPrepopulationAttempted(true)
+          setPrepopulationAttempted(true);
 
           if (onDataLoaded) {
-            onDataLoaded()
+            onDataLoaded();
           }
         } catch (error) {
-          
-          setPrepopulationAttempted(true) // Still mark as attempted to prevent retries
+          setPrepopulationAttempted(true); // Still mark as attempted to prevent retries
 
           // Still notify parent even if there's an error, to stop loading state
           if (onDataLoaded) {
-            onDataLoaded()
+            onDataLoaded();
           }
         }
       }
-    }
+    };
 
     // Run prepopulation when:
     // 1. We're in edit mode
@@ -319,16 +321,16 @@ const Step1 = ({
       // Wait a bit for shared data to load, but don't wait forever
       const timeoutId = setTimeout(
         () => {
-          prepopulateData()
+          prepopulateData();
         },
         sharedData.isInitialLoading ? 1000 : 100
-      ) // 1s if loading, 100ms if data ready
+      ); // 1s if loading, 100ms if data ready
 
-      return () => clearTimeout(timeoutId)
+      return () => clearTimeout(timeoutId);
     }
 
     // Return empty cleanup function if conditions not met
-    return () => {}
+    return () => {};
   }, [
     isEditMode,
     savedId,
@@ -336,234 +338,234 @@ const Step1 = ({
     sharedData.isInitialLoading,
     prepopulationAttempted,
     onDataLoaded,
-  ])
+  ]);
 
   // Reset prepopulation flag and additional data when savedId changes
   useEffect(() => {
-    setPrepopulationAttempted(false)
-    setAdditionalDeveloperNames([])
-    setAdditionalProjectAssets([])
-  }, [savedId])
+    setPrepopulationAttempted(false);
+    setAdditionalDeveloperNames([]);
+    setAdditionalProjectAssets([]);
+  }, [savedId]);
 
   // Function to generate new payment reference ID
   const handleGeneratePaymentRefId = async () => {
     try {
-      setIsGeneratingId(true)
-      const newIdResponse = idService.generateNewId('PAY')
-      const newId = newIdResponse.id
+      setIsGeneratingId(true);
+      const newIdResponse = idService.generateNewId("PAY");
+      const newId = newIdResponse.id;
 
       // Update both state and form value
-      setPaymentRefId(newId)
-      setValue('tasReference', newId, {
+      setPaymentRefId(newId);
+      setValue("tasReference", newId, {
         shouldDirty: true,
         shouldTouch: true,
         shouldValidate: false,
-      })
+      });
     } catch (error) {
-throw error
+      throw error;
     } finally {
-      setIsGeneratingId(false)
+      setIsGeneratingId(false);
     }
-  }
+  };
 
   // Watch for developer name changes and auto-populate developer ID
   useEffect(() => {
     const subscription = watch((value, { name }) => {
-      if (name === 'developerName' && value.developerName) {
+      if (name === "developerName" && value.developerName) {
         const selectedPartner = buildPartners.data.find(
           (bp: any) => bp.bpName === value.developerName
-        )
+        );
         if (selectedPartner) {
-          setValue('developerId', selectedPartner.bpDeveloperId)
+          setValue("developerId", selectedPartner.bpDeveloperId);
         }
       }
 
       // Watch for project name changes and auto-populate project ID
-      if (name === 'projectName' && value.projectName) {
+      if (name === "projectName" && value.projectName) {
         const selectedAsset = projectAssets.find(
           (asset: any) => asset.id === parseInt(value.projectName)
-        )
+        );
         if (selectedAsset) {
-          setValue('projectId', selectedAsset.reaId)
+          setValue("projectId", selectedAsset.reaId);
         }
       }
-    })
-    return () => subscription.unsubscribe()
-  }, [watch, setValue, buildPartners, projectAssets])
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, setValue, buildPartners, projectAssets]);
 
   // Re-attempt ID population when build partners data becomes available
   useEffect(() => {
-    const currentDeveloperName = watch('developerName')
-    const currentProjectName = watch('projectName')
+    const currentDeveloperName = watch("developerName");
+    const currentProjectName = watch("projectName");
 
     // Try to populate developer ID if we have a name but no ID
     if (
       currentDeveloperName &&
-      !watch('developerId') &&
+      !watch("developerId") &&
       buildPartners.data.length > 0
     ) {
       const selectedPartner = buildPartners.data.find(
         (bp: any) => bp.bpName === currentDeveloperName
-      )
+      );
       if (selectedPartner) {
-        setValue('developerId', selectedPartner.bpDeveloperId)
+        setValue("developerId", selectedPartner.bpDeveloperId);
       }
     }
 
     // Try to populate project ID if we have a project ID value but no project ID field
-    if (currentProjectName && !watch('projectId') && projectAssets.length > 0) {
+    if (currentProjectName && !watch("projectId") && projectAssets.length > 0) {
       const selectedAsset = projectAssets.find(
         (asset: any) => asset.id === parseInt(currentProjectName)
-      )
+      );
       if (selectedAsset) {
-        setValue('projectId', selectedAsset.reaId)
+        setValue("projectId", selectedAsset.reaId);
       }
     }
-  }, [buildPartners.data, projectAssets, watch, setValue])
+  }, [buildPartners.data, projectAssets, watch, setValue]);
 
   // Initialize payment reference ID from form value and keep in sync
   React.useEffect(() => {
-    const currentId = watch('tasReference')
+    const currentId = watch("tasReference");
     if (currentId !== paymentRefId) {
-      setPaymentRefId(currentId || '')
+      setPaymentRefId(currentId || "");
     }
-  }, [watch, paymentRefId])
+  }, [watch, paymentRefId]);
 
   // Update form value when paymentRefId state changes (for generate button)
   React.useEffect(() => {
-    const currentFormValue = watch('tasReference')
+    const currentFormValue = watch("tasReference");
     if (paymentRefId && paymentRefId !== currentFormValue) {
-      setValue('tasReference', paymentRefId, {
+      setValue("tasReference", paymentRefId, {
         shouldDirty: true,
         shouldTouch: true,
         shouldValidate: false,
-      })
+      });
     }
-  }, [paymentRefId, watch, setValue])
+  }, [paymentRefId, watch, setValue]);
 
   // Common styles for form components
   const commonFieldStyles = {
-    '& .MuiOutlinedInput-root': {
-      height: '46px',
-      borderRadius: '8px',
-      '& fieldset': {
-        borderColor: '#CAD5E2',
-        borderWidth: '1px',
+    "& .MuiOutlinedInput-root": {
+      height: "46px",
+      borderRadius: "8px",
+      "& fieldset": {
+        borderColor: "#CAD5E2",
+        borderWidth: "1px",
       },
-      '&:hover fieldset': {
-        borderColor: '#CAD5E2',
+      "&:hover fieldset": {
+        borderColor: "#CAD5E2",
       },
-      '&.Mui-focused fieldset': {
-        borderColor: '#2563EB',
+      "&.Mui-focused fieldset": {
+        borderColor: "#2563EB",
       },
-      '&.Mui-error fieldset': {
-        borderColor: '#DC2626',
-        borderWidth: '2px',
+      "&.Mui-error fieldset": {
+        borderColor: "#DC2626",
+        borderWidth: "2px",
       },
     },
-  }
+  };
 
   const selectStyles = {
-    height: '48px',
-    '& .MuiOutlinedInput-root': {
-      height: '48px',
-      borderRadius: '12px',
-      backgroundColor: '#FFFFFF',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-      transition: 'all 0.2s ease-in-out',
-      '& fieldset': {
-        borderColor: '#E2E8F0',
-        borderWidth: '1.5px',
-        transition: 'border-color 0.2s ease-in-out',
+    height: "48px",
+    "& .MuiOutlinedInput-root": {
+      height: "48px",
+      borderRadius: "12px",
+      backgroundColor: "#FFFFFF",
+      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+      transition: "all 0.2s ease-in-out",
+      "& fieldset": {
+        borderColor: "#E2E8F0",
+        borderWidth: "1.5px",
+        transition: "border-color 0.2s ease-in-out",
       },
-      '&:hover fieldset': {
-        borderColor: '#3B82F6',
-        boxShadow: '0 2px 8px rgba(59, 130, 246, 0.15)',
+      "&:hover fieldset": {
+        borderColor: "#3B82F6",
+        boxShadow: "0 2px 8px rgba(59, 130, 246, 0.15)",
       },
-      '&.Mui-focused fieldset': {
-        borderColor: '#2563EB',
-        borderWidth: '2px',
-        boxShadow: '0 0 0 3px rgba(37, 99, 235, 0.1)',
+      "&.Mui-focused fieldset": {
+        borderColor: "#2563EB",
+        borderWidth: "2px",
+        boxShadow: "0 0 0 3px rgba(37, 99, 235, 0.1)",
       },
-      '&.Mui-error fieldset': {
-        borderColor: '#DC2626',
-        borderWidth: '2px',
-        boxShadow: 'none',
+      "&.Mui-error fieldset": {
+        borderColor: "#DC2626",
+        borderWidth: "2px",
+        boxShadow: "none",
       },
     },
-    '& .MuiSelect-icon': {
-      color: '#64748B',
-      fontSize: '20px !important',
-      transition: 'color 0.2s ease-in-out',
-      right: '12px',
-      top: '50%',
-      transform: 'translateY(-50%)',
+    "& .MuiSelect-icon": {
+      color: "#64748B",
+      fontSize: "20px !important",
+      transition: "color 0.2s ease-in-out",
+      right: "12px",
+      top: "50%",
+      transform: "translateY(-50%)",
     },
-    '&:hover .MuiSelect-icon': {
-      color: '#3B82F6',
+    "&:hover .MuiSelect-icon": {
+      color: "#3B82F6",
     },
-    '&.Mui-focused .MuiSelect-icon': {
-      color: '#2563EB',
+    "&.Mui-focused .MuiSelect-icon": {
+      color: "#2563EB",
     },
-  }
+  };
 
   const datePickerStyles = {
-    height: '46px',
-    '& .MuiOutlinedInput-root': {
-      height: '46px',
-      borderRadius: '8px',
-      '& fieldset': {
-        borderColor: '#CAD5E2',
-        borderWidth: '1px',
+    height: "46px",
+    "& .MuiOutlinedInput-root": {
+      height: "46px",
+      borderRadius: "8px",
+      "& fieldset": {
+        borderColor: "#CAD5E2",
+        borderWidth: "1px",
       },
-      '&:hover fieldset': {
-        borderColor: '#CAD5E2',
+      "&:hover fieldset": {
+        borderColor: "#CAD5E2",
       },
-      '&.Mui-focused fieldset': {
-        borderColor: '#2563EB',
+      "&.Mui-focused fieldset": {
+        borderColor: "#2563EB",
       },
-      '&.Mui-error fieldset': {
-        borderColor: '#DC2626',
-        borderWidth: '2px',
+      "&.Mui-error fieldset": {
+        borderColor: "#DC2626",
+        borderWidth: "2px",
       },
     },
-  }
+  };
 
   const labelSx = {
-    color: '#374151',
+    color: "#374151",
     fontFamily:
       'Outfit, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     fontWeight: 500,
-    fontStyle: 'normal',
-    fontSize: '13px',
-    letterSpacing: '0.025em',
-    marginBottom: '4px',
-    '&.Mui-focused': {
-      color: '#2563EB',
+    fontStyle: "normal",
+    fontSize: "13px",
+    letterSpacing: "0.025em",
+    marginBottom: "4px",
+    "&.Mui-focused": {
+      color: "#2563EB",
     },
-    '&.Mui-error': {
-      color: '#DC2626',
+    "&.Mui-error": {
+      color: "#DC2626",
     },
-    '&.MuiFormLabel-filled': {
-      color: '#374151',
+    "&.MuiFormLabel-filled": {
+      color: "#374151",
     },
-  }
+  };
 
   const valueSx = {
-    color: '#111827',
+    color: "#111827",
     fontFamily:
       'Outfit, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     fontWeight: 400,
-    fontStyle: 'normal',
-    fontSize: '14px',
-    letterSpacing: '0.01em',
-    wordBreak: 'break-word',
-    '& .MuiSelect-select': {
-      padding: '12px 14px',
-      display: 'flex',
-      alignItems: 'center',
+    fontStyle: "normal",
+    fontSize: "14px",
+    letterSpacing: "0.01em",
+    wordBreak: "break-word",
+    "& .MuiSelect-select": {
+      padding: "12px 14px",
+      display: "flex",
+      alignItems: "center",
     },
-  }
+  };
 
   const StyledCalendarIcon = (
     props: React.ComponentProps<typeof CalendarTodayOutlinedIcon>
@@ -571,21 +573,55 @@ throw error
     <CalendarTodayOutlinedIcon
       {...props}
       sx={{
-        width: '18px',
-        height: '20px',
-        position: 'relative',
-        top: '2px',
-        left: '3px',
-        transform: 'rotate(0deg)',
+        width: "18px",
+        height: "20px",
+        position: "relative",
+        top: "2px",
+        left: "3px",
+        transform: "rotate(0deg)",
         opacity: 1,
       }}
     />
-  )
+  );
+  const renderRadioField = (
+    name: string,
+    label: string,
+    options: string[],
+    defaultVal: string = "",
+    gridMd = 6
+  ) => (
+    <Grid size={{ xs: 12, md: gridMd }}>
+      <Controller
+        name={name}
+        control={control}
+        defaultValue={defaultVal}
+        render={({ field }) => (
+          <FormControl component="fieldset">
+            <FormLabel component="legend">{label}</FormLabel>
+            <RadioGroup
+              row
+              {...field}
+              onChange={(e) => field.onChange(e.target.value)}
+            >
+              {options.map((opt) => (
+                <FormControlLabel
+                  key={opt}
+                  value={opt}
+                  control={<Radio />}
+                  label={opt}
+                />
+              ))}
+            </RadioGroup>
+          </FormControl>
+        )}
+      />
+    </Grid>
+  );
   const renderTextField = (
     name: string,
     label: string,
     gridSize = 6,
-    defaultValue = '',
+    defaultValue = "",
     isRequired = false,
     disabled = false
   ) => {
@@ -608,25 +644,25 @@ throw error
               InputProps={{ sx: valueSx }}
               sx={commonFieldStyles}
               onChange={(e) => {
-                const value = e.target.value
-                const maxLen = getFieldMaxLength(name)
+                const value = e.target.value;
+                const maxLen = getFieldMaxLength(name);
                 // Let user type freely but trigger validation on over-limit for fields with max length
                 if (maxLen && value.length > maxLen) {
-                  field.onChange(value)
+                  field.onChange(value);
                   // Trigger schema validation immediately so Zod shows "Max 15 characters"
                   // @ts-ignore
-                  ;(control as any)._formState && control
-                  trigger(name as any)
+                  (control as any)._formState && control;
+                  trigger(name as any);
                 } else {
-                  field.onChange(value)
+                  field.onChange(value);
                 }
               }}
             />
           )}
         />
       </Grid>
-    )
-  }
+    );
+  };
 
   const renderSelectField = (
     name: string,
@@ -642,25 +678,32 @@ throw error
         <Controller
           name={name}
           control={control}
-          defaultValue={''}
+          defaultValue={""}
           render={({ field, fieldState: { error } }) => (
-            <FormControl fullWidth error={!!error} aria-invalid={!!error} required={isRequired && !isReadOnly}>
-              <InputLabel sx={labelSx} required={isRequired && !isReadOnly}>{label}</InputLabel>
+            <FormControl
+              fullWidth
+              error={!!error}
+              aria-invalid={!!error}
+              required={isRequired && !isReadOnly}
+            >
+              <InputLabel sx={labelSx} required={isRequired && !isReadOnly}>
+                {label}
+              </InputLabel>
               <Select
                 {...field}
                 label={label}
                 sx={{
                   ...selectStyles,
                   ...valueSx,
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
+                  "& .MuiOutlinedInput-notchedOutline": {
+                    border: "1px solid #d1d5db",
+                    borderRadius: "6px",
                   },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    border: '1px solid #9ca3af',
+                  "&:hover .MuiOutlinedInput-notchedOutline": {
+                    border: "1px solid #9ca3af",
                   },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    border: '2px solid #2563eb',
+                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                    border: "2px solid #2563eb",
                   },
                 }}
                 disabled={disabled || isLoading || isReadOnly}
@@ -668,30 +711,30 @@ throw error
                 MenuProps={{
                   PaperProps: {
                     sx: {
-                      borderRadius: '12px',
-                      boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
-                      border: '1px solid #E5E7EB',
-                      marginTop: '8px',
-                      minHeight: '120px',
-                      maxHeight: '300px',
-                      overflow: 'auto',
-                      '& .MuiMenuItem-root': {
-                        padding: '12px 16px',
-                        fontSize: '14px',
+                      borderRadius: "12px",
+                      boxShadow: "0 10px 25px rgba(0, 0, 0, 0.1)",
+                      border: "1px solid #E5E7EB",
+                      marginTop: "8px",
+                      minHeight: "120px",
+                      maxHeight: "300px",
+                      overflow: "auto",
+                      "& .MuiMenuItem-root": {
+                        padding: "12px 16px",
+                        fontSize: "14px",
                         fontFamily:
                           'Outfit, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                        color: '#374151',
-                        transition: 'all 0.2s ease-in-out',
-                        '&:hover': {
-                          backgroundColor: '#F3F4F6',
-                          color: '#111827',
+                        color: "#374151",
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover": {
+                          backgroundColor: "#F3F4F6",
+                          color: "#111827",
                         },
-                        '&.Mui-selected': {
-                          backgroundColor: '#EBF4FF',
-                          color: '#2563EB',
+                        "&.Mui-selected": {
+                          backgroundColor: "#EBF4FF",
+                          color: "#2563EB",
                           fontWeight: 500,
-                          '&:hover': {
-                            backgroundColor: '#DBEAFE',
+                          "&:hover": {
+                            backgroundColor: "#DBEAFE",
                           },
                         },
                       },
@@ -705,40 +748,40 @@ throw error
                 {options.map((option, index) => (
                   <MenuItem
                     key={option.id || option || `option-${index}`}
-                    value={option.id || option || ''}
+                    value={option.id || option || ""}
                     sx={{
-                      fontSize: '14px',
+                      fontSize: "14px",
                       fontFamily:
                         'Outfit, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                      color: '#374151',
-                      transition: 'all 0.2s ease-in-out',
-                      '&:hover': {
-                        backgroundColor: '#F3F4F6',
-                        color: '#111827',
+                      color: "#374151",
+                      transition: "all 0.2s ease-in-out",
+                      "&:hover": {
+                        backgroundColor: "#F3F4F6",
+                        color: "#111827",
                       },
-                      '&.Mui-selected': {
-                        backgroundColor: '#EBF4FF',
-                        color: '#2563EB',
+                      "&.Mui-selected": {
+                        backgroundColor: "#EBF4FF",
+                        color: "#2563EB",
                         fontWeight: 500,
-                        '&:hover': {
-                          backgroundColor: '#DBEAFE',
+                        "&:hover": {
+                          backgroundColor: "#DBEAFE",
                         },
                       },
                     }}
                   >
                     {option.displayName ||
                       option.name ||
-                      (typeof option === 'string' ? option : '')}
+                      (typeof option === "string" ? option : "")}
                   </MenuItem>
                 ))}
               </Select>
-              <FormError error={error?.message || ''} touched={true} />
+              <FormError error={error?.message || ""} touched={true} />
             </FormControl>
           )}
         />
       </Grid>
-    )
-  }
+    );
+  };
 
   const renderDatePickerField = (
     name: string,
@@ -772,7 +815,7 @@ throw error
                   InputLabelProps: { sx: labelSx },
                   InputProps: {
                     sx: valueSx,
-                    style: { height: '46px' },
+                    style: { height: "46px" },
                   },
                 },
               }}
@@ -780,8 +823,8 @@ throw error
           )}
         />
       </Grid>
-    )
-  }
+    );
+  };
 
   const renderTextFieldWithButton = (
     name: string,
@@ -810,24 +853,24 @@ throw error
                     variant="contained"
                     disabled={isReadOnly}
                     sx={{
-                      color: '#2563EB',
-                      borderRadius: '24px',
-                      textTransform: 'none',
-                      background: 'var(--UIColors-Blue-100, #DBEAFE)',
-                      boxShadow: 'none',
-                      '&:hover': {
-                        background: '#D0E3FF',
-                        boxShadow: 'none',
+                      color: "#2563EB",
+                      borderRadius: "24px",
+                      textTransform: "none",
+                      background: "var(--UIColors-Blue-100, #DBEAFE)",
+                      boxShadow: "none",
+                      "&:hover": {
+                        background: "#D0E3FF",
+                        boxShadow: "none",
                       },
-                      minWidth: '120px',
-                      height: '36px',
-                      fontFamily: 'Outfit, sans-serif',
+                      minWidth: "120px",
+                      height: "36px",
+                      fontFamily: "Outfit, sans-serif",
                       fontWeight: 500,
-                      fontStyle: 'normal',
-                      fontSize: '14px',
-                      lineHeight: '24px',
-                      letterSpacing: '0.5px',
-                      verticalAlign: 'middle',
+                      fontStyle: "normal",
+                      fontSize: "14px",
+                      lineHeight: "24px",
+                      letterSpacing: "0.5px",
+                      verticalAlign: "middle",
                     }}
                     onClick={() => {}}
                   >
@@ -843,7 +886,7 @@ throw error
         )}
       />
     </Grid>
-  )
+  );
 
   const renderCheckboxField = (
     name: string,
@@ -862,9 +905,9 @@ throw error
                 {...field}
                 checked={!!field.value}
                 sx={{
-                  color: '#CAD5E2',
-                  '&.Mui-checked': {
-                    color: '#2563EB',
+                  color: "#CAD5E2",
+                  "&.Mui-checked": {
+                    color: "#2563EB",
                   },
                 }}
               />
@@ -872,24 +915,24 @@ throw error
             label={
               label ??
               name
-                .replace(/([A-Z])/g, ' $1')
+                .replace(/([A-Z])/g, " $1")
                 .replace(/^./, (str) => str.toUpperCase())
             }
             sx={{
-              '& .MuiFormControlLabel-label': {
-                fontFamily: 'Outfit, sans-serif',
-                fontStyle: 'normal',
-                fontSize: '14px',
-                lineHeight: '24px',
-                letterSpacing: '0.5px',
-                verticalAlign: 'middle',
+              "& .MuiFormControlLabel-label": {
+                fontFamily: "Outfit, sans-serif",
+                fontStyle: "normal",
+                fontSize: "14px",
+                lineHeight: "24px",
+                letterSpacing: "0.5px",
+                verticalAlign: "middle",
               },
             }}
           />
         )}
       />
     </Grid>
-  )
+  );
 
   const renderPaymentRefIdField = (
     name: string,
@@ -910,9 +953,9 @@ throw error
             value={field.value || paymentRefId} // Use form value first, fallback to state
             disabled={isReadOnly} // Disable in view mode
             onChange={(e) => {
-              const newValue = e.target.value
-              setPaymentRefId(newValue)
-              field.onChange(newValue) // Update form value
+              const newValue = e.target.value;
+              setPaymentRefId(newValue);
+              field.onChange(newValue); // Update form value
             }}
             InputProps={{
               endAdornment: (
@@ -924,25 +967,25 @@ throw error
                     onClick={handleGeneratePaymentRefId}
                     disabled={isGeneratingId || isReadOnly}
                     sx={{
-                      color: '#FFFFFF',
-                      borderRadius: '8px',
-                      textTransform: 'none',
-                      background: '#2563EB',
-                      '&:hover': {
-                        background: '#1D4ED8',
+                      color: "#FFFFFF",
+                      borderRadius: "8px",
+                      textTransform: "none",
+                      background: "#2563EB",
+                      "&:hover": {
+                        background: "#1D4ED8",
                       },
-                      minWidth: '100px',
-                      height: '32px',
-                      fontFamily: 'Outfit, sans-serif',
+                      minWidth: "100px",
+                      height: "32px",
+                      fontFamily: "Outfit, sans-serif",
                       fontWeight: 500,
-                      fontStyle: 'normal',
-                      fontSize: '11px',
-                      lineHeight: '14px',
-                      letterSpacing: '0.3px',
+                      fontStyle: "normal",
+                      fontSize: "11px",
+                      lineHeight: "14px",
+                      letterSpacing: "0.3px",
                       px: 1,
                     }}
                   >
-                    {isGeneratingId ? 'Generating...' : 'Generate ID'}
+                    {isGeneratingId ? "Generating..." : "Generate ID"}
                   </Button>
                 </InputAdornment>
               ),
@@ -957,7 +1000,7 @@ throw error
         )}
       />
     </Grid>
-  )
+  );
 
   const renderAccountBalanceField = (
     accountKey: string,
@@ -988,30 +1031,32 @@ throw error
                     <Button
                       variant="contained"
                       sx={{
-                        color: '#2563EB',
-                        borderRadius: '24px',
-                        textTransform: 'none',
-                        background: 'var(--UIColors-Blue-100, #DBEAFE)',
-                        boxShadow: 'none',
-                        '&:hover': {
-                          background: '#D0E3FF',
-                          boxShadow: 'none',
+                        color: "#2563EB",
+                        borderRadius: "24px",
+                        textTransform: "none",
+                        background: "var(--UIColors-Blue-100, #DBEAFE)",
+                        boxShadow: "none",
+                        "&:hover": {
+                          background: "#D0E3FF",
+                          boxShadow: "none",
                         },
-                        minWidth: '120px',
-                        height: '36px',
-                        fontFamily: 'Outfit, sans-serif',
+                        minWidth: "120px",
+                        height: "36px",
+                        fontFamily: "Outfit, sans-serif",
                         fontWeight: 500,
-                        fontStyle: 'normal',
-                        fontSize: '14px',
-                        lineHeight: '24px',
-                        letterSpacing: '0.5px',
-                        verticalAlign: 'middle',
+                        fontStyle: "normal",
+                        fontSize: "14px",
+                        lineHeight: "24px",
+                        letterSpacing: "0.5px",
+                        verticalAlign: "middle",
                       }}
                       onClick={async () => {
-                        const isValid = await trigger(accountFieldName as any, { shouldFocus: true })
-                        if (!isValid) return
+                        const isValid = await trigger(accountFieldName as any, {
+                          shouldFocus: true,
+                        });
+                        if (!isValid) return;
                         if (field.value) {
-                          fetchBalance(accountKey, field.value)
+                          fetchBalance(accountKey, field.value);
                         }
                       }}
                       disabled={
@@ -1019,8 +1064,8 @@ throw error
                       }
                     >
                       {loadingStates[accountKey]
-                        ? 'Loading...'
-                        : 'Fetch Account Balance'}
+                        ? "Loading..."
+                        : "Fetch Account Balance"}
                     </Button>
                   </InputAdornment>
                 ),
@@ -1045,7 +1090,7 @@ throw error
               label={balanceLabel}
               value={
                 balances[accountKey]
-                  ? `${balances[accountKey]?.currencyCode} ${balances[accountKey]?.details?.transferLimits?.creditTransfer || '0'}`
+                  ? `${balances[accountKey]?.currencyCode} ${balances[accountKey]?.details?.transferLimits?.creditTransfer || "0"}`
                   : field.value
               }
               onChange={(e) => field.onChange(e)}
@@ -1054,13 +1099,13 @@ throw error
               InputProps={{ sx: valueSx }}
               sx={{
                 ...commonFieldStyles,
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: '#F5F5F5',
-                  '& fieldset': {
-                    borderColor: '#E0E0E0',
+                "& .MuiOutlinedInput-root": {
+                  backgroundColor: "#F5F5F5",
+                  "& fieldset": {
+                    borderColor: "#E0E0E0",
                   },
-                  '&:hover fieldset': {
-                    borderColor: '#E0E0E0',
+                  "&:hover fieldset": {
+                    borderColor: "#E0E0E0",
                   },
                 },
               }}
@@ -1078,36 +1123,38 @@ throw error
         )}
       </Grid>
     </>
-  )
+  );
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Card
         sx={{
-          boxShadow: 'none',
-          backgroundColor: '#FFFFFFBF',
-          width: '84%',
-          margin: '0 auto',
+          boxShadow: "none",
+          backgroundColor: "#FFFFFFBF",
+          width: "84%",
+          margin: "0 auto",
         }}
       >
         <CardContent>
           <Grid container rowSpacing={4} columnSpacing={2}>
+                        {/* Details Start */}
+
             {renderPaymentRefIdField(
-              'tasReference',
+              "tasReference",
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.TAS_REFERENCE,
-                'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TAS_REFERENCE
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.VOUCHER_NUMBER,
+                "EN",
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.VOUCHER_NUMBER
               ),
               6,
               true
             )}
 
             {renderSelectField(
-              'developerName',
+              "developerName",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEVELOPER_NAME,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_NAME
               ),
               developerNames,
@@ -1116,21 +1163,21 @@ throw error
               buildPartners.loading
             )}
             {renderTextField(
-              'developerId',
+              "developerId",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEVELOPER_ID,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_ID
               ),
               6,
-              '',
+              "",
               true
             )}
             {renderSelectField(
-              'projectName',
+              "projectName",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROJECT_NAME,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_NAME
               ),
               projectAssets.map((asset) => ({
@@ -1142,21 +1189,21 @@ throw error
               realEstateAssets.loading
             )}
             {renderTextField(
-              'projectId',
+              "projectId",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROJECT_ID,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_ID
               ),
               6,
-              '',
+              "",
               true
             )}
             {renderSelectField(
-              'projectStatus',
+              "projectStatus",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROJECT_STATUS,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_STATUS
               ),
               buildAssetAccountStatuses.data,
@@ -1164,33 +1211,240 @@ throw error
               true
             )}
             {renderAccountBalanceField(
-              'escrow',
-              'escrowAccount',
+              "escrow",
+              "escrowAccount",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.ESCROW_ACCOUNT,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.ESCROW_ACCOUNT
               ),
-              'subConstructionAccount',
-              'Current Balance in Escrow Account*',
+              "subConstructionAccount",
+              "Current Balance in Escrow Account*",
               6,
               true
             )}
             {renderAccountBalanceField(
-              'subConstruction',
-              'corporateAccount',
+              "subConstruction",
+              "corporateAccount",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.SUB_CONSTRUCTION_ACCOUNT,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
                   .SUB_CONSTRUCTION_ACCOUNT
               ),
-              'retentionAccount',
-              'Current Balance in Sub Construction Account*',
+              "retentionAccount",
+              "Current Balance in Sub Construction Account*",
               6,
               true
             )}
-            {renderAccountBalanceField(
+
+         
+
+            {renderTextField(
+              "paymentType1",
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.RERA_APPROVAL_REF_NO,
+                "EN",
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.RERA_APPROVAL_REF_NO
+              ),
+              6,
+              "",
+              true
+            )}
+            {renderDatePickerField(
+              "reraApprovalDateVoucher",
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.RERA_APPROVAL_DATE,
+                "EN",
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.RERA_APPROVAL_DATE
+              ),
+              6,
+              true
+            )}
+
+            {renderTextField(
+              "invoiceRefNoVoucher",
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_REF_NO,
+                "EN",
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_REF_NO
+              ),
+              4,
+              "",
+              true
+            )}
+            {renderTextField(
+              "invoiceValueVoucher",
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_VALUE_VOUCHER,
+                "EN",
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .INVOICE_VALUE_VOUCHER
+              ),
+              4,
+              "",
+              true
+            )}
+            {renderDatePickerField(
+              "invoiceDateVoucher",
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_DATE_VOUCHER,
+                "EN",
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_DATE_VOUCHER
+              ),
+              4,
+              true
+            )}
+
+            {renderTextField(
+              "rt03Voucher",
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.RT03,
+                "EN",
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.RT03
+              ),
+              4,
+              "0",
+              true
+            )}
+
+            {renderTextField(
+              "totalEligibleAmountInvoiceVoucher",
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.TOTAL_ELIGIBLE_AMOUNT_INVOICE,
+                "EN",
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .TOTAL_ELIGIBLE_AMOUNT_INVOICE
+              ),
+              4,
+              "",
+
+              true
+            )}
+
+            {renderTextField(
+              "amountPaidAgainstInvoiceVoucher",
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.AMOUNT_PAID_AGAINST_INVOICE,
+                "EN",
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .AMOUNT_PAID_AGAINST_INVOICE
+              ),
+              4,
+              "",
+              true
+            )}
+
+            {renderTextField(
+              "totalAmountPaidPaymentTypeVoucher",
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS
+                  .TOTAL_AMOUNT_PAID_PAYMENT_TYPE,
+                "EN",
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .TOTAL_AMOUNT_PAID_PAYMENT_TYPE
+              ),
+              4,
+              "",
+              true
+            )}
+
+            {renderTextField(
+              "paymentCurrencyVoucher",
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_CURRENCY_VOUCHER,
+                "EN",
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .TOTAL_ELIGIBLE_AMOUNT_INVOICE
+              ),
+              4,
+              "",
+              true
+            )}
+
+            {renderTextField(
+              "debitFromEscrowAedVoucher",
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEBIT_FROM_ESCROW_AED,
+                "EN",
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .DEBIT_FROM_ESCROW_AED
+              ),
+              4,
+              "",
+              true
+            )}
+
+            {renderTextField(
+              "currentEligibleAmountVoucher",
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS
+                  .CURRENT_ELIGIBLE_AMOUNT_VOUCHER,
+                "EN",
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .CURRENT_ELIGIBLE_AMOUNT_VOUCHER
+              ),
+              3,
+              "",
+              true
+            )}
+
+            {renderTextField(
+              "debitFromReserveAed",
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEBIT_FROM_RESERVE_AED,
+                "EN",
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .DEBIT_FROM_RESERVE_AED
+              ),
+              3,
+              "",
+              true
+            )}
+
+            {renderTextField(
+              "totalPayoutAmountVoucher",
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.TOTAL_PAYOUT_AMOUNT_VOUCHER,
+                "EN",
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .TOTAL_PAYOUT_AMOUNT_VOUCHER
+              ),
+              3,
+              "",
+              true
+            )}
+            {renderTextField(
+              "amountInTransitVoucher",
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.AMOUNT_IN_TRANSIT_VOUCHER,
+                "EN",
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .AMOUNT_IN_TRANSIT_VOUCHER
+              ),
+              3,
+              "",
+
+              true
+            )}
+   {renderCheckboxField(
+              "capExceededVoucher",
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.CAP_EXCEEDED_VOUCHER,
+                "EN",
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CAP_EXCEEDED_VOUCHER
+              ),
+              6
+            )}
+            {renderRadioField(
+              "partialPayment",
+              "Partial Payment ",
+              ["Yes", "No"],
+              "Yes"
+            )}
+
+
+               {/* {renderAccountBalanceField(
               'corporate',
               'corporateAccount1',
               getLabel(
@@ -1215,20 +1469,25 @@ throw error
               'Current Balance in Retention Account*',
               6,
               true
-            )}
+            )} */}
+            {/* Details END */}
+
+
+
+
 
             <Grid size={{ xs: 12 }}>
               <Typography
                 variant="h6"
                 sx={{
-                  color: '#1E2939',
-                  fontFamily: 'Outfit, sans-serif',
+                  color: "#1E2939",
+                  fontFamily: "Outfit, sans-serif",
                   fontWeight: 500,
-                  fontStyle: 'normal',
-                  fontSize: '18px',
-                  lineHeight: '28px',
-                  letterSpacing: '0.15px',
-                  verticalAlign: 'middle',
+                  fontStyle: "normal",
+                  fontSize: "18px",
+                  lineHeight: "28px",
+                  letterSpacing: "0.15px",
+                  verticalAlign: "middle",
                 }}
               >
                 Expense Type
@@ -1236,10 +1495,10 @@ throw error
             </Grid>
 
             {renderSelectField(
-              'paymentType',
+              "paymentType",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_TYPE,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_TYPE
               ),
               paymentTypes.data || [],
@@ -1248,10 +1507,10 @@ throw error
               paymentTypes.loading
             )}
             {renderSelectField(
-              'paymentSubType',
+              "paymentSubType",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_SUB_TYPE,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_SUB_TYPE
               ),
               paymentSubTypes.data || [],
@@ -1260,21 +1519,21 @@ throw error
               paymentSubTypes.loading
             )}
             {renderTextField(
-              'paymentType1',
+              "paymentType1",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.REGULAR_APPROVAL_REF,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.REGULAR_APPROVAL_REF
               ),
               6,
-              '',
+              "",
               true
             )}
             {renderDatePickerField(
-              'paymentSubType1',
+              "paymentSubType1",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.REGULAR_APPROVAL_DATE,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
                   .REGULAR_APPROVAL_DATE
               ),
@@ -1282,21 +1541,21 @@ throw error
               true
             )}
             {renderTextField(
-              'invoiceRef',
+              "invoiceRef",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_REF,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_REF
               ),
               3,
-              '',
+              "",
               true
             )}
             {renderSelectField(
-              'invoiceCurrency',
+              "invoiceCurrency",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_CURRENCY,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_CURRENCY
               ),
               currencies.data || [],
@@ -1305,21 +1564,21 @@ throw error
               currencies.loading
             )}
             {renderTextField(
-              'invoiceValue',
+              "invoiceValue",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_VALUE,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_VALUE
               ),
               3,
-              '',
+              "",
               true
             )}
             {renderDatePickerField(
-              'invoiceDate',
+              "invoiceDate",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_DATE,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_DATE
               ),
               3
@@ -1329,14 +1588,14 @@ throw error
               <Typography
                 variant="h6"
                 sx={{
-                  color: '#1E2939',
-                  fontFamily: 'Outfit, sans-serif',
+                  color: "#1E2939",
+                  fontFamily: "Outfit, sans-serif",
                   fontWeight: 500,
-                  fontStyle: 'normal',
-                  fontSize: '18px',
-                  lineHeight: '28px',
-                  letterSpacing: '0.15px',
-                  verticalAlign: 'middle',
+                  fontStyle: "normal",
+                  fontSize: "18px",
+                  lineHeight: "28px",
+                  letterSpacing: "0.15px",
+                  verticalAlign: "middle",
                 }}
               >
                 Amount Details
@@ -1344,167 +1603,167 @@ throw error
             </Grid>
 
             {renderTextField(
-              'engineerApprovedAmount',
+              "engineerApprovedAmount",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.ENGINEER_APPROVED_AMOUNT,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
                   .ENGINEER_APPROVED_AMOUNT
               )
             )}
             {renderTextField(
-              'totalEligibleAmount',
+              "totalEligibleAmount",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.TOTAL_ELIGIBLE_AMOUNT,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
                   .TOTAL_ELIGIBLE_AMOUNT
               )
             )}
             {renderTextField(
-              'amountPaid',
+              "amountPaid",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.AMOUNT_PAID,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.AMOUNT_PAID
               )
             )}
             {renderTextField(
-              'amountPaid1',
+              "amountPaid1",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.CAP_EXCEEDED,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CAP_EXCEEDED
               )
             )}
             {renderTextField(
-              'totalAmountPaid',
+              "totalAmountPaid",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.TOTAL_AMOUNT_PAID,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TOTAL_AMOUNT_PAID
               ),
               3
             )}
             {renderSelectField(
-              'totalAmountPaid1',
+              "totalAmountPaid1",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_CURRENCY,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_CURRENCY
               ),
               currencies.data,
               3
             )}
             {renderTextField(
-              'debitCreditToEscrow',
+              "debitCreditToEscrow",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEBIT_CREDIT_ESCROW,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEBIT_CREDIT_ESCROW
               ),
               3
             )}
             {renderTextField(
-              'currentEligibleAmount',
+              "currentEligibleAmount",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.CURRENT_ELIGIBLE_AMOUNT,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
                   .CURRENT_ELIGIBLE_AMOUNT
               ),
               3
             )}
             {renderTextField(
-              'debitFromRetention',
+              "debitFromRetention",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEBIT_FROM_RETENTION,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEBIT_FROM_RETENTION
               ),
               3
             )}
             {renderTextField(
-              'totalPayoutAmount',
+              "totalPayoutAmount",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.TOTAL_PAYOUT_AMOUNT,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TOTAL_PAYOUT_AMOUNT
               ),
               3
             )}
             {renderTextField(
-              'amountInTransit',
+              "amountInTransit",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.AMOUNT_IN_TRANSIT,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.AMOUNT_IN_TRANSIT
               ),
               3
             )}
             {renderTextField(
-              'vatCapExceeded',
+              "vatCapExceeded",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.VAT_CAP_EXCEEDED,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.VAT_CAP_EXCEEDED
               ),
               3
             )}
             {renderCheckboxField(
-              'specialRate',
+              "specialRate",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.SPECIAL_RATE,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.SPECIAL_RATE
               ),
               3
             )}
             {renderCheckboxField(
-              'corporateAmount',
+              "corporateAmount",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.CORPORATE_AMOUNT,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CORPORATE_AMOUNT
               ),
               3
             )}
             {renderTextField(
-              'delRefNo',
+              "delRefNo",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEAL_REF_NO,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEAL_REF_NO
               ),
               3,
-              '',
+              "",
               true
             )}
             {renderTextField(
-              'ppcNo',
+              "ppcNo",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.PPC_NUMBER,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PPC_NUMBER
               ),
               3
             )}
             {renderTextFieldWithButton(
-              'vatCapExceeded3',
+              "vatCapExceeded3",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.INDICATIVE_RATE,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INDICATIVE_RATE
               ),
-              'Get Exchange Rate',
+              "Get Exchange Rate",
               6,
               true
             )}
             {renderTextField(
-              'vatCapExceeded4',
+              "vatCapExceeded4",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.CORPORATE_CERTIFICATION_FEES,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
                   .CORPORATE_CERTIFICATION_FEES
               )
@@ -1514,14 +1773,14 @@ throw error
               <Typography
                 variant="h6"
                 sx={{
-                  color: '#1E2939',
-                  fontFamily: 'Outfit, sans-serif',
+                  color: "#1E2939",
+                  fontFamily: "Outfit, sans-serif",
                   fontWeight: 500,
-                  fontStyle: 'normal',
-                  fontSize: '18px',
-                  lineHeight: '28px',
-                  letterSpacing: '0.15px',
-                  verticalAlign: 'middle',
+                  fontStyle: "normal",
+                  fontSize: "18px",
+                  lineHeight: "28px",
+                  letterSpacing: "0.15px",
+                  verticalAlign: "middle",
                 }}
               >
                 Narration
@@ -1529,26 +1788,26 @@ throw error
             </Grid>
 
             {renderTextField(
-              'narration1',
+              "narration1",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.NARRATION_1,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.NARRATION_1
               )
             )}
             {renderTextField(
-              'narration2',
+              "narration2",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.NARRATION_2,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.NARRATION_2
               )
             )}
             {renderTextField(
-              'remarks',
+              "remarks",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.REMARKS,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.REMARKS
               ),
               12
@@ -1558,20 +1817,20 @@ throw error
               <Typography
                 variant="h6"
                 sx={{
-                  color: '#1E2939',
-                  fontFamily: 'Outfit, sans-serif',
+                  color: "#1E2939",
+                  fontFamily: "Outfit, sans-serif",
                   fontWeight: 500,
-                  fontStyle: 'normal',
-                  fontSize: '18px',
-                  lineHeight: '28px',
-                  letterSpacing: '0.15px',
-                  verticalAlign: 'middle',
+                  fontStyle: "normal",
+                  fontSize: "18px",
+                  lineHeight: "28px",
+                  letterSpacing: "0.15px",
+                  verticalAlign: "middle",
                 }}
               >
                 Others
               </Typography>
             </Grid>
-{/* 
+            {/* 
             {renderTextField(
               'unitNo',
               getLabel(
@@ -1655,10 +1914,10 @@ throw error
               false
             )} */}
             {renderDatePickerField(
-              'paymentDate',
+              "paymentDate",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.REGULATOR_APPROVAL_DATE,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
                   .REGULATOR_APPROVAL_DATE
               ),
@@ -1667,10 +1926,10 @@ throw error
             )}
 
             {renderSelectField(
-              'bankCharges',
+              "bankCharges",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.CHARGE_MODE,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CHARGE_MODE
               ),
               depositModes.data,
@@ -1678,10 +1937,10 @@ throw error
               true
             )}
             {renderSelectField(
-              'paymentMode',
+              "paymentMode",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_MODE,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_MODE
               ),
               paymentModes.data,
@@ -1689,10 +1948,10 @@ throw error
               false
             )}
             {renderSelectField(
-              'engineerFeePayment',
+              "engineerFeePayment",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.TRANSACTION_TYPE,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TRANSACTION_TYPE
               ),
               transferTypes.data,
@@ -1700,61 +1959,61 @@ throw error
               false
             )}
             {renderTextField(
-              'uploadDocuments',
+              "uploadDocuments",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.AMOUNT_TO_BE_RELEASED,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
                   .AMOUNT_TO_BE_RELEASED
               )
             )}
             {renderDatePickerField(
-              'engineerFeePayment1',
+              "engineerFeePayment1",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_DATE,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_DATE
               )
             )}
             {renderTextField(
-              'uploadDocuments1',
+              "uploadDocuments1",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.VAT_PAYMENT_AMOUNT,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.VAT_PAYMENT_AMOUNT
               )
             )}
             {renderCheckboxField(
-              'EngineerFeePaymentNeeded',
+              "EngineerFeePaymentNeeded",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.ENGINEER_FEE_PAYMENT_NEEDED,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
                   .ENGINEER_FEE_PAYMENT_NEEDED
               )
             )}
             {renderTextField(
-              'EngineerFeesPayment',
+              "EngineerFeesPayment",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.ENGINEER_FEES_PAYMENT,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
                   .ENGINEER_FEES_PAYMENT
               )
             )}
             {renderTextField(
-              'engineerFeePayment2',
+              "engineerFeePayment2",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.BANK_CHARGES,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.BANK_CHARGES
               )
             )}
             {renderSelectField(
-              'uploadDocuments2',
+              "uploadDocuments2",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_FROM_CBS,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_FROM_CBS
               ),
               boolYnOptions.data || [],
@@ -1762,10 +2021,10 @@ throw error
               true
             )}
             {renderCheckboxField(
-              'reviewNote*',
+              "reviewNote*",
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.REVIEW_NOTE,
-                'EN',
+                "EN",
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.REVIEW_NOTE
               ),
               12
@@ -1774,7 +2033,7 @@ throw error
         </CardContent>
       </Card>
     </LocalizationProvider>
-  )
-}
+  );
+};
 
-export default Step1
+export default Step1;

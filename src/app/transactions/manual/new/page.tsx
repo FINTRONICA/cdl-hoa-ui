@@ -14,7 +14,7 @@ function ManualPaymentContent() {
     MANUAL_PAYMENT_LABELS.FALLBACKS.PAGE_TITLE
   )
   const pageSubtitle =
-    'Register your Manual Payment details step by step, non-mandatory fields and steps are easy to skip.'
+    'Register your voucher details step by step, non-mandatory fields and steps are easy to skip.'
 
   return (
     <DashboardLayout title={pageTitle} subtitle={pageSubtitle}>
