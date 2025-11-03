@@ -216,3 +216,5 @@ export {
   type UseTemplateListReturn,
   type UseTemplateDownloadWithProgressReturn,
 } from './useRealEstateDocumentTemplate'
+
+export { useBudgetLabels } from './budget/useBudgetLabels'

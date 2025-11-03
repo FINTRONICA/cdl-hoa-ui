@@ -4,6 +4,7 @@ export class SessionService {
   private static readonly TIMEOUT_MINUTES = 30;
   private static readonly WARNING_MINUTES = 5;
   private static readonly CHECK_INTERVAL = 60000;
+  private static sessionTimer?: NodeJS.Timeout;
 
   static startSession(): void {
     const now = Date.now();
@@ -14,8 +15,16 @@ export class SessionService {
     localStorage.setItem('session_timeout', (now + timeoutMs).toString());
     localStorage.setItem('last_activity', now.toString());
 
-    // Start session timer
+    // Start session timer (clear existing first to prevent memory leaks)
+    this.clearSessionTimer();
     this.startSessionTimer();
+  }
+
+  private static clearSessionTimer(): void {
+    if (this.sessionTimer) {
+      clearInterval(this.sessionTimer);
+      this.sessionTimer = undefined as any;
+    }
   }
 
   static updateActivity(): void {
@@ -49,11 +58,15 @@ export class SessionService {
   }
 
   private static startSessionTimer(): void {
-    setInterval(() => {
+    this.sessionTimer = setInterval(() => {
       if (this.checkSessionTimeout()) {
         this.forceLogout();
       }
     }, this.CHECK_INTERVAL);
+  }
+
+  static destroy(): void {
+    this.clearSessionTimer();
   }
 
   static forceLogout(): void {

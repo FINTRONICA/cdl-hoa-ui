@@ -134,6 +134,12 @@ const Step4 = forwardRef<Step4Ref, Step4Props>(
         {},
         {
           enabled: Boolean(isEditMode && capitalPartnerId),
+          // Disable caching to always fetch fresh data
+          gcTime: 0,
+          staleTime: 0,
+          // Always refetch when component mounts
+          refetchOnMount: 'always',
+          refetchOnWindowFocus: false,
         }
       )
 
@@ -448,7 +454,7 @@ const Step4 = forwardRef<Step4Ref, Step4Props>(
                 'CDL_CP_ROUTING_CODE',
                 'Beneficiary Routing Code'
               )}
-              {renderTextField('bic', 'DL_CP_BIC_CODE', 'BIC')}
+              {renderTextField('bic', 'CDL_CP_BIC_CODE', 'BIC')}
             </Grid>
           </CardContent>
         </Card>

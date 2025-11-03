@@ -49,10 +49,10 @@ import {
   errorContainerSx,
   formSectionSx,
   buttonContainerSx,
-  primaryButtonSx,
 } from './styles'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useAutoSave, useFormPersistence } from './hooks/useAutoSave'
+import { GlobalLoading } from '@/components/atoms'
 import {
   validateCurrentStep,
   stepRequiresValidation,
@@ -80,6 +80,13 @@ export default function StepperWrapper({
 
   const router = useRouter()
 
+  // Helper function to build mode parameter for navigation (matching capital partner pattern)
+  const getModeParam = useCallback(() => {
+    if (isViewMode) return '?mode=view'
+    if (isEditingMode) return '?editing=true'
+    return ''
+  }, [isViewMode, isEditingMode])
+
   useEffect(() => {}, [isEditingMode])
 
   const stepManager = useProjectStepManager()
@@ -91,7 +98,7 @@ export default function StepperWrapper({
   const createProjectWorkflowRequest = useCreateDeveloperWorkflowRequest()
 
   const steps = [
-    ' Firms Details',
+    'Build Partner Assest Details',
     'Documents',
     'Account',
     'Fee Details',
@@ -138,11 +145,14 @@ export default function StepperWrapper({
           total: '',
           exceptionalCapValue: '',
         })),
-      creditInterestRetention: '',
-      paymentsFromRetention: '',
-      reimbursementsDeveloper: '',
-      unitRegistrationFees: '',
-      creditInterestEscrow: '',
+      additional: {
+        creditInterestRetention: '',
+        paymentsRetentionAccount: '',
+        reimbursementsDeveloper: '',
+        unitRegistrationFees: '',
+        creditInterestEscrow: '',
+        vatCapped: '',
+      },
     } as unknown as ProjectData,
     mode: 'onChange', // Validate on change but only show errors for touched fields
     // Note: Validation will be handled per-step in the step components
@@ -424,7 +434,7 @@ export default function StepperWrapper({
                     beneficiary.accountNumber ||
                     beneficiary.reaAccountNumber ||
                     '',
-                  // Keep original field names for compatibility
+                
                   beneficiaryId:
                     beneficiary.reabBeneficiaryId ||
                     beneficiary.beneficiaryId ||
@@ -452,7 +462,7 @@ export default function StepperWrapper({
             }
 
             if (activeStep === 5) {
-              // Step 6: Payment Plan data
+              
               if (
                 (stepData as any).paymentPlan &&
                 Array.isArray((stepData as any).paymentPlan)
@@ -464,15 +474,9 @@ export default function StepperWrapper({
             }
 
             if (activeStep === 6) {
-              // Step 7: Financial data
-              if (
-                (stepData as any).financialData &&
-                typeof (stepData as any).financialData === 'object'
-              ) {
-                ;(processedData as any).financialData = (
-                  stepData as any
-                ).financialData
-              }
+          
+              setShouldResetForm(false)
+              return
             }
 
             methods.reset(processedData)
@@ -492,35 +496,35 @@ export default function StepperWrapper({
               apiData =
                 await realEstateAssetService.getProjectDetails(projectId)
               break
-            case 1: // Step 2: Documents - no API call needed, just navigate
+            case 1: 
               setShouldResetForm(false)
               return
-            case 2: // Step 3: Accounts
+            case 2: 
               apiData =
                 await realEstateAssetService.getProjectAccounts(projectId)
               break
-            case 3: // Step 4: Fees
+            case 3: 
               apiData = await realEstateAssetService.getProjectFees(projectId)
               break
-            case 4: // Step 5: Beneficiaries
+            case 4: 
               apiData =
                 await realEstateAssetService.getProjectBeneficiaries(projectId)
               break
-            case 5: // Step 6: Payment Plans
+            case 5: 
               apiData =
                 await realEstateAssetService.getProjectPaymentPlans(projectId)
               break
-            case 6: // Step 7: Financial Data
+            case 6: 
               apiData =
                 await realEstateAssetService.getProjectFinancialSummary(
                   projectId
                 )
               break
-            case 7: // Step 8: Project Closure
+            case 7: 
               apiData =
                 await realEstateAssetService.getProjectClosure(projectId)
               break
-            case 8: // Step 9: Review - no API call needed
+            case 8: 
               setShouldResetForm(false)
               return
             default:
@@ -650,8 +654,7 @@ export default function StepperWrapper({
                 })),
               }
             } else if (activeStep === 5) {
-              // Step 6: Process payment plans data
-              // Handle paginated response structure
+              
               const paymentPlansArray =
                 apiData?.content || (Array.isArray(apiData) ? apiData : [])
               processedData = {
@@ -665,229 +668,9 @@ export default function StepperWrapper({
                 })),
               }
             } else if (activeStep === 6) {
-              // Step 7: Process financial data
-              // Handle paginated response structure
-              const financialData = apiData?.content?.[0] || apiData
-              processedData = {
-                estimate: {
-                  revenue: financialData?.reafsEstRevenue?.toString() || '',
-                  constructionCost:
-                    financialData?.reafsEstConstructionCost?.toString() || '',
-                  projectManagementExpense:
-                    financialData?.reafsEstProjectMgmtExpense?.toString() || '',
-                  landCost: financialData?.reafsEstLandCost?.toString() || '',
-                  marketingExpense:
-                    financialData?.reafsEstMarketingExpense?.toString() || '',
-                  date: financialData?.reafsEstimatedDate
-                    ? dayjs(financialData.reafsEstimatedDate)
-                    : null,
-                },
-                actual: {
-                  soldValue:
-                    financialData?.reafsActualSoldValue?.toString() || '',
-                  constructionCost:
-                    financialData?.reafsActualConstructionCost?.toString() ||
-                    '',
-                  infraCost:
-                    financialData?.reafsActualInfraCost?.toString() || '',
-                  landCost:
-                    financialData?.reafsActualLandCost?.toString() || '',
-                  projectManagementExpense:
-                    financialData?.reafsActualProjectMgmtExpense?.toString() ||
-                    '',
-                  marketingExpense:
-                    financialData?.reafsActualMarketingExp?.toString() || '',
-                  date: financialData?.reafsActualDate
-                    ? dayjs(financialData.reafsActualDate)
-                    : null,
-                },
-                // Add breakdown fields for current financial data
-                breakdown: {
-                  0: {
-                    outOfEscrow:
-                      financialData?.reafsCurCashRecvdOutEscrow?.toString() ||
-                      '',
-                    withinEscrow:
-                      financialData?.reafsCurCashRecvdWithin?.toString() || '',
-                    total:
-                      financialData?.reafsCurCashRecvdTotal?.toString() || '',
-                    exceptionalCapValue:
-                      financialData?.reafsCurCashexceptCapVal || '',
-                  },
-                  1: {
-                    outOfEscrow:
-                      financialData?.reafsCurLandCostOut?.toString() || '',
-                    withinEscrow:
-                      financialData?.reafsCurLandCostWithin?.toString() || '',
-                    total: financialData?.reafsCurLandTotal?.toString() || '',
-                    exceptionalCapValue:
-                      financialData?.reafsCurLandexceptCapVal || '',
-                  },
-                  2: {
-                    outOfEscrow:
-                      financialData?.reafsCurConsCostOut?.toString() || '',
-                    withinEscrow:
-                      financialData?.reafsCurConsCostWithin?.toString() || '',
-                    total:
-                      financialData?.reafsCurConsCostTotal?.toString() || '',
-                    exceptionalCapValue:
-                      financialData?.reafsCurConsExcepCapVal || '',
-                  },
-                  3: {
-                    outOfEscrow:
-                      financialData?.reafsCurrentMktgExpOut?.toString() || '',
-                    withinEscrow:
-                      financialData?.reafsCurrentMktgExpWithin?.toString() ||
-                      '',
-                    total:
-                      financialData?.reafsCurrentMktgExpTotal?.toString() || '',
-                    exceptionalCapValue:
-                      financialData?.reafsCurrentmktgExcepCapVal || '',
-                  },
-                  4: {
-                    outOfEscrow:
-                      financialData?.reafsCurProjMgmtExpOut?.toString() || '',
-                    withinEscrow:
-                      financialData?.reafsCurProjMgmtExpWithin?.toString() ||
-                      '',
-                    total:
-                      financialData?.reafsCurProjMgmtExpTotal?.toString() || '',
-                    exceptionalCapValue:
-                      financialData?.reafsCurProjExcepCapVal || '',
-                  },
-                  5: {
-                    outOfEscrow:
-                      financialData?.currentMortgageOut?.toString() || '',
-                    withinEscrow:
-                      financialData?.reafsCurrentMortgageWithin?.toString() ||
-                      '',
-                    total:
-                      financialData?.reafsCurrentMortgageTotal?.toString() ||
-                      '',
-                    exceptionalCapValue:
-                      financialData?.reafsCurMortgageExceptCapVal || '',
-                  },
-                  6: {
-                    outOfEscrow:
-                      financialData?.reafsCurrentVatPaymentOut?.toString() ||
-                      '',
-                    withinEscrow:
-                      financialData?.reafsCurrentVatPaymentWithin?.toString() ||
-                      '',
-                    total:
-                      financialData?.reafsCurrentVatPaymentTotal?.toString() ||
-                      '',
-                    exceptionalCapValue:
-                      financialData?.reafsCurVatExceptCapVal || '',
-                  },
-                  7: {
-                    outOfEscrow:
-                      financialData?.reafsCurrentOqoodOut?.toString() || '',
-                    withinEscrow:
-                      financialData?.reafsCurrentOqoodWithin?.toString() || '',
-                    total:
-                      financialData?.reafsCurrentOqoodTotal?.toString() || '',
-                    exceptionalCapValue:
-                      financialData?.reafsCurOqoodExceptCapVal || '',
-                  },
-                  8: {
-                    outOfEscrow:
-                      financialData?.reafsCurrentRefundOut?.toString() || '',
-                    withinEscrow:
-                      financialData?.reafsCurrentRefundWithin?.toString() || '',
-                    total:
-                      financialData?.reafsCurrentRefundTotal?.toString() || '',
-                    exceptionalCapValue:
-                      financialData?.reafsCurRefundExceptCapVal || '',
-                  },
-                  9: {
-                    outOfEscrow:
-                      financialData?.reafsCurBalInRetenAccOut?.toString() || '',
-                    withinEscrow:
-                      financialData?.reafsCurBalInRetenAccWithin?.toString() ||
-                      '',
-                    total:
-                      financialData?.reafsCurBalInRetenAccTotal?.toString() ||
-                      '',
-                    exceptionalCapValue:
-                      financialData?.reafsCurBalInRetenExceptCapVal || '',
-                  },
-                  10: {
-                    outOfEscrow:
-                      financialData?.reafsCurBalInTrustAccOut?.toString() || '',
-                    withinEscrow:
-                      financialData?.reafsCurBalInTrustAccWithin?.toString() ||
-                      '',
-                    total:
-                      financialData?.reafsCurBalInTrustAccTotal?.toString() ||
-                      '',
-                    exceptionalCapValue:
-                      financialData?.reafsCurBalInExceptCapVal || '',
-                  },
-                  11: {
-                    outOfEscrow:
-                      financialData?.reafsCurBalInSubsConsOut?.toString() || '',
-                    withinEscrow:
-                      financialData?.reafsCurBalInRSubsConsWithin?.toString() ||
-                      '',
-                    total:
-                      financialData?.reafsCurBalInSubsConsTotal?.toString() ||
-                      '',
-                    exceptionalCapValue:
-                      financialData?.reafsCurBalInSubsConsCapVal || '',
-                  },
-                  12: {
-                    outOfEscrow:
-                      financialData?.reafsCurTechnFeeOut?.toString() || '',
-                    withinEscrow:
-                      financialData?.reafsCurTechnFeeWithin?.toString() || '',
-                    total:
-                      financialData?.reafsCurTechnFeeTotal?.toString() || '',
-                    exceptionalCapValue:
-                      financialData?.reafsCurTechFeeExceptCapVal || '',
-                  },
-                  13: {
-                    outOfEscrow:
-                      financialData?.reafsCurUnIdeFundOut?.toString() || '',
-                    withinEscrow:
-                      financialData?.reafsCurUnIdeFundWithin?.toString() || '',
-                    total:
-                      financialData?.reafsCurUnIdeFundTotal?.toString() || '',
-                    exceptionalCapValue:
-                      financialData?.reafsCurUnIdeExceptCapVal || '',
-                  },
-                  14: {
-                    outOfEscrow:
-                      financialData?.reafsCurLoanInstalOut?.toString() || '',
-                    withinEscrow:
-                      financialData?.reafsCurLoanInstalWithin?.toString() || '',
-                    total:
-                      financialData?.reafsCurLoanInstalTotal?.toString() || '',
-                    exceptionalCapValue:
-                      financialData?.reafsCurLoanExceptCapVal || '',
-                  },
-                  15: {
-                    outOfEscrow:
-                      financialData?.reafsCurInfraCostOut?.toString() || '',
-                    withinEscrow:
-                      financialData?.reafsCurInfraCostWithin?.toString() || '',
-                    total:
-                      financialData?.reafsCurInfraCostTotal?.toString() || '',
-                    exceptionalCapValue:
-                      financialData?.reafsCurInfraExceptCapVal || '',
-                  },
-                  16: {
-                    outOfEscrow:
-                      financialData?.reafsCurOthersCostOut?.toString() || '',
-                    withinEscrow:
-                      financialData?.reafsCurOthersCostWithin?.toString() || '',
-                    total:
-                      financialData?.reafsCurOthersCostTotal?.toString() || '',
-                    exceptionalCapValue:
-                      financialData?.reafsCurOthersExceptCapVal || '',
-                  },
-                },
-              }
+             
+              setShouldResetForm(false)
+              return
             } else if (activeStep === 7) {
               const closureData = apiData?.content?.[0] || apiData
 
@@ -953,7 +736,7 @@ export default function StepperWrapper({
               Frequency:
                 fee.reafFrequencyDTO?.languageTranslationId?.configValue ||
                 fee.reafFrequencyDTO?.settingValue ||
-                'N/A', // Default to 'N/A' since reafFrequencyDTO is null
+                'N/A', 
               DebitAmount: fee.reafDebitAmount?.toString() || '',
               Feetobecollected: fee.reafCollectionDate || '',
               NextRecoveryDate: fee.reafNextRecoveryDate
@@ -962,7 +745,7 @@ export default function StepperWrapper({
               FeePercentage: fee.reafFeePercentage?.toString() || '',
               Amount: fee.reafTotalAmount?.toString() || '',
               VATPercentage: fee.reafVatPercentage?.toString() || '',
-              // Keep original field names for compatibility
+              
               feeType:
                 fee.reafCategoryDTO?.languageTranslationId?.configValue ||
                 fee.reafCategoryDTO?.settingValue ||
@@ -1019,7 +802,7 @@ export default function StepperWrapper({
                 reaSwiftCode: beneficiary.reabSwift || '',
                 reaRoutingCode: beneficiary.reabRoutingCode || '',
                 reaAccountNumber: beneficiary.reabBeneAccount || '',
-                // Keep original field names for compatibility
+                
                 beneficiaryId: beneficiary.reabBeneficiaryId || '',
                 beneficiaryType:
                   beneficiary.reabTranferTypeDTO?.languageTranslationId
@@ -1071,495 +854,111 @@ export default function StepperWrapper({
     }
   }, [activeStep, projectId, isAddingContact, methods])
 
-  // Specific useEffect for financial data loading
+
   useEffect(() => {
     if (activeStep === 6 && projectId && !isAddingContact) {
+      
+      
       const loadFinancialData = async () => {
         try {
-          const apiData =
-            await realEstateAssetService.getProjectFinancialSummary(projectId)
+          const apiData = await realEstateAssetService.getProjectFinancialSummary(projectId)
+          
+         
 
-          // Extract financial summary ID from paginated response
           const financialData = apiData?.content?.[0] || apiData
+          
+          
+          
           if (financialData?.id) {
             setFinancialSummaryId(financialData.id)
+            
           }
 
-          if (apiData) {
-            // Process financial data and set it to the form
-            const processedFinancialData = {
+          if (financialData) {
+            setShouldResetForm(false)
+           
+            const breakdownMap = {
+              0: { out: 'reafsCurCashRecvdOutEscrow', within: 'reafsCurCashRecvdWithinEscrow', total: 'reafsCurCashRecvdTotal', except: 'reafsCurCashexceptCapVal' },
+              1: { out: 'reafsCurLandCostOut', within: 'reafsCurLandCostWithin', total: 'reafsCurLandTotal', except: 'reafsCurLandexceptCapVal' },
+              2: { out: 'reafsCurConsCostOut', within: 'reafsCurConsCostWithin', total: 'reafsCurConsCostTotal', except: 'reafsCurConsExcepCapVal' },
+              3: { out: 'reafsCurrentMktgExpOut', within: 'reafsCurrentMktgExpWithin', total: 'reafsCurrentMktgExpTotal', except: 'reafsCurrentmktgExcepCapVal' },
+              4: { out: 'reafsCurProjMgmtExpOut', within: 'reafsCurProjMgmtExpWithin', total: 'reafsCurProjMgmtExpTotal', except: 'reafsCurProjExcepCapVal' },
+              5: { out: 'currentMortgageOut', within: 'reafsCurrentMortgageWithin', total: 'reafsCurrentMortgageTotal', except: 'reafsCurMortgageExceptCapVal' },
+              6: { out: 'reafsCurrentVatPaymentOut', within: 'reafsCurrentVatPaymentWithin', total: 'reafsCurrentVatPaymentTotal', except: 'reafsCurVatExceptCapVal' },
+              7: { out: 'reafsCurrentOqoodOut', within: 'reafsCurrentOqoodWithin', total: 'reafsCurrentOqoodTotal', except: 'reafsCurOqoodExceptCapVal' },
+              8: { out: 'reafsCurrentRefundOut', within: 'reafsCurrentRefundWithin', total: 'reafsCurrentRefundTotal', except: 'reafsCurRefundExceptCapVal' },
+              9: { out: 'reafsCurBalInRetenAccOut', within: 'reafsCurBalInRetenAccWithin', total: 'reafsCurBalInRetenAccTotal', except: 'reafsCurBalInRetenExceptCapVal' },
+              10: { out: 'reafsCurBalInTrustAccOut', within: 'reafsCurBalInTrustAccWithin', total: 'reafsCurBalInTrustAccTotal', except: 'reafsCurBalInExceptCapVal' },
+              11: { out: 'reafsCurBalInSubsConsOut', within: 'reafsCurBalInRSubsConsWithin', total: 'reafsCurBalInSubsConsTotal', except: 'reafsCurBalInSubsConsCapVal' },
+              12: { out: 'reafsCurTechnFeeOut', within: 'reafsCurTechnFeeWithin', total: 'reafsCurTechnFeeTotal', except: 'reafsCurTechFeeExceptCapVal' },
+              13: { out: 'reafsCurUnIdeFundOut', within: 'reafsCurUnIdeFundWithin', total: 'reafsCurUnIdeFundTotal', except: 'reafsCurUnIdeExceptCapVal' },
+              14: { out: 'reafsCurLoanInstalOut', within: 'reafsCurLoanInstalWithin', total: 'reafsCurLoanInstalTotal', except: 'reafsCurLoanExceptCapVal' },
+              15: { out: 'reafsCurInfraCostOut', within: 'reafsCurInfraCostWithin', total: 'reafsCurInfraCostTotal', except: 'reafsCurInfraExceptCapVal' },
+              16: { out: 'reafsCurOthersCostOut', within: 'reafsCurOthersCostWithin', total: 'reafsCurOthersCostTotal', except: 'reafsCurOthersExceptCapVal' },
+              17: { out: 'reafsCurTransferCostOut', within: 'reafsCurTransferCostWithin', total: 'reafsCurTransferCostTotal', except: 'reafsCurTransferExceptCapVal' },
+              18: { out: 'reafsCurForfeitCostOut', within: 'reafsCurForfeitCostWithin', total: 'reafsCurForfeitCostTotal', except: 'reafsCurForfeitExceptCapVal' },
+              19: { out: 'reafsCurDeveEqtycostOut', within: 'reafsCurDeveEqtycostWithin', total: 'reafsCurDeveEqtycostTotal', except: 'reafsCurDeveExceptCapVal' },
+              20: { out: 'reafsCurAmntFundOut', within: 'reafsCurAmntFundWithin', total: 'reafsCurAmntFundTotal', except: 'reafsCurAmntExceptCapVal' },
+              21: { out: 'reafsCurOtherWithdOut', within: 'reafsCurOtherWithdWithin', total: 'reafsCurOtherWithdTotal', except: 'reafsCurOtherExceptCapVal' },
+              22: { out: 'reafsCurOqoodOthFeeOut', within: 'reafsCurOqoodOthFeeWithin', total: 'reafsCurOqoodOthFeeTotal', except: 'reafsOtherFeesAnPaymentExcepVal' },
+              23: { out: 'reafsCurVatDepositOut', within: 'reafsCurVatDepositWithin', total: 'reafsCurVatDepositTotal', except: 'reafsCurVatDepositCapVal' },
+            }
+
+            const breakdown = Array(24).fill(null).map((_, index) => {
+              const mapping = breakdownMap[index as keyof typeof breakdownMap]
+              if (mapping) {
+                return {
+                  outOfEscrow: (financialData as any)[mapping.out]?.toString() || '',
+                  withinEscrow: (financialData as any)[mapping.within]?.toString() || '',
+                  total: (financialData as any)[mapping.total]?.toString() || '',
+                  exceptionalCapValue: (financialData as any)[mapping.except] || '',
+                }
+              }
+              return { outOfEscrow: '', withinEscrow: '', total: '', exceptionalCapValue: '' }
+            })
+
+          
+            const completeFinancialData = {
               estimate: {
-                revenue: apiData.reafsEstRevenue?.toString() || '',
-                constructionCost:
-                  apiData.reafsEstConstructionCost?.toString() || '',
-                projectManagementExpense:
-                  apiData.reafsEstProjectMgmtExpense?.toString() || '',
-                landCost: apiData.reafsEstLandCost?.toString() || '',
-                marketingExpense:
-                  apiData.reafsEstMarketingExpense?.toString() || '',
-                date: apiData.reafsEstimatedDate
-                  ? dayjs(apiData.reafsEstimatedDate)
-                  : null,
+                revenue: financialData.reafsEstRevenue?.toString() || '',
+                constructionCost: financialData.reafsEstConstructionCost?.toString() || '',
+                projectManagementExpense: financialData.reafsEstProjectMgmtExpense?.toString() || '',
+                landCost: financialData.reafsEstLandCost?.toString() || '',
+                marketingExpense: financialData.reafsEstMarketingExpense?.toString() || '',
+                date: financialData.reafsEstimatedDate ? dayjs(financialData.reafsEstimatedDate) : null,
               },
               actual: {
-                soldValue: apiData.reafsActualSoldValue?.toString() || '',
-                constructionCost:
-                  apiData.reafsActualConstructionCost?.toString() || '',
-                infraCost: apiData.reafsActualInfraCost?.toString() || '',
-                landCost: apiData.reafsActualLandCost?.toString() || '',
-                projectManagementExpense:
-                  apiData.reafsActualProjectMgmtExpense?.toString() || '',
-                marketingExpense:
-                  apiData.reafsActualMarketingExp?.toString() || '',
-                date: apiData.reafsActualDate
-                  ? dayjs(apiData.reafsActualDate)
-                  : null,
+                soldValue: financialData.reafsActualSoldValue?.toString() || '',
+                constructionCost: financialData.reafsActualConstructionCost?.toString() || '',
+                infraCost: financialData.reafsActualInfraCost?.toString() || '',
+                landCost: financialData.reafsActualLandCost?.toString() || '',
+                projectManagementExpense: financialData.reafsActualProjectMgmtExpense?.toString() || '',
+                marketingExpense: financialData.reafsActualMarketingExp?.toString() || '',
+                date: financialData.reafsActualDate ? dayjs(financialData.reafsActualDate) : null,
+              },
+              breakdown,
+              additional: {
+                creditInterestRetention: financialData.reafsCreditInterest?.toString() || '',
+                paymentsRetentionAccount: financialData.reafsPaymentForRetentionAcc?.toString() || '',
+                reimbursementsDeveloper: financialData.reafsDeveloperReimburse?.toString() || '',
+                unitRegistrationFees: financialData.reafsUnitRegFees?.toString() || '',
+                creditInterestEscrow: financialData.reafsCreditInterestProfit?.toString() || '',
+                vatCapped: financialData.reafsVatCappedCost?.toString() || '',
               },
             }
 
-            methods.setValue(
-              'estimate.revenue' as any,
-              processedFinancialData.estimate.revenue,
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'estimate.constructionCost' as any,
-              processedFinancialData.estimate.constructionCost,
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'estimate.projectManagementExpense' as any,
-              processedFinancialData.estimate.projectManagementExpense,
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'estimate.landCost' as any,
-              processedFinancialData.estimate.landCost,
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'estimate.marketingExpense' as any,
-              processedFinancialData.estimate.marketingExpense,
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'estimate.date' as any,
-              processedFinancialData.estimate.date,
-              { shouldValidate: false }
-            )
-
-            methods.setValue(
-              'actual.soldValue' as any,
-              processedFinancialData.actual.soldValue,
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'actual.constructionCost' as any,
-              processedFinancialData.actual.constructionCost,
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'actual.infraCost' as any,
-              processedFinancialData.actual.infraCost,
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'actual.landCost' as any,
-              processedFinancialData.actual.landCost,
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'actual.projectManagementExpense' as any,
-              processedFinancialData.actual.projectManagementExpense,
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'actual.marketingExpense' as any,
-              processedFinancialData.actual.marketingExpense,
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'actual.date' as any,
-              processedFinancialData.actual.date,
-              { shouldValidate: false }
-            )
-
-            // Set breakdown fields for current financial data
-            // Cash Received from the Unit Holder (index 0)
-            methods.setValue(
-              'breakdown.0.outOfEscrow' as any,
-              apiData.reafsCurCashRecvdOutEscrow?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.0.withinEscrow' as any,
-              apiData.reafsCurCashRecvdWithin?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.0.total' as any,
-              apiData.reafsCurCashRecvdTotal?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.0.exceptionalCapValue' as any,
-              apiData.reafsCurCashexceptCapVal || '',
-              { shouldValidate: false }
-            )
-
-            // Land Cost (index 1)
-            methods.setValue(
-              'breakdown.1.outOfEscrow' as any,
-              apiData.reafsCurLandCostOut?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.1.withinEscrow' as any,
-              apiData.reafsCurLandCostWithin?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.1.total' as any,
-              apiData.reafsCurLandTotal?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.1.exceptionalCapValue' as any,
-              apiData.reafsCurLandexceptCapVal || '',
-              { shouldValidate: false }
-            )
-
-            // Construction Cost (index 2)
-            methods.setValue(
-              'breakdown.2.outOfEscrow' as any,
-              apiData.reafsCurConsCostOut?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.2.withinEscrow' as any,
-              apiData.reafsCurConsCostWithin?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.2.total' as any,
-              apiData.reafsCurConsCostTotal?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.2.exceptionalCapValue' as any,
-              apiData.reafsCurConsExcepCapVal || '',
-              { shouldValidate: false }
-            )
-
-            // Marketing Expense (index 3)
-            methods.setValue(
-              'breakdown.3.outOfEscrow' as any,
-              apiData.reafsCurrentMktgExpOut?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.3.withinEscrow' as any,
-              apiData.reafsCurrentMktgExpWithin?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.3.total' as any,
-              apiData.reafsCurrentMktgExpTotal?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.3.exceptionalCapValue' as any,
-              apiData.reafsCurrentmktgExcepCapVal || '',
-              { shouldValidate: false }
-            )
-
-            // Project Management Expense (index 4)
-            methods.setValue(
-              'breakdown.4.outOfEscrow' as any,
-              apiData.reafsCurProjMgmtExpOut?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.4.withinEscrow' as any,
-              apiData.reafsCurProjMgmtExpWithin?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.4.total' as any,
-              apiData.reafsCurProjMgmtExpTotal?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.4.exceptionalCapValue' as any,
-              apiData.reafsCurProjExcepCapVal || '',
-              { shouldValidate: false }
-            )
-
-            // Mortgage (index 5)
-            methods.setValue(
-              'breakdown.5.outOfEscrow' as any,
-              apiData.currentMortgageOut?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.5.withinEscrow' as any,
-              apiData.reafsCurrentMortgageWithin?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.5.total' as any,
-              apiData.reafsCurrentMortgageTotal?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.5.exceptionalCapValue' as any,
-              apiData.reafsCurMortgageExceptCapVal || '',
-              { shouldValidate: false }
-            )
-
-            // VAT Payment (index 6)
-            methods.setValue(
-              'breakdown.6.outOfEscrow' as any,
-              apiData.reafsCurrentVatPaymentOut?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.6.withinEscrow' as any,
-              apiData.reafsCurrentVatPaymentWithin?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.6.total' as any,
-              apiData.reafsCurrentVatPaymentTotal?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.6.exceptionalCapValue' as any,
-              apiData.reafsCurVatExceptCapVal || '',
-              { shouldValidate: false }
-            )
-
-            // Deposit (index 7)
-            methods.setValue(
-              'breakdown.7.outOfEscrow' as any,
-              apiData.reafsCurrentOqoodOut?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.7.withinEscrow' as any,
-              apiData.reafsCurrentOqoodWithin?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.7.total' as any,
-              apiData.reafsCurrentOqoodTotal?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.7.exceptionalCapValue' as any,
-              apiData.reafsCurOqoodExceptCapVal || '',
-              { shouldValidate: false }
-            )
-
-            // Refund (index 8)
-            methods.setValue(
-              'breakdown.8.outOfEscrow' as any,
-              apiData.reafsCurrentRefundOut?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.8.withinEscrow' as any,
-              apiData.reafsCurrentRefundWithin?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.8.total' as any,
-              apiData.reafsCurrentRefundTotal?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.8.exceptionalCapValue' as any,
-              apiData.reafsCurRefundExceptCapVal || '',
-              { shouldValidate: false }
-            )
-
-            // Balance in Retention A/C (index 9)
-            methods.setValue(
-              'breakdown.9.outOfEscrow' as any,
-              apiData.reafsCurBalInRetenAccOut?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.9.withinEscrow' as any,
-              apiData.reafsCurBalInRetenAccWithin?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.9.total' as any,
-              apiData.reafsCurBalInRetenAccTotal?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.9.exceptionalCapValue' as any,
-              apiData.reafsCurBalInRetenExceptCapVal || '',
-              { shouldValidate: false }
-            )
-
-            // Balance in Trust A/C (index 10)
-            methods.setValue(
-              'breakdown.10.outOfEscrow' as any,
-              apiData.reafsCurBalInTrustAccOut?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.10.withinEscrow' as any,
-              apiData.reafsCurBalInTrustAccWithin?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.10.total' as any,
-              apiData.reafsCurBalInTrustAccTotal?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.10.exceptionalCapValue' as any,
-              apiData.reafsCurBalInExceptCapVal || '',
-              { shouldValidate: false }
-            )
-
-            // Balance in Sub Construction A/C (index 11)
-            methods.setValue(
-              'breakdown.11.outOfEscrow' as any,
-              apiData.reafsCurBalInSubsConsOut?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.11.withinEscrow' as any,
-              apiData.reafsCurBalInRSubsConsWithin?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.11.total' as any,
-              apiData.reafsCurBalInSubsConsTotal?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.11.exceptionalCapValue' as any,
-              apiData.reafsCurBalInSubsConsCapVal || '',
-              { shouldValidate: false }
-            )
-
-            // Technical Fees (index 12)
-            methods.setValue(
-              'breakdown.12.outOfEscrow' as any,
-              apiData.reafsCurTechnFeeOut?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.12.withinEscrow' as any,
-              apiData.reafsCurTechnFeeWithin?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.12.total' as any,
-              apiData.reafsCurTechnFeeTotal?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.12.exceptionalCapValue' as any,
-              apiData.reafsCurTechFeeExceptCapVal || '',
-              { shouldValidate: false }
-            )
-
-            // Unidentified Funds (index 13)
-            methods.setValue(
-              'breakdown.13.outOfEscrow' as any,
-              apiData.reafsCurUnIdeFundOut?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.13.withinEscrow' as any,
-              apiData.reafsCurUnIdeFundWithin?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.13.total' as any,
-              apiData.reafsCurUnIdeFundTotal?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.13.exceptionalCapValue' as any,
-              apiData.reafsCurUnIdeExceptCapVal || '',
-              { shouldValidate: false }
-            )
-
-            // Loan/Installments (index 14)
-            methods.setValue(
-              'breakdown.14.outOfEscrow' as any,
-              apiData.reafsCurLoanInstalOut?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.14.withinEscrow' as any,
-              apiData.reafsCurLoanInstalWithin?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.14.total' as any,
-              apiData.reafsCurLoanInstalTotal?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.14.exceptionalCapValue' as any,
-              apiData.reafsCurLoanExceptCapVal || '',
-              { shouldValidate: false }
-            )
-
-            // Infrastructure Cost (index 15)
-            methods.setValue(
-              'breakdown.15.outOfEscrow' as any,
-              apiData.reafsCurInfraCostOut?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.15.withinEscrow' as any,
-              apiData.reafsCurInfraCostWithin?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.15.total' as any,
-              apiData.reafsCurInfraCostTotal?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.15.exceptionalCapValue' as any,
-              apiData.reafsCurInfraExceptCapVal || '',
-              { shouldValidate: false }
-            )
-
-            // Others (index 16)
-            methods.setValue(
-              'breakdown.16.outOfEscrow' as any,
-              apiData.reafsCurOthersCostOut?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.16.withinEscrow' as any,
-              apiData.reafsCurOthersCostWithin?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.16.total' as any,
-              apiData.reafsCurOthersCostTotal?.toString() || '',
-              { shouldValidate: false }
-            )
-            methods.setValue(
-              'breakdown.16.exceptionalCapValue' as any,
-              apiData.reafsCurOthersExceptCapVal || '',
-              { shouldValidate: false }
-            )
+       
+            
+            methods.reset({
+              ...methods.getValues(),
+              estimate: completeFinancialData.estimate,
+              actual: completeFinancialData.actual,
+              breakdown: completeFinancialData.breakdown,
+              additional: completeFinancialData.additional,
+            } as any)
           }
         } catch (error) {
+          
           throw error
         }
       }
@@ -1614,10 +1013,10 @@ export default function StepperWrapper({
             await realEstateAssetService.getProjectClosure(projectId)
 
           if (apiData) {
-            // Handle paginated response structure
+            
             const closureData = apiData?.content?.[0] || apiData
 
-            // Store project closure ID for PUT requests
+          
             if (closureData?.id) {
               setProjectClosureId(closureData.id)
             }
@@ -1692,7 +1091,7 @@ export default function StepperWrapper({
     if (!projectId) {
       setIsEditingMode(false)
     } else {
-      // If projectId exists, we're in edit mode
+      
       setIsEditingMode(true)
     }
   }, [projectId, isEditingMode])
@@ -1700,12 +1099,13 @@ export default function StepperWrapper({
   const getStepContent = (step: number) => {
     switch (step) {
       case 0:
-        return <Step1 isViewMode={isViewMode} />
+        return <Step1 isViewMode={isViewMode} projectId={projectId} />
       case 1:
         return (
           <DocumentUploadFactory
             type="BUILD_PARTNER_ASSET"
             entityId={projectId || 'temp_project_id'}
+            isReadOnly={isViewMode}
             isOptional={true}
             onDocumentsChange={(documents: DocumentItem[]) => {
               methods.setValue('documents', documents)
@@ -1892,19 +1292,19 @@ export default function StepperWrapper({
     status: formData.status || 'ACTIVE',
   })
 
-  // Simple navigation for view mode
+  
   const handleViewNext = useCallback(() => {
     if (activeStep < steps.length - 1) {
       const nextStep = activeStep + 1
       setActiveStep(nextStep)
 
       if (projectId) {
-        const targetUrl = `/projects/${projectId}?step=${nextStep + 1}&view=true`
+        const targetUrl = `/build-partner-assets/${projectId}?step=${nextStep + 1}&mode=view`
         router.push(targetUrl)
       }
     } else {
-      // If we're on the last step (review step) in view mode, redirect to projects list
-      router.push('/entities/projects')
+      
+      router.push('/build-partner-assets')
     }
   }, [activeStep, steps.length, projectId, router])
 
@@ -1914,14 +1314,14 @@ export default function StepperWrapper({
       setActiveStep(prevStep)
 
       if (projectId) {
-        const targetUrl = `/projects/${projectId}?step=${prevStep + 1}&view=true`
+        const targetUrl = `/build-partner-assets/${projectId}?step=${prevStep + 1}&mode=view`
         router.push(targetUrl)
       }
     }
   }, [activeStep, projectId, router])
 
   const handleSaveAndNext = useCallback(async () => {
-    // If in view mode, use simple navigation
+   
     if (isViewMode) {
       handleViewNext()
       return
@@ -1931,7 +1331,7 @@ export default function StepperWrapper({
       setErrorMessage(null)
       setSuccessMessage(null)
 
-      // Step-specific validation - only validate current step fields
+      
       if (stepRequiresValidation(activeStep)) {
         const { isValid } = await validateCurrentStep(methods, activeStep)
 
@@ -1946,13 +1346,13 @@ export default function StepperWrapper({
 
       const currentFormData = methods.getValues()
 
-      // Skip saving for steps that don't need API calls (Documents, Fees, Beneficiaries) - just navigate
+  
       if (SKIP_VALIDATION_STEPS.includes(activeStep as 1 | 3 | 4)) {
         const nextStep = activeStep + 1
         setActiveStep(nextStep)
 
         if (projectId) {
-          const targetUrl = `/projects/${projectId}?step=${nextStep + 1}`
+          const targetUrl = `/build-partner-assets/${projectId}?step=${nextStep + 1}${getModeParam()}`
           router.push(targetUrl)
         }
         return
@@ -1980,7 +1380,7 @@ export default function StepperWrapper({
           setSuccessMessage(
             'Project registration submitted successfully! Workflow request created.'
           )
-          router.push('/entities/projects')
+          router.push('/build-partner-assets')
           return
         } catch (error) {
           setErrorMessage(
@@ -1995,7 +1395,7 @@ export default function StepperWrapper({
         setActiveStep(nextStep)
 
         if (projectId) {
-          const targetUrl = `/projects/${projectId}?step=${nextStep + 1}`
+          const targetUrl = `/build-partner-assets/${projectId}?step=${nextStep + 1}${getModeParam()}`
           router.push(targetUrl)
         }
         return
@@ -2006,7 +1406,7 @@ export default function StepperWrapper({
         setActiveStep(nextStep)
 
         if (projectId) {
-          const targetUrl = `/projects/${projectId}?step=${nextStep + 1}`
+          const targetUrl = `/build-partner-assets/${projectId}?step=${nextStep + 1}${getModeParam()}`
           router.push(targetUrl)
         }
         return
@@ -2017,7 +1417,7 @@ export default function StepperWrapper({
         setActiveStep(nextStep)
 
         if (projectId) {
-          const targetUrl = `/projects/${projectId}?step=${nextStep + 1}`
+          const targetUrl = `/build-partner-assets/${projectId}?step=${nextStep + 1}${getModeParam()}`
           router.push(targetUrl)
         }
         return
@@ -2028,7 +1428,7 @@ export default function StepperWrapper({
         setActiveStep(nextStep)
 
         if (projectId) {
-          const targetUrl = `/projects/${projectId}?step=${nextStep + 1}`
+          const targetUrl = `/build-partner-assets/${projectId}?step=${nextStep + 1}${getModeParam()}`
           router.push(targetUrl)
         }
         return
@@ -2080,8 +1480,7 @@ export default function StepperWrapper({
           }
 
           if (errors.length > 0) {
-            const errorMessage = `Failed to save ${errors.length} out of ${accountsToProcess.length} accounts. Check console for details.`
-            setErrorMessage(errorMessage)
+           
             return
           }
 
@@ -2091,7 +1490,7 @@ export default function StepperWrapper({
           setActiveStep(nextStep)
 
           if (projectId) {
-            const targetUrl = `/projects/${projectId}?step=${nextStep + 1}`
+            const targetUrl = `/build-partner-assets/${projectId}?step=${nextStep + 1}${getModeParam()}`
             router.push(targetUrl)
           }
           return
@@ -2105,7 +1504,7 @@ export default function StepperWrapper({
         const nextStep = activeStep + 1
         setActiveStep(nextStep)
         if (projectId) {
-          const targetUrl = `/projects/${projectId}?step=${nextStep + 1}`
+          const targetUrl = `/build-partner-assets/${projectId}?step=${nextStep + 1}${getModeParam()}`
           router.push(targetUrl)
         }
         return
@@ -2116,9 +1515,13 @@ export default function StepperWrapper({
           estimate: (currentFormData as any).estimate || {},
           actual: (currentFormData as any).actual || {},
           breakdown: (currentFormData as any).breakdown || {},
+          additional: (currentFormData as any).additional || {},
         }
 
+      
+
         if (isEditingMode && financialSummaryId) {
+          
           await saveFinancialSummary.mutateAsync({
             financialData: financialData,
             projectId: financialSummaryId.toString(),
@@ -2126,13 +1529,14 @@ export default function StepperWrapper({
             realProjectId: projectId,
           } as any)
         } else {
+          
           await stepManager.saveStep(6, financialData, projectId, false)
         }
         setSuccessMessage('Financial Summary saved successfully')
         const nextStep = 7
         setActiveStep(nextStep)
         if (projectId) {
-          const targetUrl = `/projects/${projectId}?step=${nextStep + 1}`
+          const targetUrl = `/build-partner-assets/${projectId}?step=${nextStep + 1}${getModeParam()}`
           router.push(targetUrl)
         }
         return
@@ -2143,7 +1547,7 @@ export default function StepperWrapper({
 
         if (isEditingMode && projectClosureId) {
           await saveProjectClosure.mutateAsync({
-            closureData: closureData,
+            data: closureData,
             projectId: projectClosureId.toString(),
             isEdit: true,
             realProjectId: projectId,
@@ -2156,7 +1560,7 @@ export default function StepperWrapper({
         const nextStep = 8
         setActiveStep(nextStep)
         if (projectId) {
-          const targetUrl = `/projects/${projectId}?step=${nextStep + 1}`
+          const targetUrl = `/build-partner-assets/${projectId}?step=${nextStep + 1}${getModeParam()}`
           router.push(targetUrl)
         }
         return
@@ -2190,7 +1594,7 @@ export default function StepperWrapper({
             : savedProjectId || projectId
 
           if (targetProjectId) {
-            const targetUrl = `/projects/${targetProjectId}?step=2`
+            const targetUrl = `/build-partner-assets/${targetProjectId}?step=2${getModeParam()}`
 
             setActiveStep(1)
             router.push(targetUrl)
@@ -2203,7 +1607,7 @@ export default function StepperWrapper({
           setActiveStep(nextStep)
 
           if (projectId) {
-            const targetUrl = `/projects/${projectId}?step=${nextStep + 1}`
+            const targetUrl = `/build-partner-assets/${projectId}?step=${nextStep + 1}${getModeParam()}`
 
             router.push(targetUrl)
           }
@@ -2230,13 +1634,13 @@ export default function StepperWrapper({
           setSuccessMessage(
             'Project registration submitted successfully! Workflow request created.'
           )
-          router.push('/entities/projects')
+          router.push('/build-partner-assets')
         } catch (error) {
           setErrorMessage(
             'Failed to submit workflow request. Please try again.'
           )
         }
-        router.push('/entities/projects')
+        router.push('/build-partner-assets')
         setSuccessMessage(SUCCESS_MESSAGES.ALL_STEPS_COMPLETED)
       }
     } catch (error: unknown) {
@@ -2253,7 +1657,7 @@ export default function StepperWrapper({
   }, [activeStep, methods, stepManager, projectId, router, isEditingMode])
 
   const handleBack = useCallback(() => {
-    // If in view mode, use simple navigation
+    
     if (isViewMode) {
       handleViewBack()
       return
@@ -2264,11 +1668,11 @@ export default function StepperWrapper({
       setActiveStep(previousStep)
 
       if (projectId) {
-        const targetUrl = `/projects/${projectId}?step=${previousStep + 1}`
+        const targetUrl = `/build-partner-assets/${projectId}?step=${previousStep + 1}${getModeParam()}`
         router.push(targetUrl)
       }
     }
-  }, [activeStep, projectId, router, isViewMode, handleViewBack])
+  }, [activeStep, projectId, router, isViewMode, handleViewBack, getModeParam])
 
   const handleReset = useCallback(() => {
     setActiveStep(0)
@@ -2285,11 +1689,11 @@ export default function StepperWrapper({
       setSuccessMessage(`Now editing step ${stepNumber + 1} data`)
 
       if (projectId) {
-        const targetUrl = `/projects/${projectId}?step=${stepNumber + 1}`
+        const targetUrl = `/build-partner-assets/${projectId}?step=${stepNumber + 1}${getModeParam()}`
         router.push(targetUrl)
       }
     },
-    [setShouldResetForm, projectId, router, stepStatus]
+    [setShouldResetForm, projectId, router, stepStatus, getModeParam]
   )
 
   const onSubmit = (_data: ProjectData) => {
@@ -2299,7 +1703,7 @@ export default function StepperWrapper({
   if (isLoadingStepStatus && projectId) {
     return (
       <Box sx={loadingContainerSx}>
-        <Typography>Loading...</Typography>
+        <GlobalLoading fullHeight />
       </Box>
     )
   }
@@ -2342,7 +1746,18 @@ export default function StepperWrapper({
                   justifyContent="space-between"
                   sx={buttonContainerSx}
                 >
-                  <Button onClick={handleReset} sx={primaryButtonSx}>
+                  <Button
+                    variant="outlined"
+                    onClick={handleReset}
+                    sx={{
+                      fontFamily: 'Outfit, sans-serif',
+                      fontWeight: 500,
+                      fontStyle: 'normal',
+                      fontSize: '14px',
+                      lineHeight: '20px',
+                      letterSpacing: 0,
+                    }}
+                  >
                     Cancel
                   </Button>
                   <Box>
@@ -2417,8 +1832,6 @@ export default function StepperWrapper({
                             ? 'Submit'
                             : 'Save and Next'}
                     </Button>
-
-              
                   </Box>
 
                   <Snackbar

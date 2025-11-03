@@ -20,7 +20,7 @@ const ApiTestPage: React.FC = () => {
   } = useBuildPartners(testParams.page, testParams.size, testParams.filters)
 
   const handleTest = () => {
-    console.log('🧪 API Test Starting...')
+    
     refetch()
   }
 

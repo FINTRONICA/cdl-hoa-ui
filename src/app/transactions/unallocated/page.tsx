@@ -15,6 +15,8 @@ import { useTemplateDownload } from '@/hooks/useRealEstateDocumentTemplate'
 import { TEMPLATE_FILES } from '@/constants'
 import { useDeleteConfirmation } from '@/store/confirmationDialogStore'
 import { PageActionButtons } from '@/components/molecules/PageActionButtons'
+import { GlobalLoading, GlobalError } from '@/components/atoms'
+import type { PendingTransactionUIData } from '@/services/api/pendingTransactionService'
 
 interface TransactionData extends Record<string, unknown> {
   id: number
@@ -27,6 +29,17 @@ interface TransactionData extends Record<string, unknown> {
   narration: string
   tasMatch: string
   approvalStatus: string
+  // New fields
+  managementFirmsNumber?: string
+  managementName?: string
+  transactionRefNumber?: string
+  ownerBuyerName?: string
+  unitReferenceNumber?: string
+  splitAmount?: number
+  receivableBucket?: string
+  depositMode?: string
+  reservePercentage?: number
+  reserveAmount?: number
 }
 
 const usePendingRows = (page: number, size: number) => {
@@ -42,9 +55,9 @@ const usePendingRows = (page: number, size: number) => {
       return []
     }
 
-    const items = data.content as any[]
+    const items = data.content
 
-    return items.map((ui: any) => {
+    return items.map((ui: PendingTransactionUIData) => {
       return {
         id: Number(ui.id),
         projectName: ui.projectName || '—',
@@ -60,6 +73,17 @@ const usePendingRows = (page: number, size: number) => {
         approvalStatus:
           ui.taskStatusDTO?.name ||
           mapPaymentStatusToApprovalStatus(ui.paymentStatus),
+        // New fields
+        ...(ui.managementFirmsNumber && { managementFirmsNumber: ui.managementFirmsNumber }),
+        ...(ui.managementName && { managementName: ui.managementName }),
+        ...(ui.transactionRefNumber && { transactionRefNumber: ui.transactionRefNumber }),
+        ...(ui.ownerBuyerName && { ownerBuyerName: ui.ownerBuyerName }),
+        ...(ui.unitReferenceNumber && { unitReferenceNumber: ui.unitReferenceNumber }),
+        ...(ui.splitAmount && { splitAmount: Number(ui.splitAmount) }),
+        ...(ui.receivableBucket && { receivableBucket: ui.receivableBucket }),
+        ...(ui.depositMode && { depositMode: ui.depositMode }),
+        ...(ui.reservePercentage && { reservePercentage: Number(ui.reservePercentage) }),
+        ...(ui.reserveAmount && { reserveAmount: Number(ui.reserveAmount) }),
       }
     })
   }, [data])
@@ -102,15 +126,17 @@ const UnallocatedTransactionPage: React.FC = () => {
   const handleDownloadTemplate = async () => {
     try {
       await downloadTemplate(TEMPLATE_FILES.SPLIT)
-    } catch (error) {}
+    } catch {
+      // Error handled silently
+    }
   }
 
   const [isDeleting, setIsDeleting] = useState(false)
 
   const { getLabelResolver } = useSidebarConfig()
   const unallocatedTitle = getLabelResolver
-    ? getLabelResolver('unallocated', 'Unallocated')
-    : 'Unallocated'
+    ? getLabelResolver('allocate-deposit', 'Allocate Deposit Transactions')
+    : 'Allocate Deposit Transactions'
   const {
     getLabel: getLabelFromApi,
     isLoading: labelsLoading,
@@ -171,6 +197,12 @@ const UnallocatedTransactionPage: React.FC = () => {
       'tranReference',
       'tranDesc',
       'narration',
+      'managementFirmsNumber',
+      'managementName',
+      'ownerBuyerName',
+      'unitReferenceNumber',
+      'receivableBucket',
+      'depositMode',
     ],
     initialRowsPerPage: currentApiSize,
   })
@@ -206,17 +238,81 @@ const UnallocatedTransactionPage: React.FC = () => {
     : Math.min(currentApiPage * currentApiSize, apiTotal)
 
   const tableColumns = [
+    // {
+    //   key: 'projectName',
+    //   label: getTransactionLabelDynamic('CDL_TRANS_BPA_NAME'),
+    //   type: 'text' as const,
+    //   width: 'w-48',
+    //   sortable: true,
+    // },
+    // {
+    //   key: 'projectRegulatorId',
+    //   label: getTransactionLabelDynamic('CDL_TRANS_BPA_REGULATOR'),
+    //   type: 'text' as const,
+    //   width: 'w-40',
+    //   sortable: true,
+    // },
     {
-      key: 'projectName',
-      label: getTransactionLabelDynamic('CDL_TRANS_BPA_NAME'),
+      key: 'managementFirmsNumber',
+      label: getTransactionLabelDynamic('CDL_TRAN_MANAGEMENT_FIRMS_NUMBER'),
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
     },
     {
-      key: 'projectRegulatorId',
-      label: getTransactionLabelDynamic('CDL_TRANS_BPA_REGULATOR'),
+      key: 'managementName',
+      label: getTransactionLabelDynamic('CDL_TRAN_MANAGEMENT_NAME'),
       type: 'text' as const,
+      width: 'w-48',
+      sortable: true,
+    },
+    {
+      key: 'ownerBuyerName',
+      label: getTransactionLabelDynamic('CDL_TRAN_OWNER_BUYER_NAME'),
+      type: 'text' as const,
+      width: 'w-48',
+      sortable: true,
+    },
+    {
+      key: 'unitReferenceNumber',
+      label: getTransactionLabelDynamic('CDL_TRAN_UNIT_REF'),
+      type: 'text' as const,
+      width: 'w-40',
+      sortable: true,
+    },
+    
+    {
+      key: 'receivableBucket',
+      label: getTransactionLabelDynamic('CDL_TRAN_RECEIVABLE_BUCKET'),
+      type: 'text' as const,
+      width: 'w-48',
+      sortable: true,
+    },
+    {
+      key: 'depositMode',
+      label: getTransactionLabelDynamic('CDL_TRAN_DEPOSIT_MODE'),
+      type: 'text' as const,
+      width: 'w-40',
+      sortable: true,
+    },
+    {
+      key: 'reservePercentage',
+      label: getTransactionLabelDynamic('CDL_TRAN_RESERVE_PERCENTAGE'),
+      type: 'text' as const,
+      width: 'w-40',
+      sortable: true,
+    },
+    {
+      key: 'reserveAmount',
+      label: getTransactionLabelDynamic('CDL_TRAN_RESERVE_AMOUNT'),
+      type: 'custom' as const,
+      width: 'w-40',
+      sortable: true,
+    },
+    {
+      key: 'splitAmount',
+      label: getTransactionLabelDynamic('CDL_TRAN_SPLIT_AMOUNT'),
+      type: 'custom' as const,
       width: 'w-40',
       sortable: true,
     },
@@ -269,6 +365,7 @@ const UnallocatedTransactionPage: React.FC = () => {
       width: 'w-40',
       sortable: true,
     },
+   
     {
       key: 'actions',
       label: getTransactionLabelDynamic('CDL_TRAN_ACTION'),
@@ -307,8 +404,6 @@ const UnallocatedTransactionPage: React.FC = () => {
           setIsDeleting(true)
           await deleteMutation.mutateAsync(String(row.id))
         } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error occurred'
           throw error // Re-throw to keep dialog open on error
         } finally {
           setIsDeleting(false)
@@ -322,7 +417,7 @@ const UnallocatedTransactionPage: React.FC = () => {
   }
 
   const renderCustomCell = (column: string, value: unknown) => {
-    if (column === 'tranAmount' && typeof value === 'number') {
+    if ((column === 'tranAmount' || column === 'splitAmount' || column === 'reserveAmount') && typeof value === 'number') {
       return `${formatNumber(value)}`
     }
     return String(value || '')
@@ -331,81 +426,153 @@ const UnallocatedTransactionPage: React.FC = () => {
   const renderExpandedContent = (row: TransactionData) => (
     <div className="grid grid-cols-2 gap-8">
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-4">
+        <h4 className="mb-4 text-sm font-semibold text-gray-900">
           Transaction Information
         </h4>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-gray-600">Project Name:</span>
-            <span className="ml-2 text-gray-800 font-medium">
+            <span className="ml-2 font-medium text-gray-800">
               {row.projectName}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Project Regulator ID:</span>
-            <span className="ml-2 text-gray-800 font-medium">
+            <span className="ml-2 font-medium text-gray-800">
               {row.projectRegulatorId}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Transaction Reference:</span>
-            <span className="ml-2 text-gray-800 font-medium">
+            <span className="ml-2 font-medium text-gray-800">
               {row.tranReference}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Transaction Description:</span>
-            <span className="ml-2 text-gray-800 font-medium">
+            <span className="ml-2 font-medium text-gray-800">
               {row.tranDesc}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Transaction Amount:</span>
-            <span className="ml-2 text-gray-800 font-medium">
+            <span className="ml-2 font-medium text-gray-800">
               {formatNumber(row.tranAmount)}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Transaction Date:</span>
-            <span className="ml-2 text-gray-800 font-medium">
+            <span className="ml-2 font-medium text-gray-800">
               {row.tranDate}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Narration:</span>
-            <span className="ml-2 text-gray-800 font-medium">
+            <span className="ml-2 font-medium text-gray-800">
               {row.narration}
             </span>
           </div>
           <div>
             <span className="text-gray-600">TAS Match:</span>
-            <span className="ml-2 text-gray-800 font-medium">
+            <span className="ml-2 font-medium text-gray-800">
               {row.tasMatch}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Approval Status:</span>
-            <span className="ml-2 text-gray-800 font-medium">
+            <span className="ml-2 font-medium text-gray-800">
               {row.approvalStatus}
             </span>
           </div>
+          {row.managementFirmsNumber && (
+            <div>
+              <span className="text-gray-600">Management Firm Number:</span>
+              <span className="ml-2 font-medium text-gray-800">
+                {row.managementFirmsNumber}
+              </span>
+            </div>
+          )}
+          {row.managementName && (
+            <div>
+              <span className="text-gray-600">Management Name:</span>
+              <span className="ml-2 font-medium text-gray-800">
+                {row.managementName}
+              </span>
+            </div>
+          )}
+          {row.ownerBuyerName && (
+            <div>
+              <span className="text-gray-600">Owner/Buyer Name:</span>
+              <span className="ml-2 font-medium text-gray-800">
+                {row.ownerBuyerName}
+              </span>
+            </div>
+          )}
+          {row.unitReferenceNumber && (
+            <div>
+              <span className="text-gray-600">Unit Reference Number:</span>
+              <span className="ml-2 font-medium text-gray-800">
+                {row.unitReferenceNumber}
+              </span>
+            </div>
+          )}
+          {row.splitAmount && (
+            <div>
+              <span className="text-gray-600">Split Amount:</span>
+              <span className="ml-2 font-medium text-gray-800">
+                {formatNumber(row.splitAmount)}
+              </span>
+            </div>
+          )}
+          {row.receivableBucket && (
+            <div>
+              <span className="text-gray-600">Receivable Bucket:</span>
+              <span className="ml-2 font-medium text-gray-800">
+                {row.receivableBucket}
+              </span>
+            </div>
+          )}
+          {row.depositMode && (
+            <div>
+              <span className="text-gray-600">Deposit Mode:</span>
+              <span className="ml-2 font-medium text-gray-800">
+                {row.depositMode}
+              </span>
+            </div>
+          )}
+          {row.reservePercentage && (
+            <div>
+              <span className="text-gray-600">Reserve Percentage:</span>
+              <span className="ml-2 font-medium text-gray-800">
+                {row.reservePercentage}%
+              </span>
+            </div>
+          )}
+          {row.reserveAmount && (
+            <div>
+              <span className="text-gray-600">Reserve Amount:</span>
+              <span className="ml-2 font-medium text-gray-800">
+                {formatNumber(row.reserveAmount)}
+              </span>
+            </div>
+          )}
         </div>
       </div>
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-4">
+        <h4 className="mb-4 text-sm font-semibold text-gray-900">
           Transaction Actions
         </h4>
         <div className="space-y-3">
-          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
+          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
             View Transaction Details
           </button>
-          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
+          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
             Allocate Transaction
           </button>
-          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
+          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
             Download Transaction Report
           </button>
-          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
+          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
             Export Transaction Data
           </button>
         </div>
@@ -416,17 +583,8 @@ const UnallocatedTransactionPage: React.FC = () => {
   if (isLoading || labelsLoading) {
     return (
       <DashboardLayout title={unallocatedTitle}>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">
-              {isLoading && labelsLoading
-                ? 'Loading...'
-                : isLoading
-                  ? 'Loading...'
-                  : 'Loading...'}
-            </p>
-          </div>
+        <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
+          <GlobalLoading fullHeight />
         </div>
       </DashboardLayout>
     )
@@ -435,57 +593,13 @@ const UnallocatedTransactionPage: React.FC = () => {
   if (error || labelsError) {
     return (
       <DashboardLayout title={unallocatedTitle}>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="text-red-600 mb-4">
-              <svg
-                className="w-12 h-12 mx-auto"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {error && labelsError
-                ? 'Error Loading Transactions and Labels'
-                : error
-                  ? 'Error Loading Transactions'
-                  : 'Error Loading Labels'}
-            </h3>
-            <p className="text-gray-600 mb-4">Please try refreshing the page</p>
-            <div className="text-left text-xs bg-red-50 p-4 rounded border max-w-md mx-auto">
-              <p>
-                <strong>Error Details:</strong>
-              </p>
-              {error && (
-                <div className="mb-2">
-                  <p>
-                    <strong>Transactions:</strong>{' '}
-                    {error.message || 'Unknown error'}
-                  </p>
-                </div>
-              )}
-              {labelsError && (
-                <div className="mb-2">
-                  <p>
-                    <strong>Labels:</strong> {labelsError}
-                  </p>
-                </div>
-              )}
-              {process.env.NODE_ENV === 'development' && (
-                <pre className="mt-2 text-xs">
-                  {JSON.stringify({ error, labelsError }, null, 2)}
-                </pre>
-              )}
-            </div>
-          </div>
+        <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
+          <GlobalError 
+            error={error?.message || labelsError || 'Unknown error'} 
+            onRetry={() => window.location.reload()}
+            title="Error loading unallocated transactions"
+            fullHeight
+          />
         </div>
       </DashboardLayout>
     )

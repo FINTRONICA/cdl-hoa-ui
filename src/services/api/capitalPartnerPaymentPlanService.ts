@@ -52,6 +52,13 @@ class CapitalPartnerPaymentPlanService {
     await apiClient.delete(url)
   }
 
+  async softDeleteCapitalPartnerPaymentPlan(id: number): Promise<void> {
+    const url = buildApiUrl(
+      API_ENDPOINTS.CAPITAL_PARTNER_PAYMENT_PLAN.SOFT_DELETE(id.toString())
+    )
+    await apiClient.delete(url)
+  }
+
   async createCapitalPartnerPaymentPlan(
     payload: any
   ): Promise<CapitalPartnerPaymentPlanResponse> {

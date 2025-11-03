@@ -1,7 +1,17 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Box, Card, CardContent, Button, Dialog, DialogTitle, DialogContent, DialogActions, Typography } from '@mui/material'
+import {
+  Box,
+  Card,
+  CardContent,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Typography,
+} from '@mui/material'
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
@@ -13,6 +23,7 @@ import { useTableState } from '@/hooks'
 import { cardStyles } from '../styles'
 import { useProjectLabels } from '@/hooks/useProjectLabels'
 import { realEstateAssetService } from '@/services/api/projectService'
+import { useBuildPartnerAssetLabelsWithUtils } from '@/hooks/useBuildPartnerAssetLabels'
 
 interface FeeDetails extends Record<string, unknown> {
   id?: string | number
@@ -49,13 +60,18 @@ interface Step3Props {
   isViewMode?: boolean
 }
 
-const Step3: React.FC<Step3Props> = ({ fees, onFeesChange, projectId, buildPartnerId, isViewMode = false }) => {
-
+const Step3: React.FC<Step3Props> = ({
+  fees,
+  onFeesChange,
+  projectId,
+  buildPartnerId,
+  isViewMode = false,
+}) => {
   const [isPanelOpen, setIsPanelOpen] = useState(false)
   const [editingFee, setEditingFee] = useState<FeeDetails | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [feeToDelete, setFeeToDelete] = useState<FeeDetails | null>(null)
-  
+
   // API-driven pagination state
   const [currentApiPage, setCurrentApiPage] = useState(1)
   const [currentApiSize, setCurrentApiSize] = useState(20)
@@ -65,19 +81,24 @@ const Step3: React.FC<Step3Props> = ({ fees, onFeesChange, projectId, buildPartn
     totalElements: number
     totalPages: number
   } | null>(null)
-  
-  const { getLabel } = useProjectLabels()
+
+  // const { getLabel } = useProjectLabels()
+  const { getLabel } = useBuildPartnerAssetLabelsWithUtils()
+  const language = 'EN'
 
   const feeDetails = fees || []
 
   // Helper function to convert FeeDetails to FeeData
   const convertToFeeData = (feeDetails: FeeDetails[]): FeeData[] => {
-    return feeDetails.map(fee => ({
+    return feeDetails.map((fee) => ({
       feeType: fee.FeeType || fee.feeType || '',
       frequency: fee.Frequency || fee.frequency || '',
       debitAmount: fee.DebitAmount || fee.debitAmount || '',
-      feeToBeCollected: fee.Feetobecollected || fee.feeToBeCollected || fee.totalAmount || '',
-      nextRecoveryDate: fee.NextRecoveryDate ? dayjs(fee.NextRecoveryDate) : null,
+      feeToBeCollected:
+        fee.Feetobecollected || fee.feeToBeCollected || fee.totalAmount || '',
+      nextRecoveryDate: fee.NextRecoveryDate
+        ? dayjs(fee.NextRecoveryDate, 'DD/MM/YYYY')
+        : null,
       feePercentage: fee.FeePercentage || fee.feePercentage || '',
       amount: fee.Amount || fee.totalAmount || '',
       vatPercentage: fee.VATPercentage || fee.vatPercentage || '',
@@ -86,35 +107,52 @@ const Step3: React.FC<Step3Props> = ({ fees, onFeesChange, projectId, buildPartn
     }))
   }
 
-
   // Function to fetch fees from API with pagination
   const fetchFeesFromAPI = async (page: number, size: number) => {
     if (!projectId) return
-    
+
     try {
       const response = await realEstateAssetService.getProjectFees(projectId)
-      
+
       if (response && typeof response === 'object') {
-        const feesArray = (response as any)?.content || (Array.isArray(response) ? response : [])
-        
+        const feesArray =
+          (response as any)?.content ||
+          (Array.isArray(response) ? response : [])
+
         // Process all fees data first
         const allProcessedFees = feesArray.map((fee: any) => {
-          const currencyValue = fee.reafCurrencyDTO?.languageTranslationId?.configValue || ''
-          const debitAccountValue = fee.reafAccountTypeDTO?.languageTranslationId?.configValue || ''
-          const frequencyValue = fee.reafFrequencyDTO?.languageTranslationId?.configValue || ''
-          const feeCategoryValue = fee.reafCategoryDTO?.languageTranslationId?.configValue || ''
+          const currencyValue =
+            fee.reafCurrencyDTO?.languageTranslationId?.configValue || ''
+          const debitAccountValue =
+            fee.reafAccountTypeDTO?.languageTranslationId?.configValue || ''
+          const frequencyValue =
+            fee.reafFrequencyDTO?.languageTranslationId?.configValue || ''
+          const feeCategoryValue =
+            fee.reafCategoryDTO?.languageTranslationId?.configValue || ''
           const currencyId = fee.reafCurrencyDTO?.id?.toString() || ''
           const debitAccountId = fee.reafAccountTypeDTO?.id?.toString() || ''
           const frequencyId = fee.reafFrequencyDTO?.id?.toString() || ''
           const feeCategoryId = fee.reafCategoryDTO?.id?.toString() || ''
-          
+
+          // Format dates to DD/MM/YYYY
+          const formatDateToDDMMYYYY = (dateString: string) => {
+            if (!dateString) return ''
+            try {
+              // Handle different date formats from API
+              const date = dayjs(dateString)
+              return date.isValid() ? date.format('DD/MM/YYYY') : ''
+            } catch (error) {
+              return ''
+            }
+          }
+
           return {
             id: fee.id?.toString() || '',
             FeeType: feeCategoryValue,
             Frequency: frequencyValue,
             DebitAmount: fee.reafDebitAmount || '',
-            Feetobecollected: fee.reafCollectionDate|| '',
-            NextRecoveryDate: fee.reafNextRecoveryDate || '',
+            Feetobecollected: formatDateToDDMMYYYY(fee.reafCollectionDate),
+            NextRecoveryDate: formatDateToDDMMYYYY(fee.reafNextRecoveryDate),
             FeePercentage: fee.reafFeePercentage || '',
             Amount: fee.reafAmount || fee.reafTotalAmount || '',
             VATPercentage: fee.reafVatPercentage || '',
@@ -126,31 +164,31 @@ const Step3: React.FC<Step3Props> = ({ fees, onFeesChange, projectId, buildPartn
             debitAccount: debitAccountId,
             currency: currencyId,
             debitAmount: fee.reafDebitAmount || '',
-            feeToBeCollected: fee.reafCollectionDate || '',
-            nextRecoveryDate: fee.reafNextRecoveryDate || '',
+            feeToBeCollected: formatDateToDDMMYYYY(fee.reafCollectionDate),
+            nextRecoveryDate: formatDateToDDMMYYYY(fee.reafNextRecoveryDate),
             feePercentage: fee.reafFeePercentage || '',
             vatPercentage: fee.reafVatPercentage || '',
             totalAmount: fee.reafTotalAmount || '',
-            collectionDate: fee.reafCollectionDate || '',
+            collectionDate: formatDateToDDMMYYYY(fee.reafCollectionDate),
           }
         })
-        
+
         // Store full data
         setFullApiFeesData(allProcessedFees)
-        
+
         // Apply client-side pagination
         const totalElements = allProcessedFees.length
         const totalPages = Math.ceil(totalElements / size)
         const startIndex = (page - 1) * size
         const endIndex = startIndex + size
         const paginatedFees = allProcessedFees.slice(startIndex, endIndex)
-        
+
         setApiFeesData(paginatedFees)
         setApiPagination({ totalElements, totalPages })
         onFeesChange(convertToFeeData(paginatedFees))
       }
     } catch (error) {
-      console.error('Error fetching fees:', error)
+      throw error
     }
   }
 
@@ -167,9 +205,6 @@ const Step3: React.FC<Step3Props> = ({ fees, onFeesChange, projectId, buildPartn
   }
 
   const editFee = (fee: FeeDetails) => {
-    console.log('🔍 Step 3 - editFee called with:', fee)
-    console.log('🔍 Step 3 - fee.Currency:', fee.Currency)
-    console.log('🔍 Step 3 - fee.DebitAccount:', fee.DebitAccount)
     setEditingFee(fee)
     setIsPanelOpen(true)
   }
@@ -178,7 +213,9 @@ const Step3: React.FC<Step3Props> = ({ fees, onFeesChange, projectId, buildPartn
     if (editingFee) {
       // Update existing fee
       const updatedFees = feeDetails.map((fee) =>
-        (fee as unknown as FeeDetails).id === editingFee.id ? (newFee as FeeData) : fee
+        (fee as unknown as FeeDetails).id === editingFee.id
+          ? (newFee as FeeData)
+          : fee
       )
       onFeesChange(updatedFees)
     } else {
@@ -187,7 +224,7 @@ const Step3: React.FC<Step3Props> = ({ fees, onFeesChange, projectId, buildPartn
       onFeesChange(updatedFees)
     }
     setEditingFee(null)
-    
+
     // Refresh the data from API to ensure consistency
     if (projectId) {
       await fetchFeesFromAPI(currentApiPage, currentApiSize)
@@ -208,24 +245,25 @@ const Step3: React.FC<Step3Props> = ({ fees, onFeesChange, projectId, buildPartn
     if (feeToDelete?.id) {
       try {
         // Call API to soft delete the fee
-        await realEstateAssetService.softDeleteProjectFee(feeToDelete.id.toString())
-        
+        await realEstateAssetService.softDeleteProjectFee(
+          feeToDelete.id.toString()
+        )
+
         // Remove the fee from the local list after successful API call
         const updatedFees = feeDetails.filter(
           (fee) => (fee as unknown as FeeDetails).id !== feeToDelete.id
         )
         onFeesChange(updatedFees)
-        
+
         setDeleteDialogOpen(false)
         setFeeToDelete(null)
-        
+
         // Refresh the data from API to ensure consistency
         if (projectId) {
           await fetchFeesFromAPI(currentApiPage, currentApiSize)
         }
       } catch (error) {
-        console.error('Error deleting fee:', error)
-        // You might want to show an error message to the user here
+        throw error
       }
     }
   }
@@ -238,77 +276,89 @@ const Step3: React.FC<Step3Props> = ({ fees, onFeesChange, projectId, buildPartn
   const tableColumns = [
     {
       key: 'FeeType',
-      label: getLabel('CDL_BPA_FEE_TYPE', 'Fee Type'),
+      label: getLabel('CDL_BPA_FEES_TYPE', language, 'Type of Fee'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
       key: 'Frequency',
-      label: getLabel('CDL_BPA_FREQUENCY', 'Frequency'),
+      label: getLabel(
+        'CDL_BPA_FEES_FREQUENCY',
+        language,
+        'Collection Frequency'
+      ),
       type: 'text' as const,
       width: 'w-28',
       sortable: true,
     },
     {
       key: 'DebitAmount',
-      label: getLabel('CDL_BPA_DEBIT_AMOUNT', 'Debit Amount'),
+      label: getLabel('CDL_BPA_FEES_ACCOUNT', language, 'Debit Amount'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
     },
     {
       key: 'Feetobecollected',
-      label: getLabel('CDL_BPA_FEE_TO_BE_COLLECTED', 'Fee to be Collected'),
+      label: getLabel('CDL_BPA_FEES_TOTAL', language, 'Fee to be Collected'),
       type: 'text' as const,
       width: 'w-30',
       sortable: true,
     },
     {
       key: 'NextRecoveryDate',
-      label: getLabel('CDL_BPA_NEXT_RECOVERY_DATE', 'Next Recovery Date'),
+      label: getLabel('CDL_BPA_FEES_DATE', language, 'Next Collection Date'),
       type: 'text' as const,
       width: 'w-32',
       sortable: true,
     },
     {
       key: 'FeePercentage',
-      label: getLabel('CDL_BPA_FEE_PERCENTAGE', 'Fee Percentage'),
+      label: getLabel('CDL_BPA_FEES_RATE', language, 'Fee Rate (%)'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
     },
     {
       key: 'Amount',
-      label: getLabel('CDL_BPA_AMOUNT', 'Amount'),
+      label: getLabel('CDL_BPA_FEES_AMOUNT', language, 'Fee Amount'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
     },
     {
       key: 'VATPercentage',
-      label: getLabel('CDL_BPA_VAT_PERCENTAGE', 'VAT Percentage'),
+      label: getLabel('CDL_BPA_FEES_VAT', language, 'Applicable VAT (%)'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
     },
     {
       key: 'Currency',
-      label: getLabel('CDL_BPA_CURRENCY', 'Currency'),
+      label: getLabel(
+        'CDL_BPA_FEES_CURRENCY',
+        language,
+        'Transaction Currency'
+      ),
       type: 'text' as const,
       width: 'w-20',
       sortable: true,
     },
     {
       key: 'DebitAccount',
-      label: getLabel('CDL_BPA_DEBIT_ACCOUNT', 'Debit Account'),
+      label: getLabel(
+        'CDL_BPA_FEES_TOTAL_AMOUNT',
+        language,
+        'Collected Amount'
+      ),
       type: 'text' as const,
       width: 'w-28',
       sortable: true,
     },
     {
       key: 'actions',
-      label: getLabel('CDL_BPA_ACTION', 'Action'),
+      label: getLabel('CDL_BPA_ACTION', language, 'Action'),
       type: 'actions' as const,
       width: 'w-20',
     },
@@ -402,7 +452,6 @@ const Step3: React.FC<Step3Props> = ({ fees, onFeesChange, projectId, buildPartn
     ? localEndItem
     : Math.min(currentApiPage * currentApiSize, apiTotal)
 
-
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Card sx={cardStyles}>
@@ -426,7 +475,7 @@ const Step3: React.FC<Step3Props> = ({ fees, onFeesChange, projectId, buildPartn
                   verticalAlign: 'middle',
                 }}
               >
-                {getLabel('CDL_BPA_ADD_FEE', 'Add Fee')}
+                {getLabel('CDL_BPA_ADD_FEE', language, 'Add Fee')}
               </Button>
             )}
           </Box>

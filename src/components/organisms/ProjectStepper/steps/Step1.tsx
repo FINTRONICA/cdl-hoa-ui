@@ -27,7 +27,9 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import dayjs from 'dayjs'
 import { useFormContext, Controller } from 'react-hook-form'
 import { ProjectDetailsData } from '../types'
-import { useProjectLabels } from '@/hooks/useProjectLabels'
+// import { useProjectLabels } from '@/hooks/useProjectLabels'
+// import { useBuildPartnerAssetLabels } from '@/hooks/useBuildPartnerAssetLabels'
+import { useBuildPartnerAssetLabelsWithUtils } from '@/hooks/useBuildPartnerAssetLabels'
 import { useBuildPartners } from '@/hooks/useBuildPartners'
 import {
   useProjectTypes,
@@ -55,10 +57,11 @@ import {
 interface Step1Props {
   initialData?: Partial<ProjectDetailsData>
   isViewMode?: boolean
+  projectId?: string | undefined
 }
 
 const Step1: React.FC<Step1Props> = React.memo(
-  ({ initialData, isViewMode = false }) => {
+  ({ initialData, isViewMode = false, projectId }) => {
     const {
       control,
       watch,
@@ -70,75 +73,81 @@ const Step1: React.FC<Step1Props> = React.memo(
     } = useFormContext<ProjectDetailsData>()
     const [isGeneratingReaId, setIsGeneratingReaId] = React.useState(false)
 
+    // Check if we're in edit mode (editing existing project)
+    const isEditMode = React.useMemo(() => !!projectId, [projectId])
+
     // Phase 2: Use our new label utility hook
-    const { getLabel, hasError } = useProjectLabels()
-
-    // Fetch developers data for the dropdown
+    // const { getLabel, hasError } = useProjectLabels()
+    /**
+     * TODO Delete this variable hasError
+     */
+    const hasError = false
+    const { getLabel } = useBuildPartnerAssetLabelsWithUtils()
+    const language = 'EN'
     const { data: developersData, isLoading: isDevelopersLoading } =
-      useBuildPartners(0, 100) // Get first 100 developers
+      useBuildPartners(0, 100)
 
-    // Fetch project types for the dropdown
     const { data: projectTypesData, isLoading: isProjectTypesLoading } =
       useProjectTypes()
 
-    // Fetch project statuses for the dropdown
     const { data: projectStatusesData, isLoading: isProjectStatusesLoading } =
       useProjectStatuses()
 
-    // Fetch project currencies for the dropdown
     const {
       data: projectCurrenciesData,
       isLoading: isProjectCurrenciesLoading,
     } = useProjectCurrencies()
 
-    // Fetch bank account statuses for the dropdown
     const {
       data: bankAccountStatusesData,
       isLoading: isBankAccountStatusesLoading,
     } = useBankAccountStatuses()
 
-    // Fetch blocked payment types for the dropdown
     const {
       data: blockedPaymentTypesData,
       isLoading: isBlockedPaymentTypesLoading,
     } = useBlockedPaymentTypes()
 
-    // Handle developer selection
     const handleDeveloperChange = (selectedCif: string) => {
       const selectedDeveloper = developersData?.content?.find(
         (dev) => dev.bpCifrera === selectedCif
       )
       if (selectedDeveloper) {
         setValue('buildPartnerDTO.id', selectedDeveloper.id)
-        setValue('reaCif', selectedCif)
-        setValue('reaManagedBy', selectedDeveloper.bpName || '')
-        setValue('reaBackupUser', selectedDeveloper.bpMasterName || '')
+        setValue('buildPartnerDTO.bpCifrera', selectedCif)
+        setValue('buildPartnerDTO.bpName', selectedDeveloper.bpName || '')
+
+        // Only auto-fill these fields if they are empty (not in edit mode with existing values)
+        if (!getValues('reaManagedBy')) {
+          setValue('reaManagedBy', selectedDeveloper.bpName || '')
+        }
+        if (!getValues('reaBackupUser')) {
+          setValue('reaBackupUser', selectedDeveloper.bpMasterName || '')
+        }
       }
     }
 
-    // Helper function to find developer by ID and set reaCif
     const setReaCifFromBuildPartnerId = React.useCallback(() => {
       if (initialData?.buildPartnerDTO?.id && developersData?.content) {
         const matchingDeveloper = developersData.content.find(
           (dev) => dev.id === initialData.buildPartnerDTO?.id
         )
-        if (matchingDeveloper?.bpCifrera && !getValues('reaCif')) {
-          setValue('reaCif', matchingDeveloper.bpCifrera)
-          // Also update other related fields
-          setValue('reaManagedBy', matchingDeveloper.bpName || '')
-          setValue('reaBackupUser', matchingDeveloper.bpMasterName || '')
+        if (
+          matchingDeveloper?.bpCifrera &&
+          !getValues('buildPartnerDTO.bpCifrera')
+        ) {
+          setValue('buildPartnerDTO.bpCifrera', matchingDeveloper.bpCifrera)
+          setValue('buildPartnerDTO.bpName', matchingDeveloper.bpName || '')
         }
       }
     }, [initialData, developersData, setValue, getValues])
 
-    // Sanitize initialData to prevent null values
     const sanitizedData = React.useMemo(() => {
       if (!initialData) return {}
 
       const sanitized: Partial<ProjectDetailsData> = {}
       Object.entries(initialData).forEach(([key, value]) => {
         if (value === null) {
-          // Convert null to appropriate default values
           if (key.includes('Date')) {
             ;(sanitized as Record<string, unknown>)[key] = dayjs()
           } else {
@@ -148,11 +157,6 @@ const Step1: React.FC<Step1Props> = React.memo(
           ;(sanitized as Record<string, unknown>)[key] = value
         }
       })
-
-      // Special handling for reaCif - populate from buildPartnerDTO.bpCifrera if available
-      if (initialData.buildPartnerDTO?.bpCifrera && !sanitized.reaCif) {
-        sanitized.reaCif = initialData.buildPartnerDTO.bpCifrera
-      }
 
       return sanitized
     }, [initialData])
@@ -211,14 +215,7 @@ const Step1: React.FC<Step1Props> = React.memo(
       setValue('reaTotalRetentionPercent', total.toFixed(2))
     }, [retention, additionalRetention, setValue])
 
-    // Handle initial data population for reaCif from buildPartnerDTO
-    React.useEffect(() => {
-      if (initialData?.buildPartnerDTO?.bpCifrera && !getValues('reaCif')) {
-        setValue('reaCif', initialData.buildPartnerDTO.bpCifrera)
-      }
-    }, [initialData, setValue, getValues])
-
-    // Handle matching buildPartnerDTO.id with dropdown data to set correct reaCif
+    // Handle matching buildPartnerDTO.id with dropdown data to set correct bpCifrera
     React.useEffect(() => {
       setReaCifFromBuildPartnerId()
     }, [setReaCifFromBuildPartnerId])
@@ -228,7 +225,7 @@ const Step1: React.FC<Step1Props> = React.memo(
       if (
         developersData?.content &&
         initialData?.buildPartnerDTO?.id &&
-        !getValues('reaCif')
+        !getValues('buildPartnerDTO.bpCifrera')
       ) {
         setReaCifFromBuildPartnerId()
       }
@@ -244,7 +241,7 @@ const Step1: React.FC<Step1Props> = React.memo(
           <CardContent>
             {/* Phase 4: Simple loading and error states */}
 
-            {hasError() && (
+            {hasError && (
               <Box
                 sx={{
                   mb: 2,
@@ -274,8 +271,12 @@ const Step1: React.FC<Step1Props> = React.memo(
                     <TextField
                       {...field}
                       fullWidth
-                      disabled={isViewMode}
-                      label={getLabel('CDL_BPA_REFID', 'System Reference ID')}
+                      disabled={isGeneratingReaId || isViewMode || isEditMode}
+                      label={getLabel(
+                        'CDL_BPA_REFID',
+                        language,
+                        'System Reference ID'
+                      )}
                       error={!!errors.reaId}
                       helperText={errors.reaId?.message}
                       required={true}
@@ -289,7 +290,9 @@ const Step1: React.FC<Step1Props> = React.memo(
                               size="small"
                               startIcon={<RefreshIcon />}
                               onClick={handleGenerateReaId}
-                              disabled={isGeneratingReaId}
+                              disabled={
+                                isGeneratingReaId || isViewMode || isEditMode
+                              }
                               sx={{
                                 color: '#FFFFFF',
                                 borderRadius: '8px',
@@ -324,24 +327,29 @@ const Step1: React.FC<Step1Props> = React.memo(
 
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
-                  name="reaCif"
+                  name="buildPartnerDTO.bpCifrera"
                   control={control}
-                  defaultValue={sanitizedData?.reaCif || ''}
+                  defaultValue={sanitizedData?.buildPartnerDTO?.bpCifrera || ''}
                   rules={{
                     validate: (value: any) =>
-                      validateStep1Field('reaCif', value),
+                      validateStep1Field('buildPartnerDTO.bpCifrera', value),
                   }}
                   render={({ field }) => (
                     <FormControl
                       fullWidth
-                      error={!!errors.reaCif}
+                      error={!!errors.buildPartnerDTO?.bpCifrera}
                       required={true}
-                      sx={errors.reaCif ? errorFieldStyles : commonFieldStyles}
+                      sx={
+                        errors.buildPartnerDTO?.bpCifrera
+                          ? errorFieldStyles
+                          : commonFieldStyles
+                      }
                     >
                       <InputLabel sx={labelSx}>
                         {getLabel(
                           'CDL_BPA_BP_CIF',
-                          'Build Partner Assest CIF/Name'
+                          language,
+                          'Build Partner Assest CIF/Name121212'
                         )}
                       </InputLabel>
                       <Select
@@ -349,7 +357,8 @@ const Step1: React.FC<Step1Props> = React.memo(
                         disabled={isViewMode || isDevelopersLoading}
                         label={getLabel(
                           'CDL_BPA_BP_CIF',
-                          'Build Partner Assest CIF/Name'
+                          language,
+                          'Build Partner Assest CIF/Name212121'
                         )}
                         // sx={valueSx}
                         sx={{
@@ -369,7 +378,7 @@ const Step1: React.FC<Step1Props> = React.memo(
                         IconComponent={KeyboardArrowDownIcon}
                         onChange={(e) => {
                           field.onChange(e)
-                          handleDeveloperChange(e.target.value)
+                          handleDeveloperChange(e.target.value as string)
                         }}
                         MenuProps={{
                           PaperProps: {
@@ -393,13 +402,13 @@ const Step1: React.FC<Step1Props> = React.memo(
                           )) || []
                         )}
                       </Select>
-                      {errors.reaCif && (
+                      {errors.buildPartnerDTO?.bpCifrera && (
                         <Typography
                           variant="caption"
                           color="error"
                           sx={{ mt: 0.5, ml: 1.75 }}
                         >
-                          {errors.reaCif.message}
+                          {errors.buildPartnerDTO.bpCifrera.message}
                         </Typography>
                       )}
                     </FormControl>
@@ -420,10 +429,11 @@ const Step1: React.FC<Step1Props> = React.memo(
                     <TextField
                       {...field}
                       fullWidth
-                      disabled={isViewMode}
+                      disabled={true}
                       label={getLabel(
                         'CDL_BPA_BP_ID',
-                        'Build Partner Assest ID (RERA)*'
+                        language,
+                        'Build Partner Assest ID (RERA)121212'
                       )}
                       required={true}
                       InputLabelProps={{ sx: labelSx }}
@@ -437,17 +447,18 @@ const Step1: React.FC<Step1Props> = React.memo(
 
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
-                  name="reaManagedBy"
+                  name="buildPartnerDTO.bpName"
                   control={control}
-                  defaultValue={sanitizedData?.reaManagedBy || ''}
+                  defaultValue={sanitizedData?.buildPartnerDTO?.bpName || ''}
                   render={({ field }) => (
                     <TextField
                       {...field}
                       fullWidth
-                      disabled={isViewMode}
+                      disabled={true}
                       label={getLabel(
                         'CDL_BPA_BP_NAME',
-                        'Build Partner Assest Name'
+                        language,
+                        'Build Partner Assest Name 123323'
                       )}
                       required={true}
                       InputLabelProps={{ sx: labelSx }}
@@ -468,9 +479,10 @@ const Step1: React.FC<Step1Props> = React.memo(
                     <TextField
                       {...field}
                       fullWidth
-                      disabled={isViewMode}
+                      disabled={true}
                       label={getLabel(
                         'CDL_BPA_BPA_NAME',
+                        language,
                         'Master Build Partner Assest Name'
                       )}
                       InputLabelProps={{ sx: labelSx }}
@@ -495,8 +507,12 @@ const Step1: React.FC<Step1Props> = React.memo(
                     <TextField
                       {...field}
                       fullWidth
-                      disabled={isViewMode}
-                      label={getLabel('CDL_BPA_REGNO', 'Project RERA Number')}
+                      disabled={isViewMode || isEditMode}
+                      label={getLabel(
+                        'CDL_BPA_REGNO',
+                        language,
+                        'Project RERA Number'
+                      )}
                       required={true}
                       error={!!errors.reaReraNumber}
                       helperText={errors.reaReraNumber?.message}
@@ -530,7 +546,7 @@ const Step1: React.FC<Step1Props> = React.memo(
                         {...field}
                         fullWidth
                         disabled={isViewMode}
-                        label={getLabel('CDL_BPA_NAME', 'Asset Name')}
+                        label={getLabel('CDL_BPA_NAME', language, 'Asset Name')}
                         error={hasError}
                         helperText={errors.reaName?.message}
                         required={true}
@@ -555,12 +571,12 @@ const Step1: React.FC<Step1Props> = React.memo(
                   render={({ field }) => (
                     <FormControl fullWidth error={!!errors.reaTypeDTO?.id}>
                       <InputLabel sx={labelSx}>
-                        {getLabel('CDL_BPA_TYPE', 'Asset Type')}
+                        {getLabel('CDL_BPA_TYPE', language, 'Asset Type')}
                       </InputLabel>
                       <Select
                         {...field}
                         disabled={isViewMode || isProjectTypesLoading}
-                        label={getLabel('CDL_BPA_TYPE', 'Asset Type')}
+                        label={getLabel('CDL_BPA_TYPE', language, 'Asset Type')}
                         IconComponent={KeyboardArrowDownIcon}
                         // sx={{ ...selectStyles, ...valueSx }}
                         sx={{
@@ -610,7 +626,11 @@ const Step1: React.FC<Step1Props> = React.memo(
                       {...field}
                       fullWidth
                       disabled={isViewMode}
-                      label={getLabel('CDL_BPA_LOCATION', 'Asset Location')}
+                      label={getLabel(
+                        'CDL_BPA_LOCATION',
+                        language,
+                        'Asset Location'
+                      )}
                       error={!!errors.reaLocation}
                       helperText={errors.reaLocation?.message}
                       InputLabelProps={{ sx: labelSx }}
@@ -628,28 +648,28 @@ const Step1: React.FC<Step1Props> = React.memo(
 
               <Grid size={{ xs: 12, md: 4 }}>
                 <Controller
-                  name="reaAccountStatusDTO.id"
+                  name="reaCif"
                   control={control}
-                  defaultValue={sanitizedData?.reaAccountStatusDTO?.id || 55}
+                  defaultValue={sanitizedData?.reaCif || ''}
                   rules={{
                     validate: (value: any) =>
-                      validateStep1Field('reaAccountStatusDTO.id', value),
+                      validateStep1Field('reaCif', value),
                   }}
                   render={({ field }) => (
                     <TextField
                       {...field}
                       fullWidth
                       disabled={isViewMode}
-                      label={getLabel('CDL_BPA_CIF', 'Project Account CIF*')}
-                      error={!!errors.reaAccountStatusDTO?.id}
-                      helperText={errors.reaAccountStatusDTO?.id?.message}
+                      label={getLabel(
+                        'CDL_BPA_CIF',
+                        language,
+                        'Project Account CIF'
+                      )}
+                      error={!!errors.reaCif}
+                      helperText={errors.reaCif?.message}
                       InputLabelProps={{ sx: labelSx }}
                       InputProps={{ sx: valueSx }}
-                      sx={
-                        errors.reaAccountStatusDTO?.id
-                          ? errorFieldStyles
-                          : commonFieldStyles
-                      }
+                      sx={errors.reaCif ? errorFieldStyles : commonFieldStyles}
                     />
                   )}
                 />
@@ -667,12 +687,16 @@ const Step1: React.FC<Step1Props> = React.memo(
                   render={({ field }) => (
                     <FormControl fullWidth error={!!errors.reaStatusDTO?.id}>
                       <InputLabel sx={labelSx}>
-                        {getLabel('CDL_BPA_STATUS', 'Project Status*')}
+                        {getLabel('CDL_BPA_STATUS', language, 'Project Status')}
                       </InputLabel>
                       <Select
                         {...field}
                         disabled={isViewMode || isProjectStatusesLoading}
-                        label={getLabel('CDL_BPA_STATUS', 'Project Status*')}
+                        label={getLabel(
+                          'CDL_BPA_STATUS',
+                          language,
+                          'Project Status'
+                        )}
                         IconComponent={KeyboardArrowDownIcon}
                         sx={{
                           ...selectStyles,
@@ -724,7 +748,8 @@ const Step1: React.FC<Step1Props> = React.memo(
                       <InputLabel sx={labelSx}>
                         {getLabel(
                           'CDL_BPA_ACC_STATUS',
-                          'Project Account Status*'
+                          language,
+                          'Project Account Status'
                         )}
                       </InputLabel>
                       <Select
@@ -732,7 +757,8 @@ const Step1: React.FC<Step1Props> = React.memo(
                         disabled={isViewMode || isBankAccountStatusesLoading}
                         label={getLabel(
                           'CDL_BPA_ACC_STATUS',
-                          'Project Account Status*'
+                          language,
+                          'Project Account Status'
                         )}
                         IconComponent={KeyboardArrowDownIcon}
                         sx={{
@@ -751,9 +777,7 @@ const Step1: React.FC<Step1Props> = React.memo(
                         }}
                       >
                         {isBankAccountStatusesLoading ? (
-                          <MenuItem disabled>
-                            Loading...
-                          </MenuItem>
+                          <MenuItem disabled>Loading...</MenuItem>
                         ) : (
                           bankAccountStatusesData?.map((status: any) => (
                             <MenuItem key={status.id} value={status.id}>
@@ -762,13 +786,13 @@ const Step1: React.FC<Step1Props> = React.memo(
                           )) || []
                         )}
                       </Select>
-                      {errors.reaTypeDTO?.id && (
+                      {errors.reaAccountStatusDTO?.id && (
                         <Typography
                           variant="caption"
                           color="error"
                           sx={{ mt: 0.5, ml: 1.75 }}
                         >
-                          {errors.reaTypeDTO.id.message}
+                          {errors.reaAccountStatusDTO.id.message}
                         </Typography>
                       )}
                     </FormControl>
@@ -786,6 +810,7 @@ const Step1: React.FC<Step1Props> = React.memo(
                       disabled={isViewMode}
                       label={getLabel(
                         'CDL_BPA_ACC_STATUS_DATE',
+                        language,
                         'Project Account Status Date'
                       )}
                       value={field.value}
@@ -828,6 +853,7 @@ const Step1: React.FC<Step1Props> = React.memo(
                       disabled={isViewMode}
                       label={getLabel(
                         'CDL_BPA_REG_DATE',
+                        language,
                         'Project Registration Date'
                       )}
                       value={field.value}
@@ -871,6 +897,7 @@ const Step1: React.FC<Step1Props> = React.memo(
                       disabled={isViewMode}
                       label={getLabel(
                         'CDL_BPA_EST_DATE',
+                        language,
                         'Project Start Date Est.*'
                       )}
                       value={field.value}
@@ -914,6 +941,7 @@ const Step1: React.FC<Step1Props> = React.memo(
                       disabled={isViewMode}
                       label={getLabel(
                         'CDL_BPA_EST_COMPLETION_DATE',
+                        language,
                         'Project Completion Date*'
                       )}
                       value={field.value}
@@ -959,7 +987,8 @@ const Step1: React.FC<Step1Props> = React.memo(
                       disabled={isViewMode}
                       label={getLabel(
                         'CDL_BPA_PRIMARY_RETENTION',
-                        'Retention %*'
+                        language,
+                        'Retention %'
                       )}
                       error={!!errors.reaRetentionPercent}
                       helperText={errors.reaRetentionPercent?.message}
@@ -996,6 +1025,7 @@ const Step1: React.FC<Step1Props> = React.memo(
                       disabled={isViewMode}
                       label={getLabel(
                         'CDL_BPA_SECONDARY_RETENTION',
+                        language,
                         'Additional Retention %'
                       )}
                       error={!!errors.reaAdditionalRetentionPercent}
@@ -1024,6 +1054,7 @@ const Step1: React.FC<Step1Props> = React.memo(
                       disabled={isViewMode}
                       label={getLabel(
                         'CDL_BPA_AGG_RETENTION',
+                        language,
                         'Total Retention %'
                       )}
                       InputLabelProps={{ sx: labelSx }}
@@ -1050,7 +1081,8 @@ const Step1: React.FC<Step1Props> = React.memo(
                       disabled={isViewMode}
                       label={getLabel(
                         'CDL_BPA_RETENTION_START_DATE',
-                        'Retention Effective Start Date*'
+                        language,
+                        'Retention Effective Start Date'
                       )}
                       value={field.value}
                       onChange={field.onChange}
@@ -1097,7 +1129,8 @@ const Step1: React.FC<Step1Props> = React.memo(
                       disabled={isViewMode}
                       label={getLabel(
                         'CDL_BPA_MGMT_EXPENSES',
-                        'Project Management Expenses*'
+                        language,
+                        'Asset Management Expenses'
                       )}
                       error={!!errors.reaManagementExpenses}
                       helperText={errors.reaManagementExpenses?.message}
@@ -1129,7 +1162,8 @@ const Step1: React.FC<Step1Props> = React.memo(
                       disabled={isViewMode}
                       label={getLabel(
                         'CDL_BPA_MARKETING_COST',
-                        'Marketing Expenses*'
+                        language,
+                        'Marketing Expenses'
                       )}
                       error={!!errors.reaMarketingExpenses}
                       helperText={errors.reaMarketingExpenses?.message}
@@ -1159,6 +1193,7 @@ const Step1: React.FC<Step1Props> = React.memo(
                       disabled={isViewMode}
                       label={getLabel(
                         'CDL_BPA_BROK_FEES',
+                        language,
                         'Real Estate Broker Expense'
                       )}
                       InputLabelProps={{ sx: labelSx }}
@@ -1181,6 +1216,7 @@ const Step1: React.FC<Step1Props> = React.memo(
                       disabled={isViewMode}
                       label={getLabel(
                         'CDL_BPA_ADVTG_COST',
+                        language,
                         'Advertising Expense'
                       )}
                       InputLabelProps={{ sx: labelSx }}
@@ -1203,6 +1239,7 @@ const Step1: React.FC<Step1Props> = React.memo(
                       disabled={isViewMode}
                       label={getLabel(
                         'CDL_BPA_LANDOWNER_NAME',
+                        language,
                         'Land Owner Name'
                       )}
                       InputLabelProps={{ sx: labelSx }}
@@ -1225,6 +1262,7 @@ const Step1: React.FC<Step1Props> = React.memo(
                       disabled={isViewMode}
                       label={getLabel(
                         'CDL_BPA_ASST_COMP_PER',
+                        language,
                         'Project Completion Percentage'
                       )}
                       InputLabelProps={{ sx: labelSx }}
@@ -1255,12 +1293,16 @@ const Step1: React.FC<Step1Props> = React.memo(
                       error={!!errors.reaConstructionCostCurrencyDTO?.id}
                     >
                       <InputLabel sx={labelSx}>
-                        {getLabel('CDL_BPA_TRAN_CUR', 'Currency*')}
+                        {getLabel('CDL_BPA_TRAN_CUR', language, 'Currency')}
                       </InputLabel>
                       <Select
                         {...field}
                         disabled={isViewMode || isProjectCurrenciesLoading}
-                        label={getLabel('CDL_BPA_TRAN_CUR', 'Currency*')}
+                        label={getLabel(
+                          'CDL_BPA_TRAN_CUR',
+                          language,
+                          'Currency'
+                        )}
                         IconComponent={KeyboardArrowDownIcon}
                         sx={{
                           ...selectStyles,
@@ -1313,6 +1355,7 @@ const Step1: React.FC<Step1Props> = React.memo(
                       disabled={isViewMode}
                       label={getLabel(
                         'CDL_BPA_ACT_COST',
+                        language,
                         'Actual Construction Cost'
                       )}
                       InputLabelProps={{ sx: labelSx }}
@@ -1333,7 +1376,11 @@ const Step1: React.FC<Step1Props> = React.memo(
                       {...field}
                       fullWidth
                       disabled={isViewMode}
-                      label={getLabel('CDL_BPA_TOTAL_UNIT', 'No. of Units')}
+                      label={getLabel(
+                        'CDL_BPA_TOTAL_UNIT',
+                        language,
+                        'No. of Units'
+                      )}
                       InputLabelProps={{ sx: labelSx }}
                       InputProps={{ sx: valueSx }}
                       sx={commonFieldStyles}
@@ -1352,7 +1399,7 @@ const Step1: React.FC<Step1Props> = React.memo(
                       {...field}
                       fullWidth
                       disabled={isViewMode}
-                      label={getLabel('CDL_BPA_ADD_NOTES', 'Remarks')}
+                      label={getLabel('CDL_BPA_ADD_NOTES', language, 'Remarks')}
                       InputLabelProps={{ sx: labelSx }}
                       InputProps={{ sx: valueSx }}
                       sx={commonFieldStyles}
@@ -1373,7 +1420,8 @@ const Step1: React.FC<Step1Props> = React.memo(
                       disabled={isViewMode}
                       label={getLabel(
                         'CDL_BPA_SP_REG_APPROVAL',
-                        'Special Approval'
+                        language,
+                        'Special Approval 123456'
                       )}
                       InputLabelProps={{ sx: labelSx }}
                       InputProps={{ sx: valueSx }}
@@ -1396,6 +1444,7 @@ const Step1: React.FC<Step1Props> = React.memo(
                       <InputLabel sx={labelSx}>
                         {getLabel(
                           'CDL_BPA_RES_PAYMENT_TYPE',
+                          language,
                           'Payment Type to be Blocked'
                         )}
                       </InputLabel>
@@ -1404,6 +1453,7 @@ const Step1: React.FC<Step1Props> = React.memo(
                         disabled={isViewMode || isBlockedPaymentTypesLoading}
                         label={getLabel(
                           'CDL_BPA_RES_PAYMENT_TYPE',
+                          language,
                           'Payment Type to be Blocked'
                         )}
                         IconComponent={KeyboardArrowDownIcon}
@@ -1457,7 +1507,11 @@ const Step1: React.FC<Step1Props> = React.memo(
                       fullWidth
                       disabled={isViewMode}
                       required={true}
-                      label={getLabel('CDL_BPA_ASS_MANAGER', 'Managed By')}
+                      label={getLabel(
+                        'CDL_BPA_ASS_MANAGER',
+                        language,
+                        'Managed By'
+                      )}
                       error={!!errors.reaManagedBy}
                       helperText={errors.reaManagedBy?.message}
                       InputLabelProps={{ sx: labelSx }}
@@ -1486,7 +1540,11 @@ const Step1: React.FC<Step1Props> = React.memo(
                       {...field}
                       fullWidth
                       disabled={isViewMode}
-                      label={getLabel('CDL_BPA_BACKUP_MANAGER', 'Backup by')}
+                      label={getLabel(
+                        'CDL_BPA_BACKUP_MANAGER',
+                        language,
+                        'Backup by'
+                      )}
                       error={!!errors.reaBackupUser}
                       helperText={errors.reaBackupUser?.message}
                       InputLabelProps={{ sx: labelSx }}
@@ -1513,13 +1571,18 @@ const Step1: React.FC<Step1Props> = React.memo(
                       {...field}
                       fullWidth
                       disabled={isViewMode}
-                      label={getLabel('CDL_BPA_RM', 'Relationship Manager')}
+                      label={getLabel(
+                        'CDL_BPA_RM',
+                        language,
+                        'Relationship Manager'
+                      )}
                       InputProps={{
                         endAdornment: (
                           <InputAdornment position="end">
                             <Button
                               variant="contained"
                               size="small"
+                              disabled={isViewMode}
                               sx={{
                                 color: '#FFFFFF',
                                 borderRadius: '8px',
@@ -1570,6 +1633,7 @@ const Step1: React.FC<Step1Props> = React.memo(
                       disabled={isViewMode}
                       label={getLabel(
                         'CDL_BPA_ARM',
+                        language,
                         'Asset Relationship Manager'
                       )}
                       InputLabelProps={{ sx: labelSx }}
@@ -1590,7 +1654,11 @@ const Step1: React.FC<Step1Props> = React.memo(
                       {...field}
                       fullWidth
                       disabled={isViewMode}
-                      label={getLabel('CDL_BPA_TL', 'Team Leader Name')}
+                      label={getLabel(
+                        'CDL_BPA_TL',
+                        language,
+                        'Team Leader Name12345'
+                      )}
                       InputLabelProps={{ sx: labelSx }}
                       InputProps={{ sx: valueSx }}
                       sx={commonFieldStyles}

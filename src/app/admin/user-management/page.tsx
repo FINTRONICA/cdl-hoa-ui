@@ -14,6 +14,7 @@ import { Pencil } from 'lucide-react'
 import { useSidebarConfig } from '@/hooks/useSidebarConfig'
 import { UserManagementData } from '@/services/api/authAdminUserService'
 import { useAppStore } from '@/store'
+import { GlobalLoading } from '@/components/atoms'
 
 // ---------------- Interfaces ----------------
 interface Permission {
@@ -166,17 +167,8 @@ const UserManagementPage: React.FC = () => {
   if (isLoading || labelsLoading) {
     return (
       <DashboardLayout title={userManagementTitle}>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">
-              {isLoading && labelsLoading
-                ? 'Loading...'
-                : isLoading
-                  ? 'Loading...'
-                  : 'Loading...'}
-            </p>
-          </div>
+        <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
+          <GlobalLoading fullHeight />
         </div>
       </DashboardLayout>
     )

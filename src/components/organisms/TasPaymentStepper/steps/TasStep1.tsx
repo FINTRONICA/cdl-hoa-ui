@@ -15,7 +15,6 @@ import {
   Card,
   CardContent,
   Checkbox,
-  CircularProgress,
   FormControl,
   FormControlLabel,
   Grid,
@@ -36,7 +35,8 @@ import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import dayjs from 'dayjs'
 import { useManualPaymentLabelsWithCache } from '@/hooks/useManualPaymentLabelsWithCache'
-import { MANUAL_PAYMENT_LABELS } from '@/constants/mappings/manualPaymentLabels'
+import { VOUCHER_LABELS } from '@/constants/mappings/manualPaymentLabels'
+import { GlobalLoading } from '@/components/atoms'
 
 interface TasStep1Props {
   savedId?: string | null
@@ -126,42 +126,14 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
 
   // Handle data prepopulation when in edit mode
   useEffect(() => {
-    console.log('Form population effect triggered:', {
-      isEditMode,
-      hasFundEgressData: !!fundEgressData,
-      developerNamesLength: developerNames.length,
-      projectNamesLength: projectNames.length,
-      hasBuildPartnerDTO: !!fundEgressData?.buildPartnerDTO,
-      hasRealEstateDTO: !!fundEgressData?.realEstateAssestDTO,
-      fundEgressData: fundEgressData,
-    })
-
     if (isEditMode && fundEgressData) {
-      console.log('Starting form population with data:', fundEgressData)
-
       // Try setting just the basic fields first
       if (fundEgressData.fePaymentRefNumber) {
-        console.log('Setting tasReference:', fundEgressData.fePaymentRefNumber)
         setValue('tasReference', fundEgressData.fePaymentRefNumber)
       }
 
       if (fundEgressData.buildPartnerDTO?.bpName) {
-        console.log(
-          'Setting developerName:',
-          fundEgressData.buildPartnerDTO.bpName
-        )
-        console.log('Available developer names:', developerNames)
-        console.log(
-          'Is developer name in list?',
-          developerNames.includes(fundEgressData.buildPartnerDTO.bpName)
-        )
-
-        // If the developer name is not in the list, add it
         if (!developerNames.includes(fundEgressData.buildPartnerDTO.bpName)) {
-          console.log(
-            'Adding developer name to list:',
-            fundEgressData.buildPartnerDTO.bpName
-          )
           setDeveloperNames((prev) => [
             ...prev,
             fundEgressData.buildPartnerDTO.bpName,
@@ -173,40 +145,23 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
         // Debug: Check the form value after setting
         setTimeout(() => {
           const currentValue = watch('developerName')
-          console.log('Current developerName form value:', currentValue)
         }, 100)
       } else {
-        console.log('buildPartnerDTO is null - cannot set developerName')
       }
 
       if (fundEgressData.buildPartnerDTO?.bpDeveloperId) {
-        console.log(
-          'Setting developerId:',
-          fundEgressData.buildPartnerDTO.bpDeveloperId
-        )
         setValue('developerId', fundEgressData.buildPartnerDTO.bpDeveloperId)
       } else {
-        console.log('buildPartnerDTO is null - cannot set developerId')
       }
 
       if (fundEgressData.realEstateAssestDTO?.reaName) {
-        console.log(
-          'Setting projectName:',
-          fundEgressData.realEstateAssestDTO.reaName
-        )
         setValue('projectName', fundEgressData.realEstateAssestDTO.reaName)
       } else {
-        console.log('realEstateAssestDTO is null - cannot set projectName')
       }
 
       if (fundEgressData.realEstateAssestDTO?.reaId) {
-        console.log(
-          'Setting projectId:',
-          fundEgressData.realEstateAssestDTO.reaId
-        )
         setValue('projectId', fundEgressData.realEstateAssestDTO.reaId)
       } else {
-        console.log('realEstateAssestDTO is null - cannot set projectId')
       }
 
       // Map the saved data to form format - use values directly from API response
@@ -312,15 +267,10 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
         tasPaymentRerun: fundEgressData.fetasPaymentRerun || false,
       }
 
-      // Set form values
-      console.log('Setting form values:', formData)
       Object.entries(formData).forEach(([key, value]) => {
-        console.log(`Setting ${key}:`, value)
         setValue(key as any, value)
       })
-      console.log('Form population completed')
     } else {
-      console.log('Form population skipped - conditions not met')
     }
   }, [isEditMode, fundEgressData, setValue])
 
@@ -332,7 +282,7 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
       setPaymentRefId(newIdResponse.id)
       setValue('tasReference', newIdResponse.id)
     } catch (error) {
-      console.error('Error generating payment reference ID:', error)
+      throw error
     } finally {
       setIsGeneratingId(false)
     }
@@ -535,11 +485,11 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
     }
 
     if (name === 'developerId') {
-      validationRules.required = 'Developer ID is required'
+      validationRules.required = 'Build Partner ID is required'
       validationRules.pattern = {
         value: /^[A-Z0-9-]+$/,
         message:
-          'Developer ID can only contain uppercase letters, numbers, and hyphens',
+          'Build Partner ID can only contain uppercase letters, numbers, and hyphens',
       }
     }
 
@@ -621,7 +571,6 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
     gridSize = 6,
     isRequired = true
   ) => {
-    console.log(`Rendering select field ${name} with options:`, options)
     const validationRules: any = {}
 
     if (isRequired) {
@@ -673,7 +622,6 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
           rules={validationRules}
           defaultValue={''}
           render={({ field }) => {
-            console.log(`Select field ${name} current value:`, field.value)
             return (
               <FormControl fullWidth>
                 <InputLabel sx={labelSx}>{label}</InputLabel>
@@ -1138,74 +1086,18 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
   if (isDataLoading) {
     return (
       <Box
-        display="flex"
-        flexDirection="column"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="500px"
         sx={{
           backgroundColor: '#FFFFFFBF',
           borderRadius: '16px',
           margin: '0 auto',
           width: '84%',
-          padding: '40px',
+          height: '500px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
-        <CircularProgress
-          size={60}
-          sx={{
-            color: '#155DFC',
-            mb: 3,
-          }}
-        />
-        <Typography
-          variant="h6"
-          sx={{
-            mb: 2,
-            color: '#374151',
-            fontFamily: 'Outfit, sans-serif',
-            fontWeight: 500,
-          }}
-        >
-          {getLabel(
-            MANUAL_PAYMENT_LABELS.STEPS.DETAILS,
-            'EN',
-            MANUAL_PAYMENT_LABELS.FALLBACKS.STEPS.DETAILS
-          )}
-        </Typography>
-        {/* <Typography
-          variant="body2"
-          sx={{
-            color: '#6B7280',
-            textAlign: 'center',
-            fontFamily: 'Outfit, sans-serif',
-            maxWidth: '400px',
-          }}
-        >
-          Loading TAS payment form data...
-        </Typography> */}
-        <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
-          {/* {paymentTypesLoading && (
-            <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-              • Loading payment types...
-            </Typography>
-          )} */}
-          {/* {currenciesLoading && (
-            <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-              • Loading currencies...
-            </Typography>
-          )} */}
-          {/* {assetsLoading && (
-            <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-              • Loading...
-            </Typography>
-          )} */}
-          {/* {developerNames.length === 0 && (
-            <Typography variant="caption" sx={{ color: '#9CA3AF' }}>
-              • Loading...
-            </Typography>
-          )} */}
-        </Box>
+        <GlobalLoading fullHeight className="min-h-[500px]" />
       </Box>
     )
   }
@@ -1225,18 +1117,18 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderPaymentRefIdField(
               'tasReference',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.TAS_REFERENCE,
+                VOUCHER_LABELS.FORM_FIELDS.TAS_REFERENCE,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TAS_REFERENCE
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.TAS_REFERENCE
               ) + '*'
             )}
             {/* {renderTextField('tasReference', 'Tas/EMS Payment Ref no.*', 6, '', true)} */}
             {renderTextField(
               'developerName',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEVELOPER_NAME,
+                VOUCHER_LABELS.FORM_FIELDS.DEVELOPER_NAME,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_NAME
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_NAME
               ) + '*',
               6,
               '',
@@ -1245,9 +1137,9 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'developerId',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEVELOPER_ID,
+                VOUCHER_LABELS.FORM_FIELDS.DEVELOPER_ID,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_ID
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_ID
               ) + '*',
               6,
               '',
@@ -1256,9 +1148,9 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'projectName',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROJECT_NAME,
+                VOUCHER_LABELS.FORM_FIELDS.PROJECT_NAME,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_NAME
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_NAME
               ) + '*',
               6,
               '',
@@ -1267,9 +1159,9 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'projectId',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROJECT_ID,
+                VOUCHER_LABELS.FORM_FIELDS.PROJECT_ID,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_ID
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_ID
               ) + '*',
               6,
               '',
@@ -1278,9 +1170,9 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'projectStatus',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROJECT_STATUS,
+                VOUCHER_LABELS.FORM_FIELDS.PROJECT_STATUS,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_STATUS
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_STATUS
               ),
               6,
               '',
@@ -1330,9 +1222,9 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
                 }}
               >
                 {getLabel(
-                  MANUAL_PAYMENT_LABELS.SECTION_TITLES.EXPENSE_TYPE,
+                  VOUCHER_LABELS.SECTION_TITLES.EXPENSE_TYPE,
                   'EN',
-                  MANUAL_PAYMENT_LABELS.FALLBACKS.SECTION_TITLES.EXPENSE_TYPE
+                  VOUCHER_LABELS.FALLBACKS.SECTION_TITLES.EXPENSE_TYPE
                 )}
               </Typography>
             </Grid>
@@ -1340,9 +1232,9 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'paymentType',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_TYPE,
+                VOUCHER_LABELS.FORM_FIELDS.PAYMENT_TYPE,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_TYPE
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_TYPE
               ) + '*',
               6,
               '',
@@ -1351,9 +1243,9 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'paymentSubType',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_SUB_TYPE,
+                VOUCHER_LABELS.FORM_FIELDS.PAYMENT_SUB_TYPE,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_SUB_TYPE
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_SUB_TYPE
               ),
               6,
               '',
@@ -1362,17 +1254,17 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'paymentType1',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.REGULAR_APPROVAL_REF,
+                VOUCHER_LABELS.FORM_FIELDS.REGULAR_APPROVAL_REF,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.REGULAR_APPROVAL_REF
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.REGULAR_APPROVAL_REF
               ) + '*'
             )}
             {renderDatePickerField(
               'paymentSubType1',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.REGULAR_APPROVAL_DATE,
+                VOUCHER_LABELS.FORM_FIELDS.REGULAR_APPROVAL_DATE,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
                   .REGULAR_APPROVAL_DATE
               ) + '*',
               6,
@@ -1381,9 +1273,9 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'invoiceRef',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_REF,
+                VOUCHER_LABELS.FORM_FIELDS.INVOICE_REF,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_REF
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_REF
               ) + '*',
               3,
               '',
@@ -1392,9 +1284,9 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'invoiceCurrency',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_CURRENCY,
+                VOUCHER_LABELS.FORM_FIELDS.INVOICE_CURRENCY,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_CURRENCY
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_CURRENCY
               ) + '*',
               3,
               '',
@@ -1403,18 +1295,18 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'invoiceValue',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_VALUE,
+                VOUCHER_LABELS.FORM_FIELDS.INVOICE_VALUE,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_VALUE
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_VALUE
               ) + '*',
               3
             )}
             {renderDatePickerField(
               'invoiceDate',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_DATE,
+                VOUCHER_LABELS.FORM_FIELDS.INVOICE_DATE,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_DATE
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_DATE
               ) + '*',
               3
             )}
@@ -1434,9 +1326,9 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
                 }}
               >
                 {getLabel(
-                  MANUAL_PAYMENT_LABELS.SECTION_TITLES.AMOUNT_DETAILS,
+                  VOUCHER_LABELS.SECTION_TITLES.AMOUNT_DETAILS,
                   'EN',
-                  MANUAL_PAYMENT_LABELS.FALLBACKS.SECTION_TITLES.AMOUNT_DETAILS
+                  VOUCHER_LABELS.FALLBACKS.SECTION_TITLES.AMOUNT_DETAILS
                 )}
               </Typography>
             </Grid>
@@ -1444,52 +1336,52 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'engineerApprovedAmount',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.ENGINEER_APPROVED_AMOUNT,
+                VOUCHER_LABELS.FORM_FIELDS.ENGINEER_APPROVED_AMOUNT,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
                   .ENGINEER_APPROVED_AMOUNT
               )
             )}
             {renderTextField(
               'totalEligibleAmount',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.TOTAL_ELIGIBLE_AMOUNT,
+                VOUCHER_LABELS.FORM_FIELDS.TOTAL_ELIGIBLE_AMOUNT,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
                   .TOTAL_ELIGIBLE_AMOUNT
               )
             )}
             {renderTextField(
               'amountPaid',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.AMOUNT_PAID,
+                VOUCHER_LABELS.FORM_FIELDS.AMOUNT_PAID,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.AMOUNT_PAID
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.AMOUNT_PAID
               )
             )}
             {renderTextField(
               'amountPaid1',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.CAP_EXCEEDED,
+                VOUCHER_LABELS.FORM_FIELDS.CAP_EXCEEDED,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CAP_EXCEEDED
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.CAP_EXCEEDED
               )
             )}
             {renderTextField(
               'totalAmountPaid',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.TOTAL_AMOUNT_PAID,
+                VOUCHER_LABELS.FORM_FIELDS.TOTAL_AMOUNT_PAID,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TOTAL_AMOUNT_PAID
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.TOTAL_AMOUNT_PAID
               ),
               3
             )}
             {renderTextField(
               'totalAmountPaid1',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_CURRENCY,
+                VOUCHER_LABELS.FORM_FIELDS.PAYMENT_CURRENCY,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_CURRENCY
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_CURRENCY
               ) + '*',
               3,
               '',
@@ -1498,18 +1390,18 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'debitCreditToEscrow',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEBIT_CREDIT_ESCROW,
+                VOUCHER_LABELS.FORM_FIELDS.DEBIT_CREDIT_ESCROW,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEBIT_CREDIT_ESCROW
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.DEBIT_CREDIT_ESCROW
               ),
               3
             )}
             {renderTextField(
               'currentEligibleAmount',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.CURRENT_ELIGIBLE_AMOUNT,
+                VOUCHER_LABELS.FORM_FIELDS.CURRENT_ELIGIBLE_AMOUNT,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
                   .CURRENT_ELIGIBLE_AMOUNT
               ),
               3
@@ -1517,90 +1409,90 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'debitFromRetention',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEBIT_FROM_RETENTION,
+                VOUCHER_LABELS.FORM_FIELDS.DEBIT_FROM_RETENTION,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEBIT_FROM_RETENTION
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.DEBIT_FROM_RETENTION
               ),
               3
             )}
             {renderTextField(
               'totalPayoutAmount',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.TOTAL_PAYOUT_AMOUNT,
+                VOUCHER_LABELS.FORM_FIELDS.TOTAL_PAYOUT_AMOUNT,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TOTAL_PAYOUT_AMOUNT
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.TOTAL_PAYOUT_AMOUNT
               ),
               3
             )}
             {renderTextField(
               'amountInTransit',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.AMOUNT_IN_TRANSIT,
+                VOUCHER_LABELS.FORM_FIELDS.AMOUNT_IN_TRANSIT,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.AMOUNT_IN_TRANSIT
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.AMOUNT_IN_TRANSIT
               ),
               3
             )}
             {renderTextField(
               'vatCapExceeded',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.VAT_CAP_EXCEEDED,
+                VOUCHER_LABELS.FORM_FIELDS.VAT_CAP_EXCEEDED,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.VAT_CAP_EXCEEDED
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.VAT_CAP_EXCEEDED
               ),
               3
             )}
             {renderCheckboxField(
               'specialRate',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.SPECIAL_RATE,
+                VOUCHER_LABELS.FORM_FIELDS.SPECIAL_RATE,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.SPECIAL_RATE
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.SPECIAL_RATE
               ),
               3
             )}
             {renderCheckboxField(
               'corporateAmount',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.CORPORATE_AMOUNT,
+                VOUCHER_LABELS.FORM_FIELDS.CORPORATE_AMOUNT,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CORPORATE_AMOUNT
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.CORPORATE_AMOUNT
               ),
               3
             )}
             {renderTextField(
               'delRefNo',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEAL_REF_NO,
+                VOUCHER_LABELS.FORM_FIELDS.DEAL_REF_NO,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEAL_REF_NO
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.DEAL_REF_NO
               ),
               3
             )}
             {renderTextField(
               'ppcNo',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PPC_NUMBER,
+                VOUCHER_LABELS.FORM_FIELDS.PPC_NUMBER,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PPC_NUMBER
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PPC_NUMBER
               ),
               3
             )}
             {renderTextFieldWithButton(
               'vatCapExceeded3',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.INDICATIVE_RATE,
+                VOUCHER_LABELS.FORM_FIELDS.INDICATIVE_RATE,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INDICATIVE_RATE
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.INDICATIVE_RATE
               ),
               'Get Exchange Rate'
             )}
             {renderTextField(
               'vatCapExceeded4',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.CORPORATE_CERTIFICATION_FEES,
+                VOUCHER_LABELS.FORM_FIELDS.CORPORATE_CERTIFICATION_FEES,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
                   .CORPORATE_CERTIFICATION_FEES
               )
             )}
@@ -1620,9 +1512,9 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
                 }}
               >
                 {getLabel(
-                  MANUAL_PAYMENT_LABELS.SECTION_TITLES.NARRATION,
+                  VOUCHER_LABELS.SECTION_TITLES.NARRATION,
                   'EN',
-                  MANUAL_PAYMENT_LABELS.FALLBACKS.SECTION_TITLES.NARRATION
+                  VOUCHER_LABELS.FALLBACKS.SECTION_TITLES.NARRATION
                 )}
               </Typography>
             </Grid>
@@ -1630,25 +1522,25 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'narration1',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.NARRATION_1,
+                VOUCHER_LABELS.FORM_FIELDS.NARRATION_1,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.NARRATION_1
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.NARRATION_1
               )
             )}
             {renderTextField(
               'narration2',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.NARRATION_2,
+                VOUCHER_LABELS.FORM_FIELDS.NARRATION_2,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.NARRATION_2
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.NARRATION_2
               )
             )}
             {renderTextField(
               'remarks',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.REMARKS,
+                VOUCHER_LABELS.FORM_FIELDS.REMARKS,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.REMARKS
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.REMARKS
               ),
               12
             )}
@@ -1668,9 +1560,9 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
                 }}
               >
                 {getLabel(
-                  MANUAL_PAYMENT_LABELS.SECTION_TITLES.UNIT_CANCELLATION,
+                  VOUCHER_LABELS.SECTION_TITLES.UNIT_CANCELLATION,
                   'EN',
-                  MANUAL_PAYMENT_LABELS.FALLBACKS.SECTION_TITLES
+                  VOUCHER_LABELS.FALLBACKS.SECTION_TITLES
                     .UNIT_CANCELLATION
                 )}
               </Typography>
@@ -1679,50 +1571,50 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'unitNo',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.UNIT_NO,
+                VOUCHER_LABELS.FORM_FIELDS.UNIT_NO,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.UNIT_NO
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.UNIT_NO
               ) + '*'
             )}
             {renderTextField(
               'towerName',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.TOWER_NAME,
+                VOUCHER_LABELS.FORM_FIELDS.TOWER_NAME,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TOWER_NAME
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.TOWER_NAME
               )
             )}
             {renderTextField(
               'unitStatus',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.UNIT_STATUS,
+                VOUCHER_LABELS.FORM_FIELDS.UNIT_STATUS,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.UNIT_STATUS
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.UNIT_STATUS
               )
             )}
             {renderTextField(
               'amountReceived',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.AMOUNT_RECEIVED,
+                VOUCHER_LABELS.FORM_FIELDS.AMOUNT_RECEIVED,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.AMOUNT_RECEIVED
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.AMOUNT_RECEIVED
               ) + '*'
             )}
             {renderCheckboxField(
               'Forfeit',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.FORFEIT,
+                VOUCHER_LABELS.FORM_FIELDS.FORFEIT,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.FORFEIT
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.FORFEIT
               ),
               4
             )}
             {renderCheckboxField(
               'Refundtounitholder',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.REFUND_TO_UNIT_HOLDER,
+                VOUCHER_LABELS.FORM_FIELDS.REFUND_TO_UNIT_HOLDER,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
                   .REFUND_TO_UNIT_HOLDER
               ),
               4
@@ -1730,9 +1622,9 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderCheckboxField(
               'Transfertootherunit',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.TRANSFER_TO_OTHER_UNIT,
+                VOUCHER_LABELS.FORM_FIELDS.TRANSFER_TO_OTHER_UNIT,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
                   .TRANSFER_TO_OTHER_UNIT
               ),
               4
@@ -1740,18 +1632,18 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'forfeitAmount',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.FORFEIT_AMOUNT,
+                VOUCHER_LABELS.FORM_FIELDS.FORFEIT_AMOUNT,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.FORFEIT_AMOUNT
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.FORFEIT_AMOUNT
               ),
               4
             )}
             {renderTextField(
               'regulatorApprovalRef',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.REGULATOR_APPROVAL_REF,
+                VOUCHER_LABELS.FORM_FIELDS.REGULATOR_APPROVAL_REF,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
                   .REGULATOR_APPROVAL_REF
               ) + '*',
               4,
@@ -1761,9 +1653,9 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderDatePickerField(
               'paymentDate',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.REGULATOR_APPROVAL_DATE,
+                VOUCHER_LABELS.FORM_FIELDS.REGULATOR_APPROVAL_DATE,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
                   .REGULATOR_APPROVAL_DATE
               ),
               4,
@@ -1773,9 +1665,9 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'bankCharges',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.CHARGE_MODE,
+                VOUCHER_LABELS.FORM_FIELDS.CHARGE_MODE,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CHARGE_MODE
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.CHARGE_MODE
               ),
               6,
               '',
@@ -1784,9 +1676,9 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'paymentMode',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_MODE,
+                VOUCHER_LABELS.FORM_FIELDS.PAYMENT_MODE,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_MODE
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_MODE
               ),
               6,
               '',
@@ -1795,9 +1687,9 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'engineerFeePayment',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.TRANSACTION_TYPE,
+                VOUCHER_LABELS.FORM_FIELDS.TRANSACTION_TYPE,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TRANSACTION_TYPE
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.TRANSACTION_TYPE
               ),
               6,
               '',
@@ -1806,60 +1698,60 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderTextField(
               'uploadDocuments',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.AMOUNT_TO_BE_RELEASED,
+                VOUCHER_LABELS.FORM_FIELDS.AMOUNT_TO_BE_RELEASED,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
                   .AMOUNT_TO_BE_RELEASED
               )
             )}
             {renderDatePickerField(
               'engineerFeePayment1',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_DATE,
+                VOUCHER_LABELS.FORM_FIELDS.PAYMENT_DATE,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_DATE
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_DATE
               ) + '*'
             )}
             {renderTextField(
               'uploadDocuments1',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.VAT_PAYMENT_AMOUNT,
+                VOUCHER_LABELS.FORM_FIELDS.VAT_PAYMENT_AMOUNT,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.VAT_PAYMENT_AMOUNT
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.VAT_PAYMENT_AMOUNT
               )
             )}
             {renderCheckboxField(
               'EngineerFeePaymentNeeded',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.ENGINEER_FEE_PAYMENT_NEEDED,
+                VOUCHER_LABELS.FORM_FIELDS.ENGINEER_FEE_PAYMENT_NEEDED,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
                   .ENGINEER_FEE_PAYMENT_NEEDED
               )
             )}
             {renderTextField(
               'EngineerFeesPayment',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.ENGINEER_FEES_PAYMENT,
+                VOUCHER_LABELS.FORM_FIELDS.ENGINEER_FEES_PAYMENT,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
                   .ENGINEER_FEES_PAYMENT
               )
             )}
             {renderTextField(
               'engineerFeePayment2',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.BANK_CHARGES,
+                VOUCHER_LABELS.FORM_FIELDS.BANK_CHARGES,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.BANK_CHARGES
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.BANK_CHARGES
               )
             )}
             {renderTextField(
               'uploadDocuments2',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_FROM_CBS,
+                VOUCHER_LABELS.FORM_FIELDS.PAYMENT_FROM_CBS,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_FROM_CBS
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_FROM_CBS
               ) + '*',
               6,
               '',
@@ -1868,9 +1760,9 @@ const TasStep1 = ({ loading, isEditMode, fundEgressData }: TasStep1Props) => {
             {renderCheckboxField(
               'reviewNote*',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.REVIEW_NOTE,
+                VOUCHER_LABELS.FORM_FIELDS.REVIEW_NOTE,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.REVIEW_NOTE
+                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.REVIEW_NOTE
               ) + '*',
               12
             )}

@@ -46,20 +46,6 @@ const SidebarComponent = () => {
       if (pathname === href) return true
       if (pathname.startsWith(href + '/')) return true
 
-      // Special case mappings for URL structure mismatches
-      // /developers/* should highlight /entities/developers
-      if (
-        href === '/entities/developers' &&
-        pathname.startsWith('/developers/')
-      ) {
-        return true
-      }
-
-      // /projects/* should highlight /entities/projects
-      if (href === '/entities/projects' && pathname.startsWith('/projects/')) {
-        return true
-      }
-
       return false
     },
     [pathname]
@@ -224,7 +210,7 @@ const SidebarComponent = () => {
 
   return (
     <div className="w-62 flex flex-col px-4 border border-[#FFFFFF80] ml-4 mt-[15px] bg-[#FFFFFF40] rounded-2xl">
-      {/* Logo with Suspense for better loading */}
+      
       <div>
         <Suspense
           fallback={
@@ -235,11 +221,11 @@ const SidebarComponent = () => {
         </Suspense>
       </div>
 
-      {/* Navigation */}
+     
       <nav className="flex-1 overflow-y-auto scrollbar-hide py-4 border-t border-t-[#CAD5E2]">
         {memoizedNavigationSections.map((section: SidebarSection) => (
           <div key={section.id} className="">
-            {/* Section Header */}
+           
             {section.label && (
               <div
                 className={`flex items-center gap-2 p-2 ${
@@ -264,27 +250,27 @@ const SidebarComponent = () => {
                     onClick={(e) => e.stopPropagation()}
                   >
                     <section.icon
-                      className={`w-5 h-5 ${
+                      className={`w-5 h-5 flex-shrink-0 ${
                         isActive(section.href)
                           ? 'text-[#60A5FA]'
                           : 'text-[#4A5565]'
                       }`}
                     />
-                    <h3 className="text-start font-sans text-[11px] leading-none uppercase align-middle">
+                    <h3 className="text-start font-outfit text-[11px] leading-none uppercase align-middle flex-1">
                       {section.label}
                     </h3>
                   </Link>
                 ) : (
-                  <>
-                    <section.icon className="w-4 h-4 text-[#6A7282]" />
-                    <h3 className="text-[#6A7282] text-start font-sans p-1.5 font-medium text-[11px] leading-none uppercase align-middle">
+                  <div className="flex items-center gap-2 flex-1 p-1.5">
+                    <section.icon className="w-5 h-5 flex-shrink-0 text-[#6A7282]" />
+                    <h3 className="text-[#6A7282] text-start font-outfit font-medium text-[11px] leading-none uppercase align-middle flex-1">
                       {section.label}
                     </h3>
-                  </>
+                  </div>
                 )}
                 {section.items.length > 0 && (
                   <ChevronDown
-                    className={`w-4 h-4 text-gray-400 transition-transform ${
+                    className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${
                       isSectionExpanded(section.id) ? 'rotate-180' : ''
                     }`}
                   />
@@ -292,7 +278,7 @@ const SidebarComponent = () => {
               </div>
             )}
 
-            {/* Section Items */}
+           
             {(!section.label || isSectionExpanded(section.id)) && (
               <div className="space-y-1">
                 {section.items.map((item) => (
@@ -312,7 +298,7 @@ const SidebarComponent = () => {
                               isParentActive(item) ? '' : 'text-gray-700'
                             }`}
                           />
-                          <span className="text-[#6A7282] font-sans font-medium text-[11px] leading-none uppercase align-middle flex-1 text-left">
+                          <span className="text-[#6A7282] font-outfit font-medium text-[11px] leading-none uppercase align-middle flex-1 text-left">
                             {item.label}
                           </span>
                           <ChevronDown
@@ -350,7 +336,7 @@ const SidebarComponent = () => {
                     ) : (
                       <Link
                         href={item.href || '#'}
-                        className={`flex items-center gap-2 pl-[34px] py-2 pr-2 rounded-lg text-sm transition-colors font-outfit font-sans text-[13px] leading-[20px] align-middle ${
+                        className={`flex items-center gap-2 pl-[34px] py-2 pr-2 rounded-lg text-sm transition-colors font-outfit text-[13px] leading-[20px] align-middle ${
                           item.href && isActive(item.href)
                             ? 'bg-[#DBEAFE] text-[#155DFC] font-medium'
                             : 'text-[#1E2939] font-normal hover:bg-gray-100'
@@ -373,7 +359,7 @@ const SidebarComponent = () => {
           </div>
         ))}
 
-        {/* Help & Collapse */}
+        
         <div className="pt-6 space-y-2 border-t border-gray-300">
           <button
             onClick={handleHelpClick}

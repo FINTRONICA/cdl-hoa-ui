@@ -72,21 +72,6 @@ export interface PaymentPlanData {
   projectCompletionPercentage: string
 }
 
-export interface OwnerData {
-  id?: string | number
-  name: string
-  address: string
-  email: string
-  countrycode: string
-  mobileno: string
-  telephoneno: string
-  idNumber: string
-  idExpiryDate: string
-  buildPartnerDTO?: {
-    id: number
-  }
-}
-
 export interface FinancialData {
   projectEstimatedCost: string
   actualCost: string

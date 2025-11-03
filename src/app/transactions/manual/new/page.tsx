@@ -3,18 +3,18 @@ import { Suspense } from 'react'
 import ManualPaymentStepperWrapper from '@/components/organisms/ManualPaymentStepper'
 import { DashboardLayout } from '@/components/templates/DashboardLayout'
 import { useManualPaymentLabelsWithCache } from '@/hooks/useManualPaymentLabelsWithCache'
-import { MANUAL_PAYMENT_LABELS } from '@/constants/mappings/manualPaymentLabels'
+import { VOUCHER_LABELS } from '@/constants/mappings/manualPaymentLabels'
 
 function ManualPaymentContent() {
   const { getLabel } = useManualPaymentLabelsWithCache('EN')
 
   const pageTitle = getLabel(
-    MANUAL_PAYMENT_LABELS.PAGE_TITLE,
+    VOUCHER_LABELS.PAGE_TITLE,
     'EN',
-    MANUAL_PAYMENT_LABELS.FALLBACKS.PAGE_TITLE
+    VOUCHER_LABELS.FALLBACKS.PAGE_TITLE
   )
   const pageSubtitle =
-    'Register your voucher details step by step, non-mandatory fields and steps are easy to skip.'
+    'Register your Voucher  details step by step, non-mandatory fields and steps are easy to skip.'
 
   return (
     <DashboardLayout title={pageTitle} subtitle={pageSubtitle}>

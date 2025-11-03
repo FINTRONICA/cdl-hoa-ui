@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Button,
@@ -16,37 +16,42 @@ import {
   Select,
   TextField,
   Typography,
-} from "@mui/material";
+} from '@mui/material'
 import {
   KeyboardArrowDown as KeyboardArrowDownIcon,
   Refresh as RefreshIcon,
-} from "@mui/icons-material";
-import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
-import { Controller, useFormContext } from "react-hook-form";
-import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { getBuildPartnerLabel } from "../../../../constants/mappings/buildPartnerMapping";
-import { BuildPartnerService } from "../../../../services/api/buildPartnerService";
-import { developerIdService } from "../../../../services/api/developerIdService";
-import { useDeveloperDropdownLabels } from "../../../../hooks/useDeveloperDropdowns";
-import { getDeveloperDropdownLabel } from "../../../../constants/mappings/developerDropdownMapping";
-import { validateDeveloperField } from "../../../../lib/validation/developerSchemas";
+} from '@mui/icons-material'
+import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers'
+import { Controller, useFormContext } from 'react-hook-form'
+import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import { getBuildPartnerLabel } from '../../../../constants/mappings/buildPartnerMapping'
+import { useBuildPartnerLabelsWithCache } from '@/hooks/useBuildPartnerLabelsWithCache'
+import { useAppStore } from '@/store'
+import { BuildPartnerService } from '../../../../services/api/buildPartnerService'
+import { developerIdService } from '../../../../services/api/developerIdService'
+import { useDeveloperDropdownLabels } from '../../../../hooks/useDeveloperDropdowns'
+import { getDeveloperDropdownLabel } from '../../../../constants/mappings/developerDropdownMapping'
+import { validateDeveloperField } from '../../../../lib/validation/developerSchemas'
 
 interface Step1Props {
-  isReadOnly?: boolean;
+  isReadOnly?: boolean
+  developerId?: string | undefined
 }
 
-const Step1 = ({ isReadOnly = false }: Step1Props) => {
+const Step1 = ({ isReadOnly = false, developerId }: Step1Props) => {
+  // Check if we're in edit mode (existing developer)
+  const isEditMode = !!developerId
   const {
     control,
     watch,
     setValue,
     formState: { errors },
-  } = useFormContext();
+  } = useFormContext()
 
   // State for developer ID generation
-  const [developerId, setDeveloperId] = useState<string>("");
-  const [isGeneratingId, setIsGeneratingId] = useState<boolean>(false);
+  const [generatedId, setGeneratedId] = useState<string>('')
+  const [isGeneratingId, setIsGeneratingId] = useState<boolean>(false)
 
   // Developer dropdown data
   const {
@@ -54,124 +59,179 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
     isLoading: dropdownsLoading,
     error: dropdownsError,
     getDisplayLabel,
-  } = useDeveloperDropdownLabels();
+  } = useDeveloperDropdownLabels()
+
+  // Dynamic label support (Phase 1: foundation)
+  const { data: buildPartnerLabels, getLabel } = useBuildPartnerLabelsWithCache()
+  const currentLanguage = useAppStore((state) => state.language) || 'EN'
+
+  const getBuildPartnerLabelDynamic = useCallback(
+    (configId: string): string => {
+      const fallback = getBuildPartnerLabel(configId)
+
+      if (buildPartnerLabels) {
+        return getLabel(
+          configId,
+          currentLanguage,
+          fallback
+        )
+      }
+      return fallback
+    },
+    [buildPartnerLabels, currentLanguage, getLabel]
+  )
 
   // Initialize developer ID from form value
   useEffect(() => {
     const subscription = watch((value, { name }) => {
-      if (name === "arID" && value.arID) {
-        setDeveloperId(value.arID);
+      if (name === 'bpDeveloperId' && value.bpDeveloperId) {
+        setGeneratedId(value.bpDeveloperId)
       }
-    });
-    return () => subscription.unsubscribe();
-  }, [watch]);
+    })
+    return () => subscription.unsubscribe()
+  }, [watch])
 
   // Handle Fetch Details button click
   const handleFetchDetails = async () => {
-    const currentCif = watch("arCifrera");
+    const currentCif = watch('bpCifrera')
     if (!currentCif) {
-      return;
+      return
     }
 
     try {
-      const buildPartnerService = new BuildPartnerService();
+      const buildPartnerService = new BuildPartnerService()
       const customerDetails =
-        await buildPartnerService.getCustomerDetailsByCif(currentCif);
+        await buildPartnerService.getCustomerDetailsByCif(currentCif)
 
-      // Populate only the name fields from customer details
-      setValue("arName", customerDetails.name.firstName);
-      setValue("arNameLocal", customerDetails.name.shortName);
+      // Populate only the name fields from customer details and clear validation errors
+      setValue('bpName', customerDetails.name.firstName, {
+        shouldValidate: true,
+        shouldDirty: true,
+      })
+      setValue('bpNameLocal', customerDetails.name.shortName, {
+        shouldValidate: true,
+        shouldDirty: true,
+      })
     } catch (error) {
       // You might want to show a user-friendly error message here
     }
-  };
+  }
 
   // Function to generate new developer ID
   const handleGenerateNewId = async () => {
     try {
-      setIsGeneratingId(true);
-      const newIdResponse = developerIdService.generateNewId();
-      setDeveloperId(newIdResponse.id);
-      setValue("arID", newIdResponse.id);
+      setIsGeneratingId(true)
+      const newIdResponse = developerIdService.generateNewId()
+      setGeneratedId(newIdResponse.id)
+      setValue('bpDeveloperId', newIdResponse.id, {
+        shouldValidate: true,
+        shouldDirty: true,
+      })
     } catch (error) {
       // Handle error silently
     } finally {
-      setIsGeneratingId(false);
+      setIsGeneratingId(false)
     }
-  };
+  }
+
+  // Prepopulate regulator in edit mode based on existing details
+  useEffect(() => {
+    if (!isEditMode || !developerId) return
+
+    const currentId = watch('bpRegulatorDTO.id')
+    if (currentId) return
+
+    const loadExisting = async () => {
+      try {
+        const svc = new BuildPartnerService()
+        const details = await svc.getBuildPartner(developerId)
+        const regulatorId = (details as any)?.bpRegulatorDTO?.id
+        if (regulatorId) {
+          setValue('bpRegulatorDTO.id', regulatorId, {
+            shouldValidate: true,
+            shouldDirty: false,
+          })
+        }
+      } catch {
+        // ignore; leave empty if fetch fails
+      }
+    }
+
+    loadExisting()
+  }, [isEditMode, developerId, setValue, watch])
 
   // Common styles for form components
   const commonFieldStyles = {
-    "& .MuiOutlinedInput-root": {
-      height: "46px",
-      borderRadius: "8px",
-      "& fieldset": {
-        borderColor: "#CAD5E2",
-        borderWidth: "1px",
+    '& .MuiOutlinedInput-root': {
+      height: '46px',
+      borderRadius: '8px',
+      '& fieldset': {
+        borderColor: '#CAD5E2',
+        borderWidth: '1px',
       },
-      "&:hover fieldset": {
-        borderColor: "#CAD5E2",
+      '&:hover fieldset': {
+        borderColor: '#CAD5E2',
       },
-      "&.Mui-focused fieldset": {
-        borderColor: "#2563EB",
+      '&.Mui-focused fieldset': {
+        borderColor: '#2563EB',
       },
     },
-  };
+  }
 
   const selectStyles = {
-    height: "46px",
-    borderRadius: "8px",
-    "& .MuiOutlinedInput-notchedOutline": {
-      borderColor: "#CAD5E2",
-      borderWidth: "1px",
+    height: '46px',
+    borderRadius: '8px',
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#CAD5E2',
+      borderWidth: '1px',
     },
-    "&:hover .MuiOutlinedInput-notchedOutline": {
-      borderColor: "#CAD5E2",
+    '&:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#CAD5E2',
     },
-    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-      borderColor: "#2563EB",
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#2563EB',
     },
-    "& .MuiSelect-icon": {
-      color: "#666",
+    '& .MuiSelect-icon': {
+      color: '#666',
     },
-  };
+  }
 
   const datePickerStyles = {
-    height: "46px",
-    "& .MuiOutlinedInput-root": {
-      height: "46px",
-      borderRadius: "8px",
-      "& fieldset": {
-        borderColor: "#CAD5E2",
-        borderWidth: "1px",
+    height: '46px',
+    '& .MuiOutlinedInput-root': {
+      height: '46px',
+      borderRadius: '8px',
+      '& fieldset': {
+        borderColor: '#CAD5E2',
+        borderWidth: '1px',
       },
-      "&:hover fieldset": {
-        borderColor: "#CAD5E2",
+      '&:hover fieldset': {
+        borderColor: '#CAD5E2',
       },
-      "&.Mui-focused fieldset": {
-        borderColor: "#2563EB",
+      '&.Mui-focused fieldset': {
+        borderColor: '#2563EB',
       },
     },
-  };
+  }
 
   const labelSx = {
-    color: "#6A7282",
-    fontFamily: "Outfit",
+    color: '#6A7282',
+    fontFamily: 'Outfit',
     fontWeight: 400,
-    fontStyle: "normal",
-    fontSize: "12px",
+    fontStyle: 'normal',
+    fontSize: '12px',
     letterSpacing: 0,
-  };
+  }
 
   const valueSx = {
-    color: "#1E2939",
-    fontFamily: "Outfit",
+    color: '#1E2939',
+    fontFamily: 'Outfit',
     fontWeight: 400,
-    fontStyle: "normal",
-    fontSize: "14px",
+    fontStyle: 'normal',
+    fontSize: '14px',
     letterSpacing: 0,
-    wordBreak: "break-word",
-  };
+    wordBreak: 'break-word',
+  }
 
   const StyledCalendarIcon = (
     props: React.ComponentProps<typeof CalendarTodayOutlinedIcon>
@@ -179,21 +239,21 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
     <CalendarTodayOutlinedIcon
       {...props}
       sx={{
-        width: "18px",
-        height: "20px",
-        position: "relative",
-        top: "2px",
-        left: "3px",
-        transform: "rotate(0deg)",
+        width: '18px',
+        height: '20px',
+        position: 'relative',
+        top: '2px',
+        left: '3px',
+        transform: 'rotate(0deg)',
         opacity: 1,
       }}
     />
-  );
+  )
 
   const renderTextField = (
     name: string,
     label: string,
-    defaultValue = "",
+    defaultValue = '',
     gridSize: number = 6,
     disabled = false,
     required = false
@@ -202,8 +262,9 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
       <Controller
         name={name}
         control={control}
-        defaultValue={defaultValue === undefined ? "" : defaultValue}
+        defaultValue={defaultValue === undefined ? '' : defaultValue}
         rules={{
+          required: required ? `${label} is required` : false,
           validate: (value: any) => validateDeveloperField(0, name, value),
         }}
         render={({ field }) => (
@@ -220,13 +281,13 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
             sx={{
               ...commonFieldStyles,
               ...(disabled && {
-                "& .MuiOutlinedInput-root": {
-                  backgroundColor: "#F5F5F5",
-                  "& fieldset": {
-                    borderColor: "#E0E0E0",
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: '#F5F5F5',
+                  '& fieldset': {
+                    borderColor: '#E0E0E0',
                   },
-                  "&:hover fieldset": {
-                    borderColor: "#E0E0E0",
+                  '&:hover fieldset': {
+                    borderColor: '#E0E0E0',
                   },
                 },
               }),
@@ -235,7 +296,7 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
         )}
       />
     </Grid>
-  );
+  )
 
   // New render function for API-driven dropdowns
   const renderApiSelectField = (
@@ -251,6 +312,7 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
         name={name}
         control={control}
         rules={{
+          required: required ? `${label} is required` : false,
           validate: (value: any) => validateDeveloperField(0, name, value),
         }}
         defaultValue={undefined}
@@ -275,7 +337,7 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
                   {getDisplayLabel(
                     option as any,
                     getDeveloperDropdownLabel(
-                      (option as { configId?: string }).configId || ""
+                      (option as { configId?: string }).configId || ''
                     )
                   )}
                 </MenuItem>
@@ -290,7 +352,7 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
         )}
       />
     </Grid>
-  );
+  )
 
   const renderCheckboxField = (
     name: string,
@@ -310,9 +372,9 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
                 onChange={(e) => field.onChange(e.target.checked)}
                 disabled={isReadOnly}
                 sx={{
-                  color: "#CAD5E2",
-                  "&.Mui-checked": {
-                    color: "#2563EB",
+                  color: '#CAD5E2',
+                  '&.Mui-checked': {
+                    color: '#2563EB',
                   },
                 }}
               />
@@ -320,24 +382,24 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
             label={
               label ??
               name
-                .replace(/([A-Z])/g, " $1")
+                .replace(/([A-Z])/g, ' $1')
                 .replace(/^./, (str) => str.toUpperCase())
             }
             sx={{
-              "& .MuiFormControlLabel-label": {
-                fontFamily: "Outfit, sans-serif",
-                fontStyle: "normal",
-                fontSize: "14px",
-                lineHeight: "24px",
-                letterSpacing: "0.5px",
-                verticalAlign: "middle",
+              '& .MuiFormControlLabel-label': {
+                fontFamily: 'Outfit, sans-serif',
+                fontStyle: 'normal',
+                fontSize: '14px',
+                lineHeight: '24px',
+                letterSpacing: '0.5px',
+                verticalAlign: 'middle',
               },
             }}
           />
         )}
       />
     </Grid>
-  );
+  )
 
   const renderDatePickerField = (
     name: string,
@@ -350,6 +412,9 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
         name={name}
         control={control}
         defaultValue={null}
+        rules={{
+          required: required ? `${label} is required` : false,
+        }}
         render={({ field }) => (
           <DatePicker
             label={label}
@@ -370,7 +435,7 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
                 InputLabelProps: { sx: labelSx },
                 InputProps: {
                   sx: valueSx,
-                  style: { height: "46px" },
+                  style: { height: '46px' },
                 },
               },
             }}
@@ -378,7 +443,7 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
         )}
       />
     </Grid>
-  );
+  )
 
   const renderTextFieldWithButton = (
     name: string,
@@ -392,6 +457,9 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
         name={name}
         control={control}
         defaultValue=""
+        rules={{
+          required: required ? `${label} is required` : false,
+        }}
         render={({ field }) => (
           <TextField
             {...field}
@@ -408,21 +476,21 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
                     variant="contained"
                     size="small"
                     sx={{
-                      color: "#FFFFFF",
-                      borderRadius: "8px",
-                      textTransform: "none",
-                      background: "#2563EB",
-                      "&:hover": {
-                        background: "#1D4ED8",
+                      color: '#FFFFFF',
+                      borderRadius: '8px',
+                      textTransform: 'none',
+                      background: '#2563EB',
+                      '&:hover': {
+                        background: '#1D4ED8',
                       },
-                      minWidth: "100px",
-                      height: "32px",
-                      fontFamily: "Outfit, sans-serif",
+                      minWidth: '100px',
+                      height: '32px',
+                      fontFamily: 'Outfit, sans-serif',
                       fontWeight: 500,
-                      fontStyle: "normal",
-                      fontSize: "11px",
-                      lineHeight: "14px",
-                      letterSpacing: "0.3px",
+                      fontStyle: 'normal',
+                      fontSize: '11px',
+                      lineHeight: '14px',
+                      letterSpacing: '0.3px',
                       px: 1,
                     }}
                     onClick={handleFetchDetails}
@@ -440,7 +508,7 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
         )}
       />
     </Grid>
-  );
+  )
 
   const renderDeveloperIdField = (
     name: string,
@@ -453,20 +521,23 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
         name={name}
         control={control}
         defaultValue=""
+        rules={{
+          required: required ? `${label} is required` : false,
+        }}
         render={({ field }) => (
           <TextField
             {...field}
             fullWidth
             label={label}
             required={required}
-            value={field.value || developerId}
+            value={field.value || generatedId}
             error={!!errors[name]}
             helperText={errors[name]?.message?.toString()}
             onChange={(e) => {
-              setDeveloperId(e.target.value);
-              field.onChange(e);
+              setGeneratedId(e.target.value)
+              field.onChange(e)
             }}
-            disabled={isReadOnly}
+            disabled={isReadOnly || isEditMode}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end" sx={{ mr: 0 }}>
@@ -475,48 +546,61 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
                     size="small"
                     startIcon={<RefreshIcon />}
                     onClick={handleGenerateNewId}
-                    disabled={isGeneratingId || isReadOnly}
+                    disabled={isGeneratingId || isReadOnly || isEditMode}
                     sx={{
-                      color: "#FFFFFF",
-                      borderRadius: "8px",
-                      textTransform: "none",
-                      background: "#2563EB",
-                      "&:hover": {
-                        background: "#1D4ED8",
+                      color: '#FFFFFF',
+                      borderRadius: '8px',
+                      textTransform: 'none',
+                      background: '#2563EB',
+                      '&:hover': {
+                        background: '#1D4ED8',
                       },
-                      minWidth: "100px",
-                      height: "32px",
-                      fontFamily: "Outfit, sans-serif",
+                      minWidth: '100px',
+                      height: '32px',
+                      fontFamily: 'Outfit, sans-serif',
                       fontWeight: 500,
-                      fontStyle: "normal",
-                      fontSize: "11px",
-                      lineHeight: "14px",
-                      letterSpacing: "0.3px",
+                      fontStyle: 'normal',
+                      fontSize: '11px',
+                      lineHeight: '14px',
+                      letterSpacing: '0.3px',
                       px: 1,
                     }}
                   >
-                    {isGeneratingId ? "Generating..." : "Generate ID"}
+                    {isGeneratingId ? 'Generating...' : 'Generate ID'}
                   </Button>
                 </InputAdornment>
               ),
               sx: valueSx,
             }}
             InputLabelProps={{ sx: labelSx }}
-            sx={commonFieldStyles}
+            sx={{
+              ...commonFieldStyles,
+              ...((isReadOnly || isEditMode) && {
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: '#F5F5F5',
+                  '& fieldset': {
+                    borderColor: '#E0E0E0',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#E0E0E0',
+                  },
+                },
+              }),
+            }}
           />
         )}
       />
     </Grid>
-  );
+  )
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Card
         sx={{
-          boxShadow: "none",
-          backgroundColor: "#FFFFFFBF",
-          width: "84%",
-          margin: "0 auto",
+          boxShadow: 'none',
+          backgroundColor: '#FFFFFFBF',
+          width: '84%',
+          margin: '0 auto',
         }}
       >
         <CardContent>
@@ -526,9 +610,9 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
               sx={{
                 mb: 2,
                 p: 1,
-                bgcolor: "#fef2f2",
+                bgcolor: '#fef2f2',
                 borderRadius: 1,
-                border: "1px solid #ef4444",
+                border: '1px solid #ef4444',
               }}
             >
               <Typography variant="body2" color="error">
@@ -539,106 +623,60 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
 
           <Grid container rowSpacing={4} columnSpacing={2}>
             {renderDeveloperIdField(
-              "arID",
-              getBuildPartnerLabel("CDL_AR_ID"),
+              'bpDeveloperId',
+              getBuildPartnerLabelDynamic('CDL_BP_ID'),
               6,
               true
             )}
-            {/* CIF FIELD WITH FETCH DETAILS BUTTON */}
             {renderTextFieldWithButton(
-              "arCifrera",
-              getBuildPartnerLabel("CDL_AR_CIF"),
-              "Fetch Details",
+              'bpCifrera',
+              getBuildPartnerLabelDynamic('CDL_BP_CIF'),
+              'Fetch Details',
               6,
               true
             )}
-            <Grid size={{ xs: 12, md: 4 }}>
-              <Controller
-                name="arName"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label={getBuildPartnerLabel("CDL_AR_NAME")}
-                    fullWidth
-                    required={true}
-                    disabled={true}
-                    error={!!errors["arName"]}
-                    helperText={errors["arName"]?.message?.toString()}
-                    InputLabelProps={{ sx: labelSx }}
-                    InputProps={{ sx: valueSx }}
-                    sx={{
-                      ...commonFieldStyles,
-                      "& .MuiOutlinedInput-root": {
-                        backgroundColor: "#F5F5F5",
-                        "& fieldset": {
-                          borderColor: "#E0E0E0",
-                        },
-                        "&:hover fieldset": {
-                          borderColor: "#E0E0E0",
-                        },
-                      },
-                    }}
-                  />
-                )}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <Controller
-                name="arNameLocal"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label={getBuildPartnerLabel("CDL_AR_NAME_LOCALE")}
-                    fullWidth
-                    required={true}
-                    disabled={true}
-                    error={!!errors["arNameLocal"]}
-                    helperText={errors["arNameLocal"]?.message?.toString()}
-                    InputLabelProps={{ sx: labelSx }}
-                    InputProps={{ sx: valueSx }}
-                    sx={{
-                      ...commonFieldStyles,
-                      "& .MuiOutlinedInput-root": {
-                        backgroundColor: "#F5F5F5",
-                        "& fieldset": {
-                          borderColor: "#E0E0E0",
-                        },
-                        "&:hover fieldset": {
-                          borderColor: "#E0E0E0",
-                        },
-                      },
-                    }}
-                  />
-                )}
-              />
-            </Grid>
-
+            {renderTextField(
+              'bpDeveloperRegNo',
+              getBuildPartnerLabelDynamic('CDL_BP_REGNO'),
+              '',
+              6,
+              false,
+              true
+            )}
+            {renderDatePickerField(
+              'bpOnboardingDate',
+              getBuildPartnerLabelDynamic('CDL_BP_REGDATE'),
+              6,
+              true
+            )}
             <Grid size={{ xs: 12, md: 6 }}>
               <Controller
-                name="arCompanyName"
+                name="bpName"
                 control={control}
+                defaultValue=""
+                rules={{
+                  required: `${getBuildPartnerLabelDynamic('CDL_BP_NAME')} is required`,
+                }}
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label={getBuildPartnerLabel("CDL_AR_COMPANY_NAME")}
+                    label={`${getBuildPartnerLabelDynamic('CDL_BP_NAME')}`}
                     fullWidth
                     required={true}
                     disabled={true}
-                    error={!!errors["arCompanyName"]}
-                    helperText={errors["arCompanyName"]?.message?.toString()}
+                    error={!!errors['bpName']}
+                    helperText={errors['bpName']?.message?.toString()}
                     InputLabelProps={{ sx: labelSx }}
                     InputProps={{ sx: valueSx }}
                     sx={{
                       ...commonFieldStyles,
-                      "& .MuiOutlinedInput-root": {
-                        backgroundColor: "#F5F5F5",
-                        "& fieldset": {
-                          borderColor: "#E0E0E0",
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#F5F5F5',
+                        '& fieldset': {
+                          borderColor: '#E0E0E0',
                         },
-                        "&:hover fieldset": {
-                          borderColor: "#E0E0E0",
+                        '&:hover fieldset': {
+                          borderColor: '#E0E0E0',
                         },
                       },
                     }}
@@ -648,28 +686,32 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <Controller
-                name="arProjectName"
+                name="bpNameLocal"
                 control={control}
+                defaultValue=""
+                rules={{
+                  required: `${getBuildPartnerLabelDynamic('CDL_BP_NAME_LOCALE')} is required`,
+                }}
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label={getBuildPartnerLabel("CDL_AR_PROJECT")}
+                    label={`${getBuildPartnerLabelDynamic('CDL_BP_NAME_LOCALE')}`}
                     fullWidth
                     required={true}
                     disabled={true}
-                    error={!!errors["arProjectName"]}
-                    helperText={errors["arProjectName"]?.message?.toString()}
+                    error={!!errors['bpNameLocal']}
+                    helperText={errors['bpNameLocal']?.message?.toString()}
                     InputLabelProps={{ sx: labelSx }}
                     InputProps={{ sx: valueSx }}
                     sx={{
                       ...commonFieldStyles,
-                      "& .MuiOutlinedInput-root": {
-                        backgroundColor: "#F5F5F5",
-                        "& fieldset": {
-                          borderColor: "#E0E0E0",
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#F5F5F5',
+                        '& fieldset': {
+                          borderColor: '#E0E0E0',
                         },
-                        "&:hover fieldset": {
-                          borderColor: "#E0E0E0",
+                        '&:hover fieldset': {
+                          borderColor: '#E0E0E0',
                         },
                       },
                     }}
@@ -677,114 +719,81 @@ const Step1 = ({ isReadOnly = false }: Step1Props) => {
                 )}
               />
             </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Controller
-                name="arMasterDeveloper"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label={getBuildPartnerLabel("CDL_AR_MASTER_DEVELOPER")}
-                    fullWidth
-                    required={true}
-                    disabled={true}
-                    error={!!errors["arMasterDeveloper"]}
-                    helperText={errors[
-                      "arMasterDeveloper"
-                    ]?.message?.toString()}
-                    InputLabelProps={{ sx: labelSx }}
-                    InputProps={{ sx: valueSx }}
-                    sx={{
-                      ...commonFieldStyles,
-                      "& .MuiOutlinedInput-root": {
-                        backgroundColor: "#F5F5F5",
-                        "& fieldset": {
-                          borderColor: "#E0E0E0",
-                        },
-                        "&:hover fieldset": {
-                          borderColor: "#E0E0E0",
-                        },
-                      },
-                    }}
-                  />
-                )}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Controller
-                name="arMasterCommunity"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label={getBuildPartnerLabel("CDL_AR_MASTER_COMMUNITY")}
-                    fullWidth
-                    required={true}
-                    disabled={true}
-                    error={!!errors["arMasterCommunity"]}
-                    helperText={errors[
-                      "arMasterCommunity"
-                    ]?.message?.toString()}
-                    InputLabelProps={{ sx: labelSx }}
-                    InputProps={{ sx: valueSx }}
-                    sx={{
-                      ...commonFieldStyles,
-                      "& .MuiOutlinedInput-root": {
-                        backgroundColor: "#F5F5F5",
-                        "& fieldset": {
-                          borderColor: "#E0E0E0",
-                        },
-                        "&:hover fieldset": {
-                          borderColor: "#E0E0E0",
-                        },
-                      },
-                    }}
-                  />
-                )}
-              />
-            </Grid>
+            {renderTextField(
+              'bpMasterName',
+              getBuildPartnerLabelDynamic('CDL_BP_MASTER')
+            )}
             {renderApiSelectField(
-              "arRegulatorDTO.id",
-              getBuildPartnerLabel("CDL_AR_REGULATORY_AUTHORITY"),
+              'bpRegulatorDTO.id',
+              getBuildPartnerLabelDynamic('CDL_BP_REGULATORY_AUTHORITY'),
               regulatoryAuthorities,
               6,
               dropdownsLoading,
               true
             )}
             {renderTextField(
-              "arWorldCheckRemarks",
-              getBuildPartnerLabel("CDL_AR_WORLD_REMARKS")
+              'bpContactAddress',
+              getBuildPartnerLabelDynamic('CDL_BP_ADDRESS'),
+              '',
+              12,
+              false,
+              false
             )}
-
-            {/* LICENSE */}
             {renderTextField(
-              "arTradeLicenseNo",
-              getBuildPartnerLabel("CDL_AR_TRADE_LICENSE"),
-              "",
+              'bpMobile',
+              getBuildPartnerLabelDynamic('CDL_BP_MOBILE'),
+              '',
+              4,
+              false,
+              false
+            )}
+            {renderTextField(
+              'bpEmail',
+              getBuildPartnerLabelDynamic('CDL_BP_EMAIL'),
+              '',
+              4,
+              false,
+              false
+            )}
+            {renderTextField(
+              'bpFax',
+              getBuildPartnerLabelDynamic('CDL_BP_FAX'),
+              '',
+              4,
+              false,
+              false
+            )}
+            {renderTextField(
+              'bpLicenseNo',
+              getBuildPartnerLabelDynamic('CDL_BP_LICENSE'),
+              '',
               6,
               false,
               true
             )}
             {renderDatePickerField(
-              "arTradeLicenseExpDate",
-              getBuildPartnerLabel("CDL_AR_TRADE_LICENSE_VALID"),
+              'bpLicenseExpDate',
+              getBuildPartnerLabelDynamic('CDL_BP_LICENSE_VALID'),
               6,
               true
             )}
-            {/* END */}
-
             {renderCheckboxField(
-              "arWorldCheckFlag",
-              getBuildPartnerLabel("CDL_AR_WORLD_STATUS"),
+              'bpWorldCheckFlag',
+              getBuildPartnerLabelDynamic('CDL_BP_WORLD_STATUS'),
               3
             )}
-            {renderCheckboxField("arMigratedData", "Migrated Data", 3)}
-            {renderTextField("arRemark", getBuildPartnerLabel("CDL_AR_NOTES"))}
+            {renderCheckboxField('bpMigratedData', 'Migrated Data', 3)}
+            {renderTextField(
+              'bpWorldCheckRemarks',
+              getBuildPartnerLabelDynamic('CDL_BP_WORLD_REMARKS')
+            )}
+            {renderTextField('bpremark', getBuildPartnerLabelDynamic('CDL_BP_NOTES'))}
+            {renderTextField('bpContactTel', 'Account Contact Number')}
           </Grid>
         </CardContent>
       </Card>
     </LocalizationProvider>
-  );
-};
+  )
+}
 
-export default Step1;
+export default Step1

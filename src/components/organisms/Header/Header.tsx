@@ -44,7 +44,6 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className={`bg-white/0 px-5 py-4 ${className}`}>
       <div className="flex items-center justify-between">
-        {/* Left side - Title and description */}
         <div className="flex flex-col justify-center">
           <h1 className="text-[32px] font-sans text-[#1E2939] font-semibold leading-normal">
             {title}

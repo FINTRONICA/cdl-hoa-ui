@@ -53,11 +53,10 @@ export class FeeDropdownService {
         }
       )
       
-      console.log('✅ FeeDropdownService: Fee categories fetched successfully')
-      console.log('📊 Fee Categories API Response:', categories)
+     
       return categories
     } catch (error) {
-      console.error('❌ FeeDropdownService: Error fetching fee categories:', error)
+      
       throw new Error(ERROR_MESSAGE)
     }
   }
@@ -82,11 +81,10 @@ export class FeeDropdownService {
         }
       )
       
-      console.log('✅ FeeDropdownService: Fee frequencies fetched successfully')
-      console.log('📊 Fee Frequencies API Response:', frequencies)
+   
       return frequencies
     } catch (error) {
-      console.error('❌ FeeDropdownService: Error fetching fee frequencies:', error)
+     
       throw new Error(ERROR_MESSAGE)
     }
   }
@@ -110,12 +108,10 @@ export class FeeDropdownService {
           }
         }
       )
-      
-      console.log('✅ FeeDropdownService: Debit account types fetched successfully')
-      console.log('📊 Debit Account Types API Response:', debitAccounts)
+    
       return debitAccounts
     } catch (error) {
-      console.error('❌ FeeDropdownService: Error fetching debit account types:', error)
+      
       throw new Error(ERROR_MESSAGE)
     }
   }
@@ -140,11 +136,10 @@ export class FeeDropdownService {
         }
       )
       
-      console.log('✅ FeeDropdownService: Currencies fetched successfully')
-      console.log('📊 Currencies API Response:', currencies)
+   
       return currencies
     } catch (error) {
-      console.error('❌ FeeDropdownService: Error fetching currencies:', error)
+      
       throw new Error(ERROR_MESSAGE)
     }
   }
@@ -169,11 +164,10 @@ export class FeeDropdownService {
         }
       )
       
-      console.log('✅ FeeDropdownService: Countries fetched successfully')
-      console.log('📊 Countries API Response:', countries)
+     
       return countries
     } catch (error) {
-      console.error('❌ FeeDropdownService: Error fetching countries:', error)
+      
       throw new Error(ERROR_MESSAGE)
     }
   }

@@ -10,6 +10,7 @@ export function useBuildPartnerAssetLabels() {
     queryKey: ['buildPartnerAssetLabels'],
     queryFn: async () => {
       const rawLabels = await BuildPartnerAssetLabelsService.fetchLabels()
+      console.log('rawLabels ---> :', rawLabels)
       return BuildPartnerAssetLabelsService.processLabels(rawLabels)
     },
     enabled: !!isAuthenticated,

@@ -10,21 +10,34 @@ export const SIDEBAR_TO_CONFIG_MAPPING: Record<string, string> = {
   'entities': 'CDL_BUSINESS_OBJECTS',             // "Business Objects"
   
   // Entities section
-  // 'developers': 'CDL_BUILD_PARTNER',              // "Build Partner"
-  // 'projects': 'CDL_BUILD_PARTNER_ASSEST',          // "Build Partner Asset"
-  // 'investors': 'CDL_CAPITAL_PARTNER',  
+  'developers': 'CDL_BUILD_PARTNER',              // "Build Partner"
+  'projects': 'CDL_BUILD_PARTNER_ASSEST',          // "Build Partner Asset"
+  'investors': 'CDL_CAPITAL_PARTNER',             // "Capital Partner"
   
-  // "Capital Partner"
-  'developers': 'CDL_ASSET_REGISTER',              // "Build Partner"
-  'projects': 'CDL_MANAGEMENT_FIRMS',          // "Build Partner Asset"
-  'investors': 'CDL_OWNER_REGISTRY',             // "Capital Partner"
   // Deposits section
   'unallocated': 'CDL_PENDING_TRANSACTION',       // "Pending Transactions"
   'discarded': 'CDL_REJECTED_TRANSACTIONS',       // "Rejected Transactions"
-  'allocated': 'CDL_PROCESSED_TRANSACTIONS',      // "Processed Transactions" 
-  'Deposits Transactions': 'CDL_DEPOSITS_TRANSACTIONS',      // "Deposits Transactions"
-  'depositsTransactions': 'CDL_DEPOSITS_TRANSACTIONS',       // "Deposits Transactions"
-
+  'allocated': 'CDL_PROCESSED_TRANSACTIONS',      // "Processed Transactions"
+  
+  // Payment section
+  'manual': 'CDL_MANUAL_DISBURSEMENTS',  
+  'tas': 'CDL_TAS_DISBURSEMENTS',                 // "Trust Account Disbursements"
+  
+  // Individual items
+  'guarantee': 'CDL_SURETY_BOND',                 // "Surety Bond"
+  'fee-reconciliation': 'CDL_FEE_RECON',                  // "Fee Reconciliation"
+  
+  // System Admin section
+  'user': 'CDL_STAKEHOLDER',                      // "Stakeholder"
+  'role': 'CDL_ENTITLEMENT',                      // "Entitlement"
+  'fee-type': 'CDL_ACCESS_GRANT',                 // "Access Grant"
+  'workflow': 'CDL_WORKFLOW',                     // "Workflow"
+  'workflow-action': 'CDL_WORKFLOW_ACTION',       // "Workflow Action"
+  'workflow-definition': 'CDL_WORKFLOW_DEFINITION', // "Workflow Definition"
+  'workflow-stage-template': 'CDL_WORKFLOW_STAGE_TEMPLATE', // "Workflow Stage Template"
+  'workflow-amount-rule': 'CDL_WORKFLOW_AMOUNT_RULE', // "Workflow Amount Rule"
+  'workflow-amount-stage': 'CDL_WORKFLOW_AMOUNT_STAGE', // "Workflow Amount Stage"
+  'workflow-amount-stage-override': 'CDL_WORKFLOW_AMOUNT_STAGE_OVERRIDE', // "Workflow Amount Stage Override"
   
   // Activity section
   'pending': 'CDL_AWAITING_ACTIONS',

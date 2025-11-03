@@ -9,7 +9,7 @@ import { useTableState } from '@/hooks/useTableState'
 import { PageActionButtons } from '@/components/molecules/PageActionButtons'
 import { getLabelByConfigId as getWorkflowActionLabel } from '@/constants/mappings/workflowMapping'
 import { useAppStore } from '@/store'
-import { Spinner } from '@/components/atoms/Spinner'
+import { GlobalLoading } from '@/components/atoms'
 import {
   useWorkflowActions,
   useDeleteWorkflowAction,
@@ -84,19 +84,16 @@ const WorkflowActionPageClient = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex items-center justify-center h-screen">
-        Loading...
+      <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
+        <GlobalLoading fullHeight />
       </div>
     ),
   }
 )
 
 const LoadingSpinner: React.FC = () => (
-  <div className="flex items-center justify-center min-h-screen bg-gray-50">
-    <div className="text-center">
-      <Spinner size="lg" />
-      <p className="mt-4 text-gray-600"></p>
-    </div>
+  <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
+    <GlobalLoading fullHeight />
   </div>
 )
 

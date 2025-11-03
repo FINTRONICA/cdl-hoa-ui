@@ -37,8 +37,8 @@ export const paymentDocumentService: DocumentService<
     return buildPartnerService.uploadBuildPartnerDocument(
       file,
       paymentId,
-      documentType,
-      'PAYMENTS'
+      'PAYMENTS',
+      documentType
     )
   },
 }

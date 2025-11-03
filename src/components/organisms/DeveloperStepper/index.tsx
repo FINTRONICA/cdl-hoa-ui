@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Stepper,
   Step,
@@ -14,8 +14,11 @@ import { FormProvider } from 'react-hook-form'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useBuildPartnerStepStatus, useBuildPartnerStepManager } from '@/hooks'
 import { useCreateWorkflowRequest } from '@/hooks/workflow'
+import { useBuildPartnerLabelsWithCache } from '@/hooks/useBuildPartnerLabelsWithCache'
+import { getBuildPartnerLabel } from '@/constants/mappings/buildPartnerMapping'
+import { useAppStore } from '@/store'
 
-import { STEP_LABELS } from './constants'
+// import { STEP_LABELS } from './constants' // replaced by dynamic labels
 import { StepperProps } from './types'
 import {
   useStepNotifications,
@@ -29,6 +32,7 @@ import { transformStepData, useStepDataTransformers } from './transformers'
 export default function DeveloperStepperWrapper({
   developerId,
   initialStep = 0,
+  isViewMode: propIsViewMode,
 }: StepperProps = {}) {
   const [activeStep, setActiveStep] = useState(initialStep)
   const [isEditingMode, setIsEditingMode] = useState(false)
@@ -36,8 +40,9 @@ export default function DeveloperStepperWrapper({
   const searchParams = useSearchParams()
 
   // Check if we're in view mode (read-only)
+  // Use prop if provided, otherwise read from URL params (backward compatibility)
   const mode = searchParams.get('mode')
-  const isViewMode = mode === 'view'
+  const isViewMode = propIsViewMode !== undefined ? propIsViewMode : mode === 'view'
 
   const notifications = useStepNotifications()
   const dataProcessing = useStepDataProcessing()
@@ -50,8 +55,33 @@ export default function DeveloperStepperWrapper({
   const createWorkflowRequest = useCreateWorkflowRequest()
   const transformers = useStepDataTransformers()
 
-  // Define steps array
-  const steps = STEP_LABELS
+  // Dynamic step labels (API-driven with fallback to static mapping)
+  const { data: buildPartnerLabels, getLabel } = useBuildPartnerLabelsWithCache()
+  const currentLanguage = useAppStore((state) => state.language) || 'EN'
+
+  const getBuildPartnerLabelDynamic = useCallback(
+    (configId: string): string => {
+      const fallback = getBuildPartnerLabel(configId)
+      if (buildPartnerLabels) {
+        return getLabel(configId, currentLanguage, fallback)
+      }
+      return fallback
+    },
+    [buildPartnerLabels, currentLanguage, getLabel]
+  )
+
+  // Define steps array (direct mapping for clarity)
+  const steps = useMemo(
+    () => [
+      getBuildPartnerLabelDynamic('CDL_BP_DETAILS'),
+      'Documents (Optional)',
+      getBuildPartnerLabelDynamic('CDL_BP_CONTACT'),
+      getBuildPartnerLabelDynamic('CDL_BP_FEES'),
+      getBuildPartnerLabelDynamic('CDL_BP_BENE_INFO'),
+      'Review',
+    ],
+    [getBuildPartnerLabelDynamic]
+  )
 
   // Edit navigation handler
   const handleEditStep = useCallback(
@@ -81,6 +111,13 @@ export default function DeveloperStepperWrapper({
       setIsEditingMode(true)
     }
   }, [searchParams])
+
+  // Helper function to build mode parameter for navigation (matching capital partner pattern)
+  const getModeParam = useCallback(() => {
+    if (isViewMode) return '?mode=view'
+    if (isEditingMode) return '?editing=true'
+    return ''
+  }, [isViewMode, isEditingMode])
 
   useEffect(() => {
     if (
@@ -113,33 +150,35 @@ export default function DeveloperStepperWrapper({
         if (nextStep < steps.length) {
           const nextUrlStep = nextStep + 1
           router.push(
-            `/developers/${developerId}/step/${nextUrlStep}?mode=view`
+            `/build-partner/${developerId}/step/${nextUrlStep}?mode=view`
           )
         } else {
-          router.push('/entities/developers')
+          router.push('/build-partner')
         }
         return
       }
 
-      // Documents (Optional) and Contact steps don't need API call here - items are saved when "Add" is clicked
+      // Documents (Optional), Contact, Fees, and Beneficiary steps don't need API call here - items are saved when "Add" is clicked
       if (
         activeStep === 1 ||
-        activeStep === 2
+        activeStep === 2 ||
+        activeStep === 3 ||
+        activeStep === 4
       ) {
         // For these steps, just navigate to next step without API call
         const nextStep = activeStep + 1
         if (nextStep < steps.length) {
           // Convert 0-based activeStep to 1-based URL step
           const nextUrlStep = nextStep + 1
-          router.push(`/developers/${developerId}/step/${nextUrlStep}`)
+          router.push(`/build-partner/${developerId}/step/${nextUrlStep}${getModeParam()}`)
         } else {
-          router.push('/entities/developers')
+          router.push('/build-partner')
         }
         return
       }
 
-      // Review step (step 3) - complete the process and submit workflow request
-      if (activeStep === 3) {
+      // Review step (step 5) - complete the process and submit workflow request
+      if (activeStep === 5) {
         try {
           // Get the developer ID from step status
           const developerIdFromStatus =
@@ -181,7 +220,7 @@ export default function DeveloperStepperWrapper({
           notifications.showSuccess(
             'Developer registration submitted successfully! Workflow request created.'
           )
-          router.push('/entities/developers')
+          router.push('/build-partner')
         } catch (error) {
           console.log(error)
           const errorData = error as {
@@ -194,6 +233,12 @@ export default function DeveloperStepperWrapper({
             'Failed to submit workflow request. Please try again.'
           notifications.showError(errorMessage)
         }
+        return
+      }
+
+      const isFormValid = await methods.trigger()
+
+      if (!isFormValid) {
         return
       }
 
@@ -212,13 +257,12 @@ export default function DeveloperStepperWrapper({
       )
 
       if (!validationResult.isValid) {
-        const errorPrefix =
-          validationResult.source === 'client'
-            ? 'Form validation failed'
-            : 'Server validation failed'
-        notifications.showError(
-          `${errorPrefix}: ${validationResult.errors?.join(', ')}`
-        )
+        if (validationResult.source !== 'client') {
+          const errorPrefix = 'Server validation failed'
+          notifications.showError(
+            `${errorPrefix}: ${validationResult.errors?.join(', ')}`
+          )
+        }
         return
       }
 
@@ -237,12 +281,12 @@ export default function DeveloperStepperWrapper({
         // For Step 1, we need to get the developer ID from the API response and navigate to dynamic route
         if (activeStep === 0) {
           // Step 1 just saved, get the developer ID from the API response
-          const responseData = saveResponse as { data?: { id?: string | number }; id?: string | number }
-          const savedDeveloperId = responseData?.data?.id || responseData?.id
+          const savedDeveloperId =
+            (saveResponse as any)?.data?.id || (saveResponse as any)?.id
 
           if (savedDeveloperId) {
             // Navigate to Step 2 using the dynamic route with the ID from backend
-            router.push(`/developers/${savedDeveloperId}/step/2`)
+            router.push(`/build-partner/${savedDeveloperId}/step/2${getModeParam()}`)
           } else {
             // Fallback to local state if no developer ID
             setActiveStep((prev) => prev + 1)
@@ -250,14 +294,14 @@ export default function DeveloperStepperWrapper({
         } else if (developerId) {
           // For other steps, use the existing developer ID
           const nextStep = activeStep + 1
-          router.push(`/developers/${developerId}/step/${nextStep + 1}`)
+          router.push(`/build-partner/${developerId}/step/${nextStep + 1}${getModeParam()}`)
         } else {
           // Fallback to local state
           setActiveStep((prev) => prev + 1)
         }
       } else {
-        // If this is the last step, redirect to developers list
-        router.push('/developers')
+        // If this is the last step, redirect to build-partner list
+        router.push('/build-partner')
         notifications.showSuccess('All steps completed successfully!')
       }
     } catch (error: unknown) {
@@ -279,9 +323,8 @@ export default function DeveloperStepperWrapper({
       const previousStep = activeStep - 1
       setActiveStep(previousStep)
       // Navigate to the previous step URL with mode parameter
-      const modeParam = isViewMode ? '?mode=view' : ''
       router.push(
-        `/developers/${developerId}/step/${previousStep + 1}${modeParam}`
+        `/build-partner/${developerId}/step/${previousStep + 1}${getModeParam()}`
       )
     }
   }
@@ -297,7 +340,7 @@ export default function DeveloperStepperWrapper({
     <FormProvider {...methods}>
       <Box sx={{ width: '100%' }}>
         <Stepper activeStep={activeStep} alternativeLabel>
-          {STEP_LABELS.map((label) => (
+          {steps.map((label) => (
             <Step key={label}>
               <StepLabel>{label}</StepLabel>
             </Step>
@@ -316,7 +359,8 @@ export default function DeveloperStepperWrapper({
           }}
         >
           <Button
-            onClick={() => router.push('/entities/developers')}
+            variant="outlined"
+            onClick={() => router.push('/build-partner')}
             sx={{
               fontFamily: 'Outfit, sans-serif',
               fontWeight: 500,
@@ -383,10 +427,10 @@ export default function DeveloperStepperWrapper({
               }}
             >
               {isViewMode
-                ? activeStep === STEP_LABELS.length - 1
+                ? activeStep === steps.length - 1
                   ? 'Done'
                   : 'Next'
-                : activeStep === STEP_LABELS.length - 1
+                : activeStep === steps.length - 1
                   ? 'Complete'
                   : 'Save and Next'}
             </Button>

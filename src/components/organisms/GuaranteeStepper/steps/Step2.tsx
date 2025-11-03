@@ -12,11 +12,15 @@ import {
   Checkbox,
   FormControlLabel,
 } from '@mui/material'
+import { GlobalLoading } from '@/components/atoms'
 import EditIcon from '@mui/icons-material/Edit'
 import { useFormContext } from 'react-hook-form'
 import { GuaranteeData } from '../guaranteeTypes'
-import { useSuretyBondTranslationsByPattern } from '../../../../hooks/useSuretyBondTranslations'
+import { useSuretyBondLabelsWithCache } from '@/hooks/useSuretyBondLabelsWithCache'
+import { getSuretyBondLabel } from '@/constants/mappings/suretyBondMapping'
+import { useAppStore } from '@/store'
 import { useSuretyBond } from '../../../../hooks/useSuretyBonds'
+import { useApplicationSettings } from '../../../../hooks/useApplicationSettings'
 import dayjs from 'dayjs'
 
 const labelSx = {
@@ -124,9 +128,17 @@ const Step2 = ({ onEdit, suretyBondId, isViewMode }: Step2Props) => {
   const { watch, setValue } = useFormContext<GuaranteeData>()
   const formData = watch()
 
-  // Use surety bond translations for labels
-  const { translations: sbTranslations, loading: sbTranslationsLoading } =
-    useSuretyBondTranslationsByPattern('CDL_SB_')
+  // Standardized surety bond label resolver
+  const language = useAppStore((s) => s.language) || 'EN'
+  const { getLabel } = useSuretyBondLabelsWithCache(language)
+
+  // Fetch surety bond types for displaying type displayName
+  const { data: guaranteeTypes, loading: guaranteeTypesLoading } =
+    useApplicationSettings('SURETY_BOND_TYPE')
+
+  // Fetch surety bond statuses for displaying status displayName
+  const { data: guaranteeStatuses, loading: guaranteeStatusesLoading } =
+    useApplicationSettings('SURETY_BOND_STATUS')
 
   // Fetch surety bond data by ID if provided
   const {
@@ -171,51 +183,69 @@ const Step2 = ({ onEdit, suretyBondId, isViewMode }: Step2Props) => {
         suretyBond.suretyBondNewReadingAmendment || ''
       )
       setValue('issuerBank', suretyBond.issuerBankDTO?.id?.toString() || '')
-      setValue('status', '') // This would need to be mapped from the status field
+      setValue('status', suretyBond.suretyBondStatusDTO?.id?.toString() || '')
     }
   }, [suretyBond, suretyBondId, setValue])
 
-  // Helper function to get translated label
-  const getTranslatedLabel = (configId: string, fallback: string): string => {
-    if (sbTranslationsLoading || !sbTranslations.length) {
-      return fallback
+  // Helper function to get translated label with mapping fallback
+  const getTranslatedLabel = (configId: string, fallback?: string): string =>
+    getLabel(configId, language, fallback ?? getSuretyBondLabel(configId))
+
+  // Helper function to get type display name from settingValue
+  const getTypeDisplayName = (settingValue: string | undefined): string => {
+    if (!settingValue || guaranteeTypesLoading || !guaranteeTypes) {
+      return '-'
     }
 
-    const translation = sbTranslations.find((t) => t.configId === configId)
-    return translation?.configValue || fallback
+    const matchingType = guaranteeTypes.find(
+      (type) => type.settingValue === settingValue
+    )
+    return matchingType?.displayName || settingValue
+  }
+
+  // Helper function to get status display name from settingValue
+  const getStatusDisplayName = (settingValue: string | undefined): string => {
+    if (!settingValue || guaranteeStatusesLoading || !guaranteeStatuses) {
+      return '-'
+    }
+
+    const matchingStatus = guaranteeStatuses.find(
+      (status) => status.settingValue === settingValue
+    )
+    return matchingStatus?.displayName || settingValue
   }
 
   const generalDetails = [
     {
       gridSize: 6,
-      label: getTranslatedLabel('CDL_SB_REF_NO', 'Guarantee Reference Number*'),
+      label: getTranslatedLabel('CDL_SB_REF_NO'),
       value: suretyBond?.suretyBondReferenceNumber || '-',
     },
     {
       gridSize: 6,
-      label: getTranslatedLabel('CDL_SB_TYPE', 'Guarantee Type*'),
-      value: suretyBond?.suretyBondTypeDTO?.settingValue || '-',
+      label: getTranslatedLabel('CDL_SB_TYPE'),
+      value: getTypeDisplayName(suretyBond?.suretyBondTypeDTO?.settingValue),
     },
     {
       gridSize: 6,
-      label: getTranslatedLabel('CDL_SB_DATE', 'Guarantee Date*'),
+      label: getTranslatedLabel('CDL_SB_DATE'),
       value: suretyBond?.suretyBondDate
         ? dayjs(suretyBond.suretyBondDate).format('DD/MM/YYYY')
         : '-',
     },
     {
       gridSize: 6,
-      label: getTranslatedLabel('CDL_SB_BPA_CIF', 'Project CIF*'),
+      label: getTranslatedLabel('CDL_SB_BPA_CIF'),
       value: suretyBond?.realEstateAssestDTO?.reaCif || '-',
     },
     {
       gridSize: 6,
-      label: getTranslatedLabel('CDL_SB_BPA_NAME', 'Project Name*'),
+      label: getTranslatedLabel('CDL_SB_BPA_NAME'),
       value: suretyBond?.realEstateAssestDTO?.reaName || '-',
     },
     {
       gridSize: 6,
-      label: getTranslatedLabel('CDL_SB_BP_NAME', 'Developer/Contractor Name*'),
+      label: getTranslatedLabel('CDL_SB_BP_NAME'),
       value: suretyBond?.realEstateAssestDTO?.reaManagedBy || '-',
     },
   ]
@@ -223,15 +253,12 @@ const Step2 = ({ onEdit, suretyBondId, isViewMode }: Step2Props) => {
   const guaranteeDetails = [
     {
       gridSize: 3,
-      label: getTranslatedLabel('CDL_SB_OPEN_ENDED', 'Open Ended Guarantee'),
+      label: getTranslatedLabel('CDL_SB_OPEN_ENDED'),
       value: suretyBond?.suretyBondOpenEnded || false,
     },
     {
       gridSize: 3,
-      label: getTranslatedLabel(
-        'CDL_SB_BPA_COMPLETION_DATE',
-        'Project Completion Date'
-      ),
+      label: getTranslatedLabel('CDL_SB_BPA_COMPLETION_DATE'),
       value: suretyBond?.realEstateAssestDTO?.reaCompletionDate
         ? dayjs(suretyBond.realEstateAssestDTO.reaCompletionDate).format(
             'DD/MM/YYYY'
@@ -240,50 +267,46 @@ const Step2 = ({ onEdit, suretyBondId, isViewMode }: Step2Props) => {
     },
     {
       gridSize: 3,
-      label: getTranslatedLabel('CDL_SB_NO_OF_AMEND', 'No of Amendments'),
+      label: getTranslatedLabel('CDL_SB_NO_OF_AMEND'),
       value: suretyBond?.suretyBondNoOfAmendment || '-',
     },
     {
       gridSize: 3,
-      label: getTranslatedLabel(
-        'CDL_SB_EXPIARY_DATE',
-        'Guarantee Expiration Date*'
-      ),
+      label: getTranslatedLabel('CDL_SB_EXPIARY_DATE'),
       value: suretyBond?.suretyBondExpirationDate
         ? dayjs(suretyBond.suretyBondExpirationDate).format('DD/MM/YYYY')
         : '-',
     },
     {
       gridSize: 4,
-      label: getTranslatedLabel('CDL_SB_AMOUNT', 'Guarantee Amount*'),
+      label: getTranslatedLabel('CDL_SB_AMOUNT'),
       value: suretyBond?.suretyBondAmount
-        ? `$${suretyBond.suretyBondAmount.toLocaleString()}`
+        ? `${suretyBond.suretyBondAmount.toLocaleString()}`
         : '0',
     },
     {
       gridSize: 4,
-      label: getTranslatedLabel(
-        'CDL_SB_NEW_READING',
-        'New Reading (Amendments)'
-      ),
+      label: getTranslatedLabel('CDL_SB_NEW_READING'),
       value: suretyBond?.suretyBondNewReadingAmendment || '-',
     },
     {
       gridSize: 4,
-      label: getTranslatedLabel('CDL_SB_BANK', 'Issuer Bank*'),
+      label: getTranslatedLabel('CDL_SB_BANK'),
       value: suretyBond?.issuerBankDTO?.fiName || '-',
     },
     {
       gridSize: 4,
-      label: getTranslatedLabel('CDL_SB_STATUS', 'Status*'),
-      value: suretyBond?.suretyBondStatusDTO?.settingValue || '-',
+      label: getTranslatedLabel('CDL_SB_STATUS'),
+      value: getStatusDisplayName(
+        suretyBond?.suretyBondStatusDTO?.settingValue
+      ),
     },
   ]
 
   const documentDetails = [
     {
       gridSize: 12,
-      label: getTranslatedLabel('CDL_SB_DOCUMENTS', 'Uploaded Documents'),
+      label: getTranslatedLabel('CDL_SB_DOCUMENTS'),
       value: formData.documents?.length
         ? `${formData.documents.length} document(s) uploaded`
         : 'No documents uploaded',
@@ -303,25 +326,18 @@ const Step2 = ({ onEdit, suretyBondId, isViewMode }: Step2Props) => {
       >
         <CardContent>
           <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            minHeight="200px"
+            sx={{
+              backgroundColor: '#FFFFFFBF',
+              borderRadius: '16px',
+              margin: '0 auto',
+              width: '100%',
+              height: '200px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
-            <Box textAlign="center">
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                {getTranslatedLabel(
-                  'CDL_SB_LOADING',
-                  'Loading...'
-                )}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {getTranslatedLabel(
-                  'CDL_SB_LOADING_DESC',
-                  'Please wait while we fetch the data'
-                )}
-              </Typography>
-            </Box>
+            <GlobalLoading fullHeight className="min-h-[200px]" />
           </Box>
         </CardContent>
       </Card>
@@ -361,7 +377,7 @@ const Step2 = ({ onEdit, suretyBondId, isViewMode }: Step2Props) => {
                 onClick={() => window.location.reload()}
                 sx={{ textTransform: 'none' }}
               >
-                {getTranslatedLabel('CDL_SB_RETRY', 'Try Again')}
+                {getTranslatedLabel('CDL_SB_RETRY')}
               </Button>
             </Box>
           </Box>
@@ -391,7 +407,7 @@ const Step2 = ({ onEdit, suretyBondId, isViewMode }: Step2Props) => {
             fontWeight={600}
             sx={{ fontFamily: 'Outfit', fontSize: '20px' }}
           >
-            {getTranslatedLabel('CDL_SB_DETAILS', 'Guarantee Details')}
+            {getTranslatedLabel('CDL_SB_DETAILS')}
           </Typography>
           {!isViewMode && (
             <Button
@@ -406,28 +422,22 @@ const Step2 = ({ onEdit, suretyBondId, isViewMode }: Step2Props) => {
                 },
               }}
             >
-              {getTranslatedLabel('CDL_SB_EDIT', 'Edit')}
+              {getTranslatedLabel('CDL_SB_EDIT')}
             </Button>
           )}
         </Box>
         <Divider sx={{ mb: 2 }} />
 
         <Section
-          title={getTranslatedLabel(
-            'CDL_SB_GENERAL_INFO',
-            'General Information'
-          )}
+          title={getTranslatedLabel('CDL_SB_GENERAL_INFO')}
           fields={generalDetails}
         />
         <Section
-          title={getTranslatedLabel(
-            'CDL_SB_GUARANTEE_INFO',
-            'Guarantee Information'
-          )}
+          title={getTranslatedLabel('CDL_SB_GUARANTEE_INFO')}
           fields={guaranteeDetails}
         />
         <Section
-          title={getTranslatedLabel('CDL_SB_DOCUMENTS_SECTION', 'Documents')}
+          title={getTranslatedLabel('CDL_SB_DOCUMENTS_SECTION')}
           fields={documentDetails}
         />
       </CardContent>

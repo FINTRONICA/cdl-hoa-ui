@@ -20,7 +20,7 @@ import { FormProvider, useForm } from 'react-hook-form'
 import { DocumentItem } from '../DeveloperStepper/developerTypes'
 
 const steps = [
-  'Management Firms Details',
+  'Build Partner Assest Details',
   'Documents',
   'Account',
   'Fee Details',
@@ -334,15 +334,15 @@ const ProjectDetailsStepper: React.FC = () => {
         {/* Header */}
         <Box mb={3}>
           <Typography variant="h4" gutterBottom>
-          Management Firms Details
+            Build Partner Assest Details
           </Typography>
           <Typography variant="body1" color="textSecondary">
-            Register your           Management Firms Details            step by step, on-mandatory fields and steps
+            Register your project step by step, on-mandatory fields and steps
             are easy to skip.
           </Typography>
           <Box display="flex" alignItems="center" mt={2}>
             <Typography variant="body2" sx={{ mr: 2 }}>
-              Management Firms Name
+              Project Name
             </Typography>
             <Typography variant="body1" sx={{ mr: 4 }}>
               AI Madina

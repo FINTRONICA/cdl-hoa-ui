@@ -5,7 +5,7 @@ export interface SuretyBondTypeDTO {
   id: number
   settingKey: string
   settingValue: string
-  languageTranslationId: string | null
+  languageTranslationId: any | null
   remarks: string | null
   status: string | null
   enabled: boolean
@@ -58,6 +58,7 @@ export interface RealEstateAssetDTO {
 
 export interface BuildPartnerDTO {
   id: number
+  bpName?: string | null
 }
 
 export interface IssuerBankDTO {

@@ -167,7 +167,7 @@ export const validateAccountField = (fieldName: string, value: any, formData?: a
     if (!parseResult.success) {
       const error = parseResult.error.issues[0]
       const errorMessage = error?.message || 'Invalid value'
-      console.log(`[Account Validation] ${fieldName}:`, errorMessage)
+     
       return errorMessage
     }
     
@@ -179,7 +179,7 @@ export const validateAccountField = (fieldName: string, value: any, formData?: a
           issue.path.join('.') === fieldName
         )
         if (fieldError) {
-          console.log(`[Account Validation] ${fieldName} (group):`, fieldError.message)
+         
           return fieldError.message
         }
       }
@@ -190,10 +190,10 @@ export const validateAccountField = (fieldName: string, value: any, formData?: a
     if (error instanceof z.ZodError) {
       const firstError = error.issues[0]
       const errorMessage = firstError?.message || 'Invalid value'
-      console.error(`[Account Validation Error] ${fieldName}:`, errorMessage)
+     
       return errorMessage
     }
-    console.error(`[Account Validation Failed] ${fieldName}:`, error)
+   
     return 'Validation failed'
   }
 }

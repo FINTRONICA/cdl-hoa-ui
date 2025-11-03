@@ -4,8 +4,9 @@ import React from 'react'
 import { Card, CardContent, Grid, TextField } from '@mui/material'
 import { Controller, useFormContext } from 'react-hook-form'
 import { commonFieldStyles, labelSx, valueSx, cardStyles } from '../styles'
-import { useProjectLabels } from '@/hooks/useProjectLabels'
+// import { useProjectLabels } from '@/hooks/useProjectLabels'
 import { ProjectData } from '../types'
+import { useBuildPartnerAssetLabelsWithUtils } from '@/hooks/useBuildPartnerAssetLabels'
 
 interface Step7Props {
   projectId?: string
@@ -14,7 +15,8 @@ interface Step7Props {
 
 const Step7: React.FC<Step7Props> = ({ isViewMode = false }) => {
   const { control } = useFormContext<ProjectData>()
-  const { getLabel } = useProjectLabels()
+  const { getLabel } = useBuildPartnerAssetLabelsWithUtils()
+  const language = 'EN'
 
   return (
     <Card sx={cardStyles}>
@@ -27,13 +29,13 @@ const Step7: React.FC<Step7Props> = ({ isViewMode = false }) => {
               rules={{
                 required: 'Total Income Received is required',
                 pattern: {
-                  value: /^[0-9,\s]+$/,
-                  message: 'Must contain only numbers and commas'
+                  value: /^[0-9.,\s]+$/,
+                  message: 'Must contain only numbers, decimals, and commas',
                 },
                 maxLength: {
                   value: 20,
-                  message: 'Maximum 20 characters allowed'
-                }
+                  message: 'Maximum 20 characters allowed',
+                },
               }}
               render={({ field, fieldState: { error, isTouched } }) => {
                 // Show validation error if field has been touched OR if there's an error (for form submission)
@@ -44,10 +46,18 @@ const Step7: React.FC<Step7Props> = ({ isViewMode = false }) => {
                     fullWidth
                     disabled={isViewMode}
                     required
-                    label={getLabel('CDL_BPA_TOTAL_AMT_RECEIVED', 'Total Income Received')}
+                    label={getLabel(
+                      'CDL_BPA_TOTAL_AMT_RECEIVED',
+                      language,
+                      'Total Income Received'
+                    )}
+                    placeholder="e.g., 1,000.00"
                     error={shouldShowError}
                     helperText={shouldShowError ? error?.message : ''}
-                    InputLabelProps={{ sx: labelSx }}
+                    InputLabelProps={{
+                      sx: labelSx,
+                      shrink: Boolean(field.value),
+                    }}
                     InputProps={{ sx: valueSx }}
                     sx={commonFieldStyles}
                   />
@@ -63,13 +73,13 @@ const Step7: React.FC<Step7Props> = ({ isViewMode = false }) => {
               rules={{
                 required: 'Total Disbursed Payments is required',
                 pattern: {
-                  value: /^[0-9,\s]+$/,
-                  message: 'Must contain only numbers and commas'
+                  value: /^[0-9.,\s]+$/,
+                  message: 'Must contain only numbers, decimals, and commas',
                 },
                 maxLength: {
                   value: 20,
-                  message: 'Maximum 20 characters allowed'
-                }
+                  message: 'Maximum 20 characters allowed',
+                },
               }}
               render={({ field, fieldState: { error, isTouched } }) => {
                 // Show validation error if field has been touched OR if there's an error (for form submission)
@@ -80,10 +90,18 @@ const Step7: React.FC<Step7Props> = ({ isViewMode = false }) => {
                     fullWidth
                     disabled={isViewMode}
                     required
-                    label={getLabel('CDL_BPA_TOTAL_DIS_PMT', 'Total Disbursed Payments')}
+                    label={getLabel(
+                      'CDL_BPA_TOTAL_DIS_PMT',
+                      language,
+                      'Total Disbursed Payments'
+                    )}
+                    placeholder="e.g., 1,000.00"
                     error={shouldShowError}
                     helperText={shouldShowError ? error?.message : ''}
-                    InputLabelProps={{ sx: labelSx }}
+                    InputLabelProps={{
+                      sx: labelSx,
+                      shrink: Boolean(field.value),
+                    }}
                     InputProps={{ sx: valueSx }}
                     sx={commonFieldStyles}
                   />

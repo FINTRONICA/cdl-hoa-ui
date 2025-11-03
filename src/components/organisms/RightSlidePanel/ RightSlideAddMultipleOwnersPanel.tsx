@@ -29,9 +29,7 @@ import {
 } from '@/hooks/useBuildPartners'
 import { useFeeDropdownLabels } from '@/hooks/useFeeDropdowns'
 import { type FeeDropdownOption } from '@/services/api/feeDropdownService'
-import {
-  type BuildPartnerContactResponse,
-} from '@/services/api/buildPartnerService'
+import { type BuildPartnerContactResponse } from '@/services/api/buildPartnerService'
 
 interface RightSlidePanelProps {
   isOpen: boolean
@@ -71,7 +69,9 @@ interface ContactFormData {
   idExpiryDate: Dayjs | null
 }
 
-export const  RightSlideAddMultipleOwnersPanel: React.FC<RightSlidePanelProps> = ({
+export const RightSlideAddMultipleOwnersPanel: React.FC<
+  RightSlidePanelProps
+> = ({
   isOpen,
   onClose,
   onContactAdded,
@@ -153,24 +153,33 @@ export const  RightSlideAddMultipleOwnersPanel: React.FC<RightSlidePanelProps> =
   React.useEffect(() => {
     if (isOpen && mode === 'edit' && (apiContactData || contactData)) {
       // Prefer API data if available, otherwise use local contactData
-      const dataToUse = (apiContactData || contactData) as Record<string, string | number>
+      const dataToUse = (apiContactData || contactData) as Record<
+        string,
+        string | number
+      >
 
       // Extract first and last name from API response or local data
       const firstName =
-        (dataToUse.ownFirstName as string) || contactData?.name?.split(' ')[0] || ''
+        (dataToUse.jointOwnDetailsFirstName as string) ||
+        contactData?.name?.split(' ')[0] ||
+        ''
       const lastName =
         (dataToUse.ownLastName as string) ||
         contactData?.name?.split(' ').slice(1).join(' ') ||
         ''
 
       // Extract address lines
-      const address1 = (dataToUse.ownContactAddressLine1 as string) || ''
-      const address2 = (dataToUse.ownContactAddressLine2 as string) || ''
+      const address1 =
+        (dataToUse.jointOwnDetailsContactAddressLine1 as string) || ''
+      const address2 =
+        (dataToUse.jointOwnDetailsContactAddressLine2 as string) || ''
 
       // Find the country code ID from the dropdown options
       // The API returns the country code value in ownCountryMobCode (e.g., "Dubai")
       const countryCodeFromApi =
-        (dataToUse.ownCountryMobCode as string) || contactData?.countrycode || ''
+        (dataToUse.jointOwnDetailsCountryMobCode as string) ||
+        contactData?.countrycode ||
+        ''
       let countryCodeId = countryCodeFromApi
 
       if (countryCodes.length > 0 && countryCodeFromApi) {
@@ -187,15 +196,25 @@ export const  RightSlideAddMultipleOwnersPanel: React.FC<RightSlidePanelProps> =
       reset({
         fname: firstName,
         lname: lastName,
-        email: (dataToUse.ownContactEmail as string) || contactData?.email || '',
+        email:
+          (dataToUse.jointOwnDetailsContactEmail as string) ||
+          contactData?.email ||
+          '',
         address1: address1,
         address2: address2,
         countrycode: countryCodeId,
         telephoneno:
-          (dataToUse.ownContactTelNo as string) || contactData?.telephoneno || '',
-        mobileno: (dataToUse.ownContactMobNo as string) || contactData?.mobileno || '',
-        idNumber: (dataToUse.ownIdNumber as string) || '',
-        idExpiryDate: dataToUse.ownIdExpiryDate ? dayjs(dataToUse.ownIdExpiryDate as string) : null,
+          (dataToUse.jointOwnDetailsContactTelNo as string) ||
+          contactData?.telephoneno ||
+          '',
+        mobileno:
+          (dataToUse.jointOwnDetailsContactMobNo as string) ||
+          contactData?.mobileno ||
+          '',
+        idNumber: (dataToUse.jointOwnDetailsIdNumber as string) || '',
+        idExpiryDate: dataToUse.jointOwnDetailsIdExpiryDate
+          ? dayjs(dataToUse.jointOwnDetailsIdExpiryDate as string)
+          : null,
       })
     } else if (isOpen && mode === 'add') {
       reset({
@@ -228,7 +247,14 @@ export const  RightSlideAddMultipleOwnersPanel: React.FC<RightSlidePanelProps> =
       const isEditing = mode === 'edit'
 
       // Basic form validation
-      if (!data.fname || !data.lname || !data.email || !data.address1 || !data.mobileno || !data.idNumber) {
+      if (
+        !data.fname ||
+        !data.lname ||
+        !data.email ||
+        !data.address1 ||
+        !data.mobileno ||
+        !data.idNumber
+      ) {
         setErrorMessage('Please fill in all required fields')
         return
       }
@@ -243,16 +269,18 @@ export const  RightSlideAddMultipleOwnersPanel: React.FC<RightSlidePanelProps> =
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const contactPayload: any = {
         ...(isEditing && contactData?.id && { id: contactData.id }),
-        ownFirstName: data.fname,
-        ownLastName: data.lname,
-        ownContactEmail: data.email,
-        ownContactAddressLine1: data.address1,
-        ownContactAddressLine2: data.address2,
-        ownCountryMobCode: countryCodeValue,
-        ownContactTelNo: data.telephoneno,
-        ownContactMobNo: data.mobileno,
-        ownIdNumber: data.idNumber,
-        ownIdExpiryDate: data.idExpiryDate ? data.idExpiryDate.format('YYYY-MM-DD') : undefined,
+        jointOwnDetailsFirstName: data.fname,
+        jointOwnDetailsLastName: data.lname,
+        jointOwnDetailsContactEmail: data.email,
+        jointOwnDetailsContactAddressLine1: data.address1,
+        jointOwnDetailsContactAddressLine2: data.address2,
+        jointOwnDetailsCountryMobCode: countryCodeValue,
+        jointOwnDetailsContactTelNo: data.telephoneno,
+        jointOwnDetailsContactMobNo: data.mobileno,
+        jointOwnDetailsIdNumber: data.idNumber,
+        jointOwnDetailsIdExpiryDate: data.idExpiryDate
+          ? data.idExpiryDate.format('YYYY-MM-DD')
+          : undefined,
         // Preserve workflow-related fields from API data when editing
         ...(isEditing && apiContactData
           ? {
@@ -299,12 +327,18 @@ export const  RightSlideAddMultipleOwnersPanel: React.FC<RightSlidePanelProps> =
         ...(isEditing && contactData?.id && { id: contactData.id }),
         name: `${data.fname} ${data.lname}`.trim(),
         address: `${data.address1} ${data.address2}`.trim(),
+        addressLine1: data.address1 || '',
+        addressLine2: data.address2 || '',
         email: data.email,
+        pobox: data.address2 || '', // P.O. Box can be mapped separately if needed
         countrycode: countryCodeDisplayValue,
         mobileno: data.mobileno,
         telephoneno: data.telephoneno,
+        fax: '', // Fax field can be added to form if needed
         idNumber: data.idNumber,
-        idExpiryDate: data.idExpiryDate ? data.idExpiryDate.format('YYYY-MM-DD') : '',
+        idExpiryDate: data.idExpiryDate
+          ? data.idExpiryDate.format('YYYY-MM-DD')
+          : '',
         buildPartnerDTO: {
           id: buildPartnerId ? parseInt(buildPartnerId) : undefined,
         },
@@ -505,11 +539,7 @@ export const  RightSlideAddMultipleOwnersPanel: React.FC<RightSlidePanelProps> =
             </InputLabel>
             <Select
               {...field}
-              input={
-                <OutlinedInput
-                  label={loading ? `Loading...` : label}
-                />
-              }
+              input={<OutlinedInput label={loading ? `Loading...` : label} />}
               label={loading ? `Loading...` : label}
               sx={{ ...selectStyles, ...valueSx }}
               IconComponent={KeyboardArrowDownIcon}
@@ -518,10 +548,7 @@ export const  RightSlideAddMultipleOwnersPanel: React.FC<RightSlidePanelProps> =
               {options.map((option: unknown) => {
                 const opt = option as FeeDropdownOption
                 return (
-                  <MenuItem
-                    key={opt.id}
-                    value={opt.id}
-                  >
+                  <MenuItem key={opt.id} value={opt.id}>
                     {getDisplayLabel(opt, opt.configValue)}
                   </MenuItem>
                 )
@@ -606,7 +633,9 @@ export const  RightSlideAddMultipleOwnersPanel: React.FC<RightSlidePanelProps> =
           verticalAlign: 'middle',
         }}
       >
-        {mode === 'edit' ? 'Edit  Joint Ownership Details' : 'Add Joint Ownership Details'}
+        {mode === 'edit'
+          ? 'Edit  Multiple Owners Details'
+          : 'Add Multiple Owners Details'}
         <IconButton onClick={handleClose}>
           <CancelOutlinedIcon />
         </IconButton>
@@ -631,19 +660,24 @@ export const  RightSlideAddMultipleOwnersPanel: React.FC<RightSlidePanelProps> =
             )}
 
           <Grid container rowSpacing={4} columnSpacing={2} mt={3}>
-            {renderTextField('fname', 'First Name', '', 6, true)}
-            {renderTextField('lname', 'Last Name', '', 6, true)}
+            {renderTextField('fname', 'First Name', '', 12, true)}
+            {renderTextField('lname', 'Last Name', '', 12, true)}
             {renderTextField('email', 'Email Id', '', 12, true)}
             {renderTextField('address1', 'Address Line 1', '', 12, true)}
             {renderTextField('address2', 'Address Line 2', '', 12, false)}
-            {renderDatePickerField('idExpiryDate', 'Identification Expiry Date', 12, false)}
+            {renderDatePickerField(
+              'idExpiryDate',
+              'Identification Expiry Date',
+              12,
+              false
+            )}
 
             {countryCodes.length > 0
               ? renderApiSelectField(
                   'countrycode',
                   'Country Code',
                   countryCodes,
-                  6,
+                  12,
                   true,
                   countryCodesLoading
                 )
@@ -651,12 +685,18 @@ export const  RightSlideAddMultipleOwnersPanel: React.FC<RightSlidePanelProps> =
                   'countrycode',
                   'Country Code',
                   ['+971', '+1', '+44', '+91'],
-                  6,
+                  12,
                   true
                 )}
-            {renderTextField('telephoneno', 'Telephone Number', '', 6, false)}
-            {renderTextField('mobileno', 'Mobile Number', '', 6, true)}
-            {renderTextField('idNumber', 'Identification Document Number', '', 6, true)}
+            {renderTextField('telephoneno', 'Telephone Number', '', 12, false)}
+            {renderTextField('mobileno', 'Mobile Number', '', 12, true)}
+            {renderTextField(
+              'idNumber',
+              'Identification Document Number',
+              '',
+              12,
+              true
+            )}
           </Grid>
         </DialogContent>
 
@@ -752,5 +792,3 @@ export const  RightSlideAddMultipleOwnersPanel: React.FC<RightSlidePanelProps> =
     </Drawer>
   )
 }
-
-

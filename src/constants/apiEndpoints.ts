@@ -48,8 +48,14 @@ export const API_ENDPOINTS = {
     FIND_ALL: '/app-language-translation/find-all',
     NAV_MENU: '/app-language-translation/nav-menu',
     BUILD_PARTNER: '/app-language-translation/build-partner',
+    // Asset Register HOA
+    ASSET_REGISTER: '/app-language-translation/asset-register',
+    // END Asset Register HOA
     BUILD_PARTNER_ASSET: '/app-language-translation/build-partner-assests',
     CAPITAL_PARTNER: '/app-language-translation/capital-partner',
+    // Owner Registry HOA
+    OWNER_REGISTRY: '/app-language-translation/owner-registry',
+    // END Owner Registry HOA
     WORKFLOW_ACTIONS: '/app-language-translation/workflow-actions',
     WORKFLOW_DEFINITION: '/app-language-translation/workflow-definition',
     WORKFLOW_STAGE_TEMPLATE:
@@ -149,16 +155,7 @@ export const API_ENDPOINTS = {
       `/core-bank-get/sbi/apis/validate-swift?swiftCode=${swiftCode}`,
   },
 
-  BUILD_PARTNER: {
-    GET_BY_ID: (id: string) => `/build-partner/${id}`,
-    UPDATE: (id: string) => `/build-partner/${id}`,
-    DELETE: (id: string) => `/build-partner/${id}`,
-    SOFT_DELETE: (id: string) => `/build-partner/soft/${id}`,
-    GET_ALL: '/build-partner?deleted.equals=false&enabled.equals=true',
-    SAVE: '/build-partner',
-    FIND_ALL:
-      '/build-partner/find-all?deleted.equals=false&enabled.equals=true',
-  },
+ 
 
   APPLICATION_TABLE_DESIGN: {
     GET_BY_ID: (id: string) => `/application-table-design/${id}`,
@@ -228,6 +225,7 @@ export const API_ENDPOINTS = {
     FIND_ALL: '/binary-data-store/find-all',
   },
 
+  
   // Build Partner
   BUILD_PARTNER_ACCOUNT: {
     GET_BY_ID: (id: string) => `/build-partner-account/${id}`,
@@ -270,6 +268,98 @@ export const API_ENDPOINTS = {
     FIND_ALL: '/build-partner-fees/find-all',
   },
 
+  BUILD_PARTNER: {
+    GET_BY_ID: (id: string) => `/build-partner/${id}`,
+    UPDATE: (id: string) => `/build-partner/${id}`,
+    DELETE: (id: string) => `/build-partner/${id}`,
+    SOFT_DELETE: (id: string) => `/build-partner/soft/${id}`,
+    GET_ALL: '/build-partner?deleted.equals=false&enabled.equals=true',
+    SAVE: '/build-partner',
+    FIND_ALL:
+      '/build-partner/find-all?deleted.equals=false&enabled.equals=true',
+  },
+  // Build Partner Stepper APIs
+  BUILD_PARTNER_CREATE: {
+    DETAILS_SAVE: '/build-partner',
+    CONTACT_SAVE: '/build-partner-contact',
+    FEES_SAVE: '/build-partner-fees',
+    BENEFICIARY_SAVE: '/build-partner-beneficiary',
+    REVIEW_SAVE: '/build-partner-review',
+    GET_STEP_DATA: (step: number) => `/build-partner/create/${step}/data`,
+    VALIDATE_STEP: (step: number) => `/build-partner/create/${step}/validate`,
+  },
+  // END Build Partner 
+
+
+
+  // Asset Register Start APIs
+  // Asset Register Stepper APIs HOA
+  // ASSET_REGISTER_CREATE: {
+  //   DETAILS_SAVE: '/asset-register',
+  //   CONTACT_SAVE: '/asset-register-contact',
+  //   FEES_SAVE: '/asset-register-fees',
+  //   BENEFICIARY_SAVE: '/asset-register-beneficiary',
+  //   REVIEW_SAVE: '/asset-register-review',
+  //   GET_STEP_DATA: (step: number) => `/asset-register/create/${step}/data`,
+  //   VALIDATE_STEP: (step: number) => `/asset-register/create/${step}/validate`,
+  // },
+
+  // // Asset Register
+  // ASSET_REGISTER_ACCOUNT: {
+  //   GET_BY_ID: (id: string) => `/asset-register-account/${id}`,
+  //   UPDATE: (id: string) => `/asset-register-account/${id}`,
+  //   DELETE: (id: string) => `/asset-register-account/${id}`,
+  //   SAVE: '/asset-register-account',
+  //   FIND_ALL: '/asset-register-account/find-all',
+  // },
+
+  // ASSET_REGISTER_BENEFICIARY: {
+  //   GET_BY_ID: (id: string) =>
+  //     `/asset-register-beneficiary?assetRegisterId.equals=${id}&deleted.equals=false&enabled.equals=true`,
+  //   UPDATE: (id: string) => `/asset-register-beneficiary/${id}`,
+  //   DELETE: (id: string) => `/asset-register-beneficiary/${id}`,
+  //   SOFT_DELETE: (id: string) => `/asset-register-beneficiary/soft/${id}`,
+  //   SAVE: '/asset-register-beneficiary',
+  //   FIND_ALL: '/asset-register-beneficiary/find-all',
+  //   UPLOAD: '/asset-register-beneficiary/upload',
+  // },
+
+  // ASSET_REGISTER_CONTACT: {
+  //   GET_BY_ID: (id: string) =>
+  //     `/asset-register-contact?assetRegisterId.equals=${id}&deleted.equals=false&enabled.equals=true`,
+  //   UPDATE: (id: string) => `/asset-register-contact/${id}`,
+  //   DELETE: (id: string) => `/asset-register-contact/${id}`,
+  //   SOFT_DELETE: (id: string) => `/asset-register-contact/soft/${id}`,
+  //   SAVE: '/asset-register-contact',
+  //   FIND_ALL: '/asset-register-contact/find-all',
+  // },
+
+  // ASSET_REGISTER_FEES: {
+  //   GET_BY_ID: (id: string) =>
+  //     `/asset-register-fees?assetRegisterId.equals=${id}&deleted.equals=false&enabled.equals=true`,
+  //   GET_FEE_BY_ID: (feeId: string) => `/asset-register-fees/${feeId}`,
+  //   UPDATE: (id: string) => `/asset-register-fees/${id}`,
+  //   DELETE: (id: string) => `/asset-register-fees/${id}`,
+  //   SOFT_DELETE: (id: string) => `/asset-register-fees/soft/${id}`,
+  //   GET_ALL: '/asset-register-fees',
+  //   SAVE: '/asset-register-fees',
+  //   FIND_ALL: '/asset-register-fees/find-all',
+  // },
+
+  // ASSET_REGISTER: {
+  //   GET_BY_ID: (id: string) => `/asset-register/${id}`,
+  //   UPDATE: (id: string) => `/asset-register/${id}`,
+  //   DELETE: (id: string) => `/asset-register/${id}`,
+  //   SOFT_DELETE: (id: string) => `/asset-register/soft/${id}`,
+  //   GET_ALL: '/asset-register?deleted.equals=false&enabled.equals=true',
+  //   SAVE: '/asset-register',
+  //   FIND_ALL:
+  //     '/asset-register/find-all?deleted.equals=false&enabled.equals=true',
+  // },
+  // END Asset Register Start APIs HOA
+
+
+  
   // Capital Partner
   CAPITAL_PARTNER: {
     GET_BY_ID: (id: string) => `/capital-partner/${id}`,
@@ -303,6 +393,7 @@ export const API_ENDPOINTS = {
     GET_BY_ID: (id: string) => `/capital-partner-payment-plan/${id}`,
     UPDATE: (id: string) => `/capital-partner-payment-plan/${id}`,
     DELETE: (id: string) => `/capital-partner-payment-plan/${id}`,
+    SOFT_DELETE: (id: string) => `/capital-partner-payment-plan/soft/${id}`,
     GET_ALL: '/capital-partner-payment-plan',
     SAVE: '/capital-partner-payment-plan',
     FIND_ALL: '/capital-partner-payment-plan/find-all',
@@ -334,6 +425,79 @@ export const API_ENDPOINTS = {
     SAVE: '/capital-partner-unit-type',
     FIND_ALL: '/capital-partner-unit-type/find-all',
   },
+  // END Capital partner
+  
+
+
+  // Owner Registry Start APIs HOA
+  // OWNER_REGISTRY: {
+  //   GET_BY_ID: (id: string) => `/owner-registry/${id}`,
+  //   UPDATE: (id: string) => `/owner-registry/${id}`,
+  //   DELETE: (id: string) => `/owner-registry/${id}`,
+  //   SOFT_DELETE: (id: string) => `/owner-registry/soft/${id}`,
+  //   GET_ALL: '/owner-registry?deleted.equals=false&enabled.equals=true',
+  //   SAVE: '/owner-registry',
+  //   FIND_ALL: '/owner-registry/find-all',
+  // },
+
+  // OWNER_REGISTRY_BANK_INFO: {
+  //   GET_BY_ID: (id: string) => `/owner-registry-bank-info/${id}`,
+  //   UPDATE: (id: string) => `/owner-registry-bank-info/${id}`,
+  //   DELETE: (id: string) => `/owner-registry-bank-info/${id}`,
+  //   GET_ALL: '/owner-registry-bank-info',
+  //   SAVE: '/owner-registry-bank-info',
+  //   FIND_ALL: '/owner-registry-bank-info/find-all',
+  // },
+
+  // OWNER_REGISTRY_UNIT_BOOKING: {
+  //   GET_BY_ID: (id: string) => `/owner-registry-unit-booking/${id}`,
+  //   UPDATE: (id: string) => `/owner-registry-unit-booking/${id}`,
+  //   DELETE: (id: string) => `/owner-registry-unit-booking/${id}`,
+  //   GET_ALL: '/owner-registry-unit-booking',
+  //   SAVE: '/owner-registry-unit-booking',
+  //   FIND_ALL: '/owner-registry-unit-booking/find-all',
+  // },
+
+  // OWNER_REGISTRY_PAYMENT_PLAN: {
+  //   GET_BY_ID: (id: string) => `/owner-registry-payment-plan/${id}`,
+  //   UPDATE: (id: string) => `/owner-registry-payment-plan/${id}`,
+  //   DELETE: (id: string) => `/owner-registry-payment-plan/${id}`,
+  //   SOFT_DELETE: (id: string) => `/owner-registry-payment-plan/soft/${id}`,
+  //   GET_ALL: '/owner-registry-payment-plan',
+  //   SAVE: '/owner-registry-payment-plan',
+  //   FIND_ALL: '/owner-registry-payment-plan/find-all',
+  // },
+
+  // OWNER_REGISTRY_UNIT: {
+  //   GET_BY_ID: (id: string) => `/owner-registry-unit/${id}`,
+  //   UPDATE: (id: string) => `/owner-registry-unit/${id}`,
+  //   DELETE: (id: string) => `/owner-registry-unit/${id}`,
+  //   GET_ALL: '/owner-registry-unit',
+  //   SAVE: '/owner-registry-unit',
+  //   FIND_ALL: '/owner-registry-unit/find-all',
+  // },
+
+  // OWNER_REGISTRY_UNIT_PURCHASE: {
+  //   GET_BY_ID: (id: string) => `/owner-registry-unit-purchase/${id}`,
+  //   UPDATE: (id: string) => `/owner-registry-unit-purchase/${id}`,
+  //   DELETE: (id: string) => `/owner-registry-unit-purchase/${id}`,
+  //   GET_ALL: '/owner-registry-unit-purchase',
+  //   SAVE: '/owner-registry-unit-purchase',
+  //   FIND_ALL: '/owner-registry-unit-purchase/find-all',
+  // },
+
+  // OWNER_REGISTRY_UNIT_TYPE: {
+  //   GET_BY_ID: (id: string) => `/owner-registry-unit-type/${id}`,
+  //   UPDATE: (id: string) => `/owner-registry-unit-type/${id}`,
+  //   DELETE: (id: string) => `/owner-registry-unit-type/${id}`,
+  //   GET_ALL: '/owner-registry-unit-type',
+  //   SAVE: '/owner-registry-unit-type',
+  //   FIND_ALL: '/owner-registry-unit-type/find-all',
+  // },
+// END Owner Registry Start APIs HOA
+
+
+
 
   // Configuration
   CONFIGURATION_STORE: {
@@ -532,7 +696,168 @@ export const API_ENDPOINTS = {
     DOWNLOAD_TEMPLATE: (fileName: string) =>
       `/real-estate-document/download/templates/${fileName}`,
   },
+  // Real END Estate Assets
 
+
+// MANAGEMENT FIRMS START APIs
+
+  // MANAGEMENT_FIRMS: {
+  //   GET_BY_ID: (id: string) => `/management-firms/${id}`,
+  //   UPDATE: (id: string) => `/management-firms/${id}`,
+  //   DELETE: (id: string) => `/management-firms/${id}`,
+  //   SOFT_DELETE: (id: string) => `/management-firms/soft/${id}`,
+  //   GET_ALL: '/management-firms?deleted.equals=false&enabled.equals=true',
+  //   SAVE: '/management-firms',
+  //   FIND_ALL:
+  //     '/management-firms/find-all?deleted.equals=false&enabled.equals=true',
+  // },
+
+  // MANAGEMENT_FIRMS_BENEFICIARY: {
+  //   GET_BY_ID: (id: string) => `/management-firms-beneficiary/${id}`,
+  //   UPDATE: (id: string) => `/management-firms-beneficiary/${id}`,
+  //   DELETE: (id: string) => `/management-firms-beneficiary/${id}`,
+  //   SOFT_DELETE: (id: string) => `/management-firms-beneficiary/soft/${id}`,
+  //   GET_ALL: '/management-firms-beneficiary',
+  //   SAVE: '/management-firms-beneficiary',
+  //   FIND_ALL: '/management-firms-beneficiary/find-all',
+  //   GET_BY_PROJECT_ID: (projectId: string) =>
+  //     `/management-firms-beneficiary?managementFirmsId.equals=${projectId}`,
+  // },
+
+  // MANAGEMENT_FIRMS_CLOSURE: {
+  //   GET_BY_ID: (id: string) => `/management-firms-closure/${id}`,
+  //   UPDATE: (id: string) => `/management-firms-closure/${id}`,
+  //   DELETE: (id: string) => `/management-firms-closure/${id}`,
+  //   GET_ALL: '/management-firms-closure',
+  //   SAVE: '/management-firms-closure',
+  //   FIND_ALL: '/management-firms-closure/find-all',
+  //   GET_BY_PROJECT_ID: (projectId: string) =>
+  //     `/management-firms-closure?managementFirmsId.equals=${projectId}`,
+  // },
+
+  // MANAGEMENT_FIRMS_FEE: {
+  //   GET_BY_ID: (id: string) => `/management-firms-fee/${id}`,
+  //   UPDATE: (id: string) => `/management-firms-fee/${id}`,
+  //   DELETE: (id: string) => `/management-firms-fee/${id}`,
+  //   SOFT_DELETE: (id: string) => `/management-firms-fee/soft/${id}`,
+  //   GET_ALL: '/management-firms-fee',
+  //   SAVE: '/management-firms-fee',
+  //   FIND_ALL: '/management-firms-fee/find-all',
+  //   GET_BY_PROJECT_ID: (projectId: string) =>
+  //     `/management-firms-fee?managementFirmsId.equals=${projectId}`,
+  // },
+
+  // MANAGEMENT_FIRMS_FEE_HISTORY: {
+  //   GET_BY_ID: (id: string) => `/management-firms-fee-history/${id}`,
+  //   UPDATE: (id: string) => `/management-firms-fee-history/${id}`,
+  //   DELETE: (id: string) => `/management-firms-fee-history/${id}`,
+  //   GET_ALL: '/management-firms-fee-history',
+  //   SAVE: '/management-firms-fee-history',
+  //   FIND_ALL: '/management-firms-fee-history/find-all',
+  //   FEE_REPUSH: (id: string) =>
+  //     `/management-firms-fee-history/fee-repush/${id}`,
+  // },
+
+  // MANAGEMENT_FIRMS_FINANCIAL_SUMMARY: {
+  //   GET_BY_ID: (id: string) => `/management-firms-financial-summary/${id}`,
+  //   UPDATE: (id: string) => `/management-firms-financial-summary/${id}`,
+  //   DELETE: (id: string) => `/management-firms-financial-summary/${id}`,
+  //   GET_ALL: '/management-firms-financial-summary',
+  //   SAVE: '/management-firms-financial-summary',
+  //   FIND_ALL: '/management-firms-financial-summary/find-all',
+  //   DELETE_SOFT: '/management-firms-financial-summary/soft/',
+  //   GET_BY_PROJECT_ID: (projectId: string) =>
+  //     `/management-firms-financial-summary?managementFirmsId.equals=${projectId}`,
+  // },
+
+  // MANAGEMENT_FIRMS_PAYMENT_PLAN: {
+  //   GET_BY_ID: (id: string) => `/management-firms-payment-plan/${id}`,
+  //   UPDATE: (id: string) => `/management-firms-payment-plan/${id}`,
+  //   DELETE: (id: string) => `/management-firms-payment-plan/${id}`,
+  //   SOFT_DELETE: (id: string) => `/management-firms-payment-plan/soft/${id}`,
+  //   GET_ALL: '/management-firms-payment-plan',
+  //   SAVE: '/management-firms-payment-plan',
+  //   FIND_ALL: '/management-firms-payment-plan/find-all',
+  //   GET_BY_PROJECT_ID: (projectId: string) =>
+  //     `/management-firms-payment-plan?managementFirmsId.equals=${projectId}&deleted.equals=false&enabled.equals=true`,
+  // },
+
+  // MANAGEMENT_FIRMS_BANK_ACCOUNT: {
+  //   GET_BY_ID: (id: string) => `/management-firms-bank-account/${id}`,
+  //   SAVE: '/management-firms-bank-account',
+  //   UPDATE: (id: string) => `/management-firms-bank-account/${id}`,
+  //   DELETE: (id: string) => `/management-firms-bank-account/${id}`,
+  //   GET_ALL: '/management-firms-bank-account',
+  //   FIND_ALL: '/management-firms-bank-account/find-all',
+  //   GET_BY_PROJECT_ID: (projectId: string) =>
+  //     `/management-firms-bank-account?managementFirmsId.equals=${projectId}`,
+  // },
+
+  // MANAGEMENT_FIRMS_DOCUMENT: {
+  //   GET_BY_ID: (id: string) => `/management-firms-document/${id}`,
+  //   UPDATE: (id: string) => `/management-firms-document/${id}`,
+  //   DELETE: (id: string) => `/management-firms-document/${id}`,
+  //   GET_ALL: '/management-firms-document',
+  //   SAVE: '/management-firms-document',
+  //   FIND_ALL: '/management-firms-document/find-all',
+  //   UPLOAD: '/management-firms-document/upload',
+  //   DOWNLOAD: (id: string) => `/management-firms-document/download/${id}`,
+  //   DOWNLOAD_TEMPLATE: (fileName: string) =>
+  //     `/management-firms-document/download/templates/${fileName}`,
+  // },
+
+// MANAGEMENT FIRMS END APIs
+
+// BUDGET DOCUMENTS APIs START
+//   BUDGET: {
+//     GET_ALL: '/budget',
+//     SAVE: '/budget',
+//     GET_BY_ID: (id: string) => `/budget/${id}`,
+//     UPDATE: (id: string) => `/budget/${id}`,
+//     DELETE: (id: string) => `/budget/${id}`,
+//     SOFT_DELETE: (id: string) => `/budget/soft/${id}`,
+//     FIND_ALL: '/budget/find-all',
+//     GET_DATA: (id: string) => `/budget/data/${id}`,
+//     UPLOAD: '/budget/upload',
+//   },
+// },
+
+// BUDGET_CATEGORY: {
+//   GET_ALL: '/budget-category',
+//   SAVE: '/budget-category',
+//   GET_BY_ID: (id: string) => `/budget-category/${id}`,
+//   UPDATE: (id: string) => `/budget-category/${id}`,
+//   DELETE: (id: string) => `/budget-category/${id}`,
+//   SOFT_DELETE: (id: string) => `/budget-category/soft/${id}`,
+//   FIND_ALL: '/budget-category/find-all',
+//   GET_DATA: (id: string) => `/budget-category/data/${id}`,
+//   UPLOAD: '/budget-category/upload',
+// },
+// BUDGET_EVENT:{
+//   GET_ALL: '/budget-event',
+//   SAVE: '/budget-event',
+//   GET_BY_ID: (id: string) => `/budget-event/${id}`,
+//   UPDATE: (id: string) => `/budget-event/${id}`,
+//   DELETE: (id: string) => `/budget-event/${id}`,
+//   SOFT_DELETE: (id: string) => `/budget-event/soft/${id}`,
+//   FIND_ALL: '/budget-event/find-all',
+//   GET_DATA: (id: string) => `/budget-event/data/${id}`,
+//   UPLOAD: '/budget-event/upload',
+// },
+
+// BUDGET_ITEM:{
+//   GET_ALL: '/budget-item',
+//   SAVE: '/budget-item',
+//   GET_BY_ID: (id: string) => `/budget-item/${id}`,
+//   UPDATE: (id: string) => `/budget-item/${id}`,
+//   DELETE: (id: string) => `/budget-item/${id}`,
+//   SOFT_DELETE: (id: string) => `/budget-item/soft/${id}`,
+//   FIND_ALL: '/budget-item/find-all',
+//   GET_DATA: (id: string) => `/budget-item/data/${id}`,
+//   UPLOAD: '/budget-item/upload',
+// },
+
+// END BUDGET APIS
   // Secondary Bank Account
   SECONDARY_BANK_ACCOUNT: {
     GET_BY_ID: (id: string) => `/secondary-bank-account/${id}`,
@@ -721,16 +1046,7 @@ export const API_ENDPOINTS = {
     FIND_ALL: '/workflow-instance/find-all',
   },
 
-  // Build Partner Stepper APIs
-  BUILD_PARTNER_CREATE: {
-    DETAILS_SAVE: '/build-partner',
-    CONTACT_SAVE: '/build-partner-contact',
-    FEES_SAVE: '/build-partner-fees',
-    BENEFICIARY_SAVE: '/build-partner-beneficiary',
-    REVIEW_SAVE: '/build-partner-review',
-    GET_STEP_DATA: (step: number) => `/build-partner/create/${step}/data`,
-    VALIDATE_STEP: (step: number) => `/build-partner/create/${step}/validate`,
-  },
+ 
 
   // Customer Details API
   CUSTOMER_DETAILS: {

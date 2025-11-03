@@ -64,36 +64,46 @@ export const feeDetailsFormValidationSchema = z.object({
   }),
   
   // Date Fee to be collected - Calendar - Mandatory
-  feeToBeCollected: z.any().refine((val) => val && val.isValid, 'Fee Collection Date is required'),
+  feeToBeCollected: z.any().refine((val) => {
+    if (!val) return false;
+    // Handle dayjs objects
+    if (val.isValid && typeof val.isValid === 'function') {
+      return val.isValid();
+    }
+    // Handle other date formats
+    return val && val !== '';
+  }, 'Fee Collection Date is required'),
   
   // Next Recovery Date - Calendar - Optional
   nextRecoveryDate: z.any().optional(),
   
   // Amount* - Text Box - Mandatory, Numerical only, max 10 characters
-  debitAmount: z.string()
-    .min(1, 'Amount is required')
-    .max(10, 'Amount must be maximum 10 characters')
-    .regex(/^[0-9,\s]+$/, 'Amount must contain only numbers and commas'),
+  debitAmount: z.any().refine((val) => {
+    if (!val) return false;
+    const strVal = val.toString();
+    return strVal.trim() !== '' && strVal.length <= 10 && /^[0-9,.\s]+$/.test(strVal);
+  }, 'Amount is required and must contain only numbers, commas, dots, and spaces (max 10 characters)'),
   
   // Fee Percentage - Optional with validation when provided
-  feePercentage: z.string().optional().refine((val) => {
+  feePercentage: z.any().optional().refine((val) => {
     if (!val || val === '') return true; // Allow empty
-    // Allow numbers, commas, dots, and % symbols
-    return /^[0-9,.\s%]+$/.test(val); // Validate format if provided
+    const strVal = val.toString();
+    return /^[0-9,.\s%]+$/.test(strVal);
   }, 'Fee Percentage must contain only numbers, commas, dots, and %'),
   
   // VAT Percentage - Optional with validation when provided
-  vatPercentage: z.string().optional().refine((val) => {
+  vatPercentage: z.any().optional().refine((val) => {
     if (!val || val === '') return true; // Allow empty
-    // Allow numbers, commas, dots, and % symbols
-    return /^[0-9,.\s%]+$/.test(val); // Validate format if provided
+    const strVal = val.toString();
+    return /^[0-9,.\s%]+$/.test(strVal);
   }, 'VAT Percentage must contain only numbers, commas, dots, and %'),
   
   // Total Amount - Required
-  totalAmount: z.string()
-    .min(1, 'Total Amount is required')
-    .max(10, 'Total Amount must be maximum 10 characters')
-    .regex(/^[0-9,\s]+$/, 'Total Amount must contain only numbers and commas'),
+  totalAmount: z.any().refine((val) => {
+    if (!val) return false;
+    const strVal = val.toString();
+    return strVal.trim() !== '' && strVal.length <= 10 && /^[0-9,.\s]+$/.test(strVal);
+  }, 'Total Amount is required and must contain only numbers, commas, dots, and spaces (max 10 characters)'),
 });
 
 // Field-level validation rules for Step 4: Fee Details
@@ -171,4 +181,15 @@ export const validateFeeDetailsField = (fieldName: string, value: any): string |
   return true;
 };
 
-export type FeeDetailsFormData = z.infer<typeof feeDetailsFormValidationSchema>;
+export type FeeDetailsFormData = {
+  feeType: any;
+  frequency: any;
+  debitAccount: any;
+  feeToBeCollected: any;
+  nextRecoveryDate?: any;
+  debitAmount: any;
+  feePercentage?: any;
+  vatPercentage?: any;
+  currency?: any;
+  totalAmount: any;
+};

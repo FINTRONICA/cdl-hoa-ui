@@ -36,6 +36,7 @@ export const buildPartnerDocumentService: DocumentService<
     return buildPartnerService.uploadBuildPartnerDocument(
       file,
       buildPartnerId,
+      'BUILD_PARTNER',
       documentType
     )
   },

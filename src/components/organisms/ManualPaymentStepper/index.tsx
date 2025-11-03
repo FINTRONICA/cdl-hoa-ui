@@ -9,11 +9,14 @@ import {
   Button,
   Box,
   Typography,
-  CircularProgress,
 } from '@mui/material'
 import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { manualPaymentStep1Schema, manualPaymentRootSchema } from '@/lib/validation'
+import {
+  manualPaymentStep1Schema,
+  manualPaymentRootSchema,
+} from '@/lib/validation'
+import { GlobalLoading } from '@/components/atoms'
 
 import Step1 from './steps/Step1'
 import Step2 from './steps/Step2'
@@ -24,7 +27,10 @@ import { ProjectData } from './manualPaymentTypes'
 import { mapFormDataToFundEgressSimplified } from '@/utils/formDataMapper'
 import { useFundEgress } from '@/hooks/useFundEgress'
 import { fundEgressService } from '@/services/api/fundEgressService'
-import { ManualPaymentDataProvider, useManualPaymentData } from './ManualPaymentDataProvider'
+import {
+  ManualPaymentDataProvider,
+  useManualPaymentData,
+} from './ManualPaymentDataProvider'
 import { toast } from 'react-hot-toast'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import { useCreateDeveloperWorkflowRequest } from '@/hooks/workflow'
@@ -32,13 +38,15 @@ import { useCreateDeveloperWorkflowRequest } from '@/hooks/workflow'
 
 // const steps = ['Details', 'Documents', 'Review'] // Removed as we now use dynamic steps
 import { useManualPaymentLabelsWithCache } from '@/hooks/useManualPaymentLabelsWithCache'
-import { MANUAL_PAYMENT_LABELS } from '@/constants/mappings/manualPaymentLabels'
+import { VOUCHER_LABELS } from '@/constants/mappings/manualPaymentLabels'
 
 interface ManualPaymentStepperWrapperProps {
   isReadOnly?: boolean
 }
 
-function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentStepperWrapperProps = {}) {
+function ManualPaymentStepperContent({
+  isReadOnly = false,
+}: ManualPaymentStepperWrapperProps = {}) {
   const [activeStep, setActiveStep] = useState(0)
   const [isEditMode, setIsEditMode] = useState(false)
   const [savedId, setSavedId] = useState<string | null>(null)
@@ -51,23 +59,26 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
   const { getLabel } = useManualPaymentLabelsWithCache('EN')
 
   // Memoize dynamic steps array to prevent recreation on every render
-  const steps = useMemo(() => [
-    getLabel(
-      MANUAL_PAYMENT_LABELS.STEPS.DETAILS,
-      'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.STEPS.DETAILS
-    ),
-    getLabel(
-      MANUAL_PAYMENT_LABELS.STEPS.DOCUMENTS,
-      'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.STEPS.DOCUMENTS
-    ),
-    getLabel(
-      MANUAL_PAYMENT_LABELS.STEPS.REVIEW,
-      'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.STEPS.REVIEW
-    ),
-  ], [getLabel])
+  const steps = useMemo(
+    () => [
+      getLabel(
+        VOUCHER_LABELS.STEPS.DETAILS,
+        'EN',
+        VOUCHER_LABELS.FALLBACKS.STEPS.DETAILS
+      ),
+      getLabel(
+        VOUCHER_LABELS.STEPS.DOCUMENTS,
+        'EN',
+        VOUCHER_LABELS.FALLBACKS.STEPS.DOCUMENTS
+      ),
+      getLabel(
+        VOUCHER_LABELS.STEPS.REVIEW,
+        'EN',
+        VOUCHER_LABELS.FALLBACKS.STEPS.REVIEW
+      ),
+    ],
+    [getLabel]
+  )
 
   // Get shared data from provider
   const sharedData = useManualPaymentData()
@@ -99,7 +110,6 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
     // but no longer manages loading state
   }, [])
 
-
   // Workflow request hook for submitting payment data
   const createProjectWorkflowRequest = useCreateDeveloperWorkflowRequest()
 
@@ -110,6 +120,7 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
     // Cast is safe here: Step 1 schema validates only a subset of ProjectData fields present on this step
     resolver: zodResolver(manualPaymentStep1Schema) as unknown as any,
     defaultValues: {
+      // OLD FIELDS - Keep for compatibility but will be ignored by schema
       sectionId: '',
       developerId: '',
       developerName: '',
@@ -143,6 +154,66 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
       relationshipManager: '',
       assistantRelationshipManager: '',
       teamLeaderName: '',
+
+      // NEW FIELDS - Add defaults for new structure
+      vaucherReferenceNumber: '',
+      assetRegisterName: '',
+      managementFirmName: '',
+      managementFirmAccountStatus: null,
+      escrowAccount: '',
+      subConstructionAccount: '',
+      retentionAccount: '',
+      paymentSubType: null,
+      hoaApprovalNumber: '',
+      hoaApprovalDate: null,
+      invoiceRef: '',
+      invoiceCurrency: '',
+      invoiceValue: '',
+      invoiceDate: null,
+      specialRate: false,
+      corporateAmount: false,
+      RT03: '',
+      totalEligibleAmount: '',
+      amountPaid: '',
+      capExceeded: false,
+      totalAmountPaid: '',
+      paymentCurrency: '',
+      debitCreditToEscrow: '',
+      currentEligibleAmount: '',
+      debitFromRetention: '',
+      totalPayoutAmount: '',
+      amountInTransit: '',
+      budgetYear: '',
+      budgetCategory: '',
+      budgetSubCategory: '',
+      budgetServiceName: '',
+      provisionalBudget: false,
+      HOAExemption: false,
+      categoryCode: '',
+      categoryName: '',
+      subCategoryCode: '',
+      subCategoryName: '',
+      serviceCode: '',
+      serviceName: '',
+      provisionalBudgetCode: '',
+      provisionalBudgetName: '',
+      availableBudgetAmount: '',
+      utilizedBudgetAmount: '',
+      invoiceBudgetAmount: '',
+      voucherDTO: {
+        benVoucher: '',
+        benVoucherName: '',
+        benVoucherSwiftCode: '',
+        benVoucherRoutingCode: '',
+        benVoucherAccountNumber: '',
+      },
+      buildPartnerDTO: {
+        bpName: '',
+      },
+      engineerFeePayment: '',
+      routinfSortcode: '',
+      narration1: '',
+      narration2: '',
 
       accounts: [
         {
@@ -206,7 +277,9 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
       const modeParam = mode ? `&mode=${mode}` : ''
 
       if (paymentId) {
-        router.push(`/transactions/manual/new/${paymentId}?step=${nextStep}${modeParam}`)
+        router.push(
+          `/transactions/manual/new/${paymentId}?step=${nextStep}${modeParam}`
+        )
       } else {
         router.push(`/transactions/manual/new?step=${nextStep}${modeParam}`)
       }
@@ -227,7 +300,9 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
       const modeParam = mode ? `&mode=${mode}` : ''
 
       if (paymentId) {
-        router.push(`/transactions/manual/new/${paymentId}?step=${prevStep}${modeParam}`)
+        router.push(
+          `/transactions/manual/new/${paymentId}?step=${prevStep}${modeParam}`
+        )
       } else {
         router.push(`/transactions/manual/new?step=${prevStep}${modeParam}`)
       }
@@ -245,30 +320,39 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
   }
 
   // Memoize mapping options to prevent recreation on every save
-  const mappingOptions = useMemo(() => ({
-    paymentTypes: sharedData.paymentTypes.data || [],
-    paymentSubTypes: sharedData.paymentSubTypes.data || [],
-    currencies: sharedData.currencies.data || [],
-    depositModes: sharedData.depositModes.data || [],
-    paymentModes: sharedData.paymentModes.data || [],
-    transferTypes: sharedData.transferTypes.data || [],
-    realEstateAssets: sharedData.realEstateAssets.data || [],
-    buildPartners: sharedData.buildPartners.data || [],
-  }), [
-    sharedData.paymentTypes.data,
-    sharedData.paymentSubTypes.data,
-    sharedData.currencies.data,
-    sharedData.depositModes.data,
-    sharedData.paymentModes.data,
-    sharedData.transferTypes.data,
-    sharedData.realEstateAssets.data,
-    sharedData.buildPartners.data,
-  ])
+  const mappingOptions = useMemo(
+    () => ({
+      paymentTypes: sharedData.paymentTypes.data || [],
+      paymentSubTypes: sharedData.paymentSubTypes.data || [],
+      currencies: sharedData.currencies.data || [],
+      depositModes: sharedData.depositModes.data || [],
+      paymentModes: sharedData.paymentModes.data || [],
+      transferTypes: sharedData.transferTypes.data || [],
+      realEstateAssets: sharedData.realEstateAssets.data || [],
+      buildPartners: sharedData.buildPartners.data || [],
+      // pass fetched balances so mapper can use numeric values instead of UI strings
+      balances: sharedData.accountBalances.balances,
+    }),
+    [
+      sharedData.paymentTypes.data,
+      sharedData.paymentSubTypes.data,
+      sharedData.currencies.data,
+      sharedData.depositModes.data,
+      sharedData.paymentModes.data,
+      sharedData.transferTypes.data,
+      sharedData.realEstateAssets.data,
+      sharedData.buildPartners.data,
+      sharedData.accountBalances.balances,
+    ]
+  )
 
   const handleSaveAndNext = async () => {
     try {
       const formData = methods.getValues()
-      const apiPayload = mapFormDataToFundEgressSimplified(formData, mappingOptions)
+      const apiPayload = mapFormDataToFundEgressSimplified(
+        formData,
+        mappingOptions
+      )
 
       const result = await submitPayment(apiPayload)
 
@@ -280,7 +364,6 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
         'Payment saved successfully! Moving to document upload step.'
       )
     } catch (error) {
-
       toast.error(
         `Error: ${error instanceof Error ? error.message : 'Failed to save payment'}`
       )
@@ -295,7 +378,10 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
       }
 
       const formData = methods.getValues()
-      const apiPayload = mapFormDataToFundEgressSimplified(formData, mappingOptions)
+      const apiPayload = mapFormDataToFundEgressSimplified(
+        formData,
+        mappingOptions
+      )
 
       apiPayload.id = parseInt(savedId)
 
@@ -324,8 +410,25 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
         toast.error('No payment ID found in URL.')
       }
     } catch (error) {
-
       toast.error('Failed to enter edit mode. Please try again.')
+    }
+  }
+
+  const handleEditDocuments = async () => {
+    try {
+      const paymentId = params.id as string
+      if (paymentId) {
+        setSavedId(paymentId)
+        setIsEditMode(true)
+        const mode = searchParams.get('mode')
+        const modeParam = mode ? `&mode=${mode}` : ''
+        router.push(`/transactions/manual/new/${paymentId}?step=1${modeParam}`)
+        toast.success('Navigating to documents step.')
+      } else {
+        toast.error('No payment ID found in URL.')
+      }
+    } catch (error) {
+      toast.error('Failed to navigate to documents step. Please try again.')
     }
   }
 
@@ -345,8 +448,6 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
       // Get the payment ID from saved state
       const projectIdFromStatus = savedId
 
-
-
       if (!projectIdFromStatus) {
         toast.error('Payment ID not found. Please save the payment first.')
         return
@@ -355,14 +456,10 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
       // Get form data for workflow request (like DeveloperStepper)
       const step1Data = methods.getValues()
 
-
-
       if (!step1Data) {
         toast.error('Payment data not found. Please complete the form first.')
         return
       }
-
-
 
       // Create workflow request directly (like DeveloperStepper)
       await createProjectWorkflowRequest.mutateAsync({
@@ -379,7 +476,6 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
         router.push('/transactions/manual')
       }, 1500) // Small delay to show the toast
     } catch (error) {
-
       const errorData = error as {
         response?: { data?: { message?: string } }
         message?: string
@@ -401,14 +497,25 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
     }
     const count = keys.length
     if (count > 0) {
-      toast.error(`Please fix ${count} validation error${count > 1 ? 's' : ''} before proceeding.`)
+      toast.error(
+        `Please fix ${count} validation error${count > 1 ? 's' : ''} before proceeding.`
+      )
     }
   }
 
   const getStepContent = (step: number) => {
     switch (step) {
       case 0:
-        return <Step1 savedId={savedId} isEditMode={isEditMode} onDataLoaded={handleDataLoaded} isReadOnly={isReadOnly} />
+        return (
+          <Step1
+            key={`${savedId || 'new'}-${activeStep}`}
+            savedId={savedId}
+            isEditMode={isEditMode}
+            onDataLoaded={handleDataLoaded}
+            isReadOnly={isReadOnly}
+            refreshKey={activeStep}
+          />
+        )
       case 1:
         if (!savedId) {
           toast.error(
@@ -438,12 +545,17 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
           />
         )
       case 2:
-        return <Step2 onEdit={handleEdit} isReadOnly={isReadOnly} />
+        return (
+          <Step2
+            onEdit={handleEdit}
+            onEditDocuments={handleEditDocuments}
+            isReadOnly={isReadOnly}
+          />
+        )
       default:
         return null
     }
   }
-
 
   return (
     <FormProvider {...methods}>
@@ -483,30 +595,18 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
             ))}
           </Stepper>
 
-          <Box sx={{ my: 4, backgroundColor: '#FFFFFFBF', boxShadow: 'none', position: 'relative' }}>
-            {getStepContent(activeStep)}
-            
-            {/* Subtle loading indicator for when shared data is still loading */}
-            {sharedData.isInitialLoading && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: 10,
-                  right: 10,
-                  display: 'flex',
-                  alignItems: 'center',
-                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                  borderRadius: '20px',
-                  padding: '8px 12px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  zIndex: 10,
-                }}
-              >
-                <CircularProgress size={16} sx={{ color: '#2563EB', mr: 1 }} />
-                <Typography variant="caption" sx={{ color: '#6A7282', fontFamily: 'Outfit, sans-serif' }}>
-                  Loading...
-                </Typography>
-              </Box>
+          <Box
+            sx={{
+              my: 4,
+              backgroundColor: '#FFFFFFBF',
+              boxShadow: 'none',
+              position: 'relative',
+            }}
+          >
+            {sharedData.isInitialLoading ? (
+              <GlobalLoading fullHeight className="min-h-[400px]" />
+            ) : (
+              getStepContent(activeStep)
             )}
 
             {/* Button Section - Separate layouts for View Mode and Edit Mode */}
@@ -569,7 +669,7 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
                         Previous
                       </Button>
                     )}
-                    
+
                     {activeStep < steps.length - 1 && (
                       <Button
                         onClick={() => {
@@ -580,9 +680,13 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
                           const modeParam = mode ? `&mode=${mode}` : ''
 
                           if (paymentId) {
-                            router.push(`/transactions/manual/new/${paymentId}?step=${nextStep}${modeParam}`)
+                            router.push(
+                              `/transactions/manual/new/${paymentId}?step=${nextStep}${modeParam}`
+                            )
                           } else {
-                            router.push(`/transactions/manual/new?step=${nextStep}${modeParam}`)
+                            router.push(
+                              `/transactions/manual/new?step=${nextStep}${modeParam}`
+                            )
                           }
                         }}
                         variant="contained"
@@ -616,19 +720,16 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
                   {/* Left side - Cancel button */}
                   <Button
                     onClick={handleReset}
-                    variant="text"
+                    variant="outlined"
                     sx={{
                       minWidth: '120px',
                       height: '40px',
-                      color: '#6B7280',
-                      backgroundColor: 'transparent',
                       fontFamily: 'Outfit, sans-serif',
                       fontWeight: 500,
+                      fontStyle: 'normal',
                       fontSize: '14px',
-                      textTransform: 'none',
-                      '&:hover': {
-                        backgroundColor: '#F3F4F6',
-                      },
+                      lineHeight: '20px',
+                      letterSpacing: 0,
                     }}
                   >
                     Cancel
@@ -641,20 +742,25 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
                         onClick={handleBack}
                         variant="outlined"
                         sx={{
-                          minWidth: '100px',
+                          width: '120px',
                           height: '40px',
-                          borderRadius: '8px',
-                          border: '1px solid #D1D5DB',
-                          color: '#374151',
-                          backgroundColor: '#FFFFFF',
+                          gap: '6px',
+                          opacity: 1,
+                          paddingTop: '2px',
+                          paddingRight: '3px',
+                          paddingBottom: '2px',
+                          paddingLeft: '3px',
+                          borderRadius: '6px',
+                          backgroundColor: '#DBEAFE',
+                          color: '#155DFC',
+                          border: 'none',
+                          mr: 2,
                           fontFamily: 'Outfit, sans-serif',
                           fontWeight: 500,
+                          fontStyle: 'normal',
                           fontSize: '14px',
-                          textTransform: 'none',
-                          '&:hover': {
-                            backgroundColor: '#F9FAFB',
-                            borderColor: '#9CA3AF',
-                          },
+                          lineHeight: '20px',
+                          letterSpacing: 0,
                         }}
                       >
                         Back
@@ -665,16 +771,13 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
                     {activeStep === 0 ? (
                       <Button
                         onClick={() => {
-                          methods.handleSubmit(
-                            async () => {
-                              if (isEditMode) {
-                                await handleUpdate()
-                              } else {
-                                await handleSaveAndNext()
-                              }
-                            },
-                            onError
-                          )()
+                          methods.handleSubmit(async () => {
+                            if (isEditMode) {
+                              await handleUpdate()
+                            } else {
+                              await handleSaveAndNext()
+                            }
+                          }, onError)()
                         }}
                         variant="contained"
                         disabled={createProjectWorkflowRequest.isPending}
@@ -702,8 +805,8 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
                         {createProjectWorkflowRequest.isPending
                           ? 'Saving...'
                           : isEditMode
-                          ? 'Update Payment'
-                          : 'Save & Continue'}
+                            ? 'Update Payment'
+                            : 'Save & Continue'}
                       </Button>
                     ) : (
                       <Button
@@ -711,7 +814,6 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
                           if (activeStep === steps.length - 1) {
                             methods.handleSubmit(onSubmit, onError)()
                           } else {
-                            
                             handleNext()
                           }
                         }}
@@ -743,8 +845,8 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
                             ? 'Submitting...'
                             : 'Saving...'
                           : activeStep === steps.length - 1
-                          ? 'Submit Payment'
-                          : 'Continue'}
+                            ? 'Submit Payment'
+                            : 'Continue'}
                       </Button>
                     )}
                   </Box>
@@ -759,7 +861,9 @@ function ManualPaymentStepperContent({ isReadOnly = false }: ManualPaymentSteppe
 }
 
 // Main wrapper component with provider
-export default function ManualPaymentStepperWrapper({ isReadOnly = false }: ManualPaymentStepperWrapperProps = {}) {
+export default function ManualPaymentStepperWrapper({
+  isReadOnly = false,
+}: ManualPaymentStepperWrapperProps = {}) {
   return (
     <ManualPaymentDataProvider>
       <ManualPaymentStepperContent isReadOnly={isReadOnly} />

@@ -12,7 +12,6 @@ import {
   Divider,
   Button,
   Checkbox,
-  CircularProgress,
   Alert,
 } from '@mui/material'
 import EditIcon from '@mui/icons-material/Edit'
@@ -22,10 +21,11 @@ import { API_ENDPOINTS } from '@/constants/apiEndpoints'
 import {
   CapitalPartnerResponse,
   PaymentPlanResponse,
+  BankDetailsResponse,
   CapitalPartnerUnitResponse,
   CapitalPartnerUnitPurchaseResponse,
 } from '@/types/capitalPartner'
-import { OwnerData } from '../investorsTypes'
+import { GlobalLoading } from '@/components/atoms'
 import { useTranslatedBasicDetails } from '@/hooks/useTranslatedBasicDetails'
 
 const labelSx = {
@@ -72,20 +72,18 @@ const renderCheckboxField = (label: string, checked: boolean) => (
 
 const SectionLoader = ({ sectionName }: { sectionName: string }) => (
   <Box
-    display="flex"
-    justifyContent="center"
-    alignItems="center"
-    minHeight="120px"
     sx={{
-      border: '1px solid #E5E7EB',
-      borderRadius: 1,
-      backgroundColor: '#F9FAFB',
+      backgroundColor: '#FFFFFFBF',
+      borderRadius: '16px',
+      margin: '0 auto',
+      width: '100%',
+      height: '120px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
     }}
   >
-    <CircularProgress size={24} />
-    <Typography sx={{ ml: 2, color: '#6A7282', fontSize: '14px' }}>
-      Loading {sectionName}...
-    </Typography>
+    <GlobalLoading fullHeight className="min-h-[120px]" />
   </Box>
 )
 
@@ -113,13 +111,11 @@ const SectionError = ({
 interface Step5Props {
   capitalPartnerId?: number | null
   isViewMode?: boolean
-  owners?: OwnerData[]
 }
 
 const Step5: React.FC<Step5Props> = ({
   capitalPartnerId,
   isViewMode = false,
-  owners = [],
 }) => {
   const router = useRouter()
   const { getLabel } = useCapitalPartnerLabelsApi()
@@ -127,36 +123,78 @@ const Step5: React.FC<Step5Props> = ({
 
   const handleEditBasicDetails = () => {
     if (capitalPartnerId) {
-      router.push(`/investors/new/${capitalPartnerId}?step=1`)
+      router.push(`/capital-partner/${capitalPartnerId}/step/1`)
     }
   }
 
   const handleEditUnitDetails = () => {
     if (capitalPartnerId) {
-      router.push(`/investors/new/${capitalPartnerId}?step=3`)
+      router.push(`/capital-partner/${capitalPartnerId}/step/3`)
     }
   }
 
   const handleEditPaymentPlan = () => {
     if (capitalPartnerId) {
-      router.push(`/investors/new/${capitalPartnerId}?step=4`)
+      router.push(`/capital-partner/${capitalPartnerId}/step/4`)
     }
   }
 
+  const handleEditBankDetails = () => {
+    if (capitalPartnerId) {
+      router.push(`/capital-partner/${capitalPartnerId}/step/5`)
+    }
+  }
 
   const {
     data: capitalPartnerData,
     isLoading: isLoadingBasic,
     error: errorBasic,
   } = useGetEnhanced<CapitalPartnerResponse>(
-    API_ENDPOINTS.CAPITAL_PARTNER.GET_BY_ID(capitalPartnerId?.toString() || '')
+    API_ENDPOINTS.CAPITAL_PARTNER.GET_BY_ID(capitalPartnerId?.toString() || ''),
+    {},
+    {
+      enabled: !!capitalPartnerId,
+      // Disable caching to always fetch fresh data
+      gcTime: 0,
+      staleTime: 0,
+      // Always refetch when component mounts
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: false,
+    }
   )
   const {
     data: paymentPlanData,
     isLoading: isLoadingPayment,
     error: errorPayment,
   } = useGetEnhanced<PaymentPlanResponse[]>(
-    `${API_ENDPOINTS.CAPITAL_PARTNER_PAYMENT_PLAN.GET_ALL}?capitalPartnerId.equals=${capitalPartnerId}`
+    `${API_ENDPOINTS.CAPITAL_PARTNER_PAYMENT_PLAN.GET_ALL}?capitalPartnerId.equals=${capitalPartnerId}`,
+    {},
+    {
+      enabled: !!capitalPartnerId,
+      // Disable caching to always fetch fresh data
+      gcTime: 0,
+      staleTime: 0,
+      // Always refetch when component mounts
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: false,
+    }
+  )
+  const {
+    data: bankDetailsData,
+    isLoading: isLoadingBank,
+    error: errorBank,
+  } = useGetEnhanced<BankDetailsResponse[]>(
+    `${API_ENDPOINTS.CAPITAL_PARTNER_BANK_INFO.GET_ALL}?capitalPartnerId.equals=${capitalPartnerId}`,
+    {},
+    {
+      enabled: !!capitalPartnerId,
+      // Disable caching to always fetch fresh data
+      gcTime: 0,
+      staleTime: 0,
+      // Always refetch when component mounts
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: false,
+    }
   )
   const {
     data: unitDetailsData,
@@ -166,8 +204,15 @@ const Step5: React.FC<Step5Props> = ({
     capitalPartnerId
       ? `${API_ENDPOINTS.CAPITAL_PARTNER_UNIT.GET_ALL}?capitalPartnerId.equals=${capitalPartnerId}`
       : '',
+    {},
     {
       enabled: !!capitalPartnerId,
+      // Disable caching to always fetch fresh data
+      gcTime: 0,
+      staleTime: 0,
+      // Always refetch when component mounts
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: false,
     }
   )
   const unitId =
@@ -184,6 +229,12 @@ const Step5: React.FC<Step5Props> = ({
     {},
     {
       enabled: isUnitDetailsReady && !!unitId,
+      // Disable caching to always fetch fresh data
+      gcTime: 0,
+      staleTime: 0,
+      // Always refetch when component mounts
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: false,
     }
   )
   const {
@@ -191,11 +242,12 @@ const Step5: React.FC<Step5Props> = ({
     investorIdType: translatedInvestorIdType,
     nationality: translatedNationality,
     unitStatus: translatedUnitStatus,
+    payMode: translatedPayMode,
     loading: loadingTranslations,
   } = useTranslatedBasicDetails(
     capitalPartnerData,
     unitDetailsData,
-    undefined
+    bankDetailsData
   )
   const sectionLoadingStates = {
     basicDetails: isLoadingBasic,
@@ -203,11 +255,13 @@ const Step5: React.FC<Step5Props> = ({
       isLoadingUnit || (isUnitDetailsReady && isLoadingPurchase)
     ),
     paymentPlan: isLoadingPayment,
+    bankDetails: isLoadingBank,
   }
   const sectionErrorStates = {
     basicDetails: errorBasic,
     unitDetails: errorUnit || errorPurchase,
     paymentPlan: errorPayment,
+    bankDetails: errorBank,
   }
   const formatDate = (dateString: string) => {
     if (!dateString) return '-'
@@ -225,6 +279,69 @@ const Step5: React.FC<Step5Props> = ({
       minimumFractionDigits: 2,
     }).format(amount)
   }
+  const getBankDetailsFields = () => {
+    if (!bankDetailsData || bankDetailsData.length === 0) return []
+
+    const bankData = bankDetailsData[0]
+    if (!bankData) return []
+
+    return [
+      {
+        gridSize: 6,
+        label: getLabel('CDL_CP_PAY_MODE', currentLanguage, 'Pay Mode'),
+        value: loadingTranslations ? 'Loading...' : translatedPayMode,
+      },
+      {
+        gridSize: 6,
+        label: getLabel('CDL_CP_PAYEE_NAME', currentLanguage, 'Payee Name'),
+        value: bankData.cpbiPayeeName || '-',
+      },
+      {
+        gridSize: 6,
+        label: getLabel('CDL_CP_BANK_NAME', currentLanguage, 'Bank Name'),
+        value: bankData.cpbiBankName || '-',
+      },
+      {
+        gridSize: 6,
+        label: getLabel(
+          'CDL_CP_ROUTING_CODE',
+          currentLanguage,
+          'Beneficiary Routing Code'
+        ),
+        value: bankData.cpbiBeneRoutingCode || '-',
+      },
+      {
+        gridSize: 6,
+        label: getLabel(
+          'CDL_CP_ACCOUNT_NUMBER',
+          currentLanguage,
+          'Account Number'
+        ),
+        value: bankData.cpbiAccountNumber || '-',
+      },
+      {
+        gridSize: 6,
+        label: getLabel(
+          'CDL_CP_PAYEE_ADDRESS',
+          currentLanguage,
+          'Payee Address'
+        ),
+        value: bankData.cpbiPayeeAddress || '-',
+      },
+      {
+        gridSize: 6,
+        label: getLabel('CDL_CP_BANK_ADDRESS', currentLanguage, 'Bank Address'),
+        value: bankData.cpbiBankAddress || '-',
+      },
+      {
+        gridSize: 6,
+        label: getLabel('CDL_CP_BIC_CODE', currentLanguage, 'BIC'),
+        value: bankData.cpbiBicCode || '-',
+      },
+    ]
+  }
+
+  const bankDetailsFields = getBankDetailsFields()
   const getBasicFields = () => {
     if (!capitalPartnerData) return []
 
@@ -324,7 +441,7 @@ const Step5: React.FC<Step5Props> = ({
     return [
       {
         gridSize: 6,
-        label: getLabel('CDL_CP_PROP_NUMBER', currentLanguage, 'Project Name*'),
+          label: getLabel('CDL_CP_BPA_NAME', currentLanguage, 'Project Name*'),
         value: unitData.realEstateAssestDTO?.reaName || '-',
       },
       {
@@ -855,7 +972,7 @@ const Step5: React.FC<Step5Props> = ({
       checkboxFieldsRow3: [
         {
           label: getLabel(
-            'CDL_CP_MODIFICATION_FEE_NEEDED',
+            'CDL_CP_FEE_REQ',
             currentLanguage,
             'Modification Fee Needed'
           ),
@@ -863,7 +980,7 @@ const Step5: React.FC<Step5Props> = ({
         },
         {
           label: getLabel(
-            'CDL_CP_RESERVATION_BOOKING_FORM',
+            'CDL_CP_BOOKING',
             currentLanguage,
             'Reservation Booking Form'
           ),
@@ -1027,7 +1144,7 @@ const Step5: React.FC<Step5Props> = ({
               verticalAlign: 'middle',
             }}
           >
-            Basic Details
+            {getLabel('CDL_CP_BASIC_INFO', currentLanguage, 'Basic Details')}
           </Typography>
           {!isViewMode && (
             <Button
@@ -1049,7 +1166,7 @@ const Step5: React.FC<Step5Props> = ({
         </Box>
         <Divider sx={{ mb: 2 }} />
         {renderSectionContent(
-          'Basic Details',
+          getLabel('CDL_CP_BASIC_INFO', currentLanguage, 'Basic Details'),
           sectionLoadingStates.basicDetails,
           sectionErrorStates.basicDetails,
           <Grid container spacing={3}>
@@ -1083,7 +1200,7 @@ const Step5: React.FC<Step5Props> = ({
               verticalAlign: 'middle',
             }}
           >
-            Unit Details
+            {getLabel('CDL_CP_UNIT_DETAILS', currentLanguage, 'Unit Details')}
           </Typography>
           {!isViewMode && (
             <Button
@@ -1105,7 +1222,7 @@ const Step5: React.FC<Step5Props> = ({
         </Box>
         <Divider sx={{ mb: 2 }} />
         {renderSectionContent(
-          'Unit Details',
+          getLabel('CDL_CP_UNIT_DETAILS', currentLanguage, 'Unit Details'),
           sectionLoadingStates.unitDetails,
           sectionErrorStates.unitDetails,
           <Grid container spacing={3}>
@@ -1145,7 +1262,7 @@ const Step5: React.FC<Step5Props> = ({
       </CardContent>
 
       {/* Payment Plan Section */}
-      {/* <CardContent>
+      <CardContent>
         <Box
           display="flex"
           justifyContent="space-between"
@@ -1166,7 +1283,7 @@ const Step5: React.FC<Step5Props> = ({
               verticalAlign: 'middle',
             }}
           >
-            Payment Plan
+            {getLabel('CDL_CP_PAYMENT_PLAN', currentLanguage, 'Payment Plan')}
           </Typography>
           {!isViewMode && (
             <Button
@@ -1188,7 +1305,7 @@ const Step5: React.FC<Step5Props> = ({
         </Box>
         <Divider sx={{ mb: 2 }} />
         {renderSectionContent(
-          'Payment Plan',
+          getLabel('CDL_CP_PAYMENT_PLAN', currentLanguage, 'Payment Plan'),
           sectionLoadingStates.paymentPlan,
           sectionErrorStates.paymentPlan,
           paymentPlanData && paymentPlanData.length > 0 ? (
@@ -1206,7 +1323,7 @@ const Step5: React.FC<Step5Props> = ({
                         fontFamily: 'Outfit, sans-serif',
                       }}
                     >
-                      Installment Number
+                      {getLabel('CDL_CP_SEQ_NO', currentLanguage, 'Installment Number')}
                     </th>
                     <th
                       style={{
@@ -1218,7 +1335,7 @@ const Step5: React.FC<Step5Props> = ({
                         fontFamily: 'Outfit, sans-serif',
                       }}
                     >
-                      Installment Date
+                      {getLabel('CDL_CP_DUE_DATE', currentLanguage, 'Installment Date')}
                     </th>
                     <th
                       style={{
@@ -1230,7 +1347,7 @@ const Step5: React.FC<Step5Props> = ({
                         fontFamily: 'Outfit, sans-serif',
                       }}
                     >
-                      Booking Amount
+                      {getLabel('CDL_CP_BOOKING_AMOUNT', currentLanguage, 'Booking Amount')}
                     </th>
                   </tr>
                 </thead>
@@ -1293,9 +1410,9 @@ const Step5: React.FC<Step5Props> = ({
             </Typography>
           )
         )}
-      </CardContent> */}
+      </CardContent>
 
-      {/* Joint Owners Section */}
+      {/* Bank Details Section */}
       <CardContent>
         <Box
           display="flex"
@@ -1317,12 +1434,12 @@ const Step5: React.FC<Step5Props> = ({
               verticalAlign: 'middle',
             }}
           >
-            Joint Owners
+            {getLabel('CDL_CP_BANK_DETAILS', currentLanguage, 'Bank Details')}
           </Typography>
           {!isViewMode && (
             <Button
               startIcon={<EditIcon />}
-              onClick={handleEditPaymentPlan}
+              onClick={handleEditBankDetails}
               sx={{
                 fontFamily: 'Outfit, sans-serif',
                 fontWeight: 500,
@@ -1338,146 +1455,33 @@ const Step5: React.FC<Step5Props> = ({
           )}
         </Box>
         <Divider sx={{ mb: 2 }} />
-        {owners && owners.length > 0 ? (
-          <Box sx={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #E5E7EB' }}>
-                  <th
-                    style={{
-                      padding: '12px',
-                      textAlign: 'left',
-                      fontSize: '12px',
-                      fontWeight: 500,
-                      color: '#6A7282',
-                      fontFamily: 'Outfit, sans-serif',
-                    }}
-                  >
-                    Name
-                  </th>
-                  <th
-                    style={{
-                      padding: '12px',
-                      textAlign: 'left',
-                      fontSize: '12px',
-                      fontWeight: 500,
-                      color: '#6A7282',
-                      fontFamily: 'Outfit, sans-serif',
-                    }}
-                  >
-                    Email
-                  </th>
-                  <th
-                    style={{
-                      padding: '12px',
-                      textAlign: 'left',
-                      fontSize: '12px',
-                      fontWeight: 500,
-                      color: '#6A7282',
-                      fontFamily: 'Outfit, sans-serif',
-                    }}
-                  >
-                    Mobile
-                  </th>
-                  <th
-                    style={{
-                      padding: '12px',
-                      textAlign: 'left',
-                      fontSize: '12px',
-                      fontWeight: 500,
-                      color: '#6A7282',
-                      fontFamily: 'Outfit, sans-serif',
-                    }}
-                  >
-                    ID Number
-                  </th>
-                  <th
-                    style={{
-                      padding: '12px',
-                      textAlign: 'left',
-                      fontSize: '12px',
-                      fontWeight: 500,
-                      color: '#6A7282',
-                      fontFamily: 'Outfit, sans-serif',
-                    }}
-                  >
-                    ID Expiry Date
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {owners.map((owner, index) => (
-                  <tr key={index} style={{ borderBottom: '1px solid #F3F4F6' }}>
-                    <td
-                      style={{
-                        padding: '12px',
-                        fontSize: '14px',
-                        color: '#1E2939',
-                        fontFamily: 'Outfit, sans-serif',
-                      }}
-                    >
-                      {owner.name || '-'}
-                    </td>
-                    <td
-                      style={{
-                        padding: '12px',
-                        fontSize: '14px',
-                        color: '#1E2939',
-                        fontFamily: 'Outfit, sans-serif',
-                      }}
-                    >
-                      {owner.email || '-'}
-                    </td>
-                    <td
-                      style={{
-                        padding: '12px',
-                        fontSize: '14px',
-                        color: '#1E2939',
-                        fontFamily: 'Outfit, sans-serif',
-                      }}
-                    >
-                      {owner.mobileno || '-'}
-                    </td>
-                    <td
-                      style={{
-                        padding: '12px',
-                        fontSize: '14px',
-                        color: '#1E2939',
-                        fontFamily: 'Outfit, sans-serif',
-                      }}
-                    >
-                      {owner.idNumber || '-'}
-                    </td>
-                    <td
-                      style={{
-                        padding: '12px',
-                        fontSize: '14px',
-                        color: '#1E2939',
-                        fontFamily: 'Outfit, sans-serif',
-                      }}
-                    >
-                      {owner.idExpiryDate || '-'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Box>
-        ) : (
-          <Typography
-            sx={{
-              color: '#6A7282',
-              fontFamily: 'Outfit, sans-serif',
-              fontSize: '14px',
-              textAlign: 'center',
-              py: 2,
-            }}
-          >
-            No joint owners added
-          </Typography>
+        {renderSectionContent(
+          getLabel('CDL_CP_BANK_DETAILS', currentLanguage, 'Bank Details'),
+          sectionLoadingStates.bankDetails,
+          sectionErrorStates.bankDetails,
+          bankDetailsFields.length > 0 ? (
+            <Grid container spacing={3}>
+              {bankDetailsFields.map((field, idx) => (
+                <Grid size={{ xs: 12, md: field.gridSize }} key={`bank-${idx}`}>
+                  {renderDisplayField(field.label, field.value)}
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <Typography
+              sx={{
+                color: '#6A7282',
+                fontFamily: 'Outfit, sans-serif',
+                fontSize: '14px',
+                textAlign: 'center',
+                py: 2,
+              }}
+            >
+              No bank details available
+            </Typography>
+          )
         )}
       </CardContent>
-
     </Card>
   )
 }

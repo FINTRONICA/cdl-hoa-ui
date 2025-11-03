@@ -15,7 +15,7 @@ export const useFeeCategories = () => {
     queryFn: async () => {
       const rawCategories = await FeeDropdownService.fetchFeeCategories()
       const processedCategories = FeeDropdownService.processFeeCategories(rawCategories)
-      console.log('🔄 Processed Fee Categories:', processedCategories)
+      
       return processedCategories
     },
     staleTime: STALE_TIME,

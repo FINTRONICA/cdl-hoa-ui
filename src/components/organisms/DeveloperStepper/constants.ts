@@ -4,32 +4,37 @@ import { ProjectData } from './developerTypes'
 
 
 export const STEP_LABELS = [
+  getBuildPartnerLabel('CDL_BP_DETAILS'),
   'Documents (Optional)',
-  getBuildPartnerLabel('CDL_AR_DETAILS'),
-  getBuildPartnerLabel('CDL_AR_CONTACT'),
+  getBuildPartnerLabel('CDL_BP_CONTACT'),
+  getBuildPartnerLabel('CDL_BP_FEES'),
+  getBuildPartnerLabel('CDL_BP_BENE_INFO'),
   'Review',
 ] as const
 
 
 export const DEFAULT_FORM_VALUES: ProjectData = {
 
-  arID: '',
-  arCifrera: '',
-  arDeveloperRegNo: '',
-  arName: '',
-  arNameLocal: '',
-  arCompanyName: '',
-  arProjectName: '',
-  arMasterDeveloper: '',
-  arMasterCommunity: '',
-  arOnboardingDate: null,
-  arTradeLicenseNo: '',
-  arTradeLicenseExpDate: null,
-  arWorldCheckFlag: false,
-  arWorldCheckRemarks: '',
-  arMigratedData: false,
-  arRemark: '',
-  arRegulatorDTO: { id: 0 },
+  bpDeveloperId: '',
+  bpCifrera: '',
+  bpDeveloperRegNo: '',
+  bpName: '',
+  bpMasterName: '',
+  bpNameLocal: '',
+  bpOnboardingDate: null,
+  bpContactAddress: '',
+  bpContactTel: '',
+  bpPoBox: '',
+  bpMobile: '',
+  bpFax: '',
+  bpEmail: '',
+  bpLicenseNo: '',
+  bpLicenseExpDate: null,
+  bpWorldCheckFlag: false,
+  bpWorldCheckRemarks: '',
+  bpMigratedData: false,
+  bpremark: '',
+  bpRegulatorDTO: { id: 0 },
 
   // Project Details
   sectionId: '',
@@ -118,20 +123,20 @@ export const DEFAULT_FORM_VALUES: ProjectData = {
 
 
 export const DATE_FIELDS = [
-  'arOnboardingDate',
-  'arTradeLicenseExpDate', 
+  'bpOnboardingDate',
+  'bpLicenseExpDate', 
   'projectStartDate',
   'projectEndDate'
 ] as const
 
 
 export const BOOLEAN_FIELDS = [
-  'arWorldCheckFlag', 
-  'arMigratedData'
+  'bpWorldCheckFlag', 
+  'bpMigratedData'
 ] as const
 
 
-export const SKIP_VALIDATION_STEPS = [1, 2] as const
+export const SKIP_VALIDATION_STEPS = [1, 2, 3, 4] as const
 
 // Steps that reset form when developerId changes
 export const RESET_FORM_STEPS = [1, 2, 3] as const

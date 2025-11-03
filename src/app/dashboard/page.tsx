@@ -4,8 +4,9 @@ import React, { useState, useEffect, useRef } from 'react'
 import Highcharts from 'highcharts'
 import HighchartsReact from 'highcharts-react-official'
 import { DateRangePicker } from './components/filters/DateRangePicker'
-import { Header } from '@/components/organisms/Header'
+import { DashboardLayout } from '@/components/templates/DashboardLayout'
 import { Autocomplete } from '@/components/atoms/Autocomplete'
+import { GlobalLoading, GlobalError } from '@/components/atoms'
 import { useSidebarConfig } from '@/hooks/useSidebarConfig'
 import { useDashboardSummary } from '@/hooks/useDashboard'
 import { useBuildPartnerAutocomplete } from '@/hooks/useBuildPartnerAutocomplete'
@@ -213,7 +214,7 @@ const DateRangeDisplay = ({
   )
 }
 
-const FiltersRow = ({ onSubmit }: { onSubmit?: () => void }) => {
+const FiltersRow = ({ onSubmit, isSubmitting }: { onSubmit?: () => void; isSubmitting?: boolean }) => {
   const [selectedDeveloper, setSelectedDeveloper] = useState('')
   const [selectedBuildPartner, setSelectedBuildPartner] =
     useState<BuildPartner | null>(null)
@@ -291,7 +292,7 @@ const FiltersRow = ({ onSubmit }: { onSubmit?: () => void }) => {
   }, [selectedRealEstateAsset])
 
   return (
-    <div className="flex flex-col lg:flex-row lg:justify-between lg:items-end gap-4 mb-6 mt-8">
+    <div className="flex flex-col lg:flex-row lg:justify-between lg:items-end gap-4 mb-6 mt-2">
       <div className="flex flex-wrap gap-3">
         <div className="flex flex-col">
           <label className="text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
@@ -343,8 +344,9 @@ const FiltersRow = ({ onSubmit }: { onSubmit?: () => void }) => {
         </div>
         <div className="flex flex-col items-center justify-end mb-[2px]">
           <button
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-600 transition-colors"
+            className="bg-blue-500 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={onSubmit}
+            disabled={isSubmitting}
           >
             Submit
           </button>
@@ -362,7 +364,7 @@ const MainBalance = ({ dashboardData }: { dashboardData: any }) => (
     <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-6">
       MAIN TRUST ACCOUNT SUMMARY
     </div>
-    <div className="flex flex-wrap items-baseline gap-4 lg:gap-6">
+    <div className="flex items-center flex-wrap items-baseline gap-4 lg:gap-6">
       <div className="flex items-baseline gap-2">
         <span className="text-2xl lg:text-3xl font-bold text-gray-900">₹</span>
         <span className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900 leading-none">
@@ -742,7 +744,8 @@ const Dashboard = () => {
     ? getLabelResolver('dashboard', 'Dashboard')
     : 'Dashboard'
 
-  // Use the dashboard hook with authentication
+  const [isSubmitting, setIsSubmitting] = useState(false)
+ 
   const {
     data: dashboardData,
     isLoading,
@@ -750,12 +753,16 @@ const Dashboard = () => {
     refetch,
   } = useDashboardSummary(true)
 
-  // Handle submit button click - refresh dashboard data
+ 
   const handleSubmit = async () => {
     try {
-      // Refetch dashboard data with current selections
+      setIsSubmitting(true)
       await refetch()
-    } catch (error) {}
+    } catch (error) {
+      console.error('Error refetching dashboard data:', error)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
 
@@ -975,35 +982,33 @@ const Dashboard = () => {
 
   const chartData = transformApiDataToCharts(dashboardData)
   // Loading state
-  if (isLoading) {
+  if (isLoading || isSubmitting) {
     return (
-      <div className="min-h-screen bg-gray-100 p-4 lg:p-6 h-full overflow-auto">
-        <Header title={dashboardTitle} subtitle="" className="!p-0" />
-        <div className="w-full flex items-center justify-center h-64">
-          <div className="text-lg text-gray-600">Loading...</div>
-        </div>
-      </div>
+      <DashboardLayout title={dashboardTitle} subtitle="">
+        <GlobalLoading fullHeight />
+      </DashboardLayout>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-100 p-4 lg:p-6 h-full overflow-auto">
-        <Header title={dashboardTitle} subtitle="" className="!p-0" />
-        <div className="w-full flex items-center justify-center h-64">
-          <div className="text-lg text-red-600">
-            Error loading dashboard data. Please try again.
-          </div>
+      <DashboardLayout title={dashboardTitle} subtitle="">
+        <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
+          <GlobalError 
+            error={error} 
+            onRetry={() => window.location.reload()}
+            title="Error loading dashboard data"
+            fullHeight
+          />
         </div>
-      </div>
+      </DashboardLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 lg:p-8 h-full overflow-auto">
-      <Header title={dashboardTitle} subtitle="" className="!p-0" />
+    <DashboardLayout title={dashboardTitle} subtitle="">
       <div className="w-full max-w-7xl mx-auto">
-        <FiltersRow onSubmit={handleSubmit} />
+        <FiltersRow onSubmit={handleSubmit} isSubmitting={isSubmitting} />
 
         <MainBalance dashboardData={dashboardData} />
 
@@ -1075,7 +1080,7 @@ const Dashboard = () => {
 
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }
 

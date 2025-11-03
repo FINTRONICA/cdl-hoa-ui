@@ -166,27 +166,17 @@ export function useDeleteRealEstateAsset(): UseDeleteRealEstateAssetReturn {
       setIsLoading(true)
       setError(null)
 
-      console.log('🔄 useDeleteRealEstateAsset: Deleting asset...', {
-        id,
-        timestamp: new Date().toISOString(),
-      })
+     
 
       await realEstateAssetService.deleteRealEstateAsset(id)
 
-      console.log('✅ useDeleteRealEstateAsset: Successfully deleted asset:', {
-        id,
-        timestamp: new Date().toISOString(),
-      })
+     
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Unknown error occurred'
       setError(errorMessage)
 
-      console.error('❌ useDeleteRealEstateAsset: Failed to delete asset:', {
-        error: errorMessage,
-        errorType: err instanceof Error ? err.name : 'Unknown',
-        timestamp: new Date().toISOString(),
-      })
+     
 
       throw err
     } finally {

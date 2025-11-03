@@ -16,34 +16,11 @@ export const PROCESSED_TRANSACTION_LABELS = {
   CDL_TRAN_STATUS: 'Processing Status',
   CDL_TRAN_ACTION: 'Action',
 
-  //NEW FIELDS
-  CDL_TRAN_PROPERTY_NUMBER:'Property Number',
-  CDL_TRAN_PROPERTY_NAME:'Property Name',
-  // CDL_TRAN_REFNO: 'Transaction Reference Number',
-  CDL_TRAN_UNIT_REFERENCE_NUMBER: 'Unit Reference Number',
-  CDL_TRAN_SPLIT_AMOUNT: 'Split Amount',
-  CDL_TRAN_RECEIVABLE_BUCKET:"Receivable Bucket",
-  CDL_TRAN_DEPOSIT_MODE:"Deposit Mode",
-  CDL_TRAN_RESERVE_PRESENTAGE:"Reserver Presentage",
-  CDL_TRAN_RESERVE_AMOUNT:"Reserver Amount",
-
-
-// NEW FIELDS FOR DEPOSITS TRANSACTIONS
-CDL_TRAN_DEPOSITS_PROPERTY_NUMBER:'Property Number',
-CDL_TRAN_DEPOSITS_PROPERTY_NAME:'Property Name',
-CDL_TRAN_DEPOSITS_TRANSACTION_REFERENCE :'Transaction Reference',
-CDL_TRAN_DEPOSITS_TRANSACTION_DESCRIPTION :'Transaction Description',
-CDL_TRAN_DEPOSITS_TRANSACTION_AMOUNT :'Transaction Amount',
-CDL_TRAN_DEPOSITS_TRANSACTION_STATUS :'Transaction Status' ,
-CDL_TRAN_DEPOSITS_TRANSACTION_DATE :'Transaction Date',
-CDL_TRAN_DEPOSITS_TRANSACTION_NARRATION :'Transaction Narration / Notes',
-
-
   // Build Partner Labels
   CDL_TRANS_BP_NAME: 'Build Partner Name',
   CDL_TRANS_BP_ID: 'Build Partner ID',
   CDL_TRANS_BP_CIF: 'Build Partner CIF',
-  CDL_TRANS_BPA_NAME: 'Build Partner Assets Name',
+  CDL_TRANS_BPA_NAME: 'Management Firm Name',
   CDL_TRANS_BPA_CIF: 'Build Partner Assets CIF',
   CDL_TRANS_BPA_REGULATOR: 'Regulator ID',
 
@@ -100,6 +77,14 @@ CDL_TRAN_DEPOSITS_TRANSACTION_NARRATION :'Transaction Narration / Notes',
   CDL_TRAN_TEMPLATE_DOWNLOAD: 'Download Transaction Template',
   CDL_TRAN_UPLOAD: 'Upload Transaction File',
   CDL_TRAN_UPLOAD_TAS: 'Upload TAS Data',
+
+  // New Fields
+  CDL_TRANS_MANAGEMENT_FIRMS_NUMBER: 'Management Firm Number',
+  CDL_TRANS_MANAGEMENT_NAME: 'Management Name',
+  CDL_TRANS_OWNER_BUYER_NAME: 'Owner/Buyer Name',
+  CDL_TRANS_RECEIVABLE_BUCKET: 'Receivable Bucket',
+  CDL_TRANS_RESERVE_PERCENTAGE: 'Reserve Percentage',
+  CDL_TRANS_RESERVE_AMOUNT: 'Reserve Amount',
 }
 
 // Helper function to get label with fallback

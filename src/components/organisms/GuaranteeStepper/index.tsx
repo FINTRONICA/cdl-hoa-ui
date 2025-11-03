@@ -24,7 +24,13 @@ import {
   useUpdateSuretyBond,
 } from '../../../hooks/useSuretyBonds'
 import { BuildPartnerService } from '../../../services/api/buildPartnerService'
-import { useSuretyBondTranslationsByPattern } from '../../../hooks/useSuretyBondTranslations'
+import {
+  suretyBondService,
+  type SuretyBondResponse,
+} from '../../../services/api/suretyBondService'
+import { useSuretyBondLabelsWithCache } from '@/hooks/useSuretyBondLabelsWithCache'
+import { getSuretyBondLabel } from '@/constants/mappings/suretyBondMapping'
+import { useAppStore } from '@/store'
 import { toast } from 'react-hot-toast'
 import dayjs from 'dayjs'
 import { GuaranteeFormSchema } from '@/lib/validation/guaranteeSchemas'
@@ -42,33 +48,34 @@ export default function GuaranteeStepperWrapper({
   const [buildPartners, setBuildPartners] = useState<
     Array<{ id: number; bpName: string | null }>
   >([])
+  const [originalSuretyBondData, setOriginalSuretyBondData] =
+    useState<SuretyBondResponse | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
   const params = useParams()
 
-  // Use surety bond translations for labels
-  const { translations: sbTranslations, loading: sbTranslationsLoading } =
-    useSuretyBondTranslationsByPattern('CDL_SB_')
+  // Standardized surety bond label resolver
+  const language = useAppStore((s) => s.language) || 'EN'
+  const { getLabel } = useSuretyBondLabelsWithCache(language)
 
   // Use create and update surety bond hooks
   const { createSuretyBond, loading: createLoading } = useCreateSuretyBond()
   const { updateSuretyBond, loading: updateLoading } = useUpdateSuretyBond()
   const createWorkflowRequest = useCreateDeveloperWorkflowRequest()
-  // Helper function to get translated label
-  const getTranslatedLabel = (configId: string, fallback: string): string => {
-    if (sbTranslationsLoading || !sbTranslations.length) {
-      return fallback
-    }
-
-    const translation = sbTranslations.find((t) => t.configId === configId)
-    return translation?.configValue || fallback
+  // Helper function to get translated label with mapping fallback
+  const getTranslatedLabel = (configId: string, fallback?: string): string => {
+    return getLabel(
+      configId,
+      language,
+      fallback ?? getSuretyBondLabel(configId)
+    )
   }
 
   // Dynamic step labels
   const steps = [
-    getTranslatedLabel('CDL_SB_STEP_DETAILS', 'Details'),
-    getTranslatedLabel('CDL_SB_STEP_DOCUMENTS', 'Documents'),
-    getTranslatedLabel('CDL_SB_STEP_REVIEW', 'Review'),
+    getTranslatedLabel('CDL_SB_STEP_DETAILS'),
+    getTranslatedLabel('CDL_SB_STEP_DOCUMENTS'),
+    getTranslatedLabel('CDL_SB_STEP_REVIEW'),
   ]
 
   // Fetch build partners for mapping developer names to IDs
@@ -85,6 +92,22 @@ export default function GuaranteeStepperWrapper({
     }
     fetchBuildPartners()
   }, [])
+
+  // Fetch full surety bond data when in edit mode
+  React.useEffect(() => {
+    const fetchSuretyBondData = async () => {
+      const guaranteeId = params.id as string
+      if (guaranteeId && !guaranteeId.startsWith('temp_')) {
+        try {
+          const data = await suretyBondService.getSuretyBondById(guaranteeId)
+          setOriginalSuretyBondData(data)
+        } catch (error) {
+          console.error('Error fetching surety bond data:', error)
+        }
+      }
+    }
+    fetchSuretyBondData()
+  }, [params.id])
 
   // Handle URL parameters for ID and step
   React.useEffect(() => {
@@ -107,7 +130,7 @@ export default function GuaranteeStepperWrapper({
   }, [params, searchParams])
 
   const methods = useForm<GuaranteeData>({
-    resolver: zodResolver(GuaranteeFormSchema),
+    resolver: zodResolver(GuaranteeFormSchema) as any,
     defaultValues: {
       guaranteeRefNo: '',
       guaranteeType: '',
@@ -125,15 +148,13 @@ export default function GuaranteeStepperWrapper({
       status: '',
       documents: [],
     },
-    mode: 'onChange', 
+    mode: 'onChange',
   })
 
   const handleNext = async () => {
-    
     let isStepValid = false
-    
+
     if (activeStep === 0) {
- 
       isStepValid = await methods.trigger([
         'guaranteeRefNo',
         'guaranteeType',
@@ -142,18 +163,18 @@ export default function GuaranteeStepperWrapper({
         'projectName',
         'developerName',
         'guaranteeAmount',
-        'issuerBank'
+        'issuerBank',
       ])
     } else if (activeStep === 1) {
-     
       isStepValid = await methods.trigger(['documents'])
     } else {
-    
       isStepValid = true
     }
-    
+
     if (!isStepValid) {
-      toast.error('Please fix validation errors before proceeding to the next step.')
+      toast.error(
+        'Please fix validation errors before proceeding to the next step.'
+      )
       return
     }
 
@@ -163,59 +184,93 @@ export default function GuaranteeStepperWrapper({
 
       const guaranteeId = params.id as string
       const modeParam = isViewMode ? '&mode=view' : ''
-      router.push(`/guarantee/new/${guaranteeId}?step=${nextStep}${modeParam}`)
+      router.push(
+        `/surety_bond/new/${guaranteeId}?step=${nextStep}${modeParam}`
+      )
 
       toast.success(`Moved to step ${nextStep + 1}.`)
     } else {
       if (isViewMode) {
-      
-        router.push('/guarantee')
+        router.push('/surety_bond')
         toast.success('View completed! Redirecting to guarantee page.')
         return
       }
- 
+
       try {
         if (!savedId) {
           toast.error('No saved guarantee ID found for submission')
           return
         }
 
-      
+        if (!originalSuretyBondData) {
+          toast.error(
+            'Original surety bond data not loaded. Please refresh the page.'
+          )
+          return
+        }
+
         const formValues = methods.getValues()
 
-   
+        // Find the selected build partner ID from the name
+        const selectedDeveloper = buildPartners.find(
+          (bp) => bp.bpName === formValues.developerName
+        )
+        const developerId = selectedDeveloper?.id || null
+
+        // Merge original data with form changes for workflow payload
         const workflowPayload = {
-          suretyBondReferenceNumber: formValues.guaranteeRefNo || null,
+          id: parseInt(savedId),
+          suretyBondReferenceNumber:
+            formValues.guaranteeRefNo ||
+            originalSuretyBondData.suretyBondReferenceNumber,
           suretyBondDate: formValues.guaranteeDate
             ? dayjs(formValues.guaranteeDate).toISOString()
-            : null,
-          suretyBondTypeDTO: formValues.guaranteeType
-            ? { id: parseInt(formValues.guaranteeType) }
-            : null,
-          realEstateAssestDTO: formValues.projectName
-            ? { id: parseInt(formValues.projectName) }
-            : null,
-          buildPartnerDTO: formValues.developerName
-            ? {
-                id:
-                  buildPartners.find(
-                    (bp) => bp.bpName === formValues.developerName
-                  )?.id || 0,
-              }
-            : null,
-          suretyBondOpenEnded: formValues.openEndedGuarantee || false,
-          suretyBondNoOfAmendment: formValues.noOfAmendments || null,
+            : originalSuretyBondData.suretyBondDate,
+          suretyBondName:
+            formValues.guaranteeRefNo || originalSuretyBondData.suretyBondName,
+          suretyBondOpenEnded:
+            formValues.openEndedGuarantee ??
+            originalSuretyBondData.suretyBondOpenEnded,
           suretyBondExpirationDate: formValues.guaranteeExpirationDate
             ? dayjs(formValues.guaranteeExpirationDate).toISOString()
-            : null,
+            : originalSuretyBondData.suretyBondExpirationDate,
           suretyBondAmount: formValues.guaranteeAmount
             ? parseFloat(formValues.guaranteeAmount)
-            : null,
+            : originalSuretyBondData.suretyBondAmount,
+          suretyBondProjectCompletionDate:
+            originalSuretyBondData.suretyBondProjectCompletionDate,
+          suretyBondNoOfAmendment:
+            formValues.noOfAmendments ||
+            originalSuretyBondData.suretyBondNoOfAmendment,
+          suretyBondContractor: originalSuretyBondData.suretyBondContractor,
+          deleted: originalSuretyBondData.deleted,
+          enabled: originalSuretyBondData.enabled,
+          suretyBondNewReadingAmendment:
+            formValues.suretyBondNewReadingAmendment ||
+            originalSuretyBondData.suretyBondNewReadingAmendment,
+
+          // Keep full nested objects from original data
+          suretyBondTypeDTO: formValues.guaranteeType
+            ? { id: parseInt(formValues.guaranteeType) }
+            : originalSuretyBondData.suretyBondTypeDTO,
+
+          realEstateAssestDTO: formValues.projectName
+            ? { id: parseInt(formValues.projectName) }
+            : originalSuretyBondData.realEstateAssestDTO,
+
+          // Build Partner can be updated by the user
+          buildPartnerDTO: developerId
+            ? { id: developerId }
+            : originalSuretyBondData.buildPartnerDTO,
+
           issuerBankDTO: formValues.issuerBank
             ? { id: parseInt(formValues.issuerBank) }
-            : null,
-          suretyBondNewReadingAmendment:
-            formValues.suretyBondNewReadingAmendment || null,
+            : originalSuretyBondData.issuerBankDTO,
+
+          suretyBondStatusDTO: formValues.status
+            ? { id: parseInt(formValues.status) }
+            : originalSuretyBondData.suretyBondStatusDTO,
+          taskStatusDTO: originalSuretyBondData.taskStatusDTO,
         }
 
         await createWorkflowRequest.mutateAsync({
@@ -229,7 +284,7 @@ export default function GuaranteeStepperWrapper({
         toast.success(
           'Guarantee submitted successfully! Workflow request created.'
         )
-        router.push('/guarantee')
+        router.push('/surety_bond')
       } catch (error) {
         toast.error('Error submitting guarantee. Please try again.')
       }
@@ -242,17 +297,18 @@ export default function GuaranteeStepperWrapper({
       setActiveStep(prevStep)
       const guaranteeId = params.id as string
       const modeParam = isViewMode ? '&mode=view' : ''
-      router.push(`/guarantee/new/${guaranteeId}?step=${prevStep}${modeParam}`)
+      router.push(
+        `/surety_bond/new/${guaranteeId}?step=${prevStep}${modeParam}`
+      )
       toast.success(
-        `${getTranslatedLabel('CDL_SB_MOVED_BACK_TO', 'Moved back to')} ${steps[prevStep]} ${getTranslatedLabel('CDL_SB_STEP', 'step')}.`
+        `${getTranslatedLabel('CDL_SB_MOVED_BACK_TO')} ${steps[prevStep]} ${getTranslatedLabel('CDL_SB_STEP')}.`
       )
     }
   }
 
   const handleReset = () => {
     if (isViewMode) {
-     
-      router.push('/guarantee')
+      router.push('/surety_bond')
       return
     }
 
@@ -260,19 +316,15 @@ export default function GuaranteeStepperWrapper({
     methods.reset()
     setSavedId(null)
     setIsEditMode(false)
-    toast.success(
-      `${getTranslatedLabel('CDL_SB_FORM_RESET', 'Form reset successfully. All data cleared.')}`
-    )
-    router.push('/guarantee')
+    toast.success(getTranslatedLabel('CDL_SB_FORM_RESET'))
+    router.push('/surety_bond')
   }
 
   const handleSaveAndNext = async () => {
     try {
-     
       let isStepValid = false
-      
-      if (activeStep === 0) {
 
+      if (activeStep === 0) {
         isStepValid = await methods.trigger([
           'guaranteeRefNo',
           'guaranteeType',
@@ -281,126 +333,32 @@ export default function GuaranteeStepperWrapper({
           'projectName',
           'developerName',
           'guaranteeAmount',
-          'issuerBank'
+          'issuerBank',
         ])
       } else if (activeStep === 1) {
-        
         isStepValid = await methods.trigger(['documents'])
       }
-      
+
       if (!isStepValid) {
-        toast.error('Please fix validation errors before saving and proceeding to the next step.')
+        toast.error(
+          'Please fix validation errors before saving and proceeding to the next step.'
+        )
         return
       }
 
-    
       const formValues = methods.getValues()
+
+      // Find the selected build partner ID from the name
+      const selectedDeveloper = buildPartners.find(
+        (bp) => bp.bpName === formValues.developerName
+      )
+      const developerId = selectedDeveloper?.id || null
 
       const suretyBondData = {
         suretyBondReferenceNumber: formValues.guaranteeRefNo || null,
         suretyBondDate: formValues.guaranteeDate
           ? dayjs(formValues.guaranteeDate).toISOString()
           : null,
-        suretyBondTypeDTO: formValues.guaranteeType
-          ? { id: parseInt(formValues.guaranteeType) }
-          : null,
-        realEstateAssestDTO: formValues.projectName
-          ? { id: parseInt(formValues.projectName) }
-          : null,
-        buildPartnerDTO: formValues.developerName
-          ? {
-              id:
-                buildPartners.find(
-                  (bp) => bp.bpName === formValues.developerName
-                )?.id || 0,
-            }
-          : null,
-        suretyBondOpenEnded: formValues.openEndedGuarantee || false,
-        suretyBondNoOfAmendment: formValues.noOfAmendments || null,
-        suretyBondExpirationDate: formValues.guaranteeExpirationDate
-          ? dayjs(formValues.guaranteeExpirationDate).toISOString()
-          : null,
-        suretyBondAmount: formValues.guaranteeAmount
-          ? parseFloat(formValues.guaranteeAmount)
-          : null,
-        issuerBankDTO: formValues.issuerBank
-          ? { id: parseInt(formValues.issuerBank) }
-          : null,
-        suretyBondNewReadingAmendment:
-          formValues.suretyBondNewReadingAmendment || null,
-      }
-
-      const result = await createSuretyBond(suretyBondData)
-
-      if (result) {
-        toast.success(
-          `${getTranslatedLabel('CDL_SB_CREATED_SUCCESS', 'Surety bond created successfully! Moving to document upload step.')}`
-        )
-        setSavedId(result.id.toString())
-
-        router.push(`/guarantee/new/${result.id.toString()}?step=1`)
-      } else {
-        toast.error(
-          `${getTranslatedLabel('CDL_SB_CREATE_FAILED', 'Failed to create surety bond')}`
-        )
-      }
-    } catch (error) {
-      toast.error(
-        `${getTranslatedLabel('CDL_SB_CREATE_ERROR', 'Error creating surety bond')}`
-      )
-    }
-  }
-
-  const handleUpdate = async () => {
-    try {
-      if (!savedId) {
-        toast.error(
-          `${getTranslatedLabel('CDL_SB_NO_ID_ERROR', 'No saved ID found for update')}`
-        )
-        return
-      }
-
-
-      let isStepValid = false
-      
-      if (activeStep === 0) {
-
-        isStepValid = await methods.trigger([
-          'guaranteeRefNo',
-          'guaranteeType',
-          'guaranteeDate',
-          'projectCif',
-          'projectName',
-          'developerName',
-          'guaranteeAmount',
-          'issuerBank'
-        ])
-      } else if (activeStep === 1) {
- 
-        isStepValid = await methods.trigger(['documents'])
-      }
-      
-      if (!isStepValid) {
-        toast.error('Please fix validation errors before updating.')
-        return
-      }
-
-      const formValues = methods.getValues()
-
-
-      const selectedDeveloper = buildPartners.find(
-        (bp) => bp.bpName === formValues.developerName
-      )
-      const developerId = selectedDeveloper?.id || null
-
-    
-      const updatePayload = {
-        id: parseInt(savedId), 
-        suretyBondReferenceNumber: formValues.guaranteeRefNo || null,
-        suretyBondDate: formValues.guaranteeDate
-          ? dayjs(formValues.guaranteeDate).toISOString()
-          : null,
-        suretyBondName: formValues.guaranteeRefNo || null, 
         suretyBondTypeDTO: formValues.guaranteeType
           ? { id: parseInt(formValues.guaranteeType) }
           : null,
@@ -421,20 +379,135 @@ export default function GuaranteeStepperWrapper({
           : null,
         suretyBondNewReadingAmendment:
           formValues.suretyBondNewReadingAmendment || null,
+        suretyBondStatusDTO: formValues.status
+          ? { id: parseInt(formValues.status) }
+          : null,
       }
 
-     
+      const result = await createSuretyBond(suretyBondData)
+
+      if (result) {
+        toast.success(getTranslatedLabel('CDL_SB_CREATED_SUCCESS'))
+        setSavedId(result.id.toString())
+
+        router.push(`/surety_bond/new/${result.id.toString()}?step=1`)
+      } else {
+        toast.error(getTranslatedLabel('CDL_SB_CREATE_FAILED'))
+      }
+    } catch (error) {
+      toast.error(getTranslatedLabel('CDL_SB_CREATE_ERROR'))
+    }
+  }
+
+  const handleUpdate = async () => {
+    try {
+      if (!savedId) {
+        toast.error(
+          `${getTranslatedLabel('CDL_SB_NO_ID_ERROR', 'No saved ID found for update')}`
+        )
+        return
+      }
+
+      if (!originalSuretyBondData) {
+        toast.error(
+          'Original surety bond data not loaded. Please refresh the page.'
+        )
+        return
+      }
+
+      let isStepValid = false
+
+      if (activeStep === 0) {
+        isStepValid = await methods.trigger([
+          'guaranteeRefNo',
+          'guaranteeType',
+          'guaranteeDate',
+          'projectCif',
+          'projectName',
+          'developerName',
+          'guaranteeAmount',
+          'issuerBank',
+        ])
+      } else if (activeStep === 1) {
+        isStepValid = await methods.trigger(['documents'])
+      }
+
+      if (!isStepValid) {
+        toast.error('Please fix validation errors before updating.')
+        return
+      }
+
+      const formValues = methods.getValues()
+
+      // Find the selected build partner ID from the name
+      const selectedDeveloper = buildPartners.find(
+        (bp) => bp.bpName === formValues.developerName
+      )
+      const developerId = selectedDeveloper?.id || null
+
+      // Merge original data with form changes - keep all original nested objects
+      const updatePayload = {
+        id: parseInt(savedId),
+        suretyBondReferenceNumber:
+          formValues.guaranteeRefNo ||
+          originalSuretyBondData.suretyBondReferenceNumber,
+        suretyBondDate: formValues.guaranteeDate
+          ? dayjs(formValues.guaranteeDate).toISOString()
+          : originalSuretyBondData.suretyBondDate,
+        suretyBondName:
+          formValues.guaranteeRefNo || originalSuretyBondData.suretyBondName,
+        suretyBondOpenEnded:
+          formValues.openEndedGuarantee ??
+          originalSuretyBondData.suretyBondOpenEnded,
+        suretyBondExpirationDate: formValues.guaranteeExpirationDate
+          ? dayjs(formValues.guaranteeExpirationDate).toISOString()
+          : originalSuretyBondData.suretyBondExpirationDate,
+        suretyBondAmount: formValues.guaranteeAmount
+          ? parseFloat(formValues.guaranteeAmount)
+          : originalSuretyBondData.suretyBondAmount,
+        suretyBondProjectCompletionDate:
+          originalSuretyBondData.suretyBondProjectCompletionDate,
+        suretyBondNoOfAmendment:
+          formValues.noOfAmendments ||
+          originalSuretyBondData.suretyBondNoOfAmendment,
+        suretyBondContractor: originalSuretyBondData.suretyBondContractor,
+        deleted: originalSuretyBondData.deleted,
+        enabled: originalSuretyBondData.enabled,
+        suretyBondNewReadingAmendment:
+          formValues.suretyBondNewReadingAmendment ||
+          originalSuretyBondData.suretyBondNewReadingAmendment,
+
+        // Keep full nested objects from original data, only update if changed
+        suretyBondTypeDTO: formValues.guaranteeType
+          ? { id: parseInt(formValues.guaranteeType) }
+          : originalSuretyBondData.suretyBondTypeDTO,
+
+        realEstateAssestDTO: formValues.projectName
+          ? { id: parseInt(formValues.projectName) }
+          : originalSuretyBondData.realEstateAssestDTO,
+
+        // Build Partner can be updated by the user
+        buildPartnerDTO: developerId
+          ? { id: developerId }
+          : originalSuretyBondData.buildPartnerDTO,
+
+        issuerBankDTO: formValues.issuerBank
+          ? { id: parseInt(formValues.issuerBank) }
+          : originalSuretyBondData.issuerBankDTO,
+
+        suretyBondStatusDTO: formValues.status
+          ? { id: parseInt(formValues.status) }
+          : originalSuretyBondData.suretyBondStatusDTO,
+        taskStatusDTO: originalSuretyBondData.taskStatusDTO,
+      }
+
       await updateSuretyBond(savedId, updatePayload)
 
-      toast.success(
-        `${getTranslatedLabel('CDL_SB_UPDATED_SUCCESS', 'Surety bond updated successfully!')}`
-      )
+      toast.success(getTranslatedLabel('CDL_SB_UPDATED_SUCCESS'))
 
       setActiveStep(1)
     } catch (error) {
-      toast.error(
-        `${getTranslatedLabel('CDL_SB_UPDATE_ERROR', 'Error updating surety bond')}`
-      )
+      toast.error(getTranslatedLabel('CDL_SB_UPDATE_ERROR'))
     }
   }
 
@@ -446,15 +519,12 @@ export default function GuaranteeStepperWrapper({
   }
 
   const onSubmit = () => {
-    
     setTimeout(() => {
       handleReset()
     }, 1000)
   }
 
-  const onError = () => {
-   
-  }
+  const onError = () => {}
 
   const getStepContent = (step: number) => {
     switch (step) {
@@ -491,6 +561,7 @@ export default function GuaranteeStepperWrapper({
             type="BUILD_PARTNER"
             entityId={savedId}
             isOptional={true}
+            isReadOnly={isViewMode}
             onDocumentsChange={(documents: DocumentItem[]) => {
               methods.setValue('documents', documents)
             }}
@@ -561,6 +632,7 @@ export default function GuaranteeStepperWrapper({
               sx={{ backgroundColor: '#FFFFFFBF', mt: 3, mx: 6, mb: 2 }}
             >
               <Button
+                variant="outlined"
                 onClick={handleReset}
                 sx={{
                   fontFamily: 'Outfit, sans-serif',
@@ -571,13 +643,26 @@ export default function GuaranteeStepperWrapper({
                   letterSpacing: 0,
                 }}
               >
-                {getTranslatedLabel('CDL_SB_CANCEL', 'Cancel')}
+                {getTranslatedLabel('CDL_SB_CANCEL')}
               </Button>
               <Box>
                 {activeStep !== 0 && (
                   <Button
                     onClick={handleBack}
+                    variant="outlined"
                     sx={{
+                      width: '114px',
+                      height: '36px',
+                      gap: '6px',
+                      opacity: 1,
+                      paddingTop: '2px',
+                      paddingRight: '3px',
+                      paddingBottom: '2px',
+                      paddingLeft: '3px',
+                      borderRadius: '6px',
+                      backgroundColor: '#DBEAFE',
+                      color: '#155DFC',
+                      border: 'none',
                       mr: 2,
                       fontFamily: 'Outfit, sans-serif',
                       fontWeight: 500,
@@ -586,9 +671,8 @@ export default function GuaranteeStepperWrapper({
                       lineHeight: '20px',
                       letterSpacing: 0,
                     }}
-                    variant="outlined"
                   >
-                    {getTranslatedLabel('CDL_SB_BACK', 'Back')}
+                    {getTranslatedLabel('CDL_SB_BACK')}
                   </Button>
                 )}
                 {activeStep === 0 && !isViewMode && (
@@ -616,11 +700,11 @@ export default function GuaranteeStepperWrapper({
                   >
                     {createLoading || updateLoading
                       ? isEditMode
-                        ? getTranslatedLabel('CDL_SB_UPDATING', 'Updating...')
-                        : getTranslatedLabel('CDL_SB_CREATING', 'Creating...')
+                        ? getTranslatedLabel('CDL_SB_UPDATING')
+                        : getTranslatedLabel('CDL_SB_CREATING')
                       : isEditMode
-                        ? getTranslatedLabel('CDL_SB_UPDATE', 'Update')
-                        : getTranslatedLabel('CDL_SB_SAVE_NEXT', 'Save/Next')}
+                        ? getTranslatedLabel('CDL_SB_UPDATE')
+                        : getTranslatedLabel('CDL_SB_SAVE_NEXT')}
                   </Button>
                 )}
                 {isViewMode && activeStep === 0 && (
@@ -639,7 +723,7 @@ export default function GuaranteeStepperWrapper({
                       letterSpacing: 0,
                     }}
                   >
-                    {getTranslatedLabel('CDL_SB_NEXT', 'Next')}
+                    {getTranslatedLabel('CDL_SB_NEXT')}
                   </Button>
                 )}
                 {activeStep !== 0 && (
@@ -672,8 +756,8 @@ export default function GuaranteeStepperWrapper({
                     }}
                   >
                     {activeStep === steps.length - 1
-                      ? getTranslatedLabel('CDL_SB_SUBMIT', 'Submit')
-                      : getTranslatedLabel('CDL_SB_NEXT', 'Next')}
+                      ? getTranslatedLabel('CDL_SB_SUBMIT')
+                      : getTranslatedLabel('CDL_SB_NEXT')}
                   </Button>
                 )}
               </Box>

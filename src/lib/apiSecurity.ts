@@ -22,7 +22,7 @@ export class APISecurityService {
   };
 
   private static readonly SECURITY_CONFIG: SecurityConfig = {
-    maxRequestSize: 10 * 1024 * 1024, // 10MB
+    maxRequestSize: 25 * 1024 * 1024, // 25MB
     allowedOrigins: ['https://yourdomain.com', 'https://app.yourdomain.com'],
     blockedUserAgents: [
       'bot', 'crawler', 'spider', 'scraper', 'curl', 'wget', 'python'

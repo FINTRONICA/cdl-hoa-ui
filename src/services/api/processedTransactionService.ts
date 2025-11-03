@@ -56,6 +56,16 @@ export interface ProcessedTransaction {
   deleted: boolean | null
   enabled: boolean | null
   taskStatusDTO: any | null
+  // New fields
+  pfiManagementFirmsNumber?: string | null
+  pfiManagementName?: string | null
+  pfiTransactionRefNumber?: string | null
+  pfiOwnerBuyerName?: string | null
+  pfiSplitAmount?: number | null
+  pfiReceivableBucket?: string | null
+  pfiDepositMode?: string | null
+  pfiReservePercentage?: number | null
+  pfiReserveAmount?: number | null
 }
 
 export interface ProcessedTransactionFilters {
@@ -99,14 +109,16 @@ export interface ProcessedTransactionUIData {
   branchCode?: string
   checkNumber?: string
   retentionAmount?: string
-  transactionPropertyNumber?: string
-  transactionPropertyName?: string
-  transactionUnitReferenceNumber?: string
-  transactionSplitAmount?: string
-  transactionReceivableBucket?: string
-  transactionDepositMode?: string
-  transactionReservePresentage?: string
-  transactionReserveAmount?: string
+  // New fields
+  managementFirmsNumber?: string
+  managementName?: string
+  transactionRefNumber?: string
+  ownerBuyerName?: string
+  splitAmount?: string
+  receivableBucket?: string
+  depositMode?: string
+  reservePercentage?: string
+  reserveAmount?: string
 }
 
 export interface CreateProcessedTransactionRequest {
@@ -192,6 +204,16 @@ export const mapProcessedTransactionToUIData = (
     retentionAmount: apiData.pfiRetentionAmount
       ? formatAmount(apiData.pfiRetentionAmount)
       : '—',
+    // New fields
+    managementFirmsNumber: apiData.pfiManagementFirmsNumber || '—',
+    managementName: apiData.pfiManagementName || '—',
+    transactionRefNumber: apiData.pfiTransactionRefNumber || '—',
+    ownerBuyerName: apiData.pfiOwnerBuyerName || '—',
+    splitAmount: apiData.pfiSplitAmount ? formatAmount(apiData.pfiSplitAmount) : '—',
+    receivableBucket: apiData.pfiReceivableBucket || '—',
+    depositMode: apiData.pfiDepositMode || '—',
+    reservePercentage: apiData.pfiReservePercentage ? String(apiData.pfiReservePercentage) : '—',
+    reserveAmount: apiData.pfiReserveAmount ? formatAmount(apiData.pfiReserveAmount) : '—',
   }
 }
 

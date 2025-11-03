@@ -6,7 +6,6 @@ import {
   Card,
   CardContent,
   Button,
-  CircularProgress,
   Alert,
   Dialog,
   DialogTitle,
@@ -22,10 +21,11 @@ import { PermissionAwareDataTable } from '@/components/organisms/PermissionAware
 import { useTableState } from '@/hooks'
 import { useBeneficiaryDropdowns } from '@/hooks/useBeneficiaryDropdowns'
 import { cardStyles } from '../styles'
-import { useProjectLabels } from '@/hooks/useProjectLabels'
+// import { useProjectLabels } from '@/hooks/useProjectLabels'
+import { useBuildPartnerAssetLabelsWithUtils } from '@/hooks/useBuildPartnerAssetLabels'
 import { realEstateAssetService } from '@/services/api/projectService'
 import { PageActionButtons } from '@/components/molecules/PageActionButtons'
-
+import { GlobalLoading } from '@/components/atoms'
 
 interface BeneficiaryDetails extends Record<string, unknown> {
   reaBeneficiaryId: string
@@ -61,13 +61,15 @@ const Step4: React.FC<Step4Props> = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
 
-
-
   // API-driven pagination state
   const [currentApiPage, setCurrentApiPage] = useState(1)
   const [currentApiSize, setCurrentApiSize] = useState(20)
-  const [apiBeneficiariesData, setApiBeneficiariesData] = useState<BeneficiaryDetails[]>([])
-  const [fullApiBeneficiariesData, setFullApiBeneficiariesData] = useState<BeneficiaryDetails[]>([])
+  const [apiBeneficiariesData, setApiBeneficiariesData] = useState<
+    BeneficiaryDetails[]
+  >([])
+  const [fullApiBeneficiariesData, setFullApiBeneficiariesData] = useState<
+    BeneficiaryDetails[]
+  >([])
   const [apiPagination, setApiPagination] = useState<{
     totalElements: number
     totalPages: number
@@ -77,13 +79,14 @@ const Step4: React.FC<Step4Props> = ({
   const [beneficiaryToDelete, setBeneficiaryToDelete] =
     useState<BeneficiaryDetails | null>(null)
 
-
-  const { getLabel } = useProjectLabels()
-
+  const { getLabel } = useBuildPartnerAssetLabelsWithUtils()
+  const language = 'en'
 
   // Helper function to convert BeneficiaryDetails to BeneficiaryData
-  const convertToBeneficiaryData = (beneficiaryDetails: BeneficiaryDetails[]): BeneficiaryData[] => {
-    return beneficiaryDetails.map(beneficiary => ({
+  const convertToBeneficiaryData = (
+    beneficiaryDetails: BeneficiaryDetails[]
+  ): BeneficiaryData[] => {
+    return beneficiaryDetails.map((beneficiary) => ({
       id: beneficiary.id?.toString() || '',
       expenseType: beneficiary.reaBeneficiaryType || '',
       transferType: beneficiary.reaBeneficiaryType || '',
@@ -98,43 +101,55 @@ const Step4: React.FC<Step4Props> = ({
   // Function to fetch beneficiaries from API with pagination
   const fetchBeneficiariesFromAPI = async (page: number, size: number) => {
     if (!projectId) return
-    
+
     try {
-      const response = await realEstateAssetService.getProjectBeneficiaries(projectId)
-      
+      const response =
+        await realEstateAssetService.getProjectBeneficiaries(projectId)
+
       if (response && typeof response === 'object') {
-        const beneficiariesArray = (response as any)?.content || (Array.isArray(response) ? response : [])
-        
+        const beneficiariesArray =
+          (response as any)?.content ||
+          (Array.isArray(response) ? response : [])
+
         // Process all beneficiaries data first
-        const allProcessedBeneficiaries = beneficiariesArray.map((beneficiary: any) => ({
-          id: beneficiary.id?.toString() || '',
-          reaBeneficiaryId: beneficiary.reabBeneficiaryId || '',
-          reaBeneficiaryType: beneficiary.reabTranferTypeDTO?.languageTranslationId?.configValue || beneficiary.reabType || '',
-          reaName: beneficiary.reabName || '',
-          reaBankName: beneficiary.reabBank || '',
-          reaSwiftCode: beneficiary.reabSwift || '',
-          reaRoutingCode: beneficiary.reabRoutingCode || '',
-          reaAccountNumber: beneficiary.reabBeneAccount || '',
-          // Keep original field names for compatibility
-          beneficiaryId: beneficiary.reabBeneficiaryId || '',
-          beneficiaryType: beneficiary.reabType || '',
-          name: beneficiary.reabName || '',
-          bankName: beneficiary.reabBank || '',
-          swiftCode: beneficiary.reabSwift || '',
-          routingCode: beneficiary.reabRoutingCode || '',
-          accountNumber: beneficiary.reabBeneAccount || '',
-        }))
-        
+        const allProcessedBeneficiaries = beneficiariesArray.map(
+          (beneficiary: any) => ({
+            id: beneficiary.id?.toString() || '',
+            reaBeneficiaryId: beneficiary.reabBeneficiaryId || '',
+            reaBeneficiaryType:
+              beneficiary.reabTranferTypeDTO?.languageTranslationId
+                ?.configValue ||
+              beneficiary.reabType ||
+              '',
+            reaName: beneficiary.reabName || '',
+            reaBankName: beneficiary.reabBank || '',
+            reaSwiftCode: beneficiary.reabSwift || '',
+            reaRoutingCode: beneficiary.reabRoutingCode || '',
+            reaAccountNumber: beneficiary.reabBeneAccount || '',
+            // Keep original field names for compatibility
+            beneficiaryId: beneficiary.reabBeneficiaryId || '',
+            beneficiaryType: beneficiary.reabType || '',
+            name: beneficiary.reabName || '',
+            bankName: beneficiary.reabBank || '',
+            swiftCode: beneficiary.reabSwift || '',
+            routingCode: beneficiary.reabRoutingCode || '',
+            accountNumber: beneficiary.reabBeneAccount || '',
+          })
+        )
+
         // Store full data
         setFullApiBeneficiariesData(allProcessedBeneficiaries)
-        
+
         // Apply client-side pagination
         const totalElements = allProcessedBeneficiaries.length
         const totalPages = Math.ceil(totalElements / size)
         const startIndex = (page - 1) * size
         const endIndex = startIndex + size
-        const paginatedBeneficiaries = allProcessedBeneficiaries.slice(startIndex, endIndex)
-        
+        const paginatedBeneficiaries = allProcessedBeneficiaries.slice(
+          startIndex,
+          endIndex
+        )
+
         setApiBeneficiariesData(paginatedBeneficiaries)
         setApiPagination({ totalElements, totalPages })
         onBeneficiariesChange(convertToBeneficiaryData(paginatedBeneficiaries))
@@ -156,15 +171,12 @@ const Step4: React.FC<Step4Props> = ({
   const handleDownloadTemplate = async () => {
     try {
       setIsDownloading(true)
-     
-  
     } catch (error) {
       throw error
     } finally {
       setIsDownloading(false)
     }
   }
-
 
   const {
     bankNames,
@@ -185,7 +197,6 @@ const Step4: React.FC<Step4Props> = ({
 
   const handleBeneficiaryAdded = async (newBeneficiary: unknown) => {
     if (editingBeneficiary) {
-    
       const updatedBeneficiaries = beneficiaryDetails.map((beneficiary) =>
         beneficiary.id === editingBeneficiary.id
           ? (newBeneficiary as BeneficiaryData)
@@ -193,7 +204,6 @@ const Step4: React.FC<Step4Props> = ({
       )
       onBeneficiariesChange(updatedBeneficiaries)
     } else {
-      
       const updatedBeneficiaries = [
         ...beneficiaryDetails,
         newBeneficiary as BeneficiaryData,
@@ -202,7 +212,7 @@ const Step4: React.FC<Step4Props> = ({
     }
 
     setEditingBeneficiary(null)
-    
+
     // Refresh the data from API to ensure consistency
     if (projectId) {
       await fetchBeneficiariesFromAPI(currentApiPage, currentApiSize)
@@ -223,17 +233,19 @@ const Step4: React.FC<Step4Props> = ({
     if (beneficiaryToDelete?.id) {
       try {
         // Call API to soft delete the beneficiary
-        await realEstateAssetService.softDeleteProjectBeneficiary(beneficiaryToDelete.id.toString())
-        
+        await realEstateAssetService.softDeleteProjectBeneficiary(
+          beneficiaryToDelete.id.toString()
+        )
+
         // Remove the beneficiary from the local list after successful API call
         const updatedBeneficiaries = beneficiaryDetails.filter(
           (beneficiary) => beneficiary.id !== beneficiaryToDelete.id
         )
         onBeneficiariesChange(updatedBeneficiaries)
-        
+
         setDeleteDialogOpen(false)
         setBeneficiaryToDelete(null)
-        
+
         // Refresh the data from API to ensure consistency
         if (projectId) {
           await fetchBeneficiariesFromAPI(currentApiPage, currentApiSize)
@@ -253,61 +265,64 @@ const Step4: React.FC<Step4Props> = ({
   const tableColumns = [
     {
       key: 'reaBeneficiaryId',
-      label: getLabel('CDL_BPA_BENEFICIARY_ID', 'Beneficiary ID'),
+      label: getLabel(
+        'CDL_BPA_BENE_REFID',
+        language,
+        'Beneficiary Reference ID'
+      ),
       type: 'text' as const,
       width: 'w-20',
       sortable: true,
     },
     {
       key: 'reaBeneficiaryType',
-      label: getLabel('CDL_BPA_BENEFICIARY_TYPE', 'Transfer Type'),
+      label: getLabel('CDL_BPA_BENE_TRANSFER', language, 'Transfer Method'),
       type: 'text' as const,
       width: 'w-28',
       sortable: true,
     },
     {
       key: 'reaName',
-      label: getLabel('CDL_BPA_BENEFICIARY_NAME', 'Name'),
+      label: getLabel('CDL_BPA_BENE_NAME', language, 'Beneficiary Full Name'),
       type: 'text' as const,
       width: 'w-30',
       sortable: true,
     },
     {
       key: 'reaBankName',
-      label: getLabel('CDL_BPA_BANK_NAME', 'Bank Name'),
+      label: getLabel('CDL_BPA_BENE_BANK', language, 'Bank Name'),
       type: 'text' as const,
       width: 'w-32',
       sortable: true,
     },
     {
       key: 'reaSwiftCode',
-      label: getLabel('CDL_BPA_SWIFT_CODE', 'Swift Code'),
+      label: getLabel('CDL_BPA_BENE_BIC', language, 'SWIFT/BIC Code'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
     },
     {
       key: 'reaRoutingCode',
-      label: getLabel('CDL_BPA_ROUTING_CODE', 'Routing Code'),
+      label: getLabel('CDL_BPA_BENE_ROUTING', language, 'Routing Number'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
     },
     {
       key: 'reaAccountNumber',
-      label: getLabel('CDL_BPA_ACCOUNT_NUMBER', 'Account Number'),
+      label: getLabel('CDL_BPA_BENE_ACC', language, 'Bank Account Number'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
     },
     {
       key: 'actions',
-      label: getLabel('CDL_BPA_ACTION', 'Actions'),
+      label: getLabel('CDL_BPA_ACTION', language, 'Actions'),
       type: 'actions' as const,
       width: 'w-24',
     },
   ]
-
 
   const {
     search,
@@ -339,7 +354,6 @@ const Step4: React.FC<Step4Props> = ({
     initialRowsPerPage: currentApiSize,
   })
 
-
   // Update the table state when API size changes
   useEffect(() => {
     if (rowsPerPage !== currentApiSize) {
@@ -358,7 +372,10 @@ const Step4: React.FC<Step4Props> = ({
       // Apply client-side pagination to existing data
       const startIndex = (newPage - 1) * currentApiSize
       const endIndex = startIndex + currentApiSize
-      const paginatedBeneficiaries = fullApiBeneficiariesData.slice(startIndex, endIndex)
+      const paginatedBeneficiaries = fullApiBeneficiariesData.slice(
+        startIndex,
+        endIndex
+      )
       setApiBeneficiariesData(paginatedBeneficiaries)
       onBeneficiariesChange(convertToBeneficiaryData(paginatedBeneficiaries))
     }
@@ -370,7 +387,10 @@ const Step4: React.FC<Step4Props> = ({
     // Apply client-side pagination to existing data
     const startIndex = 0
     const endIndex = newRowsPerPage
-    const paginatedBeneficiaries = fullApiBeneficiariesData.slice(startIndex, endIndex)
+    const paginatedBeneficiaries = fullApiBeneficiariesData.slice(
+      startIndex,
+      endIndex
+    )
     setApiBeneficiariesData(paginatedBeneficiaries)
     onBeneficiariesChange(convertToBeneficiaryData(paginatedBeneficiaries))
     localHandleRowsPerPageChange(newRowsPerPage)
@@ -400,12 +420,18 @@ const Step4: React.FC<Step4Props> = ({
       <Card sx={cardStyles}>
         <CardContent>
           <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            minHeight="200px"
+            sx={{
+              backgroundColor: '#FFFFFFBF',
+              borderRadius: '16px',
+              margin: '0 auto',
+              width: '100%',
+              height: '200px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
-            <CircularProgress />
+            <GlobalLoading fullHeight className="min-h-[200px]" />
           </Box>
         </CardContent>
       </Card>
@@ -466,7 +492,7 @@ const Step4: React.FC<Step4Props> = ({
                   boxShadow: 'none',
                 }}
               >
-                {getLabel('CDL_BPA_ADD_BENEFICIARY', 'Add Beneficiary')}
+                Add Beneficiary
               </Button>
             )}
           </Box>
@@ -492,9 +518,9 @@ const Step4: React.FC<Step4Props> = ({
               onDownloadTemplate={handleDownloadTemplate}
               isDownloading={isDownloading}
               showButtons={{
-                downloadTemplate: true,
-                uploadDetails: true,
-                addNew: false
+                downloadTemplate: !isViewMode,
+                uploadDetails: !isViewMode,
+                addNew: false,
               }}
             />
             {!isViewMode && (
@@ -515,7 +541,7 @@ const Step4: React.FC<Step4Props> = ({
                   boxShadow: 'none',
                 }}
               >
-                {getLabel('CDL_BPA_ADD_BENEFICIARY', 'Add Beneficiary')}
+                Add Beneficiary
               </Button>
             )}
           </Box>
@@ -553,7 +579,11 @@ const Step4: React.FC<Step4Props> = ({
         isOpen={isPanelOpen}
         onClose={handleClosePanel}
         onBeneficiaryAdded={handleBeneficiaryAdded}
-        title={getLabel('CDL_BPA_BENEFICIARY', 'Beneficiary')}
+        title={getLabel(
+          'CDL_BPA_BENE_INFO',
+          language,
+          'Beneficiary Banking Details'
+        )}
         editingBeneficiary={editingBeneficiary}
         bankNames={bankNames}
         projectId={projectId || ''}

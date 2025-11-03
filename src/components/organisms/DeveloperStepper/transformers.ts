@@ -7,32 +7,36 @@ import { safeParseInt } from './utils'
 export const useStepDataTransformers = () => {
   return useMemo(() => ({
     1: (formData: ProjectData) => ({
-      arID: formData.arID,
-      arCifrera: formData.arCifrera,
-      arDeveloperRegNo: formData.arDeveloperRegNo,
-      arName: formData.arName,
-      arNameLocal: formData.arNameLocal,
-      arCompanyName: formData.arCompanyName,
-      arProjectName: formData.arProjectName,
-      arMasterDeveloper: formData.arMasterDeveloper,
-      arMasterCommunity: formData.arMasterCommunity,
-      arOnboardingDate: formData.arOnboardingDate
-        ? typeof formData.arOnboardingDate === 'string'
-          ? formData.arOnboardingDate
-          : convertDatePickerToZonedDateTime(formData.arOnboardingDate.format('YYYY-MM-DD'))
+      bpDeveloperId: formData.bpDeveloperId,
+      bpCifrera: formData.bpCifrera,
+      bpDeveloperRegNo: formData.bpDeveloperRegNo,
+      bpName: formData.bpName,
+      bpMasterName: formData.bpMasterName,
+      bpNameLocal: formData.bpNameLocal,
+      bpOnboardingDate: formData.bpOnboardingDate
+        ? typeof formData.bpOnboardingDate === 'string'
+          ? formData.bpOnboardingDate
+          : convertDatePickerToZonedDateTime(formData.bpOnboardingDate.format('YYYY-MM-DD'))
         : null,
-      arTradeLicenseNo: formData.arTradeLicenseNo,
-      arTradeLicenseExpDate: formData.arTradeLicenseExpDate
-        ? typeof formData.arTradeLicenseExpDate === 'string'
-          ? formData.arTradeLicenseExpDate
-          : convertDatePickerToZonedDateTime(formData.arTradeLicenseExpDate.format('YYYY-MM-DD'))
+      bpContactAddress: formData.bpContactAddress,
+      bpContactTel: formData.bpContactTel,
+      bpPoBox: formData.bpPoBox,
+      bpMobile: formData.bpMobile,
+      bpFax: formData.bpFax,
+      bpEmail: formData.bpEmail,
+      bpLicenseNo: formData.bpLicenseNo,
+      bpLicenseExpDate: formData.bpLicenseExpDate
+        ? typeof formData.bpLicenseExpDate === 'string'
+          ? formData.bpLicenseExpDate
+          : convertDatePickerToZonedDateTime(formData.bpLicenseExpDate.format('YYYY-MM-DD'))
         : null,
-      arWorldCheckFlag: formData.arWorldCheckFlag,
-      arWorldCheckRemarks: formData.arWorldCheckRemarks,
-      arMigratedData: formData.arMigratedData,
-      arRemark: formData.arRemark,
-      arRegulatorDTO: {
-        id: safeParseInt(formData.arRegulatorDTO?.id),
+      bpWorldCheckFlag: formData.bpWorldCheckFlag,
+      bpWorldCheckRemarks: formData.bpWorldCheckRemarks,
+      bpMigratedData: formData.bpMigratedData,
+      bpremark: formData.bpremark,
+      bpRegulatorId: formData.bpRegulatorDTO?.id || formData.bpRegulatorId,
+      bpRegulatorDTO: {
+        id: safeParseInt(formData.bpRegulatorDTO?.id),
       },
     }),
     2: (formData: ProjectData) => {
@@ -58,6 +62,25 @@ export const useStepDataTransformers = () => {
       }
     },
     3: (formData: ProjectData) => ({
+      feeStructure: {
+        setupFee: parseFloat(formData.fees?.[0]?.amount || '0'),
+        transactionFee: parseFloat(formData.fees?.[0]?.feePercentage || '0'),
+        monthlyFee: parseFloat(formData.fees?.[0]?.debitAmount || '0'),
+      },
+      collectionMethod: formData.paymentType || 'manual',
+      paymentTerms: formData.fees?.[0]?.frequency || '',
+    }),
+    4: (formData: ProjectData) => ({
+      bpbBeneficiaryId: formData.beneficiaries?.[0]?.id || '',
+      bpbBeneficiaryType: formData.beneficiaries?.[0]?.transferType || 'RTGS',
+      bpbName: formData.beneficiaries?.[0]?.name || '',
+      bpbBankName: formData.beneficiaries?.[0]?.bankName || '',
+      bpbSwiftCode: formData.beneficiaries?.[0]?.swiftCode || '',
+      bpbRoutingCode: formData.beneficiaries?.[0]?.routingCode || '',
+      bpbAccountNumber: formData.beneficiaries?.[0]?.account || '',
+      enabled: true,
+    }),
+    5: (formData: ProjectData) => ({
       reviewData: formData,
       termsAccepted: true,
     }),

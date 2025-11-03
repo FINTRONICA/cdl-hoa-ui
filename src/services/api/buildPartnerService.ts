@@ -448,7 +448,7 @@ export class BuildPartnerService {
       ...apiFilters,
     }
     const queryString = new URLSearchParams(params).toString()
-    const url = `${buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.FIND_ALL)}&${queryString}`
+    const url = `${buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.GET_ALL)}&${queryString}`
 
     try {
       const result = await apiClient.get<PaginatedResponse<BuildPartner>>(url)
@@ -578,7 +578,7 @@ export class BuildPartnerService {
     try {
       const params = { bpCifrera: cif }
       const queryString = new URLSearchParams(params).toString()
-      const url = `${buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.FIND_ALL)}?${queryString}`
+      const url = `${buildApiUrl(API_ENDPOINTS.BUILD_PARTNER.GET_ALL)}?${queryString}`
 
       const result = await apiClient.get<PaginatedResponse<BuildPartner>>(url)
 
@@ -1007,7 +1007,7 @@ export class BuildPartnerService {
   // Get uploaded documents for any entity with configurable module
   async getBuildPartnerDocuments(
     entityId: string,
-    module: string = 'BUILD_PARTNER',
+    module: string,
     page: number = 0,
     size: number = 20
   ): Promise<PaginatedDocumentResponse> {
@@ -1044,8 +1044,8 @@ export class BuildPartnerService {
   async uploadBuildPartnerDocument(
     file: File,
     entityId: string,
-    documentType?: string,
-    module: string = 'BUILD_PARTNER'
+    module: string,
+    documentType?: string
   ): Promise<ApiDocumentResponse> {
     try {
       const formData = new FormData()
@@ -1083,7 +1083,91 @@ export class BuildPartnerService {
       throw error
     }
   }
+// DOCUMENT UPLOADE FOR BUDGET
 
+
+async getBudgetDocuments(
+  entityId: string,
+  module: string,
+  page: number = 0,
+  size: number = 20
+): Promise<PaginatedDocumentResponse> {
+  try {
+    // Build URL with query parameters to filter by module and recordId, plus pagination
+    const params = new URLSearchParams({
+      'module.equals': module,
+      'recordId.equals': entityId,
+      page: page.toString(),
+      size: size.toString(),
+    })
+    const url = `${buildApiUrl(API_ENDPOINTS.REAL_ESTATE_DOCUMENT.GET_ALL)}?${params.toString()}`
+
+    const result = await apiClient.get<PaginatedDocumentResponse>(url)
+
+    // Return the full paginated response
+    return (
+      result || {
+        content: [],
+        page: {
+          size: size,
+          number: page,
+          totalElements: 0,
+          totalPages: 0,
+        },
+      }
+    )
+  } catch (error) {
+    throw error
+  }
+}
+
+async uploadBudgetDocument(
+  file: File,
+  entityId: string,
+  module: string,
+  documentType?: string
+): Promise<ApiDocumentResponse> {
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    // Build URL with query parameters following the API specification
+    const params = new URLSearchParams({
+      module: module,
+      recordId: entityId,
+      storageType: 'LOCAL',
+    })
+
+    // Add document type if provided
+    if (documentType) {
+      params.append('documentType', documentType)
+    }
+
+    const url = `${buildApiUrl(API_ENDPOINTS.REAL_ESTATE_DOCUMENT.UPLOAD)}?${params.toString()}`
+
+    // Override Content-Type header to let browser set it automatically for FormData
+    const config = {
+      headers: {
+        'Content-Type': 'multipart/form-data' as const,
+      },
+    }
+
+    const result = await apiClient.post<ApiDocumentResponse>(
+      url,
+      formData,
+      config
+    )
+
+    return result
+  } catch (error) {
+    throw error
+  }
+}
+
+
+
+
+  
   // Step data retrieval and validation methods
   async getStepData(step: number, developerId?: string): Promise<unknown> {
     let url = buildApiUrl(

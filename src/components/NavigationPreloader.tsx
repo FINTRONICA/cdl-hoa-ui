@@ -10,7 +10,7 @@ type DataLoader<T = unknown> = () => Promise<T[]> | T[]
 
 // Preload data for different pages
 const preloadConfig: Record<string, { loader: DataLoader; cacheKey: string }> = {
-  '/projects': {
+  '/build-partner-assets': {
     loader: projectsDataLoader as DataLoader,
     cacheKey: 'projects-data',
   },

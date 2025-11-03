@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PermissionButton } from '@/components/atoms/PermissionButton'
@@ -10,6 +12,8 @@ export type EntityType =
   | 'investor'
   | 'developer'
   | 'manualPayment'
+  | 'budgetManagement'
+  | 'masterBudget'
   | 'feeRepush'
   | 'userManagement'
   | 'roleManagement'
@@ -45,9 +49,9 @@ interface PageActionButtonsProps {
   }
   customActionButtons?: ActionButton[]
   isDownloading?: boolean
-  
-  downloadPermission?: string[]  
-  uploadPermission?: string[]    
+
+  downloadPermission?: string[]
+  uploadPermission?: string[]
 
   additionalDownloads?: Array<{
     label: string
@@ -55,10 +59,10 @@ interface PageActionButtonsProps {
     isLoading?: boolean
     icon?: string
   }>
- 
+
   uploadConfig?: {
     title?: string
-    titleConfigId?: string 
+    titleConfigId?: string
     acceptedFileTypes?: string
     maxFileSize?: number
     uploadEndpoint?: string
@@ -82,7 +86,7 @@ const PageActionButtonsComponent: React.FC<PageActionButtonsProps> = ({
   additionalDownloads = [],
   uploadConfig,
   downloadPermission = ['*'], // Default to wildcard for backward compatibility
-  uploadPermission = ['*'],  // Default to wildcard for backward compatibility
+  uploadPermission = ['*'], // Default to wildcard for backward compatibility
 }) => {
   const router = useRouter()
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
@@ -90,22 +94,22 @@ const PageActionButtonsComponent: React.FC<PageActionButtonsProps> = ({
   // Entity-specific configurations with permissions
   const entityConfig = {
     project: {
-      label: 'Add New Management Firms',
-      route: '/entities/projects/new',
+      label: 'Add New Build Partner Assest',
+      route: '/build-partner-assets/new',
       permissions: ['bpa_create'], // Only users with bpa_create permission
       downloadPermission: ['data_export'], // Unified download permission
       uploadPermission: ['bulk_upload'], // Unified upload permission
     },
     investor: {
-      label: 'Add New Owner',
-      route: '/investors/new',
+      label: 'Add New Capital Partner',
+      route: '/capital-partner/new',
       permissions: ['cp_create'], // Only users with cp_create permission
       downloadPermission: ['data_export'], // Unified download permission
       uploadPermission: ['bulk_upload'], // Unified upload permission
     },
     developer: {
-      label: 'Add New Asset Register',
-      route: '/entities/developers/new',
+      label: 'Add New Build Partner',
+      route: '/build-partner/new',
       permissions: ['bp_create'], // Only users with bp_create permission
       downloadPermission: ['data_export'], // Unified download permission
       uploadPermission: ['bulk_upload'], // Unified upload permission
@@ -116,6 +120,20 @@ const PageActionButtonsComponent: React.FC<PageActionButtonsProps> = ({
       permissions: ['manual_payment_create'], // Only users with manual_payment_create permission
       downloadPermission: ['data_export'], // Unified download permission
       uploadPermission: ['bulk_upload'], // Unified upload permission
+    },
+    budgetManagement: {
+      label: 'Add New Budget',
+      route: '/budget/management-firm-budget/new',
+      permissions: ['budget_create'],
+      downloadPermission: ['data_export'],
+      uploadPermission: ['bulk_upload'],
+    },
+    masterBudget: {
+      label: 'Add New Master Budget',
+      route: '/budget/master-budget/new',
+      permissions: ['master_budget_create'],
+      downloadPermission: ['data_export'],
+      uploadPermission: ['bulk_upload'],
     },
     feeRepush: {
       label: 'Add New',
@@ -147,7 +165,7 @@ const PageActionButtonsComponent: React.FC<PageActionButtonsProps> = ({
     },
     suretyBond: {
       label: 'Add New Surety Bond',
-      route: '/guarantee/new',
+      route: '/surety_bond/new',
       permissions: ['surety_bond_create'],
       downloadPermission: ['data_export'], // Unified download permission
       uploadPermission: ['bulk_upload'], // Unified upload permission
@@ -204,22 +222,31 @@ const PageActionButtonsComponent: React.FC<PageActionButtonsProps> = ({
   }
 
   const config = entityConfig[entityType]
-  
+
+  // Safety check: if config is undefined, provide defaults
+  if (!config) {
+    console.warn(`EntityType "${entityType}" not found in entityConfig. Using default permissions.`)
+  }
+
   // Use centralized permissions from entityConfig, but allow override via props
-  const effectiveDownloadPermission = downloadPermission.length > 0 && !downloadPermission.includes('*') 
-    ? downloadPermission 
-    : config.downloadPermission
-  
-  const effectiveUploadPermission = uploadPermission.length > 0 && !uploadPermission.includes('*') 
-    ? uploadPermission 
-    : config.uploadPermission
+  const effectiveDownloadPermission =
+    downloadPermission.length > 0 && !downloadPermission.includes('*')
+      ? downloadPermission
+      : config?.downloadPermission || ['*']
+
+  const effectiveUploadPermission =
+    uploadPermission.length > 0 && !uploadPermission.includes('*')
+      ? uploadPermission
+      : config?.uploadPermission || ['*']
   const handleAddNew = useCallback(() => {
     if (onAddNew) {
       onAddNew()
-    } else {
+    } else if (config?.route) {
       router.push(config.route)
+    } else {
+      console.warn(`No route configured for entityType "${entityType}" and no onAddNew handler provided.`)
     }
-  }, [onAddNew, router, config.route])
+  }, [onAddNew, router, config?.route, entityType])
 
   const handleDownloadTemplate = useCallback(() => {
     if (onDownloadTemplate) {
@@ -236,10 +263,19 @@ const PageActionButtonsComponent: React.FC<PageActionButtonsProps> = ({
     }
   }, [onUploadDetails])
 
-  const handleUploadSuccess = useCallback((response: { id: string; fileName: string; fileSize: number; uploadedAt: string; [key: string]: unknown }) => {
-    // Handle upload success - can be customized per entity if needed
-    console.log('Upload successful:', response)
-  }, [])
+  const handleUploadSuccess = useCallback(
+    (response: {
+      id: string
+      fileName: string
+      fileSize: number
+      uploadedAt: string
+      [key: string]: unknown
+    }) => {
+      // Handle upload success - can be customized per entity if needed
+      console.log('Upload successful:', response)
+    },
+    []
+  )
 
   const handleUploadError = useCallback((error: string) => {
     // Handle upload error - can be customized per entity if needed
@@ -270,26 +306,31 @@ const PageActionButtonsComponent: React.FC<PageActionButtonsProps> = ({
 
   return (
     <div className={`flex justify-end gap-2 py-3.5 px-4 ${className}`}>
-
       {showButtons.downloadTemplate && (
         <PermissionButton
           requiredPermissions={effectiveDownloadPermission}
           onClick={handleDownloadTemplate}
           disabled={isDownloading}
-          className={`flex items-center h-8 py-1.5 px-2.5 gap-1.5 font-sans font-medium text-sm rounded-md transition-colors ${isDownloading
+          className={`flex items-center h-8 py-1.5 px-2.5 gap-1.5 font-sans font-medium text-sm rounded-md transition-colors ${
+            isDownloading
               ? 'cursor-not-allowed text-gray-400 bg-gray-100'
               : 'cursor-pointer text-[#155DFC] hover:bg-blue-50'
-            }`}
+          }`}
         >
-          <Tooltip title={isDownloading ? "Downloading..." : "Download Template"} arrow placement="bottom">
+          <Tooltip
+            title={isDownloading ? 'Downloading...' : 'Download Template'}
+            arrow
+            placement="bottom"
+          >
             <>
               {!isDownloading && (
-                <img
-                  src="/download icon.svg"
-                  alt="download icon"
-                />
+                <img src="/download icon.svg" alt="download icon" />
               )}
-              {isDownloading && <span className="text-xs animate-spin"><Loader /></span>}
+              {isDownloading && (
+                <span className="text-xs animate-spin">
+                  <Loader />
+                </span>
+              )}
             </>
           </Tooltip>
         </PermissionButton>
@@ -302,18 +343,27 @@ const PageActionButtonsComponent: React.FC<PageActionButtonsProps> = ({
           requiredPermissions={effectiveDownloadPermission}
           onClick={download.onClick}
           disabled={download.isLoading || false}
-          className={`flex items-center h-8 py-1.5 px-2.5 gap-1.5 font-sans font-medium text-sm rounded-md transition-colors ${download.isLoading
+          className={`flex items-center h-8 py-1.5 px-2.5 gap-1.5 font-sans font-medium text-sm rounded-md transition-colors ${
+            download.isLoading
               ? 'cursor-not-allowed text-gray-400 bg-gray-100'
               : 'cursor-pointer text-[#155DFC] hover:bg-blue-50'
-            }`}
+          }`}
         >
-          <Tooltip title={download.isLoading ? "Downloading..." : download.label} arrow placement="bottom">
+          <Tooltip
+            title={download.isLoading ? 'Downloading...' : download.label}
+            arrow
+            placement="bottom"
+          >
             <>
               <img
-                src={download.icon || "/download icon.svg"}
+                src={download.icon || '/download icon.svg'}
                 alt="download icon"
               />
-              {download.isLoading && <span className="text-xs animate-spin"><Loader /></span>}
+              {download.isLoading && (
+                <span className="text-xs animate-spin">
+                  <Loader />
+                </span>
+              )}
             </>
           </Tooltip>
         </PermissionButton>
@@ -330,34 +380,33 @@ const PageActionButtonsComponent: React.FC<PageActionButtonsProps> = ({
         </PermissionButton>
       )}
       {/* Render custom action buttons if provided, otherwise render default add new button */}
-      {customActionButtons.length > 0 ? (
-        customActionButtons.map((button, index) => (
-          <button
-            key={index}
-            onClick={button.onClick}
-            disabled={button.disabled}
-            className={`flex items-center cursor-pointer h-8 py-1.5 rounded-md px-2.5 gap-1.5 font-sans font-medium text-sm transition-colors ${button.variant === 'primary' || !button.variant
-                ? 'bg-[#155DFC] text-[#FAFAF9] hover:bg-blue-700'
-                : 'bg-[#DBEAFE] text-[#155DFC] hover:bg-blue-100'
+      {customActionButtons.length > 0
+        ? customActionButtons.map((button, index) => (
+            <button
+              key={index}
+              onClick={button.onClick}
+              disabled={button.disabled}
+              className={`flex items-center cursor-pointer h-8 py-1.5 rounded-md px-2.5 gap-1.5 font-sans font-medium text-sm transition-colors ${
+                button.variant === 'primary' || !button.variant
+                  ? 'bg-[#155DFC] text-[#FAFAF9] hover:bg-blue-700'
+                  : 'bg-[#DBEAFE] text-[#155DFC] hover:bg-blue-100'
               }`}
-          >
-            <img src="/circle-plus.svg" alt="plus icon" />
-            {button.label}
-          </button>
-        ))
-      ) : (
-        showButtons.addNew && (
-          <PermissionButton
-            requiredPermissions={config.permissions}
-            onClick={handleAddNew}
-            className="flex items-center cursor-pointer
+            >
+              <img src="/circle-plus.svg" alt="plus icon" />
+              {button.label}
+            </button>
+          ))
+        : showButtons.addNew && config && (
+            <PermissionButton
+              requiredPermissions={config.permissions}
+              onClick={handleAddNew}
+              className="flex items-center cursor-pointer
  h-8 py-1.5 bg-[#155DFC] rounded-md px-2.5 gap-1.5 text-[#FAFAF9] font-sans font-medium text-sm hover:bg-blue-700 transition-colors"
-          >
-            <img src="/circle-plus.svg" alt="plus icon" />
-            {config.label}
-          </PermissionButton>
-        )
-      )}
+            >
+              <img src="/circle-plus.svg" alt="plus icon" />
+              {config.label}
+            </PermissionButton>
+          )}
 
       {/* Upload Dialog */}
       <UploadDialog
@@ -366,9 +415,13 @@ const PageActionButtonsComponent: React.FC<PageActionButtonsProps> = ({
         onUploadSuccess={handleUploadSuccess}
         onUploadError={handleUploadError}
         titleConfigId={uploadConfig?.titleConfigId || entityType}
-        acceptedFileTypes={uploadConfig?.acceptedFileTypes || '.xlsx,.xls,.csv,.pdf,.doc,.docx'}
-        maxFileSize={uploadConfig?.maxFileSize || 10}
-        uploadEndpoint={uploadConfig?.uploadEndpoint || getDefaultUploadEndpoint(entityType)}
+        acceptedFileTypes={
+          uploadConfig?.acceptedFileTypes || '.xlsx,.xls,.csv,.pdf,.doc,.docx'
+        }
+        maxFileSize={uploadConfig?.maxFileSize || 25}
+        uploadEndpoint={
+          uploadConfig?.uploadEndpoint || getDefaultUploadEndpoint(entityType)
+        }
         entityType={entityType}
         {...(uploadConfig?.entityId && { entityId: uploadConfig.entityId })}
       />

@@ -47,7 +47,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
   accept = '*/*',
   multiple = false,
   maxFiles = 5,
-  maxSize = 10, // 10MB default
+  maxSize = 25, // 25MB default
   onUpload,
   onRemove,
   error,

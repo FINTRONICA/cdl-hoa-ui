@@ -84,6 +84,27 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
       setIsFormInitialized(false)
       setSelectedProject(null)
     }, [isEditMode, capitalPartnerId])
+
+    // Auto-calculate Total Capital Partner Payment
+    useEffect(() => {
+      const paidInEscrow = watch('paidInEscrow')
+      const paidOutEscrow = watch('paidOutEscrow')
+
+      const inEscrowValue = parseFloat(paidInEscrow) || 0
+      const outEscrowValue = parseFloat(paidOutEscrow) || 0
+      const total = inEscrowValue + outEscrowValue
+
+      // Only set value if it's different to avoid infinite loops
+      const currentTotal = watch('totalPaid')
+      const calculatedTotal = total > 0 ? total.toString() : ''
+
+      if (currentTotal !== calculatedTotal) {
+        setValue('totalPaid', calculatedTotal, {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+      }
+    }, [watch('paidInEscrow'), watch('paidOutEscrow'), setValue, watch])
     const { data: unitStatuses, loading: loadingUnitStatuses } =
       useUnitStatuses()
     const { data: propertyIds, loading: loadingPropertyIds } = usePropertyIds()
@@ -102,6 +123,12 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
       {},
       {
         enabled: Boolean(isEditMode && capitalPartnerId),
+        // Disable caching to always fetch fresh data
+        gcTime: 0,
+        staleTime: 0,
+        // Always refetch when component mounts
+        refetchOnMount: 'always',
+        refetchOnWindowFocus: false,
       }
     )
 
@@ -120,6 +147,12 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
       {},
       {
         enabled: Boolean(isEditMode && isUnitDataReady && unitId),
+        // Disable caching to always fetch fresh data
+        gcTime: 0,
+        staleTime: 0,
+        // Always refetch when component mounts
+        refetchOnMount: 'always',
+        refetchOnWindowFocus: false,
       }
     )
 
@@ -131,6 +164,12 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
       {},
       {
         enabled: Boolean(isEditMode && isUnitDataReady && unitId),
+        // Disable caching to always fetch fresh data
+        gcTime: 0,
+        staleTime: 0,
+        // Always refetch when component mounts
+        refetchOnMount: 'always',
+        refetchOnWindowFocus: false,
       }
     )
 
@@ -288,7 +327,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
       }
     }
     const handleSaveAndNext = async () => {
-      console.log('inside step 2 handle save and next')
+      
       try {
         // Validate required fields first so UI shows errors immediately
         const requiredValid = await (async () => {
@@ -376,10 +415,9 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
           transferredAmount: watch('transferredAmount'),
           unitRemarks: watch('unitRemarks'),
         }
-        console.log('am i here?')
-        console.log('scheemma', CapitalPartnerStep2Schema)
+      
         const zodResult = CapitalPartnerStep2Schema.safeParse(formData)
-        console.log('zodResult', zodResult)
+       
         if (!zodResult.success) {
           const fieldsToCheck = [
             'projectNameDropdown',
@@ -636,7 +674,20 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                   error={!!errors[name]}
                   InputLabelProps={{ sx: labelSx }}
                   InputProps={{ sx: valueSx }}
-                  sx={commonFieldStyles}
+                  sx={{
+                    ...commonFieldStyles,
+                    ...(disabled && {
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#F5F5F5',
+                        '& fieldset': {
+                          borderColor: '#E0E0E0',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: '#E0E0E0',
+                        },
+                      },
+                    }),
+                  }}
                   required={required}
                   value={field.value || ''}
                   onChange={(e) => {
@@ -866,8 +917,8 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
             <Grid container rowSpacing={4} columnSpacing={2}>
               {renderProjectSelectField(
                 'projectNameDropdown',
-                'CDL_OWN_PROPERTY_NAME',
-                'Property Name',
+                'CDL_CP_BPA_NAME',
+                'Project Name',
                 projectOptions,
                 6,
                 true,
@@ -875,8 +926,8 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderTextField(
                 'projectId',
-                'CDL_OWN_PROPERTY_ID',
-                'Property ID*',
+                'CDL_CP_PROP_NUMBER',
+                'Project ID*',
                 '',
                 6,
                 !selectedProject,
@@ -884,8 +935,8 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderTextField(
                 'developerIdInput',
-                'CDL_OWN_MF_ID',
-                'Managing Firm ID*',
+                'CDL_CP_BP_ID',
+                'Developer ID*',
                 '',
                 6,
                 !selectedProject,
@@ -893,24 +944,24 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderTextField(
                 'developerNameInput',
-                'CDL_OWN_MF_NAME',
-                'Managing Firm Name*',
+                'CDL_CP_BP_NAME',
+                'Developer Name',
                 '',
                 6,
                 !selectedProject,
                 true
               )}
-              {renderTextField('floor', 'CDL_OWN_FLOOR', 'Floor', '', 3)}
+              {renderTextField('floor', 'CDL_CP_FLOOR', 'Floor', '', 3)}
               {renderTextField(
                 'bedroomCount',
-                'CDL_OWN_NOOF_BED',
+                'CDL_CP_NOOF_BED',
                 'No. of Bedroom',
                 '',
                 3
               )}
               {renderTextField(
                 'unitNoQaqood',
-                'CDL_OWN_UNIT_NUMBER',
+                'CDL_CP_UNIT_NUMBER',
                 'Unit no. Qaqood format',
                 '',
                 3,
@@ -919,8 +970,8 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderApiSelectField(
                 'unitStatus',
-                'CDL_OWN_UNIT_STATUS',
-                'Unit Status*',
+                'CDL_CP_UNIT_STATUS',
+                'Unit Status',
                 unitStatuses?.length
                   ? unitStatuses
                   : getFallbackOptions('unitStatus'),
@@ -930,7 +981,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderTextField(
                 'buildingName',
-                'CDL_OWN_BUILDING_NAME',
+                'CDL_CP_BUILDING_NAME',
                 'Building Name',
                 '',
                 6,
@@ -939,7 +990,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderTextField(
                 'plotSize',
-                'CDL_OWN_PLOT_SIZE',
+                'CDL_CP_PLOT_SIZE',
                 'Plot Size*',
                 '',
                 6,
@@ -948,8 +999,8 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderApiSelectField(
                 'propertyId',
-                'CDL_OWN_PROP_NUMBER',
-                'Property ID*',
+                'CDL_CP_PROP_NUMBER',
+                'Property ID',
                 propertyIds?.length
                   ? propertyIds
                   : getFallbackOptions('propertyId'),
@@ -969,7 +1020,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                       fullWidth
                       disabled={isViewMode}
                       label={getLabel(
-                        'CDL_OWN_UNIT_IBAN',
+                        'CDL_CP_UNIT_IBAN',
                         currentLanguage,
                         'Unit IBAN'
                       )}
@@ -1019,7 +1070,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
 
               {renderTextField(
                 'registrationFees',
-                'CDL_OWN_REG_FEE',
+                'CDL_CP_REG_FEE',
                 'Unit Registration Fees',
                 '',
                 3,
@@ -1028,7 +1079,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderTextField(
                 'agentName',
-                'CDL_OWN_AGENT_NAME',
+                'CDL_CP_AGENT_NAME',
                 'Agent Name',
                 '',
                 3,
@@ -1037,7 +1088,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderTextField(
                 'agentNationalId',
-                'CDL_OWN_AGENT_ID',
+                'CDL_CP_AGENT_ID',
                 'Agent National ID',
                 '',
                 3,
@@ -1046,7 +1097,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderTextField(
                 'grossSalePrice',
-                'CDL_OWN_GROSS_PRICE',
+                'CDL_CP_GROSS_PRICE',
                 'Gross Sale Price',
                 '',
                 3,
@@ -1057,17 +1108,17 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               {[
                 {
                   name: 'VatApplicable',
-                  configId: 'CDL_OWN_VAT_APPLICABLE',
+                  configId: 'CDL_CP_VAT_APPLICABLE',
                   fallbackLabel: 'VAT Applicable',
                 },
                 {
                   name: 'SalesPurchaseAgreement',
-                  configId: 'CDL_OWN_SALES_PURCHASE_AGREEMENT',
+                  configId: 'CDL_CP_SPA',
                   fallbackLabel: 'Sales Purchase Agreement',
                 },
                 {
                   name: 'ProjectPaymentPlan',
-                  configId: 'CDL_OWN_PROJECT_PAYMENT_PLAN',
+                  configId: 'CDL_CP_PAYMENT_PLAN',
                   fallbackLabel: 'Project Payment Plan',
                 },
               ].map(({ name, configId, fallbackLabel }) => (
@@ -1104,21 +1155,21 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
 
               {renderTextField(
                 'salePrice',
-                'CDL_OWN_NET_PRICE',
+                'CDL_CP_NET_PRICE',
                 'Sale Price',
                 '',
                 3
               )}
               {renderTextField(
                 'deedNo',
-                'CDL_OWN_DEED_REF_NO',
+                'CDL_CP_DEED_REF_NO',
                 'Deed No',
                 '',
                 3
               )}
               {renderTextField(
                 'contractNo',
-                'CDL_OWN_CONTRACT_NO',
+                'CDL_CP_CONTRACT_NO',
                 'Contract No',
                 '',
                 3
@@ -1131,7 +1182,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                   render={({ field }) => (
                     <DatePicker
                       label={getLabel(
-                        'CDL_OWN_AGREEMENT_DATE',
+                        'CDL_CP_AGREEMENT_DATE',
                         currentLanguage,
                         'Agreement Date'
                       )}
@@ -1159,10 +1210,22 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                 />
               </Grid>
               {[
-                'ModificationFeeNeeded',
-                'ReservationBookingForm',
-                'OqoodPaid',
-              ].map((name) => (
+                {
+                  name: 'ModificationFeeNeeded',
+                  configId: 'CDL_CP_FEE_REQ',
+                  fallbackLabel: 'Modification Fee Needed',
+                },
+                {
+                  name: 'ReservationBookingForm',
+                  configId: 'CDL_CP_BOOKING',
+                  fallbackLabel: 'Reservation & Booking Form',
+                },
+                {
+                  name: 'OqoodPaid',
+                  configId: 'CDL_CP_OQOOD_PAID',
+                  fallbackLabel: 'Oqood Paid',
+                },
+              ].map(({ name, configId, fallbackLabel }) => (
                 <Grid size={{ xs: 12, md: 4 }} key={name}>
                   <FormControlLabel
                     control={
@@ -1179,7 +1242,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                         )}
                       />
                     }
-                    label={name.replace(/([A-Z])/g, ' $1')}
+                    label={getLabel(configId, currentLanguage, fallbackLabel)}
                     sx={{
                       '& .MuiFormControlLabel-label': {
                         fontFamily: 'Outfit, sans-serif',
@@ -1195,76 +1258,78 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               ))}
               {renderCheckboxField(
                 'worldCheck',
-                'CDL_OWN_WORLD_STATUS',
+                'CDL_CP_WORLD_STATUS',
                 'World Check',
                 6
               )}
               {renderTextField(
                 'paidInEscrow',
-                'CDL_OWN_WITH_ESCROW',
-                'Amount Paid to  Management Company/Developer (AED)  within Escrow',
+                'CDL_CP_WITH_ESCROW',
+                'Amount Paid to Build Partner (Within Escrow)',
                 '',
                 6
               )}
               {renderTextField(
                 'paidOutEscrow',
-                'CDL_OWN_OUTSIDE_ESCROW',
-                'Amount Paid to Management Company/Developer (AED) out of Escrow',
+                'CDL_CP_OUTSIDE_ESCROW',
+                'Amount Paid to Build Partner (Outside Escrow)',
                 '',
                 6
               )}
               {renderTextField(
                 'totalPaid',
-                'CDL_OWN_PARTNER_PAYMENT',
-                'Total Amount Paid',
+                'CDL_CP_PARTNER_PAYMENT',
+                'Total Capital Partner Payment',
                 '',
-                6
+                6,
+                true,
+                false
               )}
               {renderTextField(
                 'qaqoodAmount',
-                'CDL_OWN_OQOOD_PAID',
+                'CDL_CP_OQOOD_PAID',
                 'Qaqood Amount Paid',
                 '',
                 3
               )}
               {renderTextField(
                 'unitAreaSize',
-                'CDL_OWN_UNIT_AREA',
+                'CDL_CP_UNIT_AREA',
                 'Unit Area Size',
                 '',
                 3
               )}
               {renderTextField(
                 'forfeitAmount',
-                'CDL_OWN_FROFEIT_AMT',
+                'CDL_CP_FROFEIT_AMT',
                 'Forfeit Amount',
                 '',
                 3
               )}
               {renderTextField(
                 'dldAmount',
-                'CDL_OWN_DLD_FEE',
+                'CDL_CP_DLD_FEE',
                 'Dld Amount',
                 '',
                 3
               )}
               {renderTextField(
                 'refundAmount',
-                'CDL_OWN_REFUND_AMOUNT',
+                'CDL_CP_REFUND_AMOUNT',
                 'Refund Amount',
                 '',
                 6
               )}
               {renderTextField(
                 'transferredAmount',
-                'CDL_OWN_TRANS_AMT',
+                'CDL_CP_TRANS_AMT',
                 'Transferred Amount',
                 '',
                 6
               )}
               {renderTextField(
                 'unitRemarks',
-                'CDL_OWN_REMARKS',
+                'CDL_CP_REMARKS',
                 'Remarks',
                 '',
                 12

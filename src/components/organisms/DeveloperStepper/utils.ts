@@ -86,10 +86,10 @@ export const processFeeData = (feesStepData: any): FeeData[] => {
     Frequency: fee.bpFeeFrequencyDTO?.languageTranslationId?.configValue || 'N/A',
     DebitAmount: fee.debitAmount?.toString() || 'N/A',
     Feetobecollected: fee.feeCollectionDate 
-      ? formatDate(fee.feeCollectionDate, 'MMM DD, YYYY') 
+      ? formatDate(fee.feeCollectionDate, 'DD/MM/YYYY') 
       : 'N/A',
     NextRecoveryDate: fee.feeNextRecoveryDate 
-      ? formatDate(fee.feeNextRecoveryDate, 'MMM DD, YYYY') 
+      ? formatDate(fee.feeNextRecoveryDate, 'DD/MM/YYYY') 
       : 'N/A',
     FeePercentage: fee.feePercentage?.toString() || 'N/A',
     Amount: fee.totalAmount?.toString() || 'N/A',
@@ -154,6 +154,8 @@ export const processStepData = (activeStep: number, stepStatus: any): any => {
 
   const stepDataProcessors = {
     contactData: () => processContactData(stepStatus.stepData.step2),
+    fees: () => processFeeData(stepStatus.stepData.step3),
+    beneficiaries: () => processBeneficiaryData(stepStatus.stepData.step4),
   }
 
   Object.entries(stepDataProcessors).forEach(([key, processor]) => {

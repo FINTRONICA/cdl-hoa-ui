@@ -43,16 +43,12 @@ export class ProcessedTransactionLabelsService {
       const url = buildApiUrl(
         API_ENDPOINTS.APP_LANGUAGE_TRANSLATION.TRANSCATIONS_LABEL
       )
-      console.log('🔧 getProcessedTransactionLabels: Making API call to:', url)
+      
       const result = await apiClient.get<ProcessedTransactionLabel[]>(url)
-      console.log('🔧 getProcessedTransactionLabels: API response:', { 
-        count: result?.length, 
-        firstItem: result?.[0],
-        url 
-      })
+      
       return result || []
     } catch (error) {
-      console.error('🔧 getProcessedTransactionLabels: API error:', error)
+      
       throw error
     }
   }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   DialogTitle,
   DialogContent,
@@ -9,7 +9,6 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  FormHelperText,
   Button,
   Drawer,
   Box,
@@ -22,6 +21,7 @@ import {
 } from '@mui/material'
 import { KeyboardArrowDown as KeyboardArrowDownIcon } from '@mui/icons-material'
 import { Controller, useForm } from 'react-hook-form'
+import { FormError } from '../../atoms/FormError'
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
@@ -32,6 +32,9 @@ import {
 import { useValidationStatus } from '@/hooks/useValidation'
 import { validateAndSanitizeBeneficiaryData } from '@/lib/validation/beneficiarySchemas'
 import { DeveloperStep5Schema } from '@/lib/validation/developerSchemas'
+import { useBuildPartnerLabelsWithCache } from '@/hooks/useBuildPartnerLabelsWithCache'
+import { getBuildPartnerLabel } from '@/constants/mappings/buildPartnerMapping'
+import { useAppStore } from '@/store'
 
 interface BeneficiaryFormData {
   bpbBeneficiaryId: string
@@ -139,6 +142,18 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
   const dropdownsLoading = propDropdownsLoading || false
   const dropdownsError = propDropdownsError || null
 
+  // Dynamic labels: same pattern used in Step4 & Contact Details
+  const { data: buildPartnerLabels, getLabel } = useBuildPartnerLabelsWithCache()
+  const currentLanguage = useAppStore((state) => state.language) || 'EN'
+  const getBuildPartnerLabelDynamic = useCallback(
+    (configId: string): string => {
+      const fallback = getBuildPartnerLabel(configId)
+      if (buildPartnerLabels) return getLabel(configId, currentLanguage, fallback)
+      return fallback
+    },
+    [buildPartnerLabels, currentLanguage, getLabel]
+  )
+
   // Validation hooks
   const {
     isAccountValidating,
@@ -189,12 +204,6 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
           (type as { configValue: string }).configValue ===
           dataToUse.bpbBeneficiaryType
       )
-      const bankName = bankNames.find(
-        (bank: unknown) =>
-          (bank as { configValue: string }).configValue ===
-          dataToUse.bpbBankName
-      )
-
       reset({
         bpbBeneficiaryId: dataToUse.bpbBeneficiaryId || '',
         bpbBeneficiaryType:
@@ -202,8 +211,7 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
           dataToUse.bpbBeneficiaryType ||
           '',
         bpbName: dataToUse.bpbName || '',
-        bpbBankName:
-          (bankName as { id?: string })?.id || dataToUse.bpbBankName || '',
+        bpbBankName: dataToUse.bpbBankName || '',
         bpbSwiftCode: dataToUse.bpbSwiftCode || '',
         bpbRoutingCode: dataToUse.bpbRoutingCode || '',
         bpbAccountNumber: dataToUse.bpbAccountNumber || '',
@@ -284,12 +292,27 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
   // Validation function using DeveloperStep5Schema
   const validateBeneficiaryField = (
     fieldName: string,
-    _value: any,
+    value: any,
     allValues: BeneficiaryFormData
   ) => {
     try {
+      // Simple required checks first so empty required fields show errors immediately
+      const requiredFields: Record<string, string> = {
+        bpbBeneficiaryId: 'Beneficiary ID is required',
+        bpbBeneficiaryType: 'Beneficiary Type is required',
+        bpbName: 'Name is required',
+        bpbBankName: 'Bank is required',
+        bpbAccountNumber: 'Account Number is required',
+        bpbSwiftCode: 'SWIFT Code is required',
+      }
+
+      if (requiredFields[fieldName]) {
+        if (!value || (typeof value === 'string' && value.trim() === '')) {
+          return requiredFields[fieldName]
+        }
+      }
       // Skip validation for dropdown fields since they come from backend
-      const dropdownFields = ['bpbBeneficiaryType', 'bpbBankName']
+      const dropdownFields = ['bpbBeneficiaryType']
       if (dropdownFields.includes(fieldName)) {
         return true
       }
@@ -397,6 +420,10 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
           bpbSwiftCode: validatedData.bpbSwiftCode,
           bpbRoutingCode: validatedData.bpbRoutingCode || '',
           bpbAccountNumber: validatedData.bpbAccountNumber,
+          // Add transfer type DTO with selected ID
+          bpbTransferTypeDTO: {
+            id: parseInt(String(validatedData.bpbBeneficiaryType)) || 41,
+          },
           // Simplify buildPartnerDTO to just the ID
           buildPartnerDTO: [
             {
@@ -417,6 +444,10 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
           bpbRoutingCode: validatedData.bpbRoutingCode || '',
           bpbAccountNumber: validatedData.bpbAccountNumber,
           enabled: true,
+          // Add transfer type DTO with selected ID
+          bpbTransferTypeDTO: {
+            id: parseInt(String(validatedData.bpbBeneficiaryType)) || 41,
+          },
           buildPartnerDTO: [
             {
               id: buildPartnerId ? parseInt(buildPartnerId) : undefined,
@@ -450,9 +481,6 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
         (type: unknown) =>
           (type as { id: string }).id === data.bpbBeneficiaryType
       )
-      const bankName = bankNames.find(
-        (bank: unknown) => (bank as { id: string }).id === data.bpbBankName
-      )
 
       const beneficiaryForForm = {
         bpbBeneficiaryId: validatedData.bpbBeneficiaryId,
@@ -460,9 +488,7 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
           (beneficiaryType as { configValue?: string })?.configValue ||
           String(data.bpbBeneficiaryType),
         bpbName: validatedData.bpbName,
-        bpbBankName:
-          (bankName as { configValue?: string })?.configValue ||
-          String(data.bpbBankName),
+        bpbBankName: validatedData.bpbBankName,
         bpbSwiftCode: validatedData.bpbSwiftCode,
         bpbRoutingCode: validatedData.bpbRoutingCode || '',
         bpbAccountNumber: validatedData.bpbAccountNumber,
@@ -481,7 +507,7 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
         onBeneficiaryAdded(beneficiaryForForm)
       }
 
-      // Reset form and close after a short delay
+     
       setTimeout(() => {
         reset()
         onClose()
@@ -490,7 +516,7 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
       let errorMessage = 'Failed to add beneficiary. Please try again.'
 
       if (error instanceof Error) {
-        // Handle validation errors
+       
         if (error.message.includes('validation')) {
           errorMessage = 'Please check your input and try again.'
         } else {
@@ -511,7 +537,7 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
     onClose()
   }
 
-  // Validation functions
+ 
   const handleValidateAccount = (accountNumber: string) => {
     if (!accountNumber.trim()) {
       setErrorMessage('Please enter an account number to validate')
@@ -534,7 +560,7 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
     })
   }
 
-  // Common styles for form components
+
   const commonFieldStyles = {
     '& .MuiOutlinedInput-root': {
       height: '46px',
@@ -616,23 +642,25 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
           validate: (value, formValues) => validateBeneficiaryField(name, value, formValues)
         }}
         render={({ field }) => (
-          <TextField
-            {...field}
-            label={label}
-            fullWidth
-            required={required}
-            error={!!errors[name]}
-            helperText={errors[name]?.message?.toString() || ''}
-            InputLabelProps={{ sx: labelSx }}
-            InputProps={{ sx: valueSx }}
-            sx={errors[name] ? errorFieldStyles : commonFieldStyles}
-          />
+          <>
+            <TextField
+              {...field}
+              label={label}
+              fullWidth
+              required={required}
+              error={!!errors[name]}
+              InputLabelProps={{ sx: labelSx }}
+              InputProps={{ sx: valueSx }}
+              sx={errors[name] ? errorFieldStyles : commonFieldStyles}
+            />
+            <FormError error={(errors[name]?.message as string) || ''} touched={true} />
+          </>
         )}
       />
     </Grid>
   )
 
-  // New render function for API-driven dropdowns
+ 
   const renderApiSelectField = (
     name: keyof BeneficiaryFormData,
     label: string,
@@ -652,16 +680,16 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
         render={({ field }) => (
           <FormControl fullWidth error={!!errors[name]} required={required}>
             <InputLabel sx={labelSx}>
-              {loading ? `Loading...` : label}
+              {loading ? getBuildPartnerLabelDynamic('CDL_COMMON_LOADING') : label}
             </InputLabel>
             <Select
               {...field}
               input={
                 <OutlinedInput
-                  label={loading ? `Loading...` : label}
+                  label={loading ? getBuildPartnerLabelDynamic('CDL_COMMON_LOADING') : label}
                 />
               }
-              label={loading ? `Loading...` : label}
+              label={loading ? getBuildPartnerLabelDynamic('CDL_COMMON_LOADING') : label}
               sx={{ ...selectStyles, ...valueSx }}
               IconComponent={KeyboardArrowDownIcon}
               disabled={loading}
@@ -675,11 +703,7 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
                 </MenuItem>
               ))}
             </Select>
-            {errors[name] && (
-              <FormHelperText error>
-                {errors[name]?.message?.toString()}
-              </FormHelperText>
-            )}
+            <FormError error={(errors[name]?.message as string) || ''} touched={true} />
           </FormControl>
         )}
       />
@@ -712,6 +736,7 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
             validate: (value, formValues) => validateBeneficiaryField(name, value, formValues)
           }}
           render={({ field }) => (
+            <>
             <TextField
               {...field}
               fullWidth
@@ -720,16 +745,6 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
               error={
                 !!errors[name] ||
                 !!(validationResult && !validationResult.isValid)
-              }
-              helperText={
-                errors[name]?.message?.toString() ||
-                (validationResult && !validationResult.isValid
-                  ? validationResult.message
-                  : '') ||
-                (validationResult && validationResult.isValid
-                  ? '✓ Valid'
-                  : '') ||
-                ''
               }
               InputProps={{
                 endAdornment: (
@@ -797,6 +812,8 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
                   : commonFieldStyles
               }
             />
+            <FormError error={(errors[name]?.message as string) || (validationResult && !validationResult.isValid ? String(validationResult.message) : '')} touched={true} />
+            </>
           )}
         />
       </Grid>
@@ -834,9 +851,9 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
             verticalAlign: 'middle',
           }}
         >
-          {mode === 'edit'
-            ? 'Edit Beneficiary Details'
-            : 'Add Beneficiary Details'}
+            {mode === 'edit'
+              ? `${getBuildPartnerLabelDynamic('CDL_COMMON_UPDATE')} ${getBuildPartnerLabelDynamic('CDL_BP_BENE_INFO')}`
+              : `${getBuildPartnerLabelDynamic('CDL_COMMON_ADD')} ${getBuildPartnerLabelDynamic('CDL_BP_BENE_INFO')}`}
           <IconButton onClick={onClose}>
             <CancelOutlinedIcon />
           </IconButton>
@@ -884,7 +901,7 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
           ))}
         </Box>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form noValidate onSubmit={handleSubmit(onSubmit)}>
           <DialogContent dividers>
             {/* Show error if dropdowns fail to load */}
             {dropdownsError && (
@@ -894,82 +911,48 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
             )}
 
             <Grid container rowSpacing={4} columnSpacing={2} mt={3}>
-              {title === 'Beneficiary' ? (
-                <>
-                  {renderTextField(
-                    'bpbBeneficiaryId',
-                    'Beneficiary ID',
-                    '1234',
-                    6,
-                    true
-                  )}
-                  {renderApiSelectField(
-                    'bpbBeneficiaryType',
-                    'Beneficiary Type',
-                    beneficiaryTypes.length > 0 ? beneficiaryTypes : [],
-                    6,
-                    true,
-                    dropdownsLoading
-                  )}
-                </>
-              ) : (
-                <>
-                  {renderApiSelectField(
-                    'bpbBeneficiaryType',
-                    'Beneficiary Type',
-                    beneficiaryTypes.length > 0 ? beneficiaryTypes : [],
-                    6,
-                    true,
-                    dropdownsLoading
-                  )}
-                  {renderTextField(
-                    'bpbBeneficiaryId',
-                    'Beneficiary ID',
-                    '1234',
-                    6,
-                    true
-                  )}
-                </>
+              {renderTextField(
+                'bpbBeneficiaryId',
+                getBuildPartnerLabelDynamic('CDL_BP_BENE_REF'),
+                '1234',
+                6,
+                true
+              )}
+              {renderApiSelectField(
+                'bpbBeneficiaryType',
+                getBuildPartnerLabelDynamic('CDL_BP_BENE_PAYMODE'),
+                beneficiaryTypes.length > 0 ? beneficiaryTypes : [],
+                6,
+                true,
+                dropdownsLoading
               )}
 
-              {renderTextField('bpbName', 'Name', '', 6, true)}
+              {renderTextField('bpbName', getBuildPartnerLabelDynamic('CDL_BP_BENE_NAME'), '', 6, true)}
 
-              {title === 'Beneficiary' ? (
-                <>
-                  {renderApiSelectField(
-                    'bpbBankName',
-                    'Bank',
-                    bankNames.length > 0 ? bankNames : [],
-                    6,
-                    true,
-                    dropdownsLoading
-                  )}
-                </>
-              ) : (
-                <>{renderTextField('bpbBankName', 'Bank', 'SBI', 6, true)}</>
-              )}
+              {renderTextField('bpbBankName', getBuildPartnerLabelDynamic('CDL_BP_BENE_BANK'), '', 6, true)}
 
               {renderTextField(
                 'bpbRoutingCode',
-                'Routing Code',
+                getBuildPartnerLabelDynamic('CDL_BP_BENE_ROUTING'),
                 '',
-                title === 'Beneficiary' ? 12 : 6,
+                12,
                 false
+              )}
+               {renderTextFieldWithButton(
+                'bpbSwiftCode',
+                getBuildPartnerLabelDynamic('CDL_BP_BENE_BIC'),
+                getBuildPartnerLabelDynamic('CDL_COMMON_VALIDATE_BIC'),
+                12,
+                true
               )}
               {renderTextFieldWithButton(
                 'bpbAccountNumber',
-                'Account Number/IBAN',
-                'Validate Account',
+                getBuildPartnerLabelDynamic('CDL_BP_BENE_ACCOUNT'),
+                getBuildPartnerLabelDynamic('CDL_COMMON_VALIDATE_ACCOUNT'),
                 12,
                 true
               )}
-              {renderTextFieldWithButton(
-                'bpbSwiftCode',
-                'Swift/BIC',
-                'Validate BIC',
-                12,
-                true
-              )}
+             
             </Grid>
           </DialogContent>
 
@@ -1000,7 +983,7 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
                     letterSpacing: 0,
                   }}
                 >
-                  Cancel
+                  {getBuildPartnerLabelDynamic('CDL_COMMON_CANCEL')}
                 </Button>
               </Grid>
               <Grid size={{ xs: 6 }}>
@@ -1025,11 +1008,11 @@ export const RightSlideBeneficiaryDetailsPanel: React.FC<
                 >
                   {addBeneficiaryMutation.isPending
                     ? mode === 'edit'
-                      ? 'Updating...'
-                      : 'Adding...'
+                      ? getBuildPartnerLabelDynamic('CDL_COMMON_UPDATING')
+                      : getBuildPartnerLabelDynamic('CDL_COMMON_ADDING')
                     : mode === 'edit'
-                      ? 'Update'
-                      : 'Add'}
+                      ? getBuildPartnerLabelDynamic('CDL_COMMON_UPDATE')
+                      : getBuildPartnerLabelDynamic('CDL_COMMON_ADD')}
                 </Button>
               </Grid>
             </Grid>

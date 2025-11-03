@@ -10,6 +10,7 @@ import { RightSlideRolePanel } from '../../../components/organisms/RightSlidePan
 import { Search, Filter, Shield } from 'lucide-react'
 import { useSidebarConfig } from '@/hooks/useSidebarConfig'
 import { useRoles, useRoleManager } from '@/hooks/useRoles'
+import { GlobalLoading } from '@/components/atoms'
 
 // Define the role management data structure
 interface User {
@@ -192,27 +193,24 @@ const RoleManagementPage: React.FC = () => {
           />
 
           {/* Loading State */}
-          {fetching && (
-            <div className="flex justify-center items-center py-8">
-              <div className="flex flex-col items-center gap-2">
-                <div className="text-gray-500 text-sm">Loading...</div>
-                <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
-              </div>
+          {fetching ? (
+            <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
+              <GlobalLoading fullHeight />
             </div>
-          )}
+          ) : (
+            <>
+              {/* Error Display */}
+              {(error || createError || deleteError) && (
+                <div className="mx-4 mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                  <div className="font-semibold mb-2">Error Details:</div>
+                  {error && <div>Roles: {error.message}</div>}
+                  {createError && <div>Create: {createError.message}</div>}
+                  {deleteError && <div>Delete: {deleteError.message}</div>}
+                </div>
+              )}
 
-          {/* Error Display */}
-          {(error || createError || deleteError) && (
-            <div className="mx-4 mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-              <div className="font-semibold mb-2">Error Details:</div>
-              {error && <div>Roles: {error.message}</div>}
-              {createError && <div>Create: {createError.message}</div>}
-              {deleteError && <div>Delete: {deleteError.message}</div>}
-            </div>
-          )}
-
-          {/* Search and Filter Bar */}
-          <div className="p-2 border-b border-gray-200">
+              {/* Search and Filter Bar */}
+              <div className="p-2 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <div className="flex flex-col sm:flex-row gap-4 flex-1">
                 {/* Search Input */}
@@ -361,6 +359,8 @@ const RoleManagementPage: React.FC = () => {
               </>
             )}
           </div>
+            </>
+          )}
         </div>
       </DashboardLayout>
     </>

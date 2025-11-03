@@ -20,7 +20,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { AccountData } from '../types'
 import { Controller, useFormContext } from 'react-hook-form'
-import { useProjectLabels } from '@/hooks/useProjectLabels'
+// import { useProjectLabels } from '@/hooks/useProjectLabels'
+import { useBuildPartnerAssetLabelsWithUtils } from '@/hooks/useBuildPartnerAssetLabels'
 import { useCurrencies } from '@/hooks/useFeeDropdowns'
 import {
   useValidateBankAccount,
@@ -53,8 +54,8 @@ interface Step2Props {
 }
 
 const Step2: React.FC<Step2Props> = ({ projectId, isViewMode = false }) => {
-  
-  const { getLabel } = useProjectLabels()
+  const { getLabel } = useBuildPartnerAssetLabelsWithUtils()
+  const language = 'EN'
 
   const {
     data: currencies = [],
@@ -65,7 +66,12 @@ const Step2: React.FC<Step2Props> = ({ projectId, isViewMode = false }) => {
   const validateBankAccount = useValidateBankAccount()
   const saveMultipleBankAccounts = useSaveMultipleBankAccounts()
 
-  const { control, watch, setValue, formState: { errors } } = useFormContext<{
+  const {
+    control,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useFormContext<{
     accounts: AccountData[]
     // Account validation fields
     trustAccountNumber?: string
@@ -99,10 +105,46 @@ const Step2: React.FC<Step2Props> = ({ projectId, isViewMode = false }) => {
   )
   const [validatingIndex, setValidatingIndex] = useState<number | null>(null)
 
+  // Function to check if all backend fields are filled and auto-validate
+  const checkAndAutoValidate = (account: AccountData, index: number) => {
+    const hasIban = account.ibanNumber && account.ibanNumber.trim() !== ''
+    const hasDateOpened = account.dateOpened
+    const hasAccountTitle =
+      account.accountTitle && account.accountTitle.trim() !== ''
+    const hasCurrency = account.currency && account.currency.trim() !== ''
+
+    // If all backend fields are filled, mark as validated
+    if (hasIban && hasDateOpened && hasAccountTitle && hasCurrency) {
+      setSuccessIndexes((prev) => [...prev.filter((i) => i !== index), index])
+      setErrorIndex((prev) => (prev === index ? null : prev))
+
+      // Create validated account data
+      const bankAccountData: BankAccountData = {
+        accountType: ACCOUNT_TYPES[index] || 'TRUST',
+        accountNumber: account.trustAccountNumber,
+        ibanNumber: account.ibanNumber,
+        dateOpened: dayjs(account.dateOpened).format('YYYY-MM-DD'),
+        accountTitle: account.accountTitle,
+        currencyCode: account.currency,
+        isValidated: true,
+        realEstateAssestDTO: {
+          id: projectId ? parseInt(projectId) : 9007199254740991,
+        },
+      }
+
+      // Add to validated accounts array
+      setValidatedAccounts((prev) => {
+        const newAccounts = [...prev]
+        newAccounts[index] = bankAccountData
+        return newAccounts
+      })
+    }
+  }
+
   const validateAccount = async (account: AccountData, index: number) => {
     if (!account.trustAccountNumber) {
       setErrorIndex(index)
-      setSuccessIndexes(prev => prev.filter(i => i !== index))
+      setSuccessIndexes((prev) => prev.filter((i) => i !== index))
       setSnackbarMessage('Account number is required for validation')
       setSnackbarSeverity('error')
       setSnackbarOpen(true)
@@ -122,8 +164,6 @@ const Step2: React.FC<Step2Props> = ({ projectId, isViewMode = false }) => {
 
       const accountType = ACCOUNT_TYPES[index] || 'TRUST'
 
-     
- 
       const bankAccountData: BankAccountData = {
         accountType: accountType,
         accountNumber: validationResponse.accountNumber,
@@ -144,14 +184,12 @@ const Step2: React.FC<Step2Props> = ({ projectId, isViewMode = false }) => {
         return newAccounts
       })
 
-   
-
       setValue(`accounts.${index}.ibanNumber`, validationResponse.details.iban)
       setValue(`accounts.${index}.dateOpened`, dateOpened)
       setValue(`accounts.${index}.accountTitle`, validationResponse.name)
       setValue(`accounts.${index}.currency`, validationResponse.currencyCode)
 
-      setSuccessIndexes(prev => [...prev.filter(i => i !== index), index])
+      setSuccessIndexes((prev) => [...prev.filter((i) => i !== index), index])
       setSnackbarMessage(SUCCESS_MESSAGES.STEP_SAVED)
       setSnackbarSeverity('success')
       setSnackbarOpen(true)
@@ -159,8 +197,8 @@ const Step2: React.FC<Step2Props> = ({ projectId, isViewMode = false }) => {
       return true
     } catch (error) {
       setErrorIndex(index)
-     
-      setSuccessIndexes(prev => prev.filter(i => i !== index))
+
+      setSuccessIndexes((prev) => prev.filter((i) => i !== index))
       setSnackbarMessage(ERROR_MESSAGES.VALIDATION_FAILED)
       setSnackbarSeverity('error')
       setSnackbarOpen(true)
@@ -202,6 +240,18 @@ const Step2: React.FC<Step2Props> = ({ projectId, isViewMode = false }) => {
     ;(window as any).step2ValidatedAccounts = validatedAccounts
   }, [validatedAccounts])
 
+  // Watch for form changes and auto-validate when all backend fields are filled
+  React.useEffect(() => {
+    const watchedAccounts = watch('accounts')
+    if (watchedAccounts && Array.isArray(watchedAccounts)) {
+      watchedAccounts.forEach((account, index) => {
+        if (account) {
+          checkAndAutoValidate(account, index)
+        }
+      })
+    }
+  }, [watch('accounts')])
+
   const StyledCalendarIcon = (
     props: React.ComponentProps<typeof CalendarTodayOutlinedIcon>
   ) => <CalendarTodayOutlinedIcon {...props} sx={calendarIconSx} />
@@ -236,21 +286,40 @@ const Step2: React.FC<Step2Props> = ({ projectId, isViewMode = false }) => {
                       control={control}
                       defaultValue=""
                       rules={{
-                        validate: (value: any) => validateAccountField('trustAccountNumber', value)
+                        validate: (value: any) =>
+                          validateAccountField('trustAccountNumber', value),
                       }}
                       render={({ field }) => (
                         <TextField
                           {...field}
                           fullWidth
                           disabled={isViewMode}
-                          required={index === 0 || index === 1} 
-                          label={getLabel('CDL_BPA_ACC_NO', index === 0 ? 'Trust Account Number' : index === 1 ? 'Retention Account Number' : index === 2 ? 'Sub Construction Account Number' : 'Corporate Account Number')}
+                          required={index === 0 || index === 1}
+                          label={getLabel(
+                            'CDL_BPA_ACC_NO',
+                            language,
+                            index === 0
+                              ? 'Trust Account Number111'
+                              : index === 1
+                                ? 'Retention Account Number222'
+                                : index === 2
+                                  ? 'Sub Construction Account Number333'
+                                  : 'Corporate Account Number444'
+                          )}
                           error={!!errors.accounts?.[index]?.trustAccountNumber}
-                          helperText={(errors.accounts?.[index]?.trustAccountNumber?.message as string) || 'Manual entry - Numerical only (max 15 digits)'}
+                          helperText={
+                            (errors.accounts?.[index]?.trustAccountNumber
+                              ?.message as string) ||
+                            'Manual entry - Numerical only (max 15 digits)'
+                          }
                           inputProps={{ maxLength: 15 }}
                           InputLabelProps={{ sx: labelSx }}
                           InputProps={{ sx: valueSx }}
-                          sx={errors.accounts?.[index]?.trustAccountNumber ? errorFieldStyles : commonFieldStyles}
+                          sx={
+                            errors.accounts?.[index]?.trustAccountNumber
+                              ? errorFieldStyles
+                              : commonFieldStyles
+                          }
                         />
                       )}
                     />
@@ -262,21 +331,34 @@ const Step2: React.FC<Step2Props> = ({ projectId, isViewMode = false }) => {
                       control={control}
                       defaultValue=""
                       rules={{
-                        validate: (value: any) => validateAccountField('trustAccountIban', value)
+                        validate: (value: any) =>
+                          validateAccountField('trustAccountIban', value),
                       }}
                       render={({ field }) => (
                         <TextField
                           {...field}
                           fullWidth
-                          disabled={isViewMode}
+                          disabled={true} // Always disabled - fetched from backend
                           required={index === 0 || index === 1} // Required for Trust and Retention
-                          label={getLabel('CDL_BPA_ACC_IBAN', 'IBAN Number')}
+                          label={getLabel(
+                            'CDL_BPA_ACC_IBAN',
+                            language,
+                            'IBAN Number111'
+                          )}
                           error={!!errors.accounts?.[index]?.ibanNumber}
-                          helperText={(errors.accounts?.[index]?.ibanNumber?.message as string) || 'Fetched from core banking'}
+                          helperText={
+                            (errors.accounts?.[index]?.ibanNumber
+                              ?.message as string) ||
+                            'Fetched from core banking'
+                          }
                           inputProps={{ maxLength: 25 }}
                           InputLabelProps={{ sx: labelSx }}
                           InputProps={{ sx: valueSx }}
-                          sx={errors.accounts?.[index]?.ibanNumber ? errorFieldStyles : commonFieldStyles}
+                          sx={
+                            errors.accounts?.[index]?.ibanNumber
+                              ? errorFieldStyles
+                              : commonFieldStyles
+                          }
                         />
                       )}
                     />
@@ -289,12 +371,17 @@ const Step2: React.FC<Step2Props> = ({ projectId, isViewMode = false }) => {
                       control={control}
                       defaultValue={null}
                       rules={{
-                        validate: (value: any) => validateAccountField('trustAccountOpenedDate', value)
+                        validate: (value: any) =>
+                          validateAccountField('trustAccountOpenedDate', value),
                       }}
                       render={({ field }) => (
                         <DatePicker
-                          disabled={isViewMode}
-                          label={getLabel('CDL_BPA_ACC_OPENDATE', 'Date Opened')}
+                          disabled={true} // Always disabled - fetched from backend
+                          label={getLabel(
+                            'CDL_BPA_ACC_OPENDATE',
+                            language,
+                            'Date Opened111'
+                          )}
                           value={field.value}
                           onChange={field.onChange}
                           format="DD/MM/YYYY"
@@ -306,8 +393,13 @@ const Step2: React.FC<Step2Props> = ({ projectId, isViewMode = false }) => {
                               required: index === 0 || index === 1, // Required for Trust and Retention
                               fullWidth: true,
                               error: !!errors.accounts?.[index]?.dateOpened,
-                              helperText: (errors.accounts?.[index]?.dateOpened?.message as string) || 'Fetched from core banking',
-                              sx: errors.accounts?.[index]?.dateOpened ? errorFieldStyles : datePickerStyles,
+                              helperText:
+                                (errors.accounts?.[index]?.dateOpened
+                                  ?.message as string) ||
+                                'Fetched from core banking',
+                              sx: errors.accounts?.[index]?.dateOpened
+                                ? errorFieldStyles
+                                : datePickerStyles,
                               InputLabelProps: { sx: labelSx },
                               InputProps: {
                                 sx: valueSx,
@@ -327,21 +419,34 @@ const Step2: React.FC<Step2Props> = ({ projectId, isViewMode = false }) => {
                       control={control}
                       defaultValue=""
                       rules={{
-                        validate: (value: any) => validateAccountField('trustAccountTitle', value)
+                        validate: (value: any) =>
+                          validateAccountField('trustAccountTitle', value),
                       }}
                       render={({ field }) => (
                         <TextField
                           {...field}
                           fullWidth
-                          disabled={isViewMode}
-                          required={index === 0 || index === 1} 
-                          label={getLabel('CDL_BPA_ACC_NAME', 'Account Title')}
+                          disabled={true} // Always disabled - fetched from backend
+                          required={index === 0 || index === 1}
+                          label={getLabel(
+                            'CDL_BPA_ACC_NAME',
+                            language,
+                            'Account Title111'
+                          )}
                           error={!!errors.accounts?.[index]?.accountTitle}
-                          helperText={(errors.accounts?.[index]?.accountTitle?.message as string) || 'Fetched from core banking'}
+                          helperText={
+                            (errors.accounts?.[index]?.accountTitle
+                              ?.message as string) ||
+                            'Fetched from core banking'
+                          }
                           inputProps={{ maxLength: 100 }}
                           InputLabelProps={{ sx: labelSx }}
                           InputProps={{ sx: valueSx }}
-                          sx={errors.accounts?.[index]?.accountTitle ? errorFieldStyles : commonFieldStyles}
+                          sx={
+                            errors.accounts?.[index]?.accountTitle
+                              ? errorFieldStyles
+                              : commonFieldStyles
+                          }
                         />
                       )}
                     />
@@ -355,22 +460,29 @@ const Step2: React.FC<Step2Props> = ({ projectId, isViewMode = false }) => {
                         control={control}
                         defaultValue=""
                         rules={{
-                          validate: (value: any) => validateAccountField('accountCurrency', value)
+                          validate: (value: any) =>
+                            validateAccountField('accountCurrency', value),
                         }}
                         render={({ field }) => (
                           <TextField
                             {...field}
                             fullWidth
-                            disabled={isViewMode}
+                            disabled={true} // Always disabled - fetched from backend
                             required={index === 0 || index === 1}
                             label={
                               currenciesLoading
                                 ? 'Loading...'
-                                : getLabel('CDL_BPA_ACC_CUR', 'Account Currency')
+                                : getLabel(
+                                    'CDL_BPA_ACC_CUR',
+                                    language,
+                                    'Account Currency123456'
+                                  )
                             }
                             placeholder="Enter currency code"
                             error={!!errors.accounts?.[index]?.currency}
-                            helperText={errors.accounts?.[index]?.currency?.message}
+                            helperText={
+                              errors.accounts?.[index]?.currency?.message
+                            }
                             InputLabelProps={{ sx: labelSx }}
                             InputProps={{ sx: valueSx }}
                             sx={{
@@ -439,18 +551,66 @@ const Step2: React.FC<Step2Props> = ({ projectId, isViewMode = false }) => {
                                   : '#D0E3FF',
                           },
                         }}
-                        onClick={() =>
-                          validateAccount(watch(`accounts.${index}`), index)
-                        }
+                        onClick={() => {
+                          const currentAccount = watch(`accounts.${index}`)
+                          // Check if all backend fields are already filled
+                          const hasIban =
+                            currentAccount?.ibanNumber &&
+                            currentAccount.ibanNumber.trim() !== ''
+                          const hasDateOpened = currentAccount?.dateOpened
+                          const hasAccountTitle =
+                            currentAccount?.accountTitle &&
+                            currentAccount.accountTitle.trim() !== ''
+                          const hasCurrency =
+                            currentAccount?.currency &&
+                            currentAccount.currency.trim() !== ''
+
+                          if (
+                            hasIban &&
+                            hasDateOpened &&
+                            hasAccountTitle &&
+                            hasCurrency
+                          ) {
+                            // All fields are filled, just auto-validate
+                            checkAndAutoValidate(currentAccount, index)
+                          } else {
+                            // Need to validate from backend
+                            validateAccount(currentAccount, index)
+                          }
+                        }}
                         disabled={isViewMode || validatingIndex === index}
                       >
-                        {validatingIndex === index
-                          ? 'Validating...'
-                          : errorIndex === index
-                            ? 'Invalidate'
-                            : successIndexes.includes(index)
-                              ? 'Validated'
-                              : 'Validate'}
+                        {(() => {
+                          const currentAccount = watch(`accounts.${index}`)
+                          const hasIban =
+                            currentAccount?.ibanNumber &&
+                            currentAccount.ibanNumber.trim() !== ''
+                          const hasDateOpened = currentAccount?.dateOpened
+                          const hasAccountTitle =
+                            currentAccount?.accountTitle &&
+                            currentAccount.accountTitle.trim() !== ''
+                          const hasCurrency =
+                            currentAccount?.currency &&
+                            currentAccount.currency.trim() !== ''
+                          const allFieldsFilled =
+                            hasIban &&
+                            hasDateOpened &&
+                            hasAccountTitle &&
+                            hasCurrency
+
+                          if (validatingIndex === index) {
+                            return 'Validating...'
+                          } else if (errorIndex === index) {
+                            return 'Invalidate'
+                          } else if (
+                            successIndexes.includes(index) ||
+                            allFieldsFilled
+                          ) {
+                            return 'Validated'
+                          } else {
+                            return 'Validate'
+                          }
+                        })()}
                       </Button>
                     </Box>
                   </Grid>

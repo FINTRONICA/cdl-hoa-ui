@@ -3,10 +3,11 @@ import { Suspense } from 'react'
 import ManualPaymentStepperWrapper from '@/components/organisms/ManualPaymentStepper'
 import { DashboardLayout } from '@/components/templates/DashboardLayout'
 import { useManualPaymentLabelsWithCache } from '@/hooks/useManualPaymentLabelsWithCache'
-import { MANUAL_PAYMENT_LABELS } from '@/constants/mappings/manualPaymentLabels'
+import { VOUCHER_LABELS } from '@/constants/mappings/manualPaymentLabels'
 import { useSearchParams, useParams } from 'next/navigation'
 import { fundEgressService } from '@/services/api/fundEgressService'
 import { useState, useEffect } from 'react'
+import { GlobalLoading, GlobalError } from '@/components/atoms'
 
 function ManualPaymentWithIdContent() {
   const { getLabel } = useManualPaymentLabelsWithCache('EN')
@@ -20,6 +21,7 @@ function ManualPaymentWithIdContent() {
   // State for payment data
   const [paymentData, setPaymentData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Fetch payment data when ID is available
   useEffect(() => {
@@ -27,11 +29,13 @@ function ManualPaymentWithIdContent() {
       if (params.id) {
         try {
           setLoading(true)
+          setError(null)
           const data = await fundEgressService.getFundEgressById(
             params.id as string
           )
           setPaymentData(data)
         } catch (error) {
+          setError(error instanceof Error ? error.message : 'Failed to load payment data')
         } finally {
           setLoading(false)
         }
@@ -44,13 +48,40 @@ function ManualPaymentWithIdContent() {
   }, [params.id])
 
   const pageTitle = getLabel(
-    MANUAL_PAYMENT_LABELS.PAGE_TITLE,
+    VOUCHER_LABELS.PAGE_TITLE,
     'EN',
-    MANUAL_PAYMENT_LABELS.FALLBACKS.PAGE_TITLE
+    VOUCHER_LABELS.FALLBACKS.PAGE_TITLE
   )
   const pageSubtitle = isViewMode
     ? 'View Manual Payment details (Read-only mode)'
-    : 'Register your Manual Payment details step by step, non-mandatory fields and steps are easy to skip.'
+    : 'Register your Voucher  details step by step, non-mandatory fields and steps are easy to skip.'
+
+  // Show loading state while fetching payment data
+  if (loading && params.id) {
+    return (
+      <DashboardLayout title={pageTitle} subtitle="">
+        <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
+          <GlobalLoading fullHeight />
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  // Show error state if there was an error loading payment data
+  if (error) {
+    return (
+      <DashboardLayout title={pageTitle} subtitle="">
+        <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
+          <GlobalError 
+            error={error} 
+            onRetry={() => window.location.reload()}
+            title="Error loading manual payment data"
+            fullHeight
+          />
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   return (
     <DashboardLayout title={pageTitle} subtitle={pageSubtitle}>
@@ -61,9 +92,9 @@ function ManualPaymentWithIdContent() {
             <div className="flex flex-col min-w-[200px] gap-1">
               <label className="font-sans font-normal text-[12px] leading-[1] tracking-normal text-[#4A5565]">
                 {getLabel(
-                  MANUAL_PAYMENT_LABELS.FORM_FIELDS.TAS_REFERENCE,
+                  VOUCHER_LABELS.FORM_FIELDS.TAS_REFERENCE,
                   'EN',
-                  MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TAS_REFERENCE
+                  VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.TAS_REFERENCE
                 )}
                 *
               </label>
@@ -76,9 +107,9 @@ function ManualPaymentWithIdContent() {
             <div className="flex flex-col min-w-[200px] gap-1">
               <label className="font-sans font-normal text-[12px] leading-[1] tracking-normal text-[#4A5565]">
                 {getLabel(
-                  MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEVELOPER_NAME,
+                  VOUCHER_LABELS.FORM_FIELDS.DEVELOPER_NAME,
                   'EN',
-                  MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_NAME
+                  VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_NAME
                 )}
               </label>
               <span className="font-outfit font-normal text-[16px] leading-[1] tracking-normal align-middle text-[#1E2939]">

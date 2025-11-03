@@ -8,6 +8,7 @@ export * from './capitalPartnerSchemas';
 export * from './contactSchemas';
 export * from './feeSchemas';
 export * from './manualPaymentSchemas';
+export * from './budgetSchemas';
 
 // Re-export Zod for schema creation
 export { z } from 'zod';

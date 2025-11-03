@@ -14,6 +14,7 @@ import { useGroups, useGroupManager } from '@/hooks/useGroups'
 import { useGroupManagementLabelApi } from '@/hooks/useGroupManagementLabelApi'
 import { getGroupManagementLabel } from '@/constants/mappings/groupManagementMapping'
 import { useAppStore } from '@/store'
+import { GlobalLoading } from '@/components/atoms'
 
 // Define the group management data structure
 interface GroupManagementData extends Record<string, unknown> {
@@ -340,23 +341,14 @@ const FeeTypePage: React.FC = () => {
           />
 
           {/* Loading State */}
-          {(fetching || labelsLoading) && (
-            <div className="flex justify-center items-center py-8">
-              <div className="flex flex-col items-center gap-2">
-                <div className="text-gray-500 text-sm">
-                  {fetching && labelsLoading
-                    ? 'Loading...'
-                    : fetching
-                      ? 'Loading...'
-                      : 'Loading...'}
-                </div>
-                <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
-              </div>
+          {(fetching || labelsLoading) ? (
+            <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
+              <GlobalLoading fullHeight />
             </div>
-          )}
-
-          {/* Error Display */}
-          {(error || createError || deleteError || labelsError) && (
+          ) : (
+            <>
+              {/* Error Display */}
+              {(error || createError || deleteError || labelsError) && (
             <div className="mx-4 mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
               <div className="font-semibold mb-2">Error Details:</div>
               {error && <div>Groups: {error.message}</div>}
@@ -394,6 +386,8 @@ const FeeTypePage: React.FC = () => {
               />
             </div>
           </div>
+            </>
+          )}
         </div>
       </DashboardLayout>
     </>

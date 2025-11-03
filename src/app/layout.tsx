@@ -7,7 +7,7 @@ import { StoreHydration } from '../components/StoreHydration'
 import { LayoutContent } from '../components/LayoutContent'
 import { ComplianceProvider } from '../components/ComplianceProvider'
 import { ReactivePermissionsProvider } from '../components/ReactivePermissionsProvider'
-import { SessionTracker } from '../components/SessionTracker'
+import { EnhancedSessionTracker } from '../components/EnhancedSessionTracker'
 import { GlobalConfirmationDialog } from '../components/providers/GlobalConfirmationDialog'
 import { GlobalNotificationProvider } from '../components/providers/GlobalNotificationProvider'
 import { NavigationProvider } from '../components/providers/NavigationProvider'
@@ -45,7 +45,7 @@ export default function RootLayout({
                     <LayoutContent>
                       {children}
                     </LayoutContent>
-                    <SessionTracker />
+                    <EnhancedSessionTracker />
                     <GlobalConfirmationDialog />
                     <GlobalNotificationProvider />
                   </ThemeProvider>

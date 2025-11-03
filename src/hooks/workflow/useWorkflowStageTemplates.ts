@@ -180,7 +180,7 @@ export function useDeleteWorkflowStageTemplate() {
       return result
     },
     onSuccess: (_, deletedId) => {
-      console.log(deletedId)
+     
 
       queryClient.invalidateQueries({
         queryKey: [WORKFLOW_STAGE_TEMPLATES_QUERY_KEY],

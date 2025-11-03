@@ -13,9 +13,10 @@ import { useManualPaymentLabelsWithCache } from '@/hooks/useManualPaymentLabelsW
 import { useDeleteConfirmation } from '@/store/confirmationDialogStore'
 import { PageActionButtons } from '../../../components/molecules/PageActionButtons'
 import LeftSlidePanel from '@/components/organisms/LeftSlidePanel/LeftSlidePanel'
-import { MANUAL_PAYMENT_LABELS } from '@/constants/mappings/manualPaymentLabels'
+import { VOUCHER_LABELS } from '@/constants/mappings/manualPaymentLabels'
+import { GlobalLoading, GlobalError } from '@/components/atoms'
 
-// Transform API data to match table structure
+
 interface ManualPaymentData extends Record<string, unknown> {
   id: number
   date: string
@@ -42,7 +43,7 @@ interface ManualPaymentData extends Record<string, unknown> {
   remark: string
 }
 
-// Transform fund egress data to manual payment data
+
 const transformFundEgressToManualPayment = (
   fundEgress: FundEgressData
 ): ManualPaymentData => {
@@ -51,7 +52,7 @@ const transformFundEgressToManualPayment = (
       return 'INITIATED'
     }
 
-    // Use the code from taskStatusDTO directly as it matches our new status options
+  
     return taskStatusDTO.code || 'INITIATED'
   }
 
@@ -91,138 +92,138 @@ const transformFundEgressToManualPayment = (
   }
 }
 
-// Function to create expanded content labels using mapping
+
 const createExpandedContentLabels = (
   getLabel: (configId: string, language?: string, fallback?: string) => string
 ) => ({
   sections: {
     paymentInfo: getLabel(
-      MANUAL_PAYMENT_LABELS.EXPANDED_SECTIONS.PAYMENT_INFO,
+      VOUCHER_LABELS.EXPANDED_SECTIONS.PAYMENT_INFO,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_INFO
+      VOUCHER_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_INFO
     ),
     paymentStatus: getLabel(
-      MANUAL_PAYMENT_LABELS.EXPANDED_SECTIONS.PAYMENT_STATUS,
+      VOUCHER_LABELS.EXPANDED_SECTIONS.PAYMENT_STATUS,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_STATUS
+      VOUCHER_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_STATUS
     ),
     paymentDocuments: getLabel(
-      MANUAL_PAYMENT_LABELS.EXPANDED_SECTIONS.PAYMENT_DOCUMENTS,
+      VOUCHER_LABELS.EXPANDED_SECTIONS.PAYMENT_DOCUMENTS,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_DOCUMENTS
+      VOUCHER_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_DOCUMENTS
     ),
   },
   fields: {
     date: getLabel(
-      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.DATE,
+      VOUCHER_LABELS.EXPANDED_FIELDS.DATE,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.DATE
+      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.DATE
     ),
     tasEmsRef: getLabel(
-      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.EMS_REF,
+      VOUCHER_LABELS.EXPANDED_FIELDS.EMS_REF,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.EMS_REF
+      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.EMS_REF
     ),
     developerName: getLabel(
-      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.DEVELOPER_NAME,
+      VOUCHER_LABELS.EXPANDED_FIELDS.DEVELOPER_NAME,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.DEVELOPER_NAME
+      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.DEVELOPER_NAME
     ),
     projectName: getLabel(
-      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.PROJECT_NAME,
+      VOUCHER_LABELS.EXPANDED_FIELDS.PROJECT_NAME,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.PROJECT_NAME
+      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.PROJECT_NAME
     ),
     paymentType: getLabel(
-      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.PAYMENT_TYPE,
+      VOUCHER_LABELS.EXPANDED_FIELDS.PAYMENT_TYPE,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.PAYMENT_TYPE
+      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.PAYMENT_TYPE
     ),
     paymentSubType: getLabel(
-      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.PAYMENT_SUB_TYPE,
+      VOUCHER_LABELS.EXPANDED_FIELDS.PAYMENT_SUB_TYPE,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.PAYMENT_SUB_TYPE
+      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.PAYMENT_SUB_TYPE
     ),
     invoiceNumber: getLabel(
-      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.INVOICE_NUMBER,
+      VOUCHER_LABELS.EXPANDED_FIELDS.INVOICE_NUMBER,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.INVOICE_NUMBER
+      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.INVOICE_NUMBER
     ),
     corporatePayment: getLabel(
-      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.CORPORATE_PAYMENT,
+      VOUCHER_LABELS.EXPANDED_FIELDS.CORPORATE_PAYMENT,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.CORPORATE_PAYMENT
+      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.CORPORATE_PAYMENT
     ),
     beneficiaryName: getLabel(
-      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.BENEFICIARY_NAME,
+      VOUCHER_LABELS.EXPANDED_FIELDS.BENEFICIARY_NAME,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.BENEFICIARY_NAME
+      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.BENEFICIARY_NAME
     ),
     responseRef: getLabel(
-      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.EMS_REF,
+      VOUCHER_LABELS.EXPANDED_FIELDS.EMS_REF,
       'EN',
       'Response Reference'
     ),
     timestamp: getLabel(
-      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.DATE,
+      VOUCHER_LABELS.EXPANDED_FIELDS.DATE,
       'EN',
       'Timestamp'
     ),
     phFinacleStatus: getLabel(
-      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.STATUS,
+      VOUCHER_LABELS.EXPANDED_FIELDS.STATUS,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.STATUS
+      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.STATUS
     ),
     errorDescription: getLabel(
-      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.ERROR_DESCRIPTION,
+      VOUCHER_LABELS.EXPANDED_FIELDS.ERROR_DESCRIPTION,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.ERROR_DESCRIPTION
+      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.ERROR_DESCRIPTION
     ),
     discardedTransaction: getLabel(
-      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.DISCARDED_TRANSACTION,
+      VOUCHER_LABELS.EXPANDED_FIELDS.DISCARDED_TRANSACTION,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.DISCARDED_TRANSACTION
+      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.DISCARDED_TRANSACTION
     ),
     approvalStatus: getLabel(
-      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.APPROVAL_STATUS,
+      VOUCHER_LABELS.EXPANDED_FIELDS.APPROVAL_STATUS,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.APPROVAL_STATUS
+      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.APPROVAL_STATUS
     ),
   },
   documents: {
     invoice: getLabel(
-      MANUAL_PAYMENT_LABELS.DOCUMENTS.INVOICE,
+      VOUCHER_LABELS.DOCUMENTS.INVOICE,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.DOCUMENTS.INVOICE
+      VOUCHER_LABELS.FALLBACKS.DOCUMENTS.INVOICE
     ),
     constructionProgress: getLabel(
-      MANUAL_PAYMENT_LABELS.DOCUMENTS.CONSTRUCTION_PROGRESS,
+      VOUCHER_LABELS.DOCUMENTS.CONSTRUCTION_PROGRESS,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.DOCUMENTS.CONSTRUCTION_PROGRESS
+      VOUCHER_LABELS.FALLBACKS.DOCUMENTS.CONSTRUCTION_PROGRESS
     ),
     approval: getLabel(
-      MANUAL_PAYMENT_LABELS.DOCUMENTS.APPROVAL,
+      VOUCHER_LABELS.DOCUMENTS.APPROVAL,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.DOCUMENTS.APPROVAL
+      VOUCHER_LABELS.FALLBACKS.DOCUMENTS.APPROVAL
     ),
     history: getLabel(
-      MANUAL_PAYMENT_LABELS.DOCUMENTS.HISTORY,
+      VOUCHER_LABELS.DOCUMENTS.HISTORY,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.DOCUMENTS.HISTORY
+      VOUCHER_LABELS.FALLBACKS.DOCUMENTS.HISTORY
     ),
   },
 })
 
-// Function to create table columns with dynamic labels using mapping
+
 const createTableColumns = (
   getLabel: (configId: string, language?: string, fallback?: string) => string
 ) => [
   {
     key: 'date',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.DATE,
+      VOUCHER_LABELS.TABLE_COLUMNS.DATE,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.DATE
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.DATE
     ),
     type: 'text' as const,
     width: 'w-32',
@@ -231,42 +232,42 @@ const createTableColumns = (
   {
     key: 'takermsPaymentRefNo',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.EMS_REF,
+      VOUCHER_LABELS.TABLE_COLUMNS.EMS_REF,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.EMS_REF
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.EMS_REF
     ),
     type: 'text' as const,
     width: 'w-48',
     sortable: true,
   },
-  {
-    key: 'developerName',
-    label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.DEVELOPER_NAME,
-      'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.DEVELOPER_NAME
-    ),
-    type: 'text' as const,
-    width: 'w-48',
-    sortable: true,
-  },
-  {
-    key: 'projectName',
-    label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.PROJECT_NAME,
-      'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.PROJECT_NAME
-    ),
-    type: 'text' as const,
-    width: 'w-48',
-    sortable: true,
-  },
+  // {
+  //   key: 'developerName',
+  //   label: getLabel(
+  //     VOUCHER_LABELS.TABLE_COLUMNS.DEVELOPER_NAME,
+  //     'EN',
+  //     VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.DEVELOPER_NAME
+  //   ),
+  //   type: 'text' as const,
+  //   width: 'w-48',
+  //   sortable: true,
+  // },
+  // {
+  //   key: 'projectName',
+  //   label: getLabel(
+  //     VOUCHER_LABELS.TABLE_COLUMNS.PROJECT_NAME,
+  //     'EN',
+  //     VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.PROJECT_NAME
+  //   ),
+  //   type: 'text' as const,
+  //   width: 'w-48',
+  //   sortable: true,
+  // },
   {
     key: 'paymentType',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.PAYMENT_TYPE,
+      VOUCHER_LABELS.TABLE_COLUMNS.PAYMENT_TYPE,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.PAYMENT_TYPE
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.PAYMENT_TYPE
     ),
     type: 'text' as const,
     width: 'w-48',
@@ -275,9 +276,9 @@ const createTableColumns = (
   {
     key: 'paymentSubType',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.PAYMENT_SUB_TYPE,
+      VOUCHER_LABELS.TABLE_COLUMNS.PAYMENT_SUB_TYPE,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.PAYMENT_SUB_TYPE
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.PAYMENT_SUB_TYPE
     ),
     type: 'text' as const,
     width: 'w-48',
@@ -286,9 +287,9 @@ const createTableColumns = (
   {
     key: 'invoiceNumber',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.INVOICE_NUMBER,
+      VOUCHER_LABELS.TABLE_COLUMNS.INVOICE_NUMBER,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.INVOICE_NUMBER
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.INVOICE_NUMBER
     ),
     type: 'text' as const,
     width: 'w-40',
@@ -297,9 +298,9 @@ const createTableColumns = (
   {
     key: 'corporatePayment',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.CORPORATE_PAYMENT,
+      VOUCHER_LABELS.TABLE_COLUMNS.CORPORATE_PAYMENT,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.CORPORATE_PAYMENT
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.CORPORATE_PAYMENT
     ),
     type: 'text' as const,
     width: 'w-32',
@@ -308,9 +309,9 @@ const createTableColumns = (
   {
     key: 'beneficiaryName',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.BENEFICIARY_NAME,
+      VOUCHER_LABELS.TABLE_COLUMNS.BENEFICIARY_NAME,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.BENEFICIARY_NAME
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.BENEFICIARY_NAME
     ),
     type: 'text' as const,
     width: 'w-48',
@@ -319,9 +320,9 @@ const createTableColumns = (
   {
     key: 'phFinacleStatus',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.STATUS,
+      VOUCHER_LABELS.TABLE_COLUMNS.STATUS,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.STATUS
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.STATUS
     ),
     type: 'text' as const,
     width: 'w-36',
@@ -330,9 +331,9 @@ const createTableColumns = (
   {
     key: 'errorDescription',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.ERROR_DESCRIPTION,
+      VOUCHER_LABELS.TABLE_COLUMNS.ERROR_DESCRIPTION,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.ERROR_DESCRIPTION
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.ERROR_DESCRIPTION
     ),
     type: 'text' as const,
     width: 'w-36',
@@ -341,9 +342,9 @@ const createTableColumns = (
   {
     key: 'discardedTransaction',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.DISCARDED_TRANSACTION,
+      VOUCHER_LABELS.TABLE_COLUMNS.DISCARDED_TRANSACTION,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.DISCARDED_TRANSACTION
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.DISCARDED_TRANSACTION
     ),
     type: 'text' as const,
     width: 'w-40',
@@ -352,9 +353,9 @@ const createTableColumns = (
   {
     key: 'approvalStatus',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.APPROVAL_STATUS,
+      VOUCHER_LABELS.TABLE_COLUMNS.APPROVAL_STATUS,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.APPROVAL_STATUS
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.APPROVAL_STATUS
     ),
     type: 'status' as const,
     width: 'w-40',
@@ -363,9 +364,9 @@ const createTableColumns = (
   {
     key: 'actions',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.ACTIONS,
+      VOUCHER_LABELS.TABLE_COLUMNS.ACTIONS,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.ACTIONS
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.ACTIONS
     ),
     type: 'actions' as const,
     width: 'w-20',
@@ -382,7 +383,7 @@ const ManualPaymentPage: React.FC = () => {
   const { getLabel } = useManualPaymentLabelsWithCache('EN')
   const confirmDelete = useDeleteConfirmation()
 
-  // Memoize table columns, status options, and expanded content labels to avoid recreating on every render
+ 
   const tableColumns = useMemo(() => createTableColumns(getLabel), [getLabel])
   const statusOptions = [
     'PENDING',
@@ -398,18 +399,18 @@ const ManualPaymentPage: React.FC = () => {
   )
 
   const manualPaymentTitle = getLabel(
-    MANUAL_PAYMENT_LABELS.PAGE_TITLE,
+    VOUCHER_LABELS.PAGE_TITLE,
     'EN',
-    MANUAL_PAYMENT_LABELS.FALLBACKS.PAGE_TITLE
+    VOUCHER_LABELS.FALLBACKS.PAGE_TITLE
   )
 
-  // API-driven pagination state
+
   const [currentApiPage, setCurrentApiPage] = useState(1)
   const [currentApiSize, setCurrentApiSize] = useState(20)
 
-  // Use the fund egress API hook
   const {
     data: fundEgressData,
+    loading: paymentsLoading,
     deleteFundEgress,
     updatePagination,
     apiPagination,
@@ -418,11 +419,10 @@ const ManualPaymentPage: React.FC = () => {
     page: Math.max(0, currentApiPage - 1),
   })
 
-  // Transform API data when it changes
   useEffect(() => {
     if (fundEgressData && fundEgressData.length > 0) {
       const transformed = fundEgressData
-        .filter((item) => item.feIsManualPayment) // Only show manual payments
+        .filter((item) => item.feIsManualPayment) 
         .map(transformFundEgressToManualPayment)
       setTransformedData(transformed)
     } else {
@@ -430,7 +430,7 @@ const ManualPaymentPage: React.FC = () => {
     }
   }, [fundEgressData])
 
-  // Use the generic table state hook with transformed data
+  
   const {
     search,
     paginated,
@@ -471,7 +471,7 @@ const ManualPaymentPage: React.FC = () => {
     initialRowsPerPage: currentApiSize,
   })
 
-  // Handle API pagination - when user changes page in table
+  
   const handlePageChange = (newPage: number) => {
     const hasActiveSearch = Object.values(search).some((value) => value.trim())
 
@@ -483,7 +483,7 @@ const ManualPaymentPage: React.FC = () => {
     }
   }
 
-  // Handle rows per page change
+  
   const handleRowsPerPageChange = (newRowsPerPage: number) => {
     setCurrentApiSize(newRowsPerPage)
     setCurrentApiPage(1)
@@ -491,18 +491,18 @@ const ManualPaymentPage: React.FC = () => {
     localHandleRowsPerPageChange(newRowsPerPage)
   }
 
-  // Get API totals from the API response
+  
   const apiTotal = apiPagination.totalElements
   const apiTotalPages = apiPagination.totalPages
 
-  // Determine which pagination values to use
+  
   const hasActiveSearch = Object.values(search).some((value) => value.trim())
 
   const effectiveTotalRows = hasActiveSearch ? localTotalRows : apiTotal
   const effectiveTotalPages = hasActiveSearch ? localTotalPages : apiTotalPages
   const effectivePage = hasActiveSearch ? localPage : currentApiPage
 
-  // Calculate effective startItem and endItem based on pagination type
+  
   const effectiveStartItem = hasActiveSearch
     ? startItem
     : (currentApiPage - 1) * currentApiSize + 1
@@ -510,10 +510,10 @@ const ManualPaymentPage: React.FC = () => {
     ? endItem
     : Math.min(currentApiPage * currentApiSize, apiTotal)
 
-  // Action handlers
+ 
   const handleViewPayment = useCallback(
     (row: ManualPaymentData) => {
-      // Navigate to view mode (read-only) with the payment ID
+      
       router.push(`/transactions/manual/new/${row.id}?step=0&mode=view`)
     },
     [router]
@@ -521,7 +521,7 @@ const ManualPaymentPage: React.FC = () => {
 
   const handleEditPayment = useCallback(
     (row: ManualPaymentData) => {
-      // Navigate to edit mode with the payment ID
+      
       router.push(`/transactions/manual/new/${row.id}?step=0&mode=edit`)
     },
     [router]
@@ -541,7 +541,7 @@ const ManualPaymentPage: React.FC = () => {
             setIsDeleting(true)
             await deleteFundEgress(row.id.toString())
           } catch (error) {
-            throw error // Re-throw to keep dialog open on error
+            throw error 
           } finally {
             setIsDeleting(false)
           }
@@ -551,7 +551,7 @@ const ManualPaymentPage: React.FC = () => {
     [deleteFundEgress, isDeleting, confirmDelete]
   )
 
-  // Render expanded content using memoized labels
+ 
   const renderExpandedContent = useCallback(
     (row: ManualPaymentData) => (
       <div className="grid grid-cols-3 gap-8">
@@ -724,18 +724,22 @@ const ManualPaymentPage: React.FC = () => {
 
       <DashboardLayout title={manualPaymentTitle}>
         <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
-          {/* Sticky Header Section */}
-          <div className="sticky top-0 z-10 bg-[#FFFFFFBF] border-b border-gray-200 rounded-t-2xl">
-            {/* Action Buttons */}
-            <PageActionButtons
-              entityType="manualPayment"
-              showButtons={{ addNew: true }}
-            />
-          </div>
+          {paymentsLoading ? (
+            <GlobalLoading fullHeight />
+          ) : (
+            <>
+              
+              <div className="sticky top-0 z-10 bg-[#FFFFFFBF] border-b border-gray-200 rounded-t-2xl">
+                
+                <PageActionButtons
+                  entityType="manualPayment"
+                  showButtons={{ addNew: true }}
+                />
+              </div>
 
-          {/* Table Container with Fixed Pagination */}
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className="flex-1 overflow-auto">
+             
+              <div className="flex-1 flex flex-col min-h-0">
+                <div className="flex-1 overflow-auto">
               <PermissionAwareDataTable<ManualPaymentData>
                 data={paginated}
                 columns={tableColumns}
@@ -766,8 +770,10 @@ const ManualPaymentPage: React.FC = () => {
                 onSort={handleSort}
                 sortConfig={sortConfig}
               />
-            </div>
-          </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </DashboardLayout>
     </>

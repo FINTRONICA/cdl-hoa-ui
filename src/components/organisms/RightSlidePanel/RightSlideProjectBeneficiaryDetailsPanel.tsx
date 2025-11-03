@@ -9,7 +9,6 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  FormHelperText,
   Button,
   Drawer,
   Box,
@@ -18,16 +17,21 @@ import {
 } from '@mui/material'
 import { KeyboardArrowDown as KeyboardArrowDownIcon } from '@mui/icons-material'
 import { Controller, useForm } from 'react-hook-form'
+import { FormError } from '../../atoms/FormError'
 import { zodResolver } from '@hookform/resolvers/zod'
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
-import { useSaveProjectIndividualBeneficiary, useUpdateProjectIndividualBeneficiary } from '@/hooks/useProjects'
+import {
+  useSaveProjectIndividualBeneficiary,
+  useUpdateProjectIndividualBeneficiary,
+} from '@/hooks/useProjects'
 import { useValidationStatus } from '@/hooks/useValidation'
-import { useProjectLabels } from '@/hooks/useProjectLabels'
-import { 
+// import { useProjectLabels } from '@/hooks/useProjectLabels'
+import { useBuildPartnerAssetLabelsWithUtils } from '@/hooks/useBuildPartnerAssetLabels'
+import {
   projectBeneficiaryFormValidationSchema,
-  type ProjectBeneficiaryFormData
+  type ProjectBeneficiaryFormData,
 } from '@/lib/validation/projectBeneficiary.schema'
 
 interface RightSlidePanelProps {
@@ -51,7 +55,6 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
   onClose,
   onBeneficiaryAdded,
   editingBeneficiary,
-  bankNames: propBankNames,
   beneficiaryTypes: propBeneficiaryTypes,
   projectId,
   dropdownsLoading: propDropdownsLoading,
@@ -72,9 +75,8 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
   const addBeneficiaryMutation = useSaveProjectIndividualBeneficiary()
   const updateBeneficiaryMutation = useUpdateProjectIndividualBeneficiary()
 
- 
-  const { getLabel } = useProjectLabels()
-
+  const { getLabel } = useBuildPartnerAssetLabelsWithUtils()
+  const language = 'EN'
 
   const addToast = (message: string, type: 'success' | 'error') => {
     const newToast = {
@@ -85,7 +87,6 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
     }
     setToasts((prev) => [...prev, newToast])
 
-   
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== newToast.id))
     }, 4000)
@@ -95,14 +96,6 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
     setToasts((prev) => prev.filter((toast) => toast.id !== id))
   }
 
- 
-  const bankNames = propBankNames || [
-    { id: 1, configId: 'SBI', configValue: 'SBI' },
-    { id: 2, configId: 'HDFC', configValue: 'HDFC' },
-    { id: 3, configId: 'ICICI', configValue: 'ICICI' },
-    { id: 4, configId: 'Axis Bank', configValue: 'Axis Bank' },
-  ]
-
   const beneficiaryTypes = propBeneficiaryTypes || [
     { id: 1, configId: 'Individual', configValue: 'Individual' },
     { id: 2, configId: 'Company', configValue: 'Company' },
@@ -111,7 +104,6 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
   const dropdownsLoading = propDropdownsLoading || false
   const dropdownsError = propDropdownsError || null
 
- 
   const {
     accountValidationResult,
     accountValidationError,
@@ -121,39 +113,29 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
     resetSwiftValidation,
   } = useValidationStatus()
 
-  const {
-    control,
-    handleSubmit,
-    reset,
-    trigger,
-    formState: { errors },
-  } = useForm<ProjectBeneficiaryFormData>({
-    resolver: zodResolver(projectBeneficiaryFormValidationSchema),
-    mode: 'onChange', // Validate on every change
-    defaultValues: {
-      reaBeneficiaryId: editingBeneficiary?.reaBeneficiaryId || '',
-      reaBeneficiaryType: editingBeneficiary?.reaBeneficiaryType || '',
-      reaName: editingBeneficiary?.reaName || '',
-      reaBankName: editingBeneficiary?.reaBankName || '',
-      reaSwiftCode: editingBeneficiary?.reaSwiftCode || '',
-      reaRoutingCode: editingBeneficiary?.reaRoutingCode || '',
-      reaAccountNumber: editingBeneficiary?.reaAccountNumber || '',
-    },
-  })
+  const { control, handleSubmit, reset, trigger } =
+    useForm<ProjectBeneficiaryFormData>({
+      resolver: zodResolver(projectBeneficiaryFormValidationSchema),
+      mode: 'onChange', // Validate on every change
+      defaultValues: {
+        reaBeneficiaryId: editingBeneficiary?.reaBeneficiaryId || '',
+        reaBeneficiaryType: editingBeneficiary?.reaBeneficiaryType || '',
+        reaName: editingBeneficiary?.reaName || '',
+        reaBankName: editingBeneficiary?.reaBankName || '',
+        reaSwiftCode: editingBeneficiary?.reaSwiftCode || '',
+        reaRoutingCode: editingBeneficiary?.reaRoutingCode || '',
+        reaAccountNumber: editingBeneficiary?.reaAccountNumber || '',
+      },
+    })
 
   // Reset form when editing beneficiary changes
   React.useEffect(() => {
     if (editingBeneficiary) {
-      // Map display values back to IDs for editing
+      // Map display values back to IDs for editing (only for transfer type, bankName is now text)
       const beneficiaryType = beneficiaryTypes.find(
         (type: unknown) =>
           (type as { configValue: string }).configValue ===
           editingBeneficiary.reaBeneficiaryType
-      )
-      const bankName = bankNames.find(
-        (bank: unknown) =>
-          (bank as { configValue: string }).configValue ===
-          editingBeneficiary.reaBankName
       )
 
       reset({
@@ -163,10 +145,7 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
           editingBeneficiary.reaBeneficiaryType ||
           '',
         reaName: editingBeneficiary.reaName || '',
-        reaBankName:
-          (bankName as { id?: string })?.id?.toString() ||
-          editingBeneficiary.reaBankName ||
-          '',
+        reaBankName: editingBeneficiary.reaBankName || '',
         reaSwiftCode: editingBeneficiary.reaSwiftCode || '',
         reaRoutingCode: editingBeneficiary.reaRoutingCode || '',
         reaAccountNumber: editingBeneficiary.reaAccountNumber || '',
@@ -236,43 +215,43 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
   }, [swiftValidationError])
 
   const onSubmit = async (data: ProjectBeneficiaryFormData) => {
-    
     try {
       setErrorMessage(null)
       setSuccessMessage(null)
 
       // Trigger validation to highlight required fields
       const isValid = await trigger()
-      
+
       if (!isValid) {
         return
       }
 
       const beneficiaryData = {
         // Include ID for updates
-        ...(editingBeneficiary?.id && { id: parseInt(editingBeneficiary.id.toString()) }),
+        ...(editingBeneficiary?.id && {
+          id: parseInt(editingBeneficiary.id.toString()),
+        }),
         reabBeneficiaryId: data.reaBeneficiaryId,
         reabTranferTypeDTO: {
           id: parseInt(data.reaBeneficiaryType.toString()) || 0,
         },
         reabName: data.reaName,
-        reabBank: 
-          data.reaBankName,
+        reabBank: data.reaBankName,
         reabSwift: data.reaSwiftCode,
         reabRoutingCode: data.reaRoutingCode,
         reabBeneAccount: data.reaAccountNumber,
-        realEstateAssestDTO: [ {
-          id: projectId ? parseInt(projectId) : undefined,
-        }
-          
-      ],
+        realEstateAssestDTO: [
+          {
+            id: projectId ? parseInt(projectId) : undefined,
+          },
+        ],
       }
 
       if (editingBeneficiary?.id) {
         // Update existing beneficiary using PUT
-        await updateBeneficiaryMutation.mutateAsync({ 
-          id: editingBeneficiary.id.toString(), 
-          beneficiaryData 
+        await updateBeneficiaryMutation.mutateAsync({
+          id: editingBeneficiary.id.toString(),
+          beneficiaryData,
         })
         setSuccessMessage('Beneficiary updated successfully!')
       } else {
@@ -282,30 +261,25 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
       }
 
       if (onBeneficiaryAdded) {
-      
         const beneficiaryTypeLabel =
-          (beneficiaryTypes.find(
-            (type: unknown) =>
-              (type as { id: string }).id === data.reaBeneficiaryType
-          ) as { configValue: string })?.configValue || `Type ${data.reaBeneficiaryType}`
-        const bankNameLabel =
-          (bankNames.find(
-            (bank: unknown) =>
-              (bank as { id: string }).id === data.reaBankName.toString()
-          ) as { configValue: string })?.configValue || `Bank ${data.reaBankName}`
+          (
+            beneficiaryTypes.find(
+              (type: unknown) =>
+                (type as { id: string }).id === data.reaBeneficiaryType
+            ) as { configValue: string }
+          )?.configValue || `Type ${data.reaBeneficiaryType}`
 
         const beneficiaryForForm = {
           // Map to table column names with display labels
           reaBeneficiaryId: data.reaBeneficiaryId,
           reaBeneficiaryType: beneficiaryTypeLabel,
           reaName: data.reaName,
-          reaBankName: bankNameLabel,
+          reaBankName: data.reaBankName, // Now a text field, use value directly
           reaSwiftCode: data.reaSwiftCode,
           reaRoutingCode: data.reaRoutingCode,
           reaAccountNumber: data.reaAccountNumber,
           // Keep original fields for reference
           reaBeneficiaryTypeId: data.reaBeneficiaryType,
-          reaBankNameId: data.reaBankName,
           realEstateAssetDTO: {
             id: projectId ? parseInt(projectId) : undefined,
           },
@@ -320,7 +294,6 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
         onClose()
       }, 1500)
     } catch (error: unknown) {
-      
       const errorMessage =
         error instanceof Error
           ? error.message
@@ -421,18 +394,23 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
         control={control}
         defaultValue={defaultValue}
         render={({ field, fieldState: { error } }) => (
-          <TextField
-            {...field}
-            label={label}
-            fullWidth
-            required={required}
-            error={!!error}
-            helperText={error?.message}
-            inputProps={{ maxLength }}
-            InputLabelProps={{ sx: labelSx }}
-            InputProps={{ sx: valueSx }}
-            sx={error ? errorFieldStyles : commonFieldStyles}
-          />
+          <>
+            <TextField
+              {...field}
+              label={label}
+              fullWidth
+              required={required}
+              error={!!error}
+              inputProps={{ maxLength }}
+              InputLabelProps={{ sx: labelSx }}
+              InputProps={{ sx: valueSx }}
+              sx={error ? errorFieldStyles : commonFieldStyles}
+            />
+            <FormError
+              error={(error?.message as string) || ''}
+              touched={true}
+            />
+          </>
         )}
       />
     </Grid>
@@ -485,11 +463,10 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
                 </MenuItem>
               ))}
             </Select>
-            {error && (
-              <Box sx={{ color: 'error.main', fontSize: '0.75rem', mt: 0.5, ml: 1.75 }}>
-                {error.message}
-              </Box>
-            )}
+            <FormError
+              error={(error?.message as string) || ''}
+              touched={true}
+            />
           </FormControl>
         )}
       />
@@ -527,16 +504,22 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
             verticalAlign: 'middle',
           }}
         >
-          {getLabel('CDL_BPA_ADD_BENEFICIARY_DETAILS', 'Add Project Beneficiary Details')}
+          {getLabel(
+            'CDL_BPA_BENE_INFO',
+            language,
+            'Beneficiary Banking Details'
+          )}
           <IconButton onClick={handleClose}>
             <CancelOutlinedIcon />
           </IconButton>
         </DialogTitle>
 
-        <form onSubmit={(e) => {
-          
-          handleSubmit(onSubmit)(e)
-        }}>
+        <form
+          noValidate
+          onSubmit={(e) => {
+            handleSubmit(onSubmit)(e)
+          }}
+        >
           <DialogContent dividers>
             {/* Show error if dropdowns fail to load */}
             {dropdownsError && (
@@ -548,7 +531,11 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
             <Grid container rowSpacing={4} columnSpacing={2} mt={3}>
               {renderTextField(
                 'reaBeneficiaryId',
-                getLabel('CDL_BPA_BENEFICIARY_ID', 'Beneficiary ID'),
+                getLabel(
+                  'CDL_BPA_BENE_REFID',
+                  language,
+                  'Beneficiary Reference ID'
+                ),
                 '',
                 6,
                 true, // Required
@@ -556,46 +543,49 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
               )}
               {renderSelectField(
                 'reaBeneficiaryType',
-                getLabel('CDL_BPA_TRANSFER_TYPE', 'Transfer Type'),
+                getLabel('CDL_BPA_BENE_TRANSFER', language, 'Transfer Method'),
                 beneficiaryTypes,
                 6,
                 true, // Required
                 dropdownsLoading
               )}
               {renderTextField(
-                'reaName', 
-                getLabel('CDL_BPA_BENEFICIARY_NAME', 'Beneficiary Name'), 
-                '', 
-                12, 
+                'reaName',
+                getLabel(
+                  'CDL_BPA_BENE_NAME',
+                  language,
+                  'Beneficiary Full Name'
+                ),
+                '',
+                12,
                 true, // Required
                 35 // Max length
               )}
-              {renderSelectField(
-                'reaBankName',
-                getLabel('CDL_BPA_BENEFICIARY_BANK', 'Beneficiary Bank'),
-                bankNames,
-                6,
-                true, // Required
-                dropdownsLoading
-              )}
               {renderTextField(
-                'reaSwiftCode', 
-                getLabel('CDL_BPA_SWIFT_CODE', 'SWIFT Code'), 
-                '', 
-                6, 
+                'reaBankName',
+                getLabel('CDL_BPA_BENE_BANK', language, 'Bank Name'),
+                '',
+                6,
                 true // Required
               )}
               {renderTextField(
-                'reaRoutingCode', 
-                getLabel('CDL_BPA_ROUTING_CODE', 'Routing Code'), 
-                '', 
-                6, 
+                'reaSwiftCode',
+                getLabel('CDL_BPA_BENE_BIC', language, 'SWIFT/BIC Code'),
+                '',
+                6,
+                true // Required
+              )}
+              {renderTextField(
+                'reaRoutingCode',
+                getLabel('CDL_BPA_BENE_ROUTING', language, 'Routing Number'),
+                '',
+                6,
                 true, // Required
                 10 // Max length
               )}
               {renderTextField(
                 'reaAccountNumber',
-                getLabel('CDL_BPA_ACCOUNT_NUMBER', 'Account Number/IBAN'),
+                getLabel('CDL_BPA_BENE_ACC', language, 'Bank Account Number'),
                 '',
                 6,
                 true // Required
@@ -619,7 +609,9 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
                   variant="outlined"
                   onClick={handleClose}
                   disabled={
-                    addBeneficiaryMutation.isPending || updateBeneficiaryMutation.isPending || dropdownsLoading
+                    addBeneficiaryMutation.isPending ||
+                    updateBeneficiaryMutation.isPending ||
+                    dropdownsLoading
                   }
                   sx={{
                     fontFamily: 'Outfit, sans-serif',
@@ -630,7 +622,7 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
                     letterSpacing: 0,
                   }}
                 >
-                  {getLabel('CDL_BPA_CANCEL', 'Cancel')}
+                  {getLabel('CDL_BPA_CANCEL', language, 'Cancel')}
                 </Button>
               </Grid>
               <Grid size={{ xs: 6 }}>
@@ -640,11 +632,11 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
                   color="primary"
                   type="submit"
                   disabled={
-                    addBeneficiaryMutation.isPending || updateBeneficiaryMutation.isPending || dropdownsLoading
+                    addBeneficiaryMutation.isPending ||
+                    updateBeneficiaryMutation.isPending ||
+                    dropdownsLoading
                   }
-                  onClick={() => {
-                    
-                  }}
+                  onClick={() => {}}
                   sx={{
                     fontFamily: 'Outfit, sans-serif',
                     fontWeight: 500,
@@ -656,10 +648,14 @@ export const RightSlideProjectBeneficiaryDetailsPanel: React.FC<
                     color: '#fff',
                   }}
                 >
-                  {(addBeneficiaryMutation.isPending || updateBeneficiaryMutation.isPending)
-                    ? (editingBeneficiary?.id ? getLabel('CDL_BPA_UPDATING', 'Updating...') : getLabel('CDL_BPA_ADDING', 'Adding...'))
-                    : (editingBeneficiary?.id ? getLabel('CDL_BPA_UPDATE', 'Update') : getLabel('CDL_BPA_ADD', 'Add'))
-                  }
+                  {addBeneficiaryMutation.isPending ||
+                  updateBeneficiaryMutation.isPending
+                    ? editingBeneficiary?.id
+                      ? getLabel('CDL_BPA_UPDATING', language, 'Updating...')
+                      : getLabel('CDL_BPA_ADDING', language, 'Adding...')
+                    : editingBeneficiary?.id
+                      ? getLabel('CDL_BPA_UPDATE', language, 'Update')
+                      : getLabel('CDL_BPA_ADD', language, 'Add')}
                 </Button>
               </Grid>
             </Grid>

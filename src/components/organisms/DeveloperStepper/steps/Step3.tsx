@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Box, Card, CardContent, Button } from '@mui/material'
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined'
 import { FeeData } from '../developerTypes'
@@ -12,6 +12,9 @@ import { FeeUIData } from '@/services/api/buildPartnerService'
 import { formatDate } from '@/utils'
 import { useDeleteConfirmation } from '@/store/confirmationDialogStore'
 import { useDeleteBuildPartnerFee } from '@/hooks/useBuildPartners'
+import { useBuildPartnerLabelsWithCache } from '@/hooks/useBuildPartnerLabelsWithCache'
+import { getBuildPartnerLabel } from '@/constants/mappings/buildPartnerMapping'
+import { useAppStore } from '@/store'
 
 interface Step3Props {
   fees: FeeData[]
@@ -38,6 +41,17 @@ const Step3: React.FC<Step3Props> = ({
   const confirmDelete = useDeleteConfirmation()
   const deleteMutation = useDeleteBuildPartnerFee()
 
+  // Dynamic label support
+  const { data: buildPartnerLabels, getLabel } = useBuildPartnerLabelsWithCache()
+  const currentLanguage = useAppStore((state) => state.language) || 'EN'
+  const getBuildPartnerLabelDynamic = useCallback(
+    (configId: string): string => {
+      const fallback = getBuildPartnerLabel(configId)
+      return buildPartnerLabels ? getLabel(configId, currentLanguage, fallback) : fallback
+    },
+    [buildPartnerLabels, currentLanguage, getLabel]
+  )
+
   // Fetch fee data from API with pagination when buildPartnerId is available
   const {
     data: apiFeeResponse,
@@ -53,11 +67,13 @@ const Step3: React.FC<Step3Props> = ({
     apiFeeResponse?.content?.map((fee: FeeUIData) => ({
       ...fee,
       feeToBeCollected: fee.feeToBeCollected
-        ? formatDate(fee.feeToBeCollected, 'MMM DD, YYYY')
+        ? formatDate(fee.feeToBeCollected, 'DD/MM/YYYY')
         : '',
       nextRecoveryDate: fee.nextRecoveryDate
-        ? formatDate(fee.nextRecoveryDate, 'MMM DD, YYYY')
+        ? formatDate(fee.nextRecoveryDate, 'DD/MM/YYYY')
         : '',
+      // Normalize collected amount so table can read a single key
+      totalAmount: fee.totalAmount ?? fee.Amount ?? '',
     })) || []
 
   // Use API data if available, otherwise use form data
@@ -150,70 +166,77 @@ const Step3: React.FC<Step3Props> = ({
   const tableColumns = [
     {
       key: 'feeType',
-      label: 'Fee Type',
+      label: getBuildPartnerLabelDynamic('CDL_BP_FEES_TYPE'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
       key: 'frequency',
-      label: 'Frequency',
+      label: getBuildPartnerLabelDynamic('CDL_BP_FEES_FREQUENCY'),
       type: 'text' as const,
       width: 'w-28',
       sortable: true,
     },
     {
-      key: 'debitAmount',
-      label: 'Debit Amount',
+      key: 'debitAccount',
+      label: getBuildPartnerLabelDynamic('CDL_BP_FEES_ACCOUNT'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
     },
     {
       key: 'feeToBeCollected',
-      label: 'Fee to be Collected',
+      label: getBuildPartnerLabelDynamic('CDL_BP_FEES_TOTAL'),
       type: 'text' as const,
       width: 'w-30',
       sortable: true,
     },
     {
       key: 'nextRecoveryDate',
-      label: 'Next Recovery Date',
+      label: getBuildPartnerLabelDynamic('CDL_BP_FEES_DATE'),
       type: 'text' as const,
       width: 'w-32',
       sortable: true,
     },
     {
       key: 'feePercentage',
-      label: 'Fee Percentage',
+      label: getBuildPartnerLabelDynamic('CDL_BP_FEES_RATE'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
     },
     {
-      key: 'amount',
-      label: 'Amount',
+      key: 'debitAmount',
+      label: getBuildPartnerLabelDynamic('CDL_BP_FEES_AMOUNT'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
     },
     {
       key: 'vatPercentage',
-      label: 'VAT Percentage',
+      label: getBuildPartnerLabelDynamic('CDL_BP_FEES_VAT'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
     },
     {
       key: 'currency',
-      label: 'Currency',
+      label: getBuildPartnerLabelDynamic('CDL_BP_FEES_CURRENCY'),
       type: 'text' as const,
       width: 'w-20',
       sortable: true,
     },
     {
+      key: 'amount',
+      label: getBuildPartnerLabelDynamic('CDL_BP_FEES_TOTAL_AMOUNT'),
+      type: 'text' as const,
+      width: 'w-24',
+      sortable: true,
+    },
+    {
       key: 'actions',
-      label: 'Action',
+      label: getBuildPartnerLabelDynamic('CDL_COMMON_ACTION'),
       type: 'actions' as const,
       width: 'w-20',
     },
@@ -243,10 +266,11 @@ const Step3: React.FC<Step3Props> = ({
     searchFields: [
       'feeType',
       'frequency',
-      'debitAmount',
+      'debitAccount',
       'feeToBeCollected',
       'nextRecoveryDate',
       'feePercentage',
+      'debitAmount',
       'amount',
       'vatPercentage',
       'currency',
@@ -317,7 +341,7 @@ const Step3: React.FC<Step3Props> = ({
                 verticalAlign: 'middle',
               }}
             >
-              Add Fee
+              {getBuildPartnerLabelDynamic('CDL_BP_FEES_ADD')}
             </Button>
           )}
         </Box>

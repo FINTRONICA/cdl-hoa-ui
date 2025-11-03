@@ -8,7 +8,6 @@ import {
   Button,
   Box,
   Typography,
-  CircularProgress,
 } from '@mui/material'
 import { FormProvider, useForm } from 'react-hook-form'
 
@@ -22,7 +21,8 @@ import { fundEgressService } from '@/services/api/fundEgressService'
 import { toast } from 'react-hot-toast'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import { useManualPaymentLabelsWithCache } from '@/hooks/useManualPaymentLabelsWithCache'
-import { MANUAL_PAYMENT_LABELS } from '@/constants/mappings/manualPaymentLabels'
+import { VOUCHER_LABELS } from '@/constants/mappings/manualPaymentLabels'
+import { GlobalLoading } from '@/components/atoms'
 
 export default function TasPaymentStepperWrapper() {
   const [activeStep, setActiveStep] = useState(0)
@@ -39,19 +39,19 @@ export default function TasPaymentStepperWrapper() {
   // Create dynamic step labels using translations
   const steps = [
     getLabel(
-      MANUAL_PAYMENT_LABELS.STEPS.DETAILS,
+      VOUCHER_LABELS.STEPS.DETAILS,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.STEPS.DETAILS
+      VOUCHER_LABELS.FALLBACKS.STEPS.DETAILS
     ),
     getLabel(
-      MANUAL_PAYMENT_LABELS.STEPS.DOCUMENTS,
+      VOUCHER_LABELS.STEPS.DOCUMENTS,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.STEPS.DOCUMENTS
+      VOUCHER_LABELS.FALLBACKS.STEPS.DOCUMENTS
     ),
     getLabel(
-      MANUAL_PAYMENT_LABELS.STEPS.REVIEW,
+      VOUCHER_LABELS.STEPS.REVIEW,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.STEPS.REVIEW
+      VOUCHER_LABELS.FALLBACKS.STEPS.REVIEW
     ),
   ]
 
@@ -186,8 +186,19 @@ export default function TasPaymentStepperWrapper() {
 
   if (loading) {
     return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <CircularProgress sx={{ mb: 2 }} />
+      <Box 
+        sx={{ 
+          backgroundColor: '#FFFFFFBF',
+          borderRadius: '16px',
+          margin: '0 auto',
+          width: '100%',
+          height: '500px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <GlobalLoading fullHeight className="min-h-[500px]" />
       </Box>
     )
   }

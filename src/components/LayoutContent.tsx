@@ -12,14 +12,16 @@ const AUTHENTICATED_ROUTES = [
   '/entities',
   '/transactions',
   '/transactions',
-  '/guarantee',
+  '/surety_bond',
   '/fee-reconciliation',
   '/reports',
   '/admin',
-  '/investors',
-  '/projects',
-  '/developers',
+  '/capital-partner',
+  '/build-partner-assets',
+  '/build-partner',
   '/help',
+  '/budget/management-firm-budget',
+  '/budget/master-budget',
 ]
 
 interface LayoutContentProps {
@@ -60,10 +62,12 @@ const LayoutContentComponent = ({ children }: LayoutContentProps) => {
       }
       if (route === '/entities') {
         return (
-          pathname === '/entities/developers' ||
-          pathname === '/entities/projects' ||
-          pathname?.startsWith('/entities/developers/') ||
-          pathname?.startsWith('/entities/projects/')
+          pathname === '/build-partner' ||
+          pathname === '/build-partner-assets' ||
+          pathname === '/capital-partner' ||
+          pathname?.startsWith('/build-partner/') ||
+          pathname?.startsWith('/build-partner-assets/') ||
+          pathname?.startsWith('/capital-partner/')
         )
       }
       if (route === '/transactions') {
@@ -76,16 +80,16 @@ const LayoutContentComponent = ({ children }: LayoutContentProps) => {
       }
       if (route === '/transactions') {
         return (
-          pathname === '/transactions/manual' || 
+          pathname === '/transactions/manual' ||
           pathname === '/transactions/tas' ||
           pathname?.startsWith('/transactions/')
         )
       }
-      if (route === '/guarantee') {
+      if (route === '/surety_bond') {
         return (
-          pathname === '/guarantee' ||
-          pathname === '/guarantee/new' ||
-          pathname?.startsWith('/guarantee/new/')
+          pathname === '/surety_bond' ||
+          pathname === '/surety_bond/new' ||
+          pathname?.startsWith('/surety_bond/new/')
         )
       }
       if (route === '/fee-reconciliation') {
@@ -93,8 +97,7 @@ const LayoutContentComponent = ({ children }: LayoutContentProps) => {
       }
       if (route === '/reports') {
         return (
-          pathname === '/reports/business' ||
-          pathname?.startsWith('/reports/')
+          pathname === '/reports/business' || pathname?.startsWith('/reports/')
         )
       }
       if (route === '/admin') {
@@ -107,19 +110,34 @@ const LayoutContentComponent = ({ children }: LayoutContentProps) => {
           pathname?.startsWith('/admin/')
         )
       }
-      if (route === '/investors') {
-        return pathname === '/investors' || pathname?.startsWith('/investors/')
+      if (route === '/build-partner') {
+        return (
+          pathname === '/build-partner' ||
+          pathname?.startsWith('/build-partner/')
+        )
       }
-      if (route === '/projects') {
-        return pathname === '/projects' || pathname?.startsWith('/projects/')
+      if (route === '/build-partner-assets') {
+        return (
+          pathname === '/build-partner-assets' ||
+          pathname?.startsWith('/build-partner-assets/')
+        )
       }
-      if (route === '/developers') {
-        return pathname === '/developers' || pathname?.startsWith('/developers/')
+      if (route === '/capital-partner') {
+        return (
+          pathname === '/capital-partner' ||
+          pathname?.startsWith('/capital-partner/')
+        )
       }
       if (route === '/help') {
         return pathname === '/help'
       }
-      return pathname?.startsWith(route)
+      if (route === '/budget/management-firm-budget') {
+        return pathname?.startsWith('/budget/management-firm-budget')
+      }
+      if (route === '/budget/master-budget') {
+        return pathname?.startsWith('/budget/master-budget')
+      }
+        return pathname?.startsWith(route)
     })
 
     return isValidRoute
@@ -129,7 +147,7 @@ const LayoutContentComponent = ({ children }: LayoutContentProps) => {
     return (
       <div className="flex h-screen bg-[#F3F4F6]">
         <Sidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">{children}</div>
+        <div className="flex flex-col flex-1 overflow-hidden">{children}</div>
       </div>
     )
   }

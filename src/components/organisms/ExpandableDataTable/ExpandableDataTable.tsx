@@ -35,6 +35,7 @@ interface Column {
     | 'comment'
   options?: { value: string; label: string }[]
   statusOptions?: string[]
+  render?: (value: any, row: any) => React.ReactNode
 }
 
 interface ExpandableDataTableProps<T = Record<string, unknown>> {
@@ -326,6 +327,23 @@ const ExpandableDataTableComponent = <T extends Record<string, unknown>>({
                     }
                     const value = row[column.key]
                     const displayValue = value
+
+                    // Check if column has a custom render function
+                    if (column.render) {
+                      return (
+                        <td
+                          key={column.key}
+                          className={`${column.width || 'w-auto'} px-4 py-3.5 text-sm text-[#1E2939] max-w-0`}
+                        >
+                          <div
+                            className="truncate"
+                            title={typeof value === 'string' ? value : undefined}
+                          >
+                            {column.render(value, row)}
+                          </div>
+                        </td>
+                      )
+                    }
 
                     if (column.type === 'date' && value) {
                       const formattedDate = formatDateForDisplay(

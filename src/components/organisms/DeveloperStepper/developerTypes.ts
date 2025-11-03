@@ -71,24 +71,27 @@ export interface PaginatedDocumentResponse {
 
 export interface BuildPartnerData {
   id: number
-  arID: string
-  arCifrera: string | null
-  arDeveloperRegNo: string
-  arName: string | null
-  arNameLocal: string | null
-  arCompanyName: string | null
-  arProjectName: string | null
-  arMasterDeveloper: string | null
-  arMasterCommunity: string | null
-  arOnboardingDate: string | null
-  arTradeLicenseNo: string | null
-  arTradeLicenseExpDate: string | null
-  arWorldCheckFlag: boolean | null
-  arWorldCheckRemarks: string | null
-  arMigratedData: boolean | null
-  arRemark: string | null
-  arRegulatorDTO: unknown | null
-  arActiveStatusDTO: unknown | null
+  bpDeveloperId: string
+  bpCifrera: string | null
+  bpDeveloperRegNo: string
+  bpName: string | null
+  bpMasterName: string | null
+  bpNameLocal: string | null
+  bpOnboardingDate: string | null
+  bpContactAddress: string | null
+  bpContactTel: string | null
+  bpPoBox: string | null
+  bpMobile: string | null
+  bpFax: string | null
+  bpEmail: string | null
+  bpLicenseNo: string | null
+  bpLicenseExpDate: string | null
+  bpWorldCheckFlag: boolean | null
+  bpWorldCheckRemarks: string | null
+  bpMigratedData: boolean | null
+  bpremark: string | null
+  bpRegulatorDTO: unknown | null
+  bpActiveStatusDTO: unknown | null
 }
 
 export interface ProjectDetailsData {
@@ -176,6 +179,34 @@ export interface BeneficiaryData extends Record<string, unknown> {
   buildPartnerDTO?: {
     id: number
   }
+  bpbTransferTypeDTO?: {
+    id: number
+    settingKey: string
+    settingValue: string
+    languageTranslationId: {
+      id: number
+      configId: string
+      configValue: string
+      content: string | null
+      appLanguageCode: {
+        id: number
+        languageCode: string
+        nameKey: string
+        nameNativeValue: string
+        deleted: boolean
+        enabled: boolean
+        rtl: boolean
+      }
+      applicationModuleDTO: any
+      status: any
+      enabled: boolean
+      deleted: boolean
+    }
+    remarks: string | null
+    status: any
+    enabled: boolean
+    deleted: boolean
+  }
 }
 
 export interface PaymentPlanData {
@@ -191,24 +222,27 @@ export interface FinancialData {
 }
 
 export interface ProjectData extends ProjectDetailsData {
-  // Step 1: Asset Register Details
-  arID: string
-  arCifrera: string
-  arDeveloperRegNo: string
-  arName: string
-  arNameLocal: string
-  arCompanyName: string
-  arProjectName: string
-  arMasterDeveloper: string
-  arMasterCommunity: string
-  arOnboardingDate: Dayjs | null
-  arTradeLicenseNo: string
-  arTradeLicenseExpDate: Dayjs | null
-  arWorldCheckFlag: boolean
-  arWorldCheckRemarks: string
-  arMigratedData: boolean
-  arRemark: string
-  arRegulatorDTO: {
+  // Step 1: Build Partner Details
+  bpDeveloperId: string
+  bpCifrera: string
+  bpDeveloperRegNo: string
+  bpName: string
+  bpMasterName: string
+  bpNameLocal: string
+  bpOnboardingDate: Dayjs | null
+  bpContactAddress: string
+  bpContactTel: string
+  bpPoBox: string
+  bpMobile: string
+  bpFax: string
+  bpEmail: string
+  bpLicenseNo: string
+  bpLicenseExpDate: Dayjs | null
+  bpWorldCheckFlag: boolean
+  bpWorldCheckRemarks: string
+  bpMigratedData: boolean
+  bpremark: string
+  bpRegulatorDTO: {
     id: number
   }
 

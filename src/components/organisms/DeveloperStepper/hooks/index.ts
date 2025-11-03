@@ -8,7 +8,6 @@ export { useStepHandlers } from './useStepHandlers'
 
 // Performance optimization hooks
 export { useOptimizedMemo, useOptimizedCallback, useMemoizedObject, useMemoizedArray } from './useOptimizedMemo'
-export { usePerformanceMonitor, useOperationTimer } from './usePerformanceMonitor'
 export { 
   useDebounce, 
   useDebouncedCallback, 

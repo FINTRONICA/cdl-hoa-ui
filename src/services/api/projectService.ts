@@ -221,7 +221,7 @@ export class RealEstateAssetService {
     })
 
     return apiClient.get<PaginatedResponse<RealEstateAsset>>(
-      `${API_ENDPOINTS.REAL_ESTATE_ASSET.FIND_ALL}&${params.toString()}`
+      `${API_ENDPOINTS.REAL_ESTATE_ASSET.GET_ALL}&${params.toString()}`
     )
   }
 
@@ -269,7 +269,6 @@ export class RealEstateAssetService {
 
       return response
     } catch (error) {
-      
       throw error
     }
   }
@@ -394,10 +393,26 @@ export class RealEstateAssetService {
     projectId: number
   ): Promise<any> {
     try {
-      // Transform closure data to include project ID
+      // Parse values and convert to numbers
+      const parseValue = (value: string | number): number => {
+        if (typeof value === 'number') return value
+        if (typeof value === 'string') {
+          const parsed = parseFloat(value.replace(/,/g, ''))
+          return isNaN(parsed) ? 0 : parsed
+        }
+        return 0
+      }
+
+      // Transform closure data to API payload keys
       const transformedData = {
-        ...closureData,
         id: closureId,
+        // Accept either UI keys (totalIncomeFund/totalPayment) or API keys (reacTotalIncomeFund/reacTotalPayment)
+        reacTotalIncomeFund: parseValue(
+          closureData.reacTotalIncomeFund ?? closureData.totalIncomeFund ?? 0
+        ),
+        reacTotalPayment: parseValue(
+          closureData.reacTotalPayment ?? closureData.totalPayment ?? 0
+        ),
         realEstateAssestDTO: {
           id: projectId,
         },
@@ -480,12 +495,13 @@ export class RealEstateAssetService {
 
   // Transform financial summary data to backend format
   private transformFinancialSummaryData(data: any, projectId: string): any {
-    const parseValue = (value: any): number => {
+    const parseValue = (value: any): number | null => {
       if (typeof value === 'string') {
-        const parsed = parseFloat(value)
-        return isNaN(parsed) ? 0.1 : parsed
+        if (value === '' || value.trim() === '') return null
+        const parsed = parseFloat(value.replace(/,/g, ''))
+        return isNaN(parsed) ? null : parsed
       }
-      return typeof value === 'number' ? value : 0.1
+      return typeof value === 'number' ? value : null
     }
 
     const formatDate = (date: any): string => {
@@ -711,14 +727,14 @@ export class RealEstateAssetService {
       reafsCurBalConstructionOut: parseValue(data.breakdown?.[24]?.outOfEscrow),
       reafsCurBalExcepCapVal: data.breakdown?.[24]?.exceptionalCapValue || '',
 
-      // Additional fields (breakdown sections 25-28)
-      reafsCreditInterest: parseValue(data.breakdown?.[25]?.total),
-      reafsPaymentForRetentionAcc: parseValue(data.breakdown?.[26]?.total),
-      reafsDeveloperReimburse: parseValue(data.breakdown?.[27]?.total),
-      reafsUnitRegFees: parseValue(data.breakdown?.[28]?.total),
-      reafsCreditInterestProfit: parseValue(data.breakdown?.[29]?.total),
-      reafsVatCappedCost: parseValue(data.breakdown?.[30]?.total),
-      reafsExceptionalCapVal: data.breakdown?.[31]?.exceptionalCapValue || '',
+      // Additional fields - now from data.additional instead of breakdown array
+      reafsCreditInterest: parseValue(data.additional?.creditInterestRetention),
+      reafsPaymentForRetentionAcc: parseValue(data.additional?.paymentsRetentionAccount),
+      reafsDeveloperReimburse: parseValue(data.additional?.reimbursementsDeveloper),
+      reafsUnitRegFees: parseValue(data.additional?.unitRegistrationFees),
+      reafsCreditInterestProfit: parseValue(data.additional?.creditInterestEscrow),
+      reafsVatCappedCost: parseValue(data.additional?.vatCapped),
+      reafsExceptionalCapVal: '',
 
       // Current Balance in Sub Construction Account fields (breakdown section 11)
       reafsCurrentBalInSubsConsAcc: parseValue(data.breakdown?.[11]?.total),
@@ -758,7 +774,10 @@ export class RealEstateAssetService {
     }
   }
 
-  async updateProjectBeneficiary(id: string, beneficiaryData: any): Promise<any> {
+  async updateProjectBeneficiary(
+    id: string,
+    beneficiaryData: any
+  ): Promise<any> {
     try {
       const response = await apiClient.put(
         API_ENDPOINTS.REAL_ESTATE_ASSET_BENEFICIARY.UPDATE(id),
@@ -773,16 +792,36 @@ export class RealEstateAssetService {
 
   // Transform frontend financial data to backend payload format
   private transformFinancialData(frontendData: any, projectId?: number): any {
-    const { estimate, actual, breakdown } = frontendData
+    const { estimate, actual, breakdown, additional } = frontendData
+    
+    // Console log the incoming frontend data
+    console.log('🔍 Frontend Financial Data Received:', {
+      estimate,
+      actual,
+      breakdown,
+      additional
+    })
+    
+    // Detailed logging for additional fields
+    console.log('🔍 Additional Fields Debug:', {
+      'additional object': additional,
+      'creditInterestRetention': additional?.creditInterestRetention,
+      'paymentsRetentionAccount': additional?.paymentsRetentionAccount,
+      'reimbursementsDeveloper': additional?.reimbursementsDeveloper,
+      'unitRegistrationFees': additional?.unitRegistrationFees,
+      'creditInterestEscrow': additional?.creditInterestEscrow,
+      'vatCapped': additional?.vatCapped
+    })
 
     // Helper function to parse string values to numbers
-    const parseValue = (value: string | number): number => {
+    const parseValue = (value: string | number): number | null => {
       if (typeof value === 'number') return value
       if (typeof value === 'string') {
+        if (value === '' || value.trim() === '') return null
         const parsed = parseFloat(value.replace(/,/g, ''))
-        return isNaN(parsed) ? 0 : parsed
+        return isNaN(parsed) ? null : parsed
       }
-      return 0
+      return null
     }
 
     // Helper function to format date
@@ -810,9 +849,9 @@ export class RealEstateAssetService {
       breakdownArray.forEach((item, index) => {
         if (!item) return
 
-        const outOfEscrow = parseValue(item.outOfEscrow || 0)
-        const withinEscrow = parseValue(item.withinEscrow || 0)
-        const total = parseValue(item.total || 0)
+        const outOfEscrow = parseValue(item.outOfEscrow)
+        const withinEscrow = parseValue(item.withinEscrow)
+        const total = parseValue(item.total)
         const exceptionalCapValue = item.exceptionalCapValue || ''
 
         // Map to specific backend field names based on index
@@ -1006,29 +1045,37 @@ export class RealEstateAssetService {
     const payload = {
       // Estimate fields
       reafsEstRevenue: estimate?.revenue || '',
-      reafsEstConstructionCost: parseValue(estimate?.constructionCost || 0),
+      reafsEstConstructionCost: parseValue(estimate?.constructionCost),
       reafsEstProjectMgmtExpense: parseValue(
-        estimate?.projectManagementExpense || 0
+        estimate?.projectManagementExpense
       ),
-      reafsEstLandCost: parseValue(estimate?.landCost || 0),
-      reafsEstMarketingExpense: parseValue(estimate?.marketingExpense || 0),
+      reafsEstLandCost: parseValue(estimate?.landCost),
+      reafsEstMarketingExpense: parseValue(estimate?.marketingExpense),
       reafsEstimatedDate: formatDate(estimate?.date),
       reafsEstExceptionalCapVal: estimate?.exceptionalCapValue || '',
 
       // Actual fields
-      reafsActualSoldValue: parseValue(actual?.soldValue || 0),
-      reafsActualConstructionCost: parseValue(actual?.constructionCost || 0),
-      reafsActualInfraCost: parseValue(actual?.infraCost || 0),
-      reafsActualLandCost: parseValue(actual?.landCost || 0),
-      reafsActualMarketingExp: parseValue(actual?.marketingExpense || 0),
+      reafsActualSoldValue: parseValue(actual?.soldValue),
+      reafsActualConstructionCost: parseValue(actual?.constructionCost),
+      reafsActualInfraCost: parseValue(actual?.infraCost),
+      reafsActualLandCost: parseValue(actual?.landCost),
+      reafsActualMarketingExp: parseValue(actual?.marketingExpense),
       reafsActualProjectMgmtExpense: parseValue(
-        actual?.projectManagementExpense || 0
+        actual?.projectManagementExpense
       ),
       reafsActualDate: formatDate(actual?.date),
       reafsActualexceptCapVal: actual?.exceptionalCapValue || '',
 
       // Breakdown fields
       ...transformBreakdown(breakdown),
+
+      // Additional fields - mapped to correct backend keys
+      reafsCreditInterest: parseValue(additional?.creditInterestRetention),
+      reafsPaymentForRetentionAcc: parseValue(additional?.paymentsRetentionAccount),
+      reafsDeveloperReimburse: parseValue(additional?.reimbursementsDeveloper),
+      reafsUnitRegFees: parseValue(additional?.unitRegistrationFees),
+      reafsVatCappedCost: parseValue(additional?.vatCapped),
+      reafsCreditInterestProfit: parseValue(additional?.creditInterestEscrow),
 
       // Project reference
       realEstateAssestDTO: {
@@ -1040,11 +1087,15 @@ export class RealEstateAssetService {
       enabled: true,
     }
 
+    // Console log the final payload being sent to backend
+    console.log('📤 Backend Payload Being Sent:', payload)
+    
     return payload
   }
 
   // Save financial summary (first time)
   async saveFinancialSummary(data: any, projectId?: number): Promise<any> {
+    console.log('💾 Saving Financial Summary with data:', data)
     const transformedData = this.transformFinancialData(data, projectId)
     return apiClient.post(
       API_ENDPOINTS.REAL_ESTATE_ASSET_FINANCIAL_SUMMARY.SAVE,
@@ -1058,6 +1109,7 @@ export class RealEstateAssetService {
     data: any,
     projectId?: number
   ): Promise<any> {
+    console.log('🔄 Updating Financial Summary with data:', data)
     const transformedData = this.transformFinancialData(data, projectId)
 
     // Add the id field for PUT request
@@ -1065,6 +1117,8 @@ export class RealEstateAssetService {
       id: id,
       ...transformedData,
     }
+
+    console.log('📤 Update Payload with ID:', payloadWithId)
 
     const response = await apiClient.put(
       API_ENDPOINTS.REAL_ESTATE_ASSET_FINANCIAL_SUMMARY.UPDATE(id.toString()),
@@ -1189,9 +1243,7 @@ export class RealEstateAssetService {
         id.toString()
       )
       await apiClient.delete(endpoint)
-    
     } catch (error) {
-
       throw error
     }
   }
@@ -1328,9 +1380,9 @@ export class RealEstateAssetService {
       const params = new URLSearchParams({
         'realEstateAssestId.equals': projectId,
         'deleted.equals': 'false',
-        'enabled.equals': 'true'
+        'enabled.equals': 'true',
       })
-      
+
       const url = `${API_ENDPOINTS.REAL_ESTATE_ASSET_FEE.GET_ALL}?${params.toString()}`
       const response = await apiClient.get(url)
 
@@ -1359,9 +1411,9 @@ export class RealEstateAssetService {
       const params = new URLSearchParams({
         'realEstateAssestId.equals': projectId,
         'deleted.equals': 'false',
-        'enabled.equals': 'true'
+        'enabled.equals': 'true',
       })
-      
+
       const url = `${API_ENDPOINTS.REAL_ESTATE_ASSET_BENEFICIARY.GET_ALL}?${params.toString()}`
       const response = await apiClient.get(url)
 
@@ -1386,7 +1438,9 @@ export class RealEstateAssetService {
   // Soft delete project beneficiary
   async softDeleteProjectBeneficiary(id: string): Promise<void> {
     try {
-      await apiClient.delete(API_ENDPOINTS.REAL_ESTATE_ASSET_BENEFICIARY.SOFT_DELETE(id))
+      await apiClient.delete(
+        API_ENDPOINTS.REAL_ESTATE_ASSET_BENEFICIARY.SOFT_DELETE(id)
+      )
     } catch (error) {
       throw error
     }
@@ -1395,7 +1449,9 @@ export class RealEstateAssetService {
   // Soft delete project fee
   async softDeleteProjectFee(id: string): Promise<void> {
     try {
-      await apiClient.delete(API_ENDPOINTS.REAL_ESTATE_ASSET_FEE.SOFT_DELETE(id))
+      await apiClient.delete(
+        API_ENDPOINTS.REAL_ESTATE_ASSET_FEE.SOFT_DELETE(id)
+      )
     } catch (error) {
       throw error
     }
@@ -1446,7 +1502,7 @@ export class RealEstateAssetService {
   async getProjectDocuments(projectId: string): Promise<any[]> {
     try {
       const params = new URLSearchParams({
-        'module.equals': 'REAL_ESTATE_ASSET',
+        'module.equals': 'BUILD_PARTNER',
         'recordId.equals': projectId,
       })
       const response = await apiClient.get(

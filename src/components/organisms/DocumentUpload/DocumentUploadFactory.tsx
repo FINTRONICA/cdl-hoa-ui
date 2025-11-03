@@ -6,6 +6,7 @@ import { createProjectDocumentConfig } from './configs/projectConfig'
 import { createInvestorDocumentConfig } from './configs/investorConfig'
 import { createPaymentDocumentConfig } from './configs/paymentConfig'
 import { DocumentItem } from '../DeveloperStepper/developerTypes'
+import { createBudgetDocumentConfig } from './configs/budgetConfig'
 
 export type DocumentUploadType =
   | 'BUILD_PARTNER'
@@ -23,7 +24,8 @@ export type DocumentUploadType =
   | 'STAKEHOLDER'
   | 'ROLES'
   | 'PERMISSIONS'
-  | 'DEPOSITS_TRANSACTION'  
+  | 'BUDGET'
+
 interface DocumentUploadFactoryProps {
   type: DocumentUploadType
   entityId: string
@@ -31,6 +33,8 @@ interface DocumentUploadFactoryProps {
   isReadOnly?: boolean
   onDocumentsChange?: (documents: DocumentItem[]) => void
   formFieldName?: string
+  title?: string
+  description?: string
 }
 
 const DocumentUploadFactory: React.FC<DocumentUploadFactoryProps> = ({
@@ -40,6 +44,8 @@ const DocumentUploadFactory: React.FC<DocumentUploadFactoryProps> = ({
   isReadOnly = false,
   onDocumentsChange,
   formFieldName = 'documents',
+  title,
+  description,
 }) => {
   const { setValue, watch } = useFormContext()
 
@@ -60,6 +66,8 @@ const DocumentUploadFactory: React.FC<DocumentUploadFactoryProps> = ({
       isReadOnly,
       onDelete: handleDelete,
       ...(onDocumentsChange && { onDocumentsChange }),
+      ...(title && { title }),
+      ...(description && { description }),
     }
 
     switch (type) {
@@ -98,10 +106,14 @@ const DocumentUploadFactory: React.FC<DocumentUploadFactoryProps> = ({
       case 'PAYMENTS':
         return createPaymentDocumentConfig(entityId, {
           ...baseOptions,
-          title: 'Payment Documents',
+          title: baseOptions.title || 'Payment Documents',
           description:
+            baseOptions.description ||
             'This step is optional. You can upload payment-related documents or skip to continue.',
         })
+
+      case 'BUDGET':
+        return createBudgetDocumentConfig(entityId, baseOptions)
 
       case 'TRANSACTIONS':
         return createBuildPartnerDocumentConfig(entityId, {
@@ -130,13 +142,7 @@ const DocumentUploadFactory: React.FC<DocumentUploadFactoryProps> = ({
           title: 'Processed Transaction Documents',
           description: 'Upload processed transaction-related documents.',
         })
-      case 'DEPOSITS_TRANSACTION':
-        return createBuildPartnerDocumentConfig(entityId, {
-          ...baseOptions,
-          title: 'Deposits Transactions Documents',
-          description: 'Upload deposits transaction-related documents.',
-        })
-  
+
       case 'PENDING_TRANSACTION':
         return createBuildPartnerDocumentConfig(entityId, {
           ...baseOptions,

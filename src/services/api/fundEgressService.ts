@@ -227,7 +227,9 @@ export interface FundEgressRequest {
   suretyBondDTO?: any
   deleted?: boolean
   taskStatusDTO?: any
+  // Note: backend expects 'fBbankCharges' (capital B). Keep both for compatibility.
   fbbankCharges?: string | number
+  fBbankCharges?: string | number
 }
 
 export interface FundEgressResponse {
@@ -305,6 +307,7 @@ export interface FundEgressData {
   feInvoiceDate?: string
   feReraApprovedRefNo?: string
   feReraApprovedDate?: string
+  feEngineerApprovalDate?: string
   feCurBalInEscrowAcc?: number
   feSubConsAccBalance?: number
   feCorporateAccBalance?: number
@@ -318,6 +321,7 @@ export interface FundEgressData {
     id: number
     reaName: string
     reaId: string
+    reaNoOfUnits?: number
     reaAccountStatusDTO?: {
       settingValue: string
     }
@@ -333,10 +337,16 @@ export interface FundEgressData {
   invoiceCurrencyDTO?: {
     id: number
     name: string
+    languageTranslationId?: {
+      configValue?: string
+    }
   }
   paymentCurrencyDTO?: {
     id: number
     name: string
+    languageTranslationId?: {
+      configValue?: string
+    }
   }
   chargedCodeDTO?: {
     id: number
@@ -349,6 +359,9 @@ export interface FundEgressData {
   transactionTypeDTO?: {
     id: number
     name: string
+    languageTranslationId?: {
+      configValue?: string
+    }
   }
   capitalPartnerUnitDTO?: {
     id: number

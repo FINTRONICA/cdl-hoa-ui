@@ -13,7 +13,6 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:security": "jest src/tests/security.test.ts",
     "type-check": "tsc --noEmit",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
@@ -38,7 +37,7 @@
     "js-cookie": "^3.0.5",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.525.0",
-    "next": "^15.5.5",
+    "next": "^15.5.6",
     "next-i18next": "^15.4.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -66,7 +65,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^20",
+    "@types/node": "20.19.24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
@@ -78,6 +77,6 @@
     "jest-environment-jsdom": "^30.0.4",
     "prettier": "^3.6.2",
     "tailwindcss": "^4",
-    "typescript": "^5.8.3"
+    "typescript": "5.9.3"
   }
 }

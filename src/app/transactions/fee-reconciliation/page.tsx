@@ -16,6 +16,7 @@ import { useSuccessNotification, useErrorNotification } from '@/store/notificati
 // Import the fee repush UI data type from the service
 import type { FeeRepushUIData } from '@/services/api/feeRepushService'
 import { useSidebarConfig } from '@/hooks/useSidebarConfig'
+import { GlobalLoading, GlobalError } from '@/components/atoms'
 
 // Extend the type to satisfy Record<string, unknown> constraint
 interface FeeRepushTableData extends FeeRepushUIData, Record<string, unknown> {}
@@ -400,21 +401,18 @@ const FeeRepushPage: React.FC = () => {
           {/* Loading and Error States */}
           {(feeRepushLoading || labelsLoading) && (
             <div className="flex-1 flex items-center justify-center">
-              <div className="text-gray-500">Loading...</div>
+              <GlobalLoading fullHeight />
             </div>
           )}
 
           {(feeRepushError || labelsError) && (
             <div className="flex-1 flex items-center justify-center">
-              <div className="text-red-500">
-                Error loading data: {feeRepushError || labelsError}
-              </div>
-              <button
-                onClick={refetchFeeRepush}
-                className="ml-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                Retry
-              </button>
+              <GlobalError 
+                error={feeRepushError || labelsError || 'Unknown error'} 
+                onRetry={refetchFeeRepush}
+                title="Error loading data"
+                fullHeight
+              />
             </div>
           )}
 

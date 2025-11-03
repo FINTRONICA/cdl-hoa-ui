@@ -7,7 +7,7 @@ import { DashboardLayout } from '@/components/templates/DashboardLayout'
 import { ExpandableDataTable } from '@/components/organisms/ExpandableDataTable'
 import { useTableState } from '@/hooks/useTableState'
 import { PageActionButtons } from '@/components/molecules/PageActionButtons'
-import { Spinner } from '@/components/atoms/Spinner'
+import { GlobalLoading } from '@/components/atoms'
 import {
   mapWorkflowAmountStageOverrideToUI,
   type WorkflowAmountStageOverrideUIData,
@@ -73,12 +73,11 @@ const ErrorMessage: React.FC<{ error: Error; onRetry?: () => void }> = ({
 )
 
 const LoadingSpinner: React.FC = () => (
-  <div className="flex items-center justify-center min-h-screen bg-gray-50">
-    <div className="text-center">
-      <Spinner size="lg" />
-      <p className="mt-4 text-gray-600"></p>
+  <DashboardLayout title="Amount Stage Override">
+    <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
+      <GlobalLoading fullHeight />
     </div>
-  </div>
+  </DashboardLayout>
 )
 
 type WorkflowAmountStageOverrideRow = {
@@ -536,9 +535,11 @@ const WorkflowAmountStageOverridesPageClient = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex items-center justify-center h-screen">
-        Loading...
-      </div>
+      <DashboardLayout title="Amount Stage Override">
+        <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
+          <GlobalLoading fullHeight />
+        </div>
+      </DashboardLayout>
     ),
   }
 )

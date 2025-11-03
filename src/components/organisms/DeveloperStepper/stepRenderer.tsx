@@ -2,6 +2,8 @@ import { useCallback, useEffect } from 'react'
 import {
   Step1,
   Step2,
+  Step3,
+  Step4,
   Step5,
   DocumentUploadStep,
   LazyStepWrapper,
@@ -23,12 +25,20 @@ export const useStepContentRenderer = ({
     }
   }, [activeStep])
 
+  // Memoized callbacks to prevent infinite re-renders
+  const handleBeneficiariesChange = useCallback(
+    (beneficiaries: any[]) => {
+      methods.setValue('beneficiaries', beneficiaries)
+    },
+    [methods]
+  )
+
   const getStepContent = useCallback(
     (step: number) => {
       const stepComponents = {
         0: () => (
           <LazyStepWrapper>
-            <Step1 isReadOnly={isReadOnly} />
+            <Step1 isReadOnly={isReadOnly} developerId={developerId} />
           </LazyStepWrapper>
         ),
         1: () => (
@@ -58,7 +68,32 @@ export const useStepContentRenderer = ({
             </LazyStepWrapper>
           )
         },
-        3: () => (
+        3: () => {
+          const watchedFees = methods.watch('fees')
+          return (
+            <LazyStepWrapper>
+              <Step3
+                fees={watchedFees}
+                onFeesChange={(fees) => {
+                  methods.setValue('fees', fees)
+                }}
+                buildPartnerId={developerId || ''}
+                isReadOnly={isReadOnly}
+              />
+            </LazyStepWrapper>
+          )
+        },
+        4: () => (
+          <LazyStepWrapper>
+            <Step4
+              beneficiaries={methods.watch('beneficiaries')}
+              onBeneficiariesChange={handleBeneficiariesChange}
+              buildPartnerId={developerId || ''}
+              isReadOnly={isReadOnly}
+            />
+          </LazyStepWrapper>
+        ),
+        5: () => (
           <LazyStepWrapper>
             <Step5
               developerId={developerId}

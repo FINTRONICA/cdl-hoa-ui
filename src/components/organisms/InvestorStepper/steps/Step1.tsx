@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import React, {
   useState,
@@ -105,6 +105,12 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
       {},
       {
         enabled: Boolean(isEditMode && capitalPartnerId),
+        // Disable caching to always fetch fresh data
+        gcTime: 0,
+        staleTime: 0,
+        // Always refetch when component mounts
+        refetchOnMount: 'always',
+        refetchOnWindowFocus: false,
       }
     )
 
@@ -203,9 +209,8 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
     }
     const handleSaveAndNext = async () => {
       try {
-        
         setSaveError(null)
-        
+
         // Build current form data for schema validation and payload mapping
         const formData: Step1FormData = {
           investorType: watch('investorType'),
@@ -223,20 +228,16 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
           mobileNumber: watch('mobileNumber'),
           email: watch('email'),
         }
-        
-    
+
         const zodResult = CapitalPartnerStep1Schema.safeParse(formData)
         if (!zodResult.success) {
-          
           await trigger()
-          
+
           return
         }
-        
-    
+
         await trigger()
-    
-        
+
         const payload = mapStep1ToCapitalPartnerPayload(
           formData,
           investorTypes,
@@ -420,11 +421,12 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                   InputLabelProps={{
                     sx: {
                       ...getLabelSx(),
-                      ...(!!errors[name] && !isViewMode && {
-                        color: '#d32f2f',
-                        '&.Mui-focused': { color: '#d32f2f' },
-                        '&.MuiFormLabel-filled': { color: '#d32f2f' },
-                      }),
+                      ...(!!errors[name] &&
+                        !isViewMode && {
+                          color: '#d32f2f',
+                          '&.Mui-focused': { color: '#d32f2f' },
+                          '&.MuiFormLabel-filled': { color: '#d32f2f' },
+                        }),
                     },
                   }}
                   InputProps={{
@@ -433,7 +435,9 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                       ...(isViewMode && {
                         backgroundColor: '#F9FAFB',
                         color: '#6B7280',
-                        '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E5E7EB' },
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#E5E7EB',
+                        },
                       }),
                     },
                   }}
@@ -446,16 +450,29 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                         '&.Mui-focused fieldset': { borderColor: '#E5E7EB' },
                       },
                     }),
-                    ...(!!errors[name] && !isViewMode && {
-                      '& .MuiOutlinedInput-root': {
-                        '& fieldset': { borderColor: '#d32f2f', borderWidth: '1px' },
-                        '&:hover fieldset': { borderColor: '#d32f2f', borderWidth: '1px' },
-                        '&.Mui-focused fieldset': { borderColor: '#d32f2f', borderWidth: '1px' },
-                      },
-                    }),
+                    ...(!!errors[name] &&
+                      !isViewMode && {
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: '#d32f2f',
+                            borderWidth: '1px',
+                          },
+                          '&:hover fieldset': {
+                            borderColor: '#d32f2f',
+                            borderWidth: '1px',
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: '#d32f2f',
+                            borderWidth: '1px',
+                          },
+                        },
+                      }),
                   }}
                 />
-                <FormError error={errors[name]?.message as string} touched={true} />
+                <FormError
+                  error={errors[name]?.message as string}
+                  touched={true}
+                />
               </>
             )}
           />
@@ -496,7 +513,9 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                         size="small"
                         startIcon={<RefreshIcon />}
                         onClick={handleGenerateNewId}
-                        disabled={isGeneratingId}
+                        disabled={
+                          isGeneratingId || isViewMode || (isEditMode ?? false)
+                        }
                         sx={{
                           color: '#FFFFFF',
                           borderRadius: '8px',
@@ -523,16 +542,29 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                 InputLabelProps={{ sx: getLabelSx() }}
                 sx={{
                   ...commonFieldStyles,
-                  ...(!!errors[name] && !isViewMode && {
-                    '& .MuiOutlinedInput-root': {
-                      '& fieldset': { borderColor: '#d32f2f', borderWidth: '1px' },
-                      '&:hover fieldset': { borderColor: '#d32f2f', borderWidth: '1px' },
-                      '&.Mui-focused fieldset': { borderColor: '#d32f2f', borderWidth: '1px' },
-                    },
-                  }),
+                  ...(!!errors[name] &&
+                    !isViewMode && {
+                      '& .MuiOutlinedInput-root': {
+                        '& fieldset': {
+                          borderColor: '#d32f2f',
+                          borderWidth: '1px',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: '#d32f2f',
+                          borderWidth: '1px',
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: '#d32f2f',
+                          borderWidth: '1px',
+                        },
+                      },
+                    }),
                 }}
               />
-              <FormError error={errors[name]?.message as string} touched={true} />
+              <FormError
+                error={errors[name]?.message as string}
+                touched={true}
+              />
             </>
           )}
         />
@@ -559,9 +591,13 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
             defaultValue={''}
             render={({ field }) => (
               <>
-                <FormControl fullWidth error={!!errors[name] && !isViewMode}
+                <FormControl
+                  fullWidth
+                  error={!!errors[name] && !isViewMode}
                   required={_required}
-                  sx={{ '& .MuiFormLabel-asterisk': { color: '#6A7282 !important' } }}
+                  sx={{
+                    '& .MuiFormLabel-asterisk': { color: '#6A7282 !important' },
+                  }}
                 >
                   <InputLabel sx={getLabelSx()}>
                     {loading ? `Loading...` : label}
@@ -575,19 +611,32 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                       ...(isViewMode && {
                         backgroundColor: '#F9FAFB',
                         color: '#6B7280',
-                        '& .MuiOutlinedInput-notchedOutline': { borderColor: '#E5E7EB' },
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#E5E7EB',
+                        },
                       }),
                       '& .MuiOutlinedInput-notchedOutline': {
                         border: '1px solid #d1d5db',
                         borderRadius: '6px',
                       },
-                      '&:hover .MuiOutlinedInput-notchedOutline': { border: '1px solid #9ca3af' },
-                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { border: '2px solid #2563eb' },
-                      ...(!!errors[name] && !isViewMode && {
-                        '& .MuiOutlinedInput-notchedOutline': { border: '1px solid #d32f2f' },
-                        '&:hover .MuiOutlinedInput-notchedOutline': { border: '1px solid #d32f2f' },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { border: '1px solid #d32f2f' },
-                      }),
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        border: '1px solid #9ca3af',
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        border: '2px solid #2563eb',
+                      },
+                      ...(!!errors[name] &&
+                        !isViewMode && {
+                          '& .MuiOutlinedInput-notchedOutline': {
+                            border: '1px solid #d32f2f',
+                          },
+                          '&:hover .MuiOutlinedInput-notchedOutline': {
+                            border: '1px solid #d32f2f',
+                          },
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            border: '1px solid #d32f2f',
+                          },
+                        }),
                     }}
                     IconComponent={KeyboardArrowDownIcon}
                     disabled={loading || isViewMode}
@@ -599,7 +648,10 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                     ))}
                   </Select>
                 </FormControl>
-                <FormError error={errors[name]?.message as string} touched={true} />
+                <FormError
+                  error={errors[name]?.message as string}
+                  touched={true}
+                />
               </>
             )}
           />
@@ -687,8 +739,8 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
             <Grid container rowSpacing={4} columnSpacing={2}>
               {renderApiSelectField(
                 'investorType',
-                'CDL_OWN_TYPE',
-                'Owner Registry Type', // ← Changed from 'Investor Type' to 'Capital Partner Type'
+                'CDL_CP_TYPE',
+                'Investor Type',
                 investorTypes?.length
                   ? investorTypes
                   : getFallbackOptions('investorType'),
@@ -698,41 +750,41 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
               )}
               {renderInvestorIdField(
                 'investorId',
-                getLabel('CDL_OWN_REFID', currentLanguage, 'Owner Reference ID'),
+                getLabel('CDL_CP_REFID', currentLanguage, 'Investor ID'),
                 6,
                 true
               )}
               {renderTextField(
                 'investorFirstName',
-                'CDL_OWN_FIRSTNAME',
-                'Owner Name',
+                'CDL_CP_FIRSTNAME',
+                'Investor Name',
                 '',
                 true
               )}
               {renderTextField(
                 'investorMiddleName',
-                'CDL_OWN_MIDDLENAME',
+                'CDL_CP_MIDDLENAME',
                 'Middle Name'
               )}
               {renderTextField(
                 'investorLastName',
-                'CDL_OWN_LASTNAME',
+                'CDL_CP_LASTNAME',
                 'Last Name'
               )}
               {renderTextField(
                 'arabicName',
-                'CDL_OWN_LOCALE_NAME',
-                'Local Language Name'
+                'CDL_CP_LOCALE_NAME',
+                'Arabic Name'
               )}
               {renderTextField(
                 'ownership',
-                'CDL_OWN_OWNERSHIP',
-                'Owner Share Percentage(%)'
+                'CDL_CP_OWNERSHIP',
+                'Ownership Percentage'
               )}
               {renderApiSelectField(
                 'investorIdType',
-                'CDL_OWN_ID_TYPE',
-                'Owner Identification Type',
+                'CDL_CP_ID_TYPE',
+                'Investor ID Type',
                 idTypes?.length
                   ? idTypes
                   : getFallbackOptions('investorIdType'),
@@ -740,7 +792,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                 true,
                 loadingIdTypes
               )}
-              {renderTextField('idNumber', 'CDL_OWN_DOC_NO', 'Identification Document Number.', '', true)}
+              {renderTextField('idNumber', 'CDL_CP_DOC_NO', 'ID No.', '', true)}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="idExpiryDate"
@@ -750,9 +802,9 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                     <>
                       <DatePicker
                         label={getLabel(
-                          'CDL_OWN_ID_EXP',
+                          'CDL_CP_ID_EXP',
                           currentLanguage,
-                          'Identification Expiry Date'
+                          'ID Expiry Date'
                         )}
                         value={field.value}
                         onChange={field.onChange}
@@ -766,27 +818,38 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                             helperText: '',
                             sx: {
                               ...datePickerStyles,
-                              ...(!!errors.idExpiryDate && !isViewMode && {
-                                '& .MuiOutlinedInput-root': {
-                                  '& fieldset': { borderColor: '#d32f2f' },
-                                  '&:hover fieldset': { borderColor: '#d32f2f' },
-                                  '&.Mui-focused fieldset': { borderColor: '#d32f2f' },
-                                },
-                              }),
+                              ...(!!errors.idExpiryDate &&
+                                !isViewMode && {
+                                  '& .MuiOutlinedInput-root': {
+                                    '& fieldset': { borderColor: '#d32f2f' },
+                                    '&:hover fieldset': {
+                                      borderColor: '#d32f2f',
+                                    },
+                                    '&.Mui-focused fieldset': {
+                                      borderColor: '#d32f2f',
+                                    },
+                                  },
+                                }),
                             },
                             InputLabelProps: { sx: getLabelSx() },
-                            InputProps: { sx: valueSx, style: { height: '46px' } },
+                            InputProps: {
+                              sx: valueSx,
+                              style: { height: '46px' },
+                            },
                           },
                         }}
                       />
-                      <FormError error={(errors as any).idExpiryDate?.message as string} touched={true} />
+                      <FormError
+                        error={(errors as any).idExpiryDate?.message as string}
+                        touched={true}
+                      />
                     </>
                   )}
                 />
               </Grid>
               {renderApiSelectField(
                 'nationality',
-                'CDL_OWN_NATIONALITY',
+                'CDL_CP_NATIONALITY',
                 'Nationality',
                 countries?.length
                   ? countries
@@ -797,20 +860,17 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
               )}
               {renderTextField(
                 'accountContact',
-                'CDL_OWN_TELEPHONE',
-                'Account Contact Telephone',
+                'CDL_CP_TELEPHONE',
+                'Account Contact Number',
                 ''
               )}
               {renderTextField(
                 'mobileNumber',
-                'CDL_OWN_MOBILE',
-                'Primary Mobile Number',
+                'CDL_CP_MOBILE',
+                'Mobile Number',
                 ''
               )}
-             
-              {renderTextField('email', 'CDL_OWN_EMAIL', 'Email Address', '')}
-              {renderTextField('email', 'CDL_OWN_FLOOR', 'Floor', '')}
-              {renderTextField('email', 'CDL_OWN_NO_OF_BED', 'No of Bedroom', '')}
+              {renderTextField('email', 'CDL_CP_EMAIL', 'Email Address', '')}
             </Grid>
           </CardContent>
         </Card>

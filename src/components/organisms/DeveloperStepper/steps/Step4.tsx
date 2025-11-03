@@ -1,12 +1,11 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Box,
   Card,
   CardContent,
   Button,
-  CircularProgress,
   Alert,
 } from '@mui/material'
 import { BeneficiaryData } from '../developerTypes'
@@ -23,10 +22,42 @@ import { useTemplateDownload } from '@/hooks/useRealEstateDocumentTemplate'
 import { TEMPLATE_FILES } from '@/constants'
 import { PageActionButtons } from '@/components/molecules/PageActionButtons'
 import { useDeleteConfirmation } from '@/store/confirmationDialogStore'
+import { GlobalLoading } from '@/components/atoms'
+import { useBuildPartnerLabelsWithCache } from '@/hooks/useBuildPartnerLabelsWithCache'
+import { getBuildPartnerLabel } from '@/constants/mappings/buildPartnerMapping'
+import { useAppStore } from '@/store'
 interface BeneficiaryDetails extends Record<string, unknown> {
   id?: string | number
   bpbBeneficiaryId: string
   bpbBeneficiaryType: string
+  bpbTransferTypeDTO?: {
+    id: number
+    settingKey: string
+    settingValue: string
+    languageTranslationId: {
+      id: number
+      configId: string
+      configValue: string
+      content: string | null
+      appLanguageCode: {
+        id: number
+        languageCode: string
+        nameKey: string
+        nameNativeValue: string
+        deleted: boolean
+        enabled: boolean
+        rtl: boolean
+      }
+      applicationModuleDTO: any
+      status: any
+      enabled: boolean
+      deleted: boolean
+    }
+    remarks: string | null
+    status: any
+    enabled: boolean
+    deleted: boolean
+  }
   bpbName: string
   bpbBankName: string
   bpbSwiftCode: string
@@ -60,6 +91,8 @@ const mapApiBeneficiaryToBeneficiaryData = (
     account: apiBeneficiary.bpbAccountNumber || '',
     buildPartnerDTO:
       apiBeneficiary.buildPartnerDTO || apiBeneficiary.buildPartnerDTO?.[0],
+    // Include the transfer type DTO for display
+    bpbTransferTypeDTO: apiBeneficiary.bpbTransferTypeDTO,
   }
 }
 
@@ -103,6 +136,51 @@ const Step4: React.FC<Step4Props> = ({
     isLoading: dropdownsLoading,
     error: dropdownsError,
   } = useBeneficiaryDropdowns()
+
+  // Dynamic labels (same approach as Contact Details step)
+  const { data: buildPartnerLabels, getLabel } = useBuildPartnerLabelsWithCache()
+  const currentLanguage = useAppStore((state) => state.language) || 'EN'
+
+  const getBuildPartnerLabelDynamic = useCallback(
+    (configId: string): string => {
+      const fallback = getBuildPartnerLabel(configId)
+      if (buildPartnerLabels) {
+        return getLabel(configId, currentLanguage, fallback)
+      }
+      return fallback
+    },
+    [buildPartnerLabels, currentLanguage, getLabel]
+  )
+
+  // Helper function to get display name from ID
+  const getDisplayName = (id: string | number, options: any[], fallback?: string): string => {
+    if (!id || !options || options.length === 0) return fallback || String(id)
+    
+    const option = options.find(opt => 
+      String(opt.id) === String(id) || 
+      String(opt.settingValue) === String(id) ||
+      String(opt.configId) === String(id)
+    )
+    
+    return option?.configValue || option?.settingValue || fallback || String(id)
+  }
+
+  // Helper function to get beneficiary type display name from DTO
+  const getBeneficiaryTypeDisplayName = (beneficiary: BeneficiaryDetails): string => {
+    // First try to get from bpbTransferTypeDTO
+    if (beneficiary.bpbTransferTypeDTO?.languageTranslationId?.configValue) {
+      return beneficiary.bpbTransferTypeDTO.languageTranslationId.configValue
+    }
+    
+    // Fallback to old method if DTO is not available
+    // return getDisplayName(beneficiary.bpbBeneficiaryType, beneficiaryTypes, String(beneficiary.bpbBeneficiaryType))
+    return ''
+  }
+
+  // Helper function to get bank name display name
+  const getBankNameDisplayName = (bankName: string | number): string => {
+    return getDisplayName(bankName, bankNames, String(bankName))
+  }
 
   // Template download hook
   const { downloadTemplate, isLoading: isDownloading } = useTemplateDownload()
@@ -224,56 +302,62 @@ const Step4: React.FC<Step4Props> = ({
   const tableColumns = [
     {
       key: 'bpbBeneficiaryId',
-      label: 'ID',
+      label: getBuildPartnerLabelDynamic('CDL_BP_BENE_REF'),
       type: 'text' as const,
       width: 'w-20',
       sortable: true,
     },
     {
       key: 'bpbBeneficiaryType',
-      label: 'Beneficiary Type',
+      label: getBuildPartnerLabelDynamic('CDL_BP_BENE_PAYMODE'),
       type: 'text' as const,
       width: 'w-28',
       sortable: true,
+      render: (_: any, row: BeneficiaryDetails) => 
+        getBeneficiaryTypeDisplayName(row),
     },
     {
       key: 'bpbName',
-      label: 'Name',
+      label: getBuildPartnerLabelDynamic('CDL_BP_BENE_NAME'),
       type: 'text' as const,
       width: 'w-30',
       sortable: true,
     },
     {
       key: 'bpbBankName',
-      label: 'Bank Name',
+      label: getBuildPartnerLabelDynamic('CDL_BP_BENE_BANK'),
       type: 'text' as const,
       width: 'w-32',
       sortable: true,
+      render: (_: any, row: BeneficiaryDetails) => 
+        getBankNameDisplayName(row.bpbBankName),
     },
     {
       key: 'bpbSwiftCode',
-      label: 'Swift Code',
+      label: getBuildPartnerLabelDynamic('CDL_BP_BENE_BIC'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
     },
     {
       key: 'bpbRoutingCode',
-      label: 'Routing Code',
+      label: getBuildPartnerLabelDynamic('CDL_BP_BENE_ROUTING'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
+      render: (_: any, row: BeneficiaryDetails) =>
+        String((row as any).bpbRoutingCode ?? (row as any).routingCode ?? ''),
     },
     {
       key: 'bpbAccountNumber',
-      label: 'Account Number',
+      label: getBuildPartnerLabelDynamic('CDL_BP_BENE_ACCOUNT'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
     },
     {
       key: 'actions',
-      label: 'Action',
+      label: getBuildPartnerLabelDynamic('CDL_COMMON_ACTION'),
       type: 'actions' as const,
       width: 'w-20',
     },
@@ -311,6 +395,7 @@ const Step4: React.FC<Step4Props> = ({
       'bpbBankName',
       'bpbSwiftCode',
       'bpbRoutingCode',
+      'routingCode',
       'bpbAccountNumber',
     ],
     initialRowsPerPage: 20,
@@ -363,12 +448,18 @@ const Step4: React.FC<Step4Props> = ({
       >
         <CardContent>
           <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            minHeight="200px"
+            sx={{
+              backgroundColor: '#FFFFFFBF',
+              borderRadius: '16px',
+              margin: '0 auto',
+              width: '100%',
+              height: '200px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
-            <CircularProgress />
+            <GlobalLoading fullHeight className="min-h-[200px]" />
           </Box>
         </CardContent>
       </Card>
@@ -420,7 +511,7 @@ const Step4: React.FC<Step4Props> = ({
                 boxShadow: 'none',
               }}
             >
-              Retry
+              {getBuildPartnerLabelDynamic('CDL_COMMON_RETRY')}
             </Button>
             <Button
               variant="outlined"
@@ -439,7 +530,7 @@ const Step4: React.FC<Step4Props> = ({
                 boxShadow: 'none',
               }}
             >
-              Add Beneficiary
+              {getBuildPartnerLabelDynamic('CDL_BP_BENE_INFO')}
             </Button>
           </Box>
         </CardContent>
@@ -464,8 +555,8 @@ const Step4: React.FC<Step4Props> = ({
               onDownloadTemplate={handleDownloadTemplate}
               isDownloading={isDownloading}
               showButtons={{
-                downloadTemplate: true,
-                uploadDetails: true,
+                downloadTemplate: !isReadOnly,
+                uploadDetails: !isReadOnly,
                 addNew: false,
               }}
             />
@@ -487,7 +578,7 @@ const Step4: React.FC<Step4Props> = ({
                   boxShadow: 'none',
                 }}
               >
-                Add Beneficiary
+                {getBuildPartnerLabelDynamic('CDL_BP_BENE_INFO')}
               </Button>
             )}
           </Box>
@@ -528,7 +619,7 @@ const Step4: React.FC<Step4Props> = ({
           onClose={handleClosePanel}
           onBeneficiaryAdded={handleBeneficiaryAdded}
           onBeneficiaryUpdated={handleBeneficiaryUpdated}
-          title="Beneficiary"
+          title={getBuildPartnerLabelDynamic('CDL_BP_BENE_INFO')}
           mode={editMode}
           {...(selectedBeneficiary && {
             beneficiaryData: {

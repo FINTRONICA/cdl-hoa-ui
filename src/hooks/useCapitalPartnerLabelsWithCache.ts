@@ -42,8 +42,7 @@ export function useCapitalPartnerLabelsWithCache() {
     isFetching: capitalPartnerLabelsLoading,
     isSuccess: !!capitalPartnerLabels,
     refetch: () => {
-      // Note: In compliance mode, refetch is handled by app initialization
-      console.log('🏦 [COMPLIANCE] Refetch requested - handled by compliance loader')
+     
       return Promise.resolve({ data: capitalPartnerLabels })
     },
     

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { TablePageLayout } from '../../../components/templates/TablePageLayout'
 import { ExpandableDataTable } from '../../../components/organisms/ExpandableDataTable'
 import { useTableState } from '../../../hooks/useTableState'
-import { Spinner } from '../../../components/atoms/Spinner'
+import { GlobalLoading, GlobalError } from '@/components/atoms'
 import { CommentModal } from '@/components/molecules'
 import { Tab } from '../../../types/activities'
 import { RightSlideWorkflowTransactionStatePanel } from '@/components/organisms/RightSlidePanel'
@@ -127,16 +127,16 @@ const PendingActivitiesPage: React.FC = () => {
         // Map active tab to the appropriate navigation path
         switch (activeTab) {
           case 'buildPartner':
-            navigationPath = `/developers/${id}/step/1?mode=view`
+            navigationPath = `/build-partner/${id}/step/1?mode=view`
             break
           case 'buildPartnerAsset':
-            navigationPath = `/projects/${id}?view=true`
+            navigationPath = `/build-partner-assets/${id}?view=true`
             break
           case 'capitalPartner':
-            navigationPath = `/investors/new/${id}?step=1&mode=view`
+            navigationPath = `/capital-partner/${id}?mode=view`
             break
           case 'suretyBond':
-            navigationPath = `/guarantee/new/${id}?step=0&mode=view`
+            navigationPath = `/surety_bond/new/${id}?step=0&mode=view`
             break
           case 'payments':
             navigationPath = `/transactions/manual/new/${id}?step=0&mode=view`
@@ -333,11 +333,8 @@ const PendingActivitiesPage: React.FC = () => {
         activeTab={activeTab}
         onTabChange={handleTabChange}
       >
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <Spinner size="lg" />
-            <p className="mt-4 text-gray-600">Loading...</p>
-          </div>
+        <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
+          <GlobalLoading fullHeight />
         </div>
       </TablePageLayout>
     )
@@ -351,19 +348,13 @@ const PendingActivitiesPage: React.FC = () => {
         activeTab={activeTab}
         onTabChange={handleTabChange}
       >
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="mb-2 text-lg text-red-500">
-              Error loading workflow requests
-            </div>
-            <p className="text-gray-600">{workflowError.message}</p>
-            <button
-              onClick={() => refetchWorkflow()}
-              className="px-4 py-2 mt-4 text-white bg-blue-500 rounded hover:bg-blue-600"
-            >
-              Retry
-            </button>
-          </div>
+        <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
+          <GlobalError
+            error={workflowError}
+            onRetry={refetchWorkflow}
+            title="Error loading workflow requests"
+            fullHeight
+          />
         </div>
       </TablePageLayout>
     )

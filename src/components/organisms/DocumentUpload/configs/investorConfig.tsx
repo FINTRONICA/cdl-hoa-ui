@@ -35,8 +35,8 @@ export const investorDocumentService: DocumentService<
     return buildPartnerService.uploadBuildPartnerDocument(
       file,
       investorId,
-      documentType,
-      'CAPITAL_PARTNER'
+      'CAPITAL_PARTNER',
+      documentType
     )
   },
 }

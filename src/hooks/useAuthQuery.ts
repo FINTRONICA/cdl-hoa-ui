@@ -413,7 +413,7 @@ export function useLogout() {
       toast.success('Logged out successfully')
     },
     onError: (error: unknown) => {
-      console.error('Logout error:', error)
+      
       logout()
       queryClient.clear()
       localStorage.clear()

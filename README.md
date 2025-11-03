@@ -51,8 +51,20 @@ escrow/
 │   │   ├── api/               # API routes with security
 │   │   ├── admin/             # Admin dashboard
 │   │   ├── dashboard/         # Main dashboard
+│   │   ├── (entities)/        # Route group for entity management
+│   │   │   ├── developers/    # Developer management routes
+│   │   │   │   ├── page.tsx   # Main developers list (/developers)
+│   │   │   │   ├── new/       # New developer form (/developers/new)
+│   │   │   │   └── [id]/      # Developer details & editing
+│   │   │   │       └── step/  # Multi-step developer forms
+│   │   │   │           └── [stepNumber]/
+│   │   │   │               └── page.tsx # Step pages (/developers/{id}/step/{stepNumber})
+│   │   │   └── projects/      # Project management routes
+│   │   │       ├── page.tsx   # Main projects list (/projects)
+│   │   │       ├── new/       # New project form (/projects/new)
+│   │   │       └── [id]/      # Project details (/projects/{id})
 │   │   ├── transactions/      # Transaction management
-│   │   └── projects/          # Project management
+│   │   └── activities/        # Activity management
 │   ├── components/            # Reusable UI components
 │   │   ├── atoms/            # Atomic design components
 │   │   ├── molecules/        # Molecular components
@@ -73,6 +85,36 @@ escrow/
 ├── public/                  # Static assets
 ├── docs/                    # Documentation
 └── tests/                   # Test files
+```
+
+## 🛣️ Routing Architecture
+
+### **Next.js App Router with Route Groups**
+
+The application uses Next.js 13+ App Router with route groups for clean URL structures:
+
+#### **Entity Management Routes**
+- **Developers**: `/developers` - Main developers list page
+- **New Developer**: `/developers/new` - Create new developer form
+- **Developer Details**: `/developers/{id}/step/{stepNumber}` - Multi-step developer forms
+  - **Edit Mode**: `/developers/{id}/step/{stepNumber}?editing=true`
+  - **View Mode**: `/developers/{id}/step/{stepNumber}?mode=view`
+
+- **Projects**: `/projects` - Main projects list page
+- **New Project**: `/projects/new` - Create new project form
+- **Project Details**: `/projects/{id}` - Project details and management
+
+#### **Route Group Benefits**
+- **Clean URLs**: No `/entities` prefix in the URL
+- **Better Breadcrumbs**: Improved navigation structure
+- **Organized Code**: Logical grouping of related routes
+- **SEO Friendly**: Clean, semantic URL structure
+
+#### **Navigation Flow**
+```
+Dashboard → Developers List → Developer Details → Edit/View
+    ↓              ↓              ↓
+/developers → /developers/{id}/step/1 → /developers/{id}/step/2
 ```
 
 ## 🛠️ Technology Stack

@@ -25,18 +25,17 @@ import {
 import Step1, { type Step1Ref } from './steps/Step1'
 import Step2, { type Step2Ref } from './steps/Step2'
 import Step3, { type Step3Ref } from './steps/Step3'
+import Step4, { type Step4Ref } from './steps/Step4'
 import Step5 from './steps/Step5'
 import DocumentUploadFactory from '../DocumentUpload/DocumentUploadFactory'
 import { DocumentItem } from '../DeveloperStepper/developerTypes'
-import { OwnerData, PaymentPlanData } from './investorsTypes'
 
 
 type CapitalPartnerFormData = CapitalPartnerStep1Data &
   CapitalPartnerStep2Data & {
     // Add other step data types as needed
-    documents?: DocumentItem[]
-    paymentPlan?: PaymentPlanData[]
-    owners?: OwnerData[]
+    documents?: any[]
+    paymentPlan?: any[]
   }
 import { useCreateDeveloperWorkflowRequest } from '@/hooks/workflow'
 import { useCapitalPartnerLabelsApi } from '@/hooks/useCapitalPartnerLabelsApi'
@@ -44,11 +43,12 @@ import { useAppStore } from '@/store'
 
 // Step configuration with config IDs for dynamic labels
 const stepConfigs = [
-  { key: 'basic', configId: 'CDL_OWN_BASIC_INFO' },
-  { key: 'documents', configId: 'CDL_OWN_DOCUMENTS' },
-  { key: 'unit', configId: 'CDL_OWN_UNIT_DETAILS' },
-  { key: 'payment', configId: 'CDL_OWN_JOINT_OWNER_DETAILS' },
-  { key: 'review', configId: 'CDL_OWN_REVIEW' },
+  { key: 'basic', configId: 'CDL_CP_BASIC_INFO' },
+  { key: 'documents', configId: 'CDL_CP_DOCUMENTS' },
+  { key: 'unit', configId: 'CDL_CP_UNIT_DETAILS' },
+  { key: 'payment', configId: 'CDL_CP_PAYMENT_PLAN' },
+  { key: 'bank', configId: 'CDL_CP_BANK_DETAILS' },
+  { key: 'review', configId: 'CDL_CP_REVIEW' },
 ]
 
 // Fallback step labels
@@ -56,7 +56,8 @@ const fallbackSteps = [
   'Basic Details',
   'Documents',
   'Unit Details',
-  'Joint Owner Details',
+  'Payment Plan',
+  'Bank Details',
   'Review',
 ]
 
@@ -96,6 +97,7 @@ export default function InvestorsStepperWrapper({
   const step1Ref = useRef<Step1Ref>(null)
   const step2Ref = useRef<Step2Ref>(null)
   const step3Ref = useRef<Step3Ref>(null)
+  const step4Ref = useRef<Step4Ref>(null)
 
   // Keep active step in a ref so the resolver can react to step changes without remounting the form
   const activeStepRef = useRef(activeStep)
@@ -133,11 +135,9 @@ export default function InvestorsStepperWrapper({
 
   const updateURL = (step: number, id?: number | null) => {
     if (id && step >= 0) {
-      const stepParam = `step=${step + 1}`
-      const modeParam = isViewMode ? '&mode=view' : ''
-      router.push(`/investors/new/${id}?${stepParam}${modeParam}`)
+      router.push(`/capital-partner/${id}/step/${step + 1}${isViewMode ? '?mode=view' : ''}`)
     } else if (step === 0) {
-      router.push('/investors/new')
+      router.push('/capital-partner/new')
     }
   }
   const createCapitalPartnerWorkflowRequest =
@@ -187,7 +187,6 @@ export default function InvestorsStepperWrapper({
       // Additional fields for other steps
       documents: [],
       paymentPlan: [],
-      owners: [],
     },
   })
 
@@ -244,6 +243,11 @@ export default function InvestorsStepperWrapper({
       return
     }
 
+    if (activeStep === 4 && step4Ref.current) {
+      await handleAsyncStep(step4Ref.current)
+      return
+    }
+
     navigateToNextStep()
   }
 
@@ -262,7 +266,7 @@ export default function InvestorsStepperWrapper({
     setErrorMessage(null)
     setSuccessMessage(null)
     methods.reset()
-    router.push('/investors')
+    router.push('/capital-partner')
   }
 
   const onSubmit = () => {}
@@ -292,6 +296,14 @@ export default function InvestorsStepperWrapper({
     }
   }
 
+  const handleStep4SaveAndNext = () => {
+    const nextStep = activeStep + 1
+    if (nextStep < steps.length) {
+      setActiveStep(nextStep)
+      updateURL(nextStep, capitalPartnerId)
+    }
+  }
+
   const handleDocumentsChange = useCallback(
     (documents: DocumentItem[]) => {
       methods.setValue('documents', documents)
@@ -302,13 +314,6 @@ export default function InvestorsStepperWrapper({
   const handlePaymentPlanChange = useCallback(
     (paymentPlan: CapitalPartnerFormData['paymentPlan']) => {
       methods.setValue('paymentPlan', paymentPlan)
-    },
-    [methods]
-  )
-
-  const handleOwnersChange = useCallback(
-    (owners: OwnerData[]) => {
-      methods.setValue('owners', owners)
     },
     [methods]
   )
@@ -337,7 +342,7 @@ export default function InvestorsStepperWrapper({
       setSuccessMessage(
         'Capital Partner registration submitted successfully! Workflow request created.'
       )
-      router.push('/investors')
+      router.push('/capital-partner')
     } catch (error) {
       const errorData = error as {
         response?: { data?: { message?: string } }
@@ -391,8 +396,6 @@ export default function InvestorsStepperWrapper({
             ref={step3Ref}
             paymentPlan={methods.watch('paymentPlan') || []}
             onPaymentPlanChange={handlePaymentPlanChange}
-            owners={(methods.watch('owners') as OwnerData[]) || []}
-            onOwnersChange={handleOwnersChange}
             capitalPartnerId={capitalPartnerId}
             onSaveAndNext={handleStep3SaveAndNext}
             isEditMode={isEditMode}
@@ -401,11 +404,17 @@ export default function InvestorsStepperWrapper({
         )
       case 4:
         return (
-          <Step5 
-            capitalPartnerId={capitalPartnerId} 
+          <Step4
+            ref={step4Ref}
+            capitalPartnerId={capitalPartnerId}
+            onSaveAndNext={handleStep4SaveAndNext}
+            isEditMode={isEditMode}
             isViewMode={isViewMode}
-            owners={(methods.watch('owners') as OwnerData[]) || []}
           />
+        )
+      case 5:
+        return (
+          <Step5 capitalPartnerId={capitalPartnerId} isViewMode={isViewMode} />
         )
       default:
         return null
@@ -449,7 +458,10 @@ export default function InvestorsStepperWrapper({
             ))}
           </Stepper>
 
-          <Box sx={{ my: 4, backgroundColor: '#FFFFFFBF', boxShadow: 'none' }}>
+          <Box 
+            key={`step-${activeStep}-${capitalPartnerId}`}
+            sx={{ my: 4, backgroundColor: '#FFFFFFBF', boxShadow: 'none' }}
+          >
             {getStepContent(activeStep)}
 
             <Box
@@ -471,7 +483,7 @@ export default function InvestorsStepperWrapper({
                 Cancel
               </Button>
               <Box>
-                {activeStep !== 0 && activeStep !== steps.length - 1 && (
+                {activeStep !== 0 && (
                   <Button
                     onClick={handleBack}
                     sx={{
@@ -504,7 +516,7 @@ export default function InvestorsStepperWrapper({
                   onClick={
                     activeStep === steps.length - 1
                       ? isViewMode
-                        ? () => router.push('/investors')
+                        ? () => router.push('/capital-partner')
                         : handleSubmit
                       : handleNext
                   }

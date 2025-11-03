@@ -15,8 +15,8 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { Controller, useFormContext } from 'react-hook-form'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined'
-import { useProjectLabels } from '@/hooks/useProjectLabels'
-// Removed custom validation import - using React Hook Form validation instead
+// import { useProjectLabels } from '@/hooks/useProjectLabels'
+import { useBuildPartnerAssetLabelsWithUtils } from '@/hooks/useBuildPartnerAssetLabels'
 import {
   commonFieldStyles,
   datePickerStyles,
@@ -33,16 +33,21 @@ interface Step6Props {
 }
 
 const Step6: React.FC<Step6Props> = ({ isViewMode = false }) => {
-  const { getLabel } = useProjectLabels()
+  const { getLabel } = useBuildPartnerAssetLabelsWithUtils()
+  const language = 'EN'
 
   const StyledCalendarIcon = (
     props: React.ComponentProps<typeof CalendarTodayOutlinedIcon>
   ) => <CalendarTodayOutlinedIcon {...props} sx={calendarIconSx} />
 
-  // Use parent form context instead of local form
   const { control } = useFormContext()
 
-  const renderTextField = (name: string, label: string, gridSize = 3, required = false) => (
+  const renderTextField = (
+    name: string,
+    label: string,
+    gridSize = 3,
+    required = false
+  ) => (
     <Grid key={name} size={{ xs: 12, md: gridSize }}>
       <Controller
         name={name as any}
@@ -51,16 +56,15 @@ const Step6: React.FC<Step6Props> = ({ isViewMode = false }) => {
         rules={{
           required: required ? `${label} is required` : false,
           pattern: {
-            value: /^[0-9,\s]*$/,
-            message: 'Must contain only numbers and commas'
+            value: /^[0-9.,\s]*$/,
+            message: 'Must contain only numbers, decimals, and commas',
           },
           maxLength: {
             value: 20,
-            message: 'Maximum 20 characters allowed'
-          }
+            message: 'Maximum 20 characters allowed',
+          },
         }}
         render={({ field, fieldState: { error, isTouched } }) => {
-          // Show validation error if field has been touched OR if there's an error (for form submission)
           const shouldShowError = (isTouched || !!error) && !!error
           return (
             <TextField
@@ -86,17 +90,15 @@ const Step6: React.FC<Step6Props> = ({ isViewMode = false }) => {
       <Controller
         name={name as any}
         control={control}
-        defaultValue={undefined}
-        rules={{
-          // Date fields are optional, no validation needed
-        }}
+        defaultValue={null}
+        rules={{}}
         render={({ field, fieldState: { error, isTouched } }) => {
-          // Show validation error if field has been touched OR if there's an error (for form submission)
           const shouldShowError = (isTouched || !!error) && !!error
           return (
             <DatePicker
+              disabled={isViewMode}
               label={label}
-              value={field.value as any}
+              value={field.value}
               onChange={field.onChange}
               format="DD/MM/YYYY"
               slots={{ openPickerIcon: StyledCalendarIcon }}
@@ -122,42 +124,111 @@ const Step6: React.FC<Step6Props> = ({ isViewMode = false }) => {
 
   const groupedFields = [
     {
-      title: getLabel('CDL_BPA_FINANCIAL', 'Asset Financial Overview'),
+      title: getLabel(
+        'CDL_BPA_FINANCIAL',
+        language,
+        'Asset Financial Overview'
+      ),
       fields: [
-        renderTextField('estimate.revenue', getLabel('CDL_BPA_TOTAL_REVENUE', 'Total Revenue'), 6, true),
-        renderTextField('estimate.constructionCost', getLabel('CDL_BPA_BUILD_COST', 'Build Cost'), 6, true),
         renderTextField(
-          'estimate.projectManagementExpense',
-          getLabel('CDL_BPA_ASST_MGMT_EXP', 'Asset Management Expense'),
+          'estimate.revenue',
+          getLabel('CDL_BPA_EST_ASS_COST', language, 'Estimated Asset Cost'),
           6,
           true
         ),
-        renderTextField('estimate.landCost', getLabel('CDL_BPA_LAND_ACQ_COST', 'Land Acquisition Cost'), 6, true),
-        renderTextField('estimate.marketingExpense', getLabel('CDL_BPA_MARK_EXP', 'Marketing Expense'), 6, true),
+        renderTextField(
+          'estimate.constructionCost',
+          getLabel('CDL_BPA_BUILD_COST', language, 'Build Cost'),
+          6,
+          true
+        ),
+        renderTextField(
+          'estimate.projectManagementExpense',
+          getLabel(
+            'CDL_BPA_ASST_MGMT_EXP',
+            language,
+            'Asset Management Expense'
+          ),
+          6,
+          true
+        ),
+        renderTextField(
+          'estimate.landCost',
+          getLabel('CDL_BPA_LAND_ACQ_COST', language, 'Land Acquisition Cost'),
+          6,
+          true
+        ),
+        renderTextField(
+          'estimate.marketingExpense',
+          getLabel('CDL_BPA_MARK_EXP', language, 'Marketing Expense'),
+          6,
+          true
+        ),
         renderDateField(
           'estimate.date',
-          getLabel('CDL_BPA_TRAN_DATE', 'Transaction Date'),
+          getLabel('CDL_BPA_TRAN_DATE', language, 'Transaction Date'),
           6
         ),
       ],
     },
     {
-      title: getLabel('CDL_BPA_ACTUAL_ASSEST_COST', 'Actual Asset Cost'),
+      title: getLabel(
+        'CDL_BPA_ACTUAL_ASSEST_COST',
+        language,
+        'Actual Asset Cost'
+      ),
       fields: [
-        renderTextField('actual.soldValue', getLabel('CDL_BPA_TOTAL_UNIT_SOLD', 'Total Units Sold Value'), 6, true),
-        renderTextField('actual.constructionCost', getLabel('CDL_BPA_BUILD_COST', 'Build Cost'), 6, true),
-        renderTextField('actual.infraCost', getLabel('CDL_BPA_INFRA_COST', 'Infrastructure Development Cost'), 4, false),
-        renderTextField('actual.landCost', getLabel('CDL_BPA_LAND_ACQ_COST', 'Land Acquisition Cost'), 4, true),
         renderTextField(
-          'actual.projectManagementExpense',
-          getLabel('CDL_BPA_ASST_MGMT_EXP', 'Asset Management Expense'),
+          'actual.soldValue',
+          getLabel(
+            'CDL_BPA_TOTAL_UNIT_SOLD',
+            language,
+            'Total Units Sold Value'
+          ),
+          6,
+          true
+        ),
+        renderTextField(
+          'actual.constructionCost',
+          getLabel('CDL_BPA_BUILD_COST', language, 'Build Cost'),
+          6,
+          true
+        ),
+        renderTextField(
+          'actual.infraCost',
+          getLabel(
+            'CDL_BPA_INFRA_COST',
+            language,
+            'Infrastructure Development Cost'
+          ),
+          4,
+          false
+        ),
+        renderTextField(
+          'actual.landCost',
+          getLabel('CDL_BPA_LAND_ACQ_COST', language, 'Land Acquisition Cost'),
           4,
           true
         ),
-        renderTextField('actual.marketingExpense', getLabel('CDL_BPA_MARK_EXP', 'Marketing Expense'), 6, true),
+        renderTextField(
+          'actual.projectManagementExpense',
+          getLabel(
+            'CDL_BPA_ASST_MGMT_EXP',
+            language,
+            'Asset Management Expense'
+          ),
+          4,
+          true
+        ),
+        renderTextField(
+          'actual.marketingExpense',
+          getLabel('CDL_BPA_MARK_EXP', language, 'Marketing Expense'),
+          6,
+          true
+        ),
         renderDateField(
           'actual.date',
-          getLabel('CDL_BPA_TRAN_DATE', 'Transaction Date'),
+          getLabel('CDL_BPA_TRAN_DATE', language, 'Transaction Date'),
           6
         ),
       ],
@@ -165,35 +236,42 @@ const Step6: React.FC<Step6Props> = ({ isViewMode = false }) => {
   ]
 
   const breakdownSections = [
-    getLabel('CDL_BPA_CASH_FROM_UNIT', 'Cash Inflow from Unit Holders'),
-    getLabel('CDL_BPA_LAND_ACQ_COST', 'Land Acquisition Cost'),
-    getLabel('CDL_BPA_BUILD_COST', 'Build Cost'),
-    getLabel('CDL_BPA_MARK_EXP', 'Marketing Expense'),
-    getLabel('CDL_BPA_ASST_MGMT_EXP', 'Asset Management Expense'),
-    getLabel('CDL_BPA_MORTGAGE_AMT', 'Mortgage Amount'),
-    getLabel('CDL_BPA_VAT_AMT', 'VAT Payment'),
-    getLabel('CDL_BPA_TOTAL_AMOUNT', 'Total Amount'),
-    getLabel('CDL_BPA_REFUND_AMT', 'Refund Amount'),
-    getLabel('CDL_BPA_RETEN_ACC_BAL', 'Retention Account Balance'),
-    getLabel('CDL_BPA_TRUST_ACC_BAL', 'Trust Account Balance'),
-    getLabel('CDL_BPA_SUBCONS_ACC_BAL', 'Sub-Construction Account Balance'),
-    getLabel('CDL_BPA_TECH_FEES', 'Technical Fees'),
-    getLabel('CDL_BPA_UNALLO_COST', 'Unallocated Costs'),
-    getLabel('CDL_BPA_LOAN', 'Loan/Installment Payments'),
-    getLabel('CDL_BPA_INFRA_COST', 'Infrastructure Development Cost'),
-    getLabel('CDL_BPA_OTHER_EXP', 'Other Expenses'),
-    getLabel('CDL_BPA_TRANS_AMT', 'Transferred Amount'),
-    getLabel('CDL_BPA_FORFEIT_AMT', 'Forfeited Amount'),
-    getLabel('CDL_BPA_DEV_EQUITY_CONT', 'Developer Equity Contribution'),
-    getLabel('CDL_BPA_AMANAT_FUND', 'Amanat Fund Allocation'),
-    getLabel('CDL_BPA_OTHER_WITHDRAW', 'Other Withdrawals'),
-    getLabel('CDL_BPA_OQOOD_OTHER_PMT', 'Oqood and Other Payments'),
-    getLabel('CDL_BPA_VAT_DEPOSIT_AMT', 'VAT Deposited Amount'),
-    getLabel('CDL_BPA_PROFIT_ERND', 'Interest/Profit Earned on Retention Account'),
-    getLabel('CDL_BPA_PMT_FRM_RETENTION', 'Payments from Retention Account'),
-    getLabel('CDL_BPA_REIMB_AMT', 'Reimbursement Amount'),
-    getLabel('CDL_BPA_INT_ERND_ESCROW', 'Interest/Profit Earned on Escrow Account'),
-    getLabel('CDL_BPA_CAP_VAT_AMT', 'Capped VAT Amount'),
+    getLabel(
+      'CDL_BPA_CASH_FROM_UNIT',
+      language,
+      'Cash Inflow from Unit Holders'
+    ),
+    getLabel('CDL_BPA_LAND_ACQ_COST', language, 'Land Acquisition Cost'),
+    getLabel('CDL_BPA_BUILD_COST', language, 'Build Cost'),
+    getLabel('CDL_BPA_MARK_EXP', language, 'Marketing Expense'),
+    getLabel('CDL_BPA_ASST_MGMT_EXP', language, 'Asset Management Expense'),
+    getLabel('CDL_BPA_MORTGAGE_AMT', language, 'Mortgage Amount'),
+    getLabel('CDL_BPA_VAT_AMT', language, 'VAT Payment'),
+    getLabel('CDL_BPA_TOTAL_AMOUNT', language, 'Total Amount'),
+    getLabel('CDL_BPA_REFUND_AMT', language, 'Refund Amount'),
+    getLabel('CDL_BPA_RETEN_ACC_BAL', language, 'Retention Account Balance'),
+    getLabel('CDL_BPA_TRUST_ACC_BAL', language, 'Trust Account Balance'),
+    getLabel(
+      'CDL_BPA_SUBCONS_ACC_BAL',
+      language,
+      'Sub-Construction Account Balance'
+    ),
+    getLabel('CDL_BPA_TECH_FEES', language, 'Technical Fees'),
+    getLabel('CDL_BPA_UNALLO_COST', language, 'Unallocated Costs'),
+    getLabel('CDL_BPA_LOAN', language, 'Loan/Installment Payments'),
+    getLabel('CDL_BPA_INFRA_COST', language, 'Infrastructure Development Cost'),
+    getLabel('CDL_BPA_OTHER_EXP', language, 'Other Expenses'),
+    getLabel('CDL_BPA_TRANS_AMT', language, 'Transferred Amount'),
+    getLabel('CDL_BPA_FORFEIT_AMT', language, 'Forfeited Amount'),
+    getLabel(
+      'CDL_BPA_DEV_EQUITY_CONT',
+      language,
+      'Developer Equity Contribution'
+    ),
+    getLabel('CDL_BPA_AMANAT_FUND', language, 'Amanat Fund Allocation'),
+    getLabel('CDL_BPA_OTHER_WITHDRAW', language, 'Other Withdrawals'),
+    getLabel('CDL_BPA_OQOOD_OTHER_PMT', language, 'Oqood and Other Payments'),
+    getLabel('CDL_BPA_VAT_DEPOSIT_AMT', language, 'VAT Deposited Amount'),
   ]
 
   return (
@@ -245,23 +323,112 @@ const Step6: React.FC<Step6Props> = ({ isViewMode = false }) => {
               <Grid container spacing={3}>
                 {renderTextField(
                   `breakdown.${index}.outOfEscrow`,
-                  getLabel('CDL_BPA_FUND_OUT_ESCROW', 'Funds Outside Escrow'),
+                  getLabel(
+                    'CDL_BPA_FUND_OUT_ESCROW',
+                    language,
+                    'Funds Outside Escrow'
+                  ),
                   3
                 )}
                 {renderTextField(
                   `breakdown.${index}.withinEscrow`,
-                  getLabel('CDL_BPA_FUND_WITHIN_ESCROW', 'Funds Within Escrow'),
+                  getLabel(
+                    'CDL_BPA_FUND_WITHIN_ESCROW',
+                    language,
+                    'Funds Within Escrow'
+                  ),
                   3
                 )}
-                {renderTextField(`breakdown.${index}.total`, getLabel('CDL_BPA_TOTAL_AMOUNT', 'Total Amount'), 3)}
+                {renderTextField(
+                  `breakdown.${index}.total`,
+                  getLabel('CDL_BPA_TOTAL_AMOUNT', language, 'Total Amount'),
+                  3
+                )}
                 {renderTextField(
                   `breakdown.${index}.exceptionalCapValue`,
-                  getLabel('CDL_BPA_EXCEP_CAP_VAL', 'Exceptional Capital Value'),
+                  getLabel(
+                    'CDL_BPA_EXCEP_CAP_VAL',
+                    language,
+                    'Exceptional Capital Value'
+                  ),
                   3
                 )}
               </Grid>
             </Box>
           ))}
+
+          <Box mb={4}>
+            <Grid container spacing={3}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                {renderTextField(
+                  'additional.creditInterestRetention',
+                  getLabel(
+                    'CDL_BPA_PROFIT_ERND',
+                    language,
+                    'Credit Interest/Profit Earned for Retention A/c'
+                  ),
+                  12,
+                  false
+                )}
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                {renderTextField(
+                  'additional.paymentsRetentionAccount',
+                  getLabel(
+                    'CDL_BPA_PMT_FRM_RETENTION',
+                    language,
+                    'Payments for Retention Account'
+                  ),
+                  12,
+                  false
+                )}
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                {renderTextField(
+                  'additional.reimbursementsDeveloper',
+                  getLabel(
+                    'CDL_BPA_REIMB_AMT',
+                    language,
+                    'Re-Imbursements (Developer)'
+                  ),
+                  12,
+                  false
+                )}
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                {renderTextField(
+                  'additional.unitRegistrationFees',
+                  getLabel(
+                    'CDL_BPA_UNIT_REG_FEES',
+                    language,
+                    'Unit Registration Fees'
+                  ),
+                  12,
+                  false
+                )}
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                {renderTextField(
+                  'additional.creditInterestEscrow',
+                  getLabel(
+                    'CDL_BPA_INT_ERND_ESCROW',
+                    language,
+                    'Credit Interest/Profit Earned for ESCROW A/c'
+                  ),
+                  12,
+                  false
+                )}
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                {renderTextField(
+                  'additional.vatCapped',
+                  getLabel('CDL_BPA_CAP_VAT_AMT', language, 'VAT Capped'),
+                  12,
+                  false
+                )}
+              </Grid>
+            </Grid>
+          </Box>
         </CardContent>
       </Card>
     </LocalizationProvider>

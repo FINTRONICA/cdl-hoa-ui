@@ -4,7 +4,7 @@ import { Typography } from '@mui/material'
 interface FormErrorProps {
   error?: string
   touched?: boolean
-  className?: string
+  className?: string | undefined
 }
 
 export const FormError: React.FC<FormErrorProps> = ({ 

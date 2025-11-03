@@ -8,9 +8,10 @@ import LeftSlidePanel from '@/components/organisms/LeftSlidePanel/LeftSlidePanel
 import { useTasPayments, FundEgressData } from '@/hooks/useFundEgress'
 import { useSidebarConfig } from '@/hooks/useSidebarConfig'
 import { useManualPaymentLabelsWithCache } from '@/hooks/useManualPaymentLabelsWithCache'
-import { MANUAL_PAYMENT_LABELS } from '@/constants/mappings/manualPaymentLabels'
+import { VOUCHER_LABELS } from '@/constants/mappings/manualPaymentLabels'
 import { useDeleteConfirmation } from '@/store/confirmationDialogStore'
 import { PermissionAwareDataTable } from '@/components/organisms/PermissionAwareDataTable/PermissionAwareDataTable'
+import { GlobalLoading, GlobalError } from '@/components/atoms'
 
 // Define the manual payment data structure
 interface ManualPaymentData extends Record<string, unknown> {
@@ -64,9 +65,9 @@ const createTableColumns = (
   {
     key: 'date',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.DATE,
+      VOUCHER_LABELS.TABLE_COLUMNS.DATE,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.DATE
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.DATE
     ),
     type: 'text' as const,
     width: 'w-32',
@@ -75,9 +76,9 @@ const createTableColumns = (
   {
     key: 'takermsPaymentRefNo',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.EMS_REF,
+      VOUCHER_LABELS.TABLE_COLUMNS.EMS_REF,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.EMS_REF
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.EMS_REF
     ),
     type: 'text' as const,
     width: 'w-48',
@@ -86,9 +87,9 @@ const createTableColumns = (
   {
     key: 'developerName',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.DEVELOPER_NAME,
+      VOUCHER_LABELS.TABLE_COLUMNS.DEVELOPER_NAME,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.DEVELOPER_NAME
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.DEVELOPER_NAME
     ),
     type: 'text' as const,
     width: 'w-48',
@@ -97,9 +98,9 @@ const createTableColumns = (
   {
     key: 'projectName',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.PROJECT_NAME,
+      VOUCHER_LABELS.TABLE_COLUMNS.PROJECT_NAME,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.PROJECT_NAME
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.PROJECT_NAME
     ),
     type: 'text' as const,
     width: 'w-48',
@@ -108,9 +109,9 @@ const createTableColumns = (
   {
     key: 'paymentType',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.PAYMENT_TYPE,
+      VOUCHER_LABELS.TABLE_COLUMNS.PAYMENT_TYPE,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.PAYMENT_TYPE
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.PAYMENT_TYPE
     ),
     type: 'text' as const,
     width: 'w-48',
@@ -119,9 +120,9 @@ const createTableColumns = (
   {
     key: 'approvalStatus',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.APPROVAL_STATUS,
+      VOUCHER_LABELS.TABLE_COLUMNS.APPROVAL_STATUS,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.APPROVAL_STATUS
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.APPROVAL_STATUS
     ),
     type: 'status' as const,
     width: 'w-40',
@@ -130,9 +131,9 @@ const createTableColumns = (
   {
     key: 'actions',
     label: getLabel(
-      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.ACTIONS,
+      VOUCHER_LABELS.TABLE_COLUMNS.ACTIONS,
       'EN',
-      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.ACTIONS
+      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.ACTIONS
     ),
     type: 'actions' as const,
     width: 'w-20',
@@ -290,18 +291,18 @@ const TASPaymentPage: React.FC = () => {
       <div className="space-y-4">
         <h4 className="text-sm font-semibold text-gray-900 mb-4">
           {getLabel(
-            MANUAL_PAYMENT_LABELS.EXPANDED_SECTIONS.PAYMENT_INFO,
+            VOUCHER_LABELS.EXPANDED_SECTIONS.PAYMENT_INFO,
             'EN',
-            MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_INFO
+            VOUCHER_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_INFO
           )}
         </h4>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-gray-600">
               {getLabel(
-                MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.DATE,
+                VOUCHER_LABELS.EXPANDED_FIELDS.DATE,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.DATE
+                VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.DATE
               )}
               :
             </span>
@@ -312,9 +313,9 @@ const TASPaymentPage: React.FC = () => {
           <div>
             <span className="text-gray-600">
               {getLabel(
-                MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.EMS_REF,
+                VOUCHER_LABELS.EXPANDED_FIELDS.EMS_REF,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.EMS_REF
+                VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.EMS_REF
               )}
               :
             </span>
@@ -325,9 +326,9 @@ const TASPaymentPage: React.FC = () => {
           <div>
             <span className="text-gray-600">
               {getLabel(
-                MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.DEVELOPER_NAME,
+                VOUCHER_LABELS.EXPANDED_FIELDS.DEVELOPER_NAME,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.DEVELOPER_NAME
+                VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.DEVELOPER_NAME
               )}
               :
             </span>
@@ -338,9 +339,9 @@ const TASPaymentPage: React.FC = () => {
           <div>
             <span className="text-gray-600">
               {getLabel(
-                MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.PROJECT_NAME,
+                VOUCHER_LABELS.EXPANDED_FIELDS.PROJECT_NAME,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.PROJECT_NAME
+                VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.PROJECT_NAME
               )}
               :
             </span>
@@ -351,9 +352,9 @@ const TASPaymentPage: React.FC = () => {
           <div>
             <span className="text-gray-600">
               {getLabel(
-                MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.PAYMENT_TYPE,
+                VOUCHER_LABELS.EXPANDED_FIELDS.PAYMENT_TYPE,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.PAYMENT_TYPE
+                VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.PAYMENT_TYPE
               )}
               :
             </span>
@@ -364,9 +365,9 @@ const TASPaymentPage: React.FC = () => {
           <div>
             <span className="text-gray-600">
               {getLabel(
-                MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.APPROVAL_STATUS,
+                VOUCHER_LABELS.EXPANDED_FIELDS.APPROVAL_STATUS,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.APPROVAL_STATUS
+                VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.APPROVAL_STATUS
               )}
               :
             </span>
@@ -379,38 +380,38 @@ const TASPaymentPage: React.FC = () => {
       <div className="space-y-4">
         <h4 className="text-sm font-semibold text-gray-900 mb-4">
           {getLabel(
-            MANUAL_PAYMENT_LABELS.EXPANDED_SECTIONS.PAYMENT_DOCUMENTS,
+            VOUCHER_LABELS.EXPANDED_SECTIONS.PAYMENT_DOCUMENTS,
             'EN',
-            MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_DOCUMENTS
+            VOUCHER_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_DOCUMENTS
           )}
         </h4>
         <div className="space-y-3">
           <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
             {getLabel(
-              MANUAL_PAYMENT_LABELS.DOCUMENTS.INVOICE,
+              VOUCHER_LABELS.DOCUMENTS.INVOICE,
               'EN',
-              MANUAL_PAYMENT_LABELS.FALLBACKS.DOCUMENTS.INVOICE
+              VOUCHER_LABELS.FALLBACKS.DOCUMENTS.INVOICE
             )}
           </button>
           <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
             {getLabel(
-              MANUAL_PAYMENT_LABELS.DOCUMENTS.CONSTRUCTION_PROGRESS,
+              VOUCHER_LABELS.DOCUMENTS.CONSTRUCTION_PROGRESS,
               'EN',
-              MANUAL_PAYMENT_LABELS.FALLBACKS.DOCUMENTS.CONSTRUCTION_PROGRESS
+              VOUCHER_LABELS.FALLBACKS.DOCUMENTS.CONSTRUCTION_PROGRESS
             )}
           </button>
           <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
             {getLabel(
-              MANUAL_PAYMENT_LABELS.DOCUMENTS.APPROVAL,
+              VOUCHER_LABELS.DOCUMENTS.APPROVAL,
               'EN',
-              MANUAL_PAYMENT_LABELS.FALLBACKS.DOCUMENTS.APPROVAL
+              VOUCHER_LABELS.FALLBACKS.DOCUMENTS.APPROVAL
             )}
           </button>
           <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
             {getLabel(
-              MANUAL_PAYMENT_LABELS.DOCUMENTS.HISTORY,
+              VOUCHER_LABELS.DOCUMENTS.HISTORY,
               'EN',
-              MANUAL_PAYMENT_LABELS.FALLBACKS.DOCUMENTS.HISTORY
+              VOUCHER_LABELS.FALLBACKS.DOCUMENTS.HISTORY
             )}
           </button>
         </div>
@@ -431,13 +432,7 @@ const TASPaymentPage: React.FC = () => {
 
         <DashboardLayout title={tasPaymentTitle}>
           <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
-            {/* Loading State */}
-            <div className="flex-1 flex items-center justify-center">
-              <div className="flex flex-col items-center space-y-4">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#155DFC]"></div>
-                <div className="text-gray-600 text-sm">Loading...</div>
-              </div>
-            </div>
+            <GlobalLoading fullHeight />
           </div>
         </DashboardLayout>
       </>
@@ -457,24 +452,12 @@ const TASPaymentPage: React.FC = () => {
 
         <DashboardLayout title={tasPaymentTitle}>
           <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
-            {/* Error State */}
-            <div className="flex-1 flex items-center justify-center">
-              <div className="flex flex-col items-center space-y-4">
-                <div className="text-red-500 text-6xl">⚠️</div>
-                <div className="text-red-600 text-lg font-medium">
-                  Failed to load TAS payment data
-                </div>
-                <div className="text-gray-600 text-sm text-center max-w-md">
-                  {apiError}
-                </div>
-                <button
-                  onClick={() => window.location.reload()}
-                  className="px-4 py-2 bg-[#155DFC] text-white rounded-lg hover:bg-[#1248CC] transition-colors"
-                >
-                  Retry
-                </button>
-              </div>
-            </div>
+            <GlobalError 
+              error={apiError} 
+              onRetry={() => window.location.reload()}
+              title="Failed to load TAS payment data"
+              fullHeight
+            />
           </div>
         </DashboardLayout>
       </>

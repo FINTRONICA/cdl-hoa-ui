@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Box, Card, CardContent, Button } from '@mui/material'
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
@@ -15,8 +15,11 @@ import {
   useBuildPartnerContacts,
 } from '@/hooks/useBuildPartners'
 import { BuildPartnerContactResponse } from '@/services/api/buildPartnerService'
+import { useBuildPartnerLabelsWithCache } from '@/hooks/useBuildPartnerLabelsWithCache'
+import { getBuildPartnerLabel } from '@/constants/mappings/buildPartnerMapping'
+import { useAppStore } from '@/store'
 
-// Use ContactData directly from developerTypes
+
 
 interface Step2Props {
   contactData: ContactData[]
@@ -25,7 +28,7 @@ interface Step2Props {
   isReadOnly?: boolean
 }
 
-// Helper function to convert API response to ContactData format
+
 const mapApiContactToContactData = (
   apiContact: BuildPartnerContactResponse
 ): ContactData => {
@@ -69,7 +72,23 @@ const Step2: React.FC<Step2Props> = ({
   const confirmDelete = useDeleteConfirmation()
   const deleteMutation = useDeleteBuildPartnerContact()
 
-  // Fetch contacts from API with pagination when buildPartnerId is available
+ 
+  const { data: buildPartnerLabels, getLabel } = useBuildPartnerLabelsWithCache()
+  const currentLanguage = useAppStore((state) => state.language) || 'EN'
+
+  const getBuildPartnerLabelDynamic = useCallback(
+    (configId: string): string => {
+      const fallback = getBuildPartnerLabel(configId)
+      
+      if (buildPartnerLabels) {
+        return getLabel(configId, currentLanguage, fallback)
+      }
+      return fallback
+    },
+    [buildPartnerLabels, currentLanguage, getLabel]
+  )
+
+ 
   const {
     data: apiContactsResponse,
     refetch: refetchContacts,
@@ -77,7 +96,7 @@ const Step2: React.FC<Step2Props> = ({
     apiPagination,
   } = useBuildPartnerContacts(buildPartnerId, currentPage, currentPageSize)
 
-  // Use API data if available, otherwise use form data
+ 
   const contacts: ContactData[] =
     apiContactsResponse?.content && apiContactsResponse.content.length > 0
       ? apiContactsResponse.content.map(mapApiContactToContactData)
@@ -94,7 +113,7 @@ const Step2: React.FC<Step2Props> = ({
     const updatedContacts = [...contacts, newContact as ContactData]
     onFeesChange(updatedContacts)
 
-    // Refresh API data if we have a buildPartnerId
+    
     if (buildPartnerId) {
       refetchContacts()
     }
@@ -105,7 +124,7 @@ const Step2: React.FC<Step2Props> = ({
     updatedContacts[index] = updatedContact as ContactData
     onFeesChange(updatedContacts)
 
-    // Refresh API data if we have a buildPartnerId
+    
     if (buildPartnerId) {
       refetchContacts()
     }
@@ -123,22 +142,22 @@ const Step2: React.FC<Step2Props> = ({
       itemName: `contact: ${row.name}`,
       onConfirm: async () => {
         try {
-          // If contact has an ID, delete from API
+          
           if (row.id) {
             await deleteMutation.mutateAsync(row.id)
           }
 
-          // Remove from local state
+          
           const updatedContacts = contacts.filter((_, i) => i !== index)
           onFeesChange(updatedContacts)
 
-          // Refresh API data if we have a buildPartnerId
+          
           if (buildPartnerId) {
             refetchContacts()
           }
         } catch (error) {
-          console.error('Failed to delete contact:', error)
-          throw error // Re-throw to keep dialog open on error
+         
+          throw error 
         }
       },
     })
@@ -154,56 +173,56 @@ const Step2: React.FC<Step2Props> = ({
   const tableColumns = [
     {
       key: 'name',
-      label: 'Name',
+      label: getBuildPartnerLabelDynamic('CDL_BP_AUTH_NAME'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
       key: 'address',
-      label: 'Address',
+      label: getBuildPartnerLabelDynamic('CDL_BP_BUSINESS_ADDRESS'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
       key: 'email',
-      label: 'Email ID',
+      label: getBuildPartnerLabelDynamic('CDL_BP_EMAIL_ADDRESS'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
       key: 'pobox',
-      label: 'PO Box',
+      label: getBuildPartnerLabelDynamic('CDL_BP_POBOX'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
     },
     {
       key: 'countrycode',
-      label: 'Country Code',
+      label: getBuildPartnerLabelDynamic('CDL_BP_COUNTRY_CODE'),
       type: 'text' as const,
       width: 'w-20',
       sortable: true,
     },
     {
       key: 'mobileno',
-      label: 'Mobile No',
+      label: getBuildPartnerLabelDynamic('CDL_BP_MOBILE_NUMBER'),
       type: 'text' as const,
       width: 'w-26',
       sortable: true,
     },
     {
       key: 'telephoneno',
-      label: 'Telephone No',
+      label: getBuildPartnerLabelDynamic('CDL_BP_TELEPHONE_NUMBER'),
       type: 'text' as const,
       width: 'w-26',
       sortable: true,
     },
     {
       key: 'fax',
-      label: 'FAX',
+      label: getBuildPartnerLabelDynamic('CDL_BP_FAX_NUMBER'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
@@ -216,7 +235,7 @@ const Step2: React.FC<Step2Props> = ({
     },
   ]
 
-  // Get pagination data from API response if available
+  
   const totalRows = buildPartnerId
     ? apiPagination.totalElements
     : contacts.length
@@ -253,12 +272,11 @@ const Step2: React.FC<Step2Props> = ({
     initialRowsPerPage: 20,
   })
 
-  // Use API pagination state when buildPartnerId exists, otherwise use local state
-  // Note: useTableState uses 1-based pages (1, 2, 3...), API uses 0-based (0, 1, 2...)
-  const page = buildPartnerId ? currentPage + 1 : localPage // Convert API 0-based to UI 1-based
+ 
+  const page = buildPartnerId ? currentPage + 1 : localPage 
   const rowsPerPage = buildPartnerId ? currentPageSize : localRowsPerPage
 
-  // Calculate start and end items for API pagination
+
   const startItem = buildPartnerId
     ? currentPage * currentPageSize + 1
     : localStartItem
@@ -266,10 +284,10 @@ const Step2: React.FC<Step2Props> = ({
     ? Math.min((currentPage + 1) * currentPageSize, totalRows)
     : localEndItem
 
-  // Wrap pagination handlers to update API pagination
+ 
   const handlePageChange = (newPage: number) => {
     if (buildPartnerId) {
-      const apiPage = newPage - 1 // Convert UI 1-based to API 0-based
+      const apiPage = newPage - 1 
       setCurrentPage(apiPage)
       updatePagination(apiPage, currentPageSize)
     } else {

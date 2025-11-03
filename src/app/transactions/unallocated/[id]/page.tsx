@@ -8,6 +8,7 @@ import { Input } from '../../../../components/atoms/Input'
 import { TextField } from '@mui/material'
 import { usePendingTransaction } from '@/hooks'
 import type { PendingTransaction } from '@/services/api/pendingTransactionService'
+import { GlobalLoading } from '@/components/atoms'
 
 // Define the transaction data structure to match API response
 interface TransactionData {
@@ -27,6 +28,16 @@ interface TransactionData {
   currencyCode: string
   branchCode: string
   paymentRefNo: string
+  // New fields
+  managementFirmsNumber?: string
+  managementName?: string
+  transactionRefNumber?: string
+  ownerBuyerName?: string
+  splitAmount?: number
+  receivableBucket?: string
+  depositMode?: string
+  reservePercentage?: number
+  reserveAmount?: number
 }
 
 // Define split amount data structure
@@ -65,6 +76,16 @@ const mapApiToTransactionData = (
     currencyCode: apiData.ptfiCurrencyCode || 'AED',
     branchCode: apiData.ptfiBranchCode || '—',
     paymentRefNo: apiData.ptfiPaymentRefNo || '—',
+    // New fields
+    ...(apiData.ptfiManagementFirmsNumber && { managementFirmsNumber: apiData.ptfiManagementFirmsNumber }),
+    ...(apiData.ptfiManagementName && { managementName: apiData.ptfiManagementName }),
+    ...(apiData.ptfiTransactionRefNumber && { transactionRefNumber: apiData.ptfiTransactionRefNumber }),
+    ...(apiData.ptfiOwnerBuyerName && { ownerBuyerName: apiData.ptfiOwnerBuyerName }),
+    ...(apiData.ptfiSplitAmount && { splitAmount: apiData.ptfiSplitAmount }),
+    ...(apiData.ptfiReceivableBucket && { receivableBucket: apiData.ptfiReceivableBucket }),
+    ...(apiData.ptfiDepositMode && { depositMode: apiData.ptfiDepositMode }),
+    ...(apiData.ptfiReservePercentage && { reservePercentage: apiData.ptfiReservePercentage }),
+    ...(apiData.ptfiReserveAmount && { reserveAmount: apiData.ptfiReserveAmount }),
   }
 }
 
@@ -202,11 +223,8 @@ const UnallocatedTransactionDetailsPage: React.FC<{
   if (isLoading) {
     return (
       <DashboardLayout title="Transaction Details">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="w-8 h-8 mx-auto border-b-2 border-blue-600 rounded-full animate-spin"></div>
-            <p className="mt-4 text-gray-600">Loading...</p>
-          </div>
+        <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
+          <GlobalLoading fullHeight />
         </div>
       </DashboardLayout>
     )
@@ -276,7 +294,7 @@ const UnallocatedTransactionDetailsPage: React.FC<{
   }
 
   return (
-    <DashboardLayout title="Pending Transaction">
+    <DashboardLayout title="Allocate Deposit Transaction">
       <div className="bg-[#FFFFFFBF] py-4 px-6 rounded-2xl">
         <div className="flex flex-col gap-12 ">
           <div className="flex flex-col gap-6">

@@ -6,7 +6,6 @@ import {
   Typography,
   Divider,
   Grid,
-  CircularProgress,
   Chip,
 } from '@mui/material'
 import { useParams } from 'next/navigation'
@@ -15,7 +14,8 @@ import {
   FundEgressData,
 } from '@/services/api/fundEgressService'
 import { useManualPaymentLabelsWithCache } from '@/hooks/useManualPaymentLabelsWithCache'
-import { MANUAL_PAYMENT_LABELS } from '@/constants/mappings/manualPaymentLabels'
+import { VOUCHER_LABELS } from '@/constants/mappings/manualPaymentLabels'
+import { GlobalLoading } from '@/components/atoms'
 
 const TasStep2: React.FC = () => {
   const [fundEgressData, setFundEgressData] = useState<FundEgressData | null>(
@@ -125,13 +125,18 @@ const TasStep2: React.FC = () => {
   if (loading) {
     return (
       <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="400px"
+        sx={{
+          backgroundColor: '#FFFFFFBF',
+          borderRadius: '16px',
+          margin: '0 auto',
+          width: '100%',
+          height: '400px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
       >
-        <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Loading...</Typography>
+        <GlobalLoading fullHeight className="min-h-[400px]" />
       </Box>
     )
   }
@@ -162,9 +167,9 @@ const TasStep2: React.FC = () => {
       gridSize: 6,
       label:
         getLabel(
-          MANUAL_PAYMENT_LABELS.FORM_FIELDS.TAS_REFERENCE,
+          VOUCHER_LABELS.FORM_FIELDS.TAS_REFERENCE,
           'EN',
-          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TAS_REFERENCE
+          VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.TAS_REFERENCE
         ) + '*',
       value: fundEgressData.fePaymentRefNumber || '-',
     },
@@ -172,9 +177,9 @@ const TasStep2: React.FC = () => {
       gridSize: 6,
       label:
         getLabel(
-          MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_DATE,
+          VOUCHER_LABELS.FORM_FIELDS.INVOICE_DATE,
           'EN',
-          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_DATE
+          VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_DATE
         ) + '*',
       value: fundEgressData.fePaymentDate || '-',
     },
@@ -182,9 +187,9 @@ const TasStep2: React.FC = () => {
       gridSize: 6,
       label:
         getLabel(
-          MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEVELOPER_NAME,
+          VOUCHER_LABELS.FORM_FIELDS.DEVELOPER_NAME,
           'EN',
-          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_NAME
+          VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_NAME
         ) + '*',
       value: fundEgressData.buildPartnerDTO?.bpName || '-',
     },
@@ -192,9 +197,9 @@ const TasStep2: React.FC = () => {
       gridSize: 6,
       label:
         getLabel(
-          MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROJECT_NAME,
+          VOUCHER_LABELS.FORM_FIELDS.PROJECT_NAME,
           'EN',
-          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_NAME
+          VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_NAME
         ) + '*',
       value: fundEgressData.realEstateAssestDTO?.reaName || '-',
     },
@@ -202,9 +207,9 @@ const TasStep2: React.FC = () => {
       gridSize: 6,
       label:
         getLabel(
-          MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_TYPE,
+          VOUCHER_LABELS.FORM_FIELDS.PAYMENT_TYPE,
           'EN',
-          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_TYPE
+          VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_TYPE
         ) + '*',
       value: fundEgressData.voucherPaymentTypeDTO?.name || '-',
     },
@@ -212,9 +217,9 @@ const TasStep2: React.FC = () => {
       gridSize: 6,
       label:
         getLabel(
-          MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROJECT_STATUS,
+          VOUCHER_LABELS.FORM_FIELDS.PROJECT_STATUS,
           'EN',
-          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_STATUS
+          VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_STATUS
         ) + '*',
       value: fundEgressData.fePaymentStatus || '-',
     },
@@ -222,9 +227,9 @@ const TasStep2: React.FC = () => {
       gridSize: 6,
       label:
         getLabel(
-          MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_CURRENCY,
+          VOUCHER_LABELS.FORM_FIELDS.INVOICE_CURRENCY,
           'EN',
-          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_CURRENCY
+          VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_CURRENCY
         ) + '*',
       value: fundEgressData.paymentCurrencyDTO?.name || '-',
     },
@@ -232,9 +237,9 @@ const TasStep2: React.FC = () => {
       gridSize: 6,
       label:
         getLabel(
-          MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_DATE,
+          VOUCHER_LABELS.FORM_FIELDS.INVOICE_DATE,
           'EN',
-          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_DATE
+          VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_DATE
         ) + '*',
       value: fundEgressData.feInvoiceDate || '-',
     },
@@ -245,9 +250,9 @@ const TasStep2: React.FC = () => {
       gridSize: 6,
       label:
         getLabel(
-          MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_SUB_TYPE,
+          VOUCHER_LABELS.FORM_FIELDS.PAYMENT_SUB_TYPE,
           'EN',
-          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_SUB_TYPE
+          VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_SUB_TYPE
         ) + '*',
       value: fundEgressData.voucherPaymentSubTypeDTO?.name || '-',
     },
@@ -255,9 +260,9 @@ const TasStep2: React.FC = () => {
       gridSize: 6,
       label:
         getLabel(
-          MANUAL_PAYMENT_LABELS.SECTION_TITLES.EXPENSE_TYPE,
+          VOUCHER_LABELS.SECTION_TITLES.EXPENSE_TYPE,
           'EN',
-          MANUAL_PAYMENT_LABELS.FALLBACKS.SECTION_TITLES.EXPENSE_TYPE
+          VOUCHER_LABELS.FALLBACKS.SECTION_TITLES.EXPENSE_TYPE
         ) + '*',
       value: fundEgressData.voucherPaymentTypeDTO?.name || '-',
     },
@@ -377,9 +382,9 @@ const TasStep2: React.FC = () => {
           sx={{ fontFamily: 'Outfit', fontSize: '20px', mb: 2 }}
         >
           {getLabel(
-            MANUAL_PAYMENT_LABELS.STEPS.REVIEW,
+            VOUCHER_LABELS.STEPS.REVIEW,
             'EN',
-            MANUAL_PAYMENT_LABELS.FALLBACKS.STEPS.REVIEW
+            VOUCHER_LABELS.FALLBACKS.STEPS.REVIEW
           )}
         </Typography>
         <Divider sx={{ mb: 2 }} />

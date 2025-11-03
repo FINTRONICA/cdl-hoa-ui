@@ -1,10 +1,9 @@
-import React, { useRef, useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Box,
   Button,
   Card,
   CardContent,
-  MenuItem,
   Paper,
   Table,
   TableBody,
@@ -20,10 +19,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  FormControl,
-  InputLabel,
-  Select,
-  SelectChangeEvent,
 } from '@mui/material'
 import { TablePagination } from '../../molecules/TablePagination/TablePagination'
 import { FileUploadOutlined as FileUploadOutlinedIcon } from '@mui/icons-material'
@@ -47,6 +42,7 @@ import {
 } from '../../../services/api/applicationSettingService'
 import { apiClient } from '../../../lib/apiClient'
 import { API_ENDPOINTS } from '../../../constants/apiEndpoints'
+import { UploadPopup } from './components/UploadPopup'
 
 interface DocumentUploadProps<
   T extends BaseDocument = BaseDocument,
@@ -64,7 +60,6 @@ const DocumentUpload = <
   formFieldName = 'documents',
 }: DocumentUploadProps<T, ApiResponse>) => {
   const { setValue, watch } = useFormContext()
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // State management
   const [uploadedDocuments, setUploadedDocuments] = useState<T[]>([])
@@ -90,16 +85,12 @@ const DocumentUpload = <
     onConfirm: () => {},
   })
 
-  const [documentTypeDialog, setDocumentTypeDialog] = useState<{
+  const [uploadPopup, setUploadPopup] = useState<{
     open: boolean
-    files: File[]
-    selectedDocumentType: string
     documentTypes: DropdownOption[]
     loading: boolean
   }>({
     open: false,
-    files: [],
-    selectedDocumentType: '',
     documentTypes: [],
     loading: false,
   })
@@ -170,80 +161,33 @@ const DocumentUpload = <
     }
   }, [uploadedDocuments, setValue, formFieldName])
 
-  const selectStyles = {
-    height: '52px',
-    '& .MuiOutlinedInput-root': {
-      height: '52px',
-      borderRadius: '8px',
-      '& fieldset': {
-        borderColor: '#CAD5E2',
-        borderWidth: '1px',
-      },
-      '&:hover fieldset': {
-        borderColor: '#CAD5E2',
-      },
-      '&.Mui-focused fieldset': {
-        borderColor: '#2563EB',
-      },
-    },
-    '& .MuiSelect-icon': {
-      color: '#666',
-    },
-  }
+  const handleUploadClick = async () => {
+    if (config.documentTypeOptions && config.documentTypeOptions.length > 0) {
+      setUploadPopup({
+        open: true,
+        loading: false,
+        documentTypes: config.documentTypeOptions,
+      })
+      return
+    }
 
-  const valueSx = {
-    color: '#1E2939',
-    fontFamily: 'Outfit',
-    fontWeight: 400,
-    fontStyle: 'normal',
-    fontSize: '14px',
-    letterSpacing: 0,
-    wordBreak: 'break-word',
-  }
-
-  const handleUploadClick = () => {
-    fileInputRef.current?.click()
-  }
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-
-    if (files.length === 0) return
-
-    setDocumentTypeDialog((prev) => ({
-      ...prev,
-      open: true,
-      files,
-      loading: true,
-    }))
+    setUploadPopup({ open: true, loading: true, documentTypes: [] })
 
     try {
       const settingKey = config.documentTypeSettingKey || 'INVESTOR_ID_TYPE'
       const documentTypes =
         await applicationSettingService.getDropdownOptionsByKey(settingKey)
-      setDocumentTypeDialog((prev) => ({
-        ...prev,
-        documentTypes,
-        loading: false,
-      }))
+      setUploadPopup({ open: true, loading: false, documentTypes })
     } catch (error) {
-      setDocumentTypeDialog((prev) => ({
-        ...prev,
-        documentTypes: [{ id: 0, value: 'CP_OTHER', label: 'Other' }],
+      setUploadPopup({
+        open: true,
         loading: false,
-      }))
+        documentTypes: [{ id: 0, value: 'OTHER', label: 'Other' }],
+      })
     }
   }
 
-  const handleDocumentTypeConfirm = async () => {
-    const { files, selectedDocumentType } = documentTypeDialog
-
-    if (!selectedDocumentType) {
-      setUploadError('Please select a document type')
-      return
-    }
-
-    setDocumentTypeDialog((prev) => ({ ...prev, open: false }))
+  const handlePopupUpload = async (files: File[], documentType: string) => {
     setIsUploading(true)
     setUploadError(null)
 
@@ -251,6 +195,23 @@ const DocumentUpload = <
       const newDocuments: T[] = []
 
       for (const file of files) {
+        // Final validation - ensure only supported file types
+        const fileExtension = '.' + file.name.toLowerCase().split('.').pop()
+        const allowedExtensions = [
+          '.pdf',
+          '.docx',
+          '.xlsx',
+          '.jpg',
+          '.jpeg',
+          '.png',
+        ]
+        if (!allowedExtensions.includes(fileExtension)) {
+          setUploadError(
+            `Only PDF, DOCX, XLSX, JPEG, PNG files are allowed. ${file.name} is not a supported file type.`
+          )
+          continue
+        }
+
         const validationResult = validateFile(file, uploadConfig)
         if (!validationResult.isValid) {
           setUploadError(validationResult.error || 'File validation failed')
@@ -287,7 +248,7 @@ const DocumentUpload = <
             const response = await config.documentService.uploadDocument(
               document.file!,
               config.entityId,
-              selectedDocumentType
+              documentType
             )
 
             const updatedDocument = config.mapApiToDocument(response)
@@ -345,10 +306,11 @@ const DocumentUpload = <
       }
     } finally {
       setIsUploading(false)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
     }
+  }
+
+  const handlePopupClose = () => {
+    setUploadPopup((prev) => ({ ...prev, open: false }))
   }
 
   const handleDownload = async (doc: T) => {
@@ -584,15 +546,6 @@ const DocumentUpload = <
             )}
           </Box>
 
-          <input
-            type="file"
-            ref={fileInputRef}
-            style={{ display: 'none' }}
-            onChange={handleFileChange}
-            multiple={uploadConfig.multiple}
-            accept={uploadConfig.accept}
-          />
-
           {/* Progress Bar */}
           {isUploading && (
             <Box mb={3}>
@@ -662,72 +615,86 @@ const DocumentUpload = <
                           sx={{ fontFamily: 'Outfit', fontWeight: 'normal' }}
                         >
                           <div className="flex items-center gap-2">
-                            {config.actions.map((action) => {
-                              const isDisabled =
-                                doc.status === 'uploading' ||
-                                (action.disabled?.(doc) ?? false)
+                            {config.actions
+                              .filter((action) => {
+                                // Hide delete and edit actions in read-only mode
+                                if (
+                                  config.isReadOnly &&
+                                  (action.key === 'delete' ||
+                                    action.key === 'edit')
+                                ) {
+                                  return false
+                                }
+                                return true
+                              })
+                              .map((action) => {
+                                const isDisabled =
+                                  doc.status === 'uploading' ||
+                                  (action.disabled?.(doc) ?? false)
 
-                              const getButtonClass = () => {
-                                if (isDisabled) {
-                                  return 'p-1 transition-colors rounded cursor-not-allowed opacity-50'
+                                const getButtonClass = () => {
+                                  if (isDisabled) {
+                                    return 'p-1 transition-colors rounded cursor-not-allowed opacity-50'
+                                  }
+
+                                  if (action.color === 'error') {
+                                    return 'p-1 transition-colors rounded cursor-pointer hover:bg-red-50'
+                                  }
+
+                                  if (action.key === 'edit') {
+                                    return 'p-1 transition-colors rounded cursor-pointer hover:bg-blue-50'
+                                  }
+
+                                  return 'p-1 transition-colors rounded cursor-pointer hover:bg-gray-100'
                                 }
 
-                                if (action.color === 'error') {
-                                  return 'p-1 transition-colors rounded cursor-pointer hover:bg-red-50'
+                                const getIconClass = () => {
+                                  if (isDisabled) {
+                                    return 'w-4 h-4 text-gray-300'
+                                  }
+
+                                  if (action.color === 'error') {
+                                    return 'w-4 h-4 text-red-600 hover:text-red-800'
+                                  }
+
+                                  if (action.key === 'edit') {
+                                    return 'w-4 h-4 text-blue-600 hover:text-blue-800'
+                                  }
+
+                                  return 'w-4 h-4 text-gray-500 hover:text-gray-700'
                                 }
 
-                                if (action.key === 'edit') {
-                                  return 'p-1 transition-colors rounded cursor-pointer hover:bg-blue-50'
-                                }
-
-                                return 'p-1 transition-colors rounded cursor-pointer hover:bg-gray-100'
-                              }
-
-                              const getIconClass = () => {
-                                if (isDisabled) {
-                                  return 'w-4 h-4 text-gray-300'
-                                }
-
-                                if (action.color === 'error') {
-                                  return 'w-4 h-4 text-red-600 hover:text-red-800'
-                                }
-
-                                if (action.key === 'edit') {
-                                  return 'w-4 h-4 text-blue-600 hover:text-blue-800'
-                                }
-
-                                return 'w-4 h-4 text-gray-500 hover:text-gray-700'
-                              }
-
-                              return (
-                                <button
-                                  key={action.key}
-                                  onClick={() => handleActionClick(action, doc)}
-                                  disabled={isDisabled}
-                                  className={getButtonClass()}
-                                  title={action.label}
-                                  data-row-action={action.key}
-                                >
-                                  {action.icon ? (
-                                    <div className={getIconClass()}>
-                                      {action.icon}
-                                    </div>
-                                  ) : (
-                                    <>
-                                      {action.key === 'view' && (
-                                        <Eye className={getIconClass()} />
-                                      )}
-                                      {action.key === 'edit' && (
-                                        <Pencil className={getIconClass()} />
-                                      )}
-                                      {action.key === 'delete' && (
-                                        <Trash2 className={getIconClass()} />
-                                      )}
-                                    </>
-                                  )}
-                                </button>
-                              )
-                            })}
+                                return (
+                                  <button
+                                    key={action.key}
+                                    onClick={() =>
+                                      handleActionClick(action, doc)
+                                    }
+                                    disabled={isDisabled}
+                                    className={getButtonClass()}
+                                    title={action.label}
+                                    data-row-action={action.key}
+                                  >
+                                    {action.icon ? (
+                                      <div className={getIconClass()}>
+                                        {action.icon}
+                                      </div>
+                                    ) : (
+                                      <>
+                                        {action.key === 'view' && (
+                                          <Eye className={getIconClass()} />
+                                        )}
+                                        {action.key === 'edit' && (
+                                          <Pencil className={getIconClass()} />
+                                        )}
+                                        {action.key === 'delete' && (
+                                          <Trash2 className={getIconClass()} />
+                                        )}
+                                      </>
+                                    )}
+                                  </button>
+                                )
+                              })}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -822,206 +789,21 @@ const DocumentUpload = <
           </Alert>
         </Snackbar>
 
-        {/* Document Type Selection Dialog */}
-        <Dialog
-          open={documentTypeDialog.open}
-          onClose={() =>
-            setDocumentTypeDialog((prev) => ({ ...prev, open: false }))
-          }
-          maxWidth="sm"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: '12px',
-              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
-            },
-          }}
-        >
-          <DialogTitle
-            sx={{
-              fontFamily: 'Outfit',
-              fontWeight: 600,
-              fontSize: '18px',
-              color: '#1F2937',
-              pb: 1,
-            }}
-          >
-            Select Document Type
-          </DialogTitle>
-          <DialogContent sx={{ pt: 2 }}>
-            <Typography
-              variant="body2"
-              sx={{
-                mb: 3,
-                fontFamily: 'Outfit',
-                color: '#6B7280',
-                fontSize: '14px',
-              }}
-            >
-              Please select the type of document you are uploading:
-            </Typography>
-
-            {documentTypeDialog.files.length > 0 && (
-              <Box mb={3}>
-                <Typography
-                  variant="subtitle2"
-                  sx={{
-                    fontFamily: 'Outfit',
-                    mb: 1,
-                    fontWeight: 500,
-                    color: '#374151',
-                    fontSize: '14px',
-                  }}
-                >
-                  Files to upload:
-                </Typography>
-                {documentTypeDialog.files.map((file, index) => (
-                  <Typography
-                    key={index}
-                    variant="body2"
-                    sx={{
-                      fontFamily: 'Outfit',
-                      color: '#6B7280',
-                      fontSize: '13px',
-                      ml: 1,
-                    }}
-                  >
-                    • {file.name}
-                  </Typography>
-                ))}
-              </Box>
-            )}
-
-            {documentTypeDialog.loading ? (
-              <Box display="flex" justifyContent="center" py={2}>
-                <LinearProgress sx={{ width: '100%' }} />
-              </Box>
-            ) : (
-              <FormControl fullWidth sx={{ mt: 2 }}>
-                <InputLabel
-                  sx={{
-                    fontFamily: 'Outfit',
-                    color: '#6B7280',
-                    '&.Mui-focused': {
-                      color: '#2563EB',
-                    },
-                  }}
-                >
-                  Document Type
-                </InputLabel>
-                <Select
-                  value={documentTypeDialog.selectedDocumentType}
-                  onChange={(e: SelectChangeEvent) =>
-                    setDocumentTypeDialog((prev) => ({
-                      ...prev,
-                      selectedDocumentType: e.target.value,
-                    }))
-                  }
-                  label="Document Type"
-                  sx={[
-                    selectStyles,
-                    valueSx,
-                    {
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        border: '1px solid #D1D5DB',
-                        borderRadius: '8px',
-                      },
-                      '&:hover .MuiOutlinedInput-notchedOutline': {
-                        border: '1px solid #9CA3AF',
-                      },
-                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                        border: '2px solid #2563EB',
-                      },
-                      '& .MuiSelect-select': {
-                        padding: '12px 14px',
-                        fontFamily: 'Outfit',
-                        fontSize: '14px',
-                        color: '#374151',
-                      },
-                    },
-                  ]}
-                >
-                  {documentTypeDialog.documentTypes.map((docType) => (
-                    <MenuItem
-                      key={docType.id}
-                      value={docType.id.toString()}
-                      sx={{
-                        fontFamily: 'Outfit',
-                        fontSize: '14px',
-                        color: '#374151',
-                        '&:hover': {
-                          backgroundColor: '#F3F4F6',
-                        },
-                        '&.Mui-selected': {
-                          backgroundColor: '#EFF6FF',
-                          color: '#2563EB',
-                        },
-                      }}
-                    >
-                      {docType.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
-          </DialogContent>
-          <DialogActions sx={{ p: 3, pt: 2, gap: 2 }}>
-            <Button
-              onClick={() =>
-                setDocumentTypeDialog((prev) => ({ ...prev, open: false }))
-              }
-              sx={{
-                fontFamily: 'Outfit',
-                textTransform: 'none',
-                fontWeight: 500,
-                fontSize: '14px',
-                lineHeight: '20px',
-                letterSpacing: '0px',
-                borderRadius: '8px',
-                padding: '10px 24px',
-                border: '1px solid #D1D5DB',
-                color: '#374151',
-                backgroundColor: '#FFFFFF',
-                '&:hover': {
-                  backgroundColor: '#F9FAFB',
-                  borderColor: '#9CA3AF',
-                },
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleDocumentTypeConfirm}
-              color="primary"
-              disabled={
-                !documentTypeDialog.selectedDocumentType ||
-                documentTypeDialog.loading
-              }
-              sx={{
-                fontFamily: 'Outfit',
-                textTransform: 'none',
-                fontWeight: 500,
-                fontSize: '14px',
-                lineHeight: '20px',
-                letterSpacing: '0px',
-                borderRadius: '8px',
-                padding: '10px 24px',
-                backgroundColor: '#2563EB',
-                color: '#FFFFFF',
-                '&:hover': {
-                  backgroundColor: '#1D4ED8',
-                  color: '#FFFFFF',
-                },
-                '&:disabled': {
-                  backgroundColor: '#9CA3AF',
-                  color: '#FFFFFF',
-                },
-              }}
-            >
-              Upload
-            </Button>
-          </DialogActions>
-        </Dialog>
+        {/* Upload Popup */}
+        <UploadPopup
+          open={uploadPopup.open}
+          onClose={handlePopupClose}
+          onUpload={handlePopupUpload}
+          documentTypes={uploadPopup.documentTypes}
+          loading={uploadPopup.loading}
+          accept={uploadConfig.accept || '.pdf,.docx,.xlsx,.jpg,.jpeg,.png'}
+          multiple={uploadConfig.multiple || true}
+          maxFiles={10}
+          maxSize={Math.round(
+            (uploadConfig.maxFileSize || 25 * 1024 * 1024) / (1024 * 1024)
+          )}
+          uploadConfig={uploadConfig}
+        />
       </CardContent>
     </Card>
   )

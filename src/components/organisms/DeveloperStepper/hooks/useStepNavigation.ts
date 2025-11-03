@@ -11,7 +11,7 @@ export const useStepNavigation = (developerId?: string) => {
 
   const navigateToStep = useCallback((step: number) => {
     if (developerId) {
-      router.push(`/developers/${developerId}/step/${step + 1}`)
+      router.push(`/build-partner/${developerId}/step/${step + 1}`)
     } else {
       // Fallback for local state navigation
       return step
@@ -23,7 +23,7 @@ export const useStepNavigation = (developerId?: string) => {
 
     if (currentStep < STEP_LABELS.length - 1) {
       if (currentStep === 0 && savedDeveloperId) {
-        router.push(`/developers/${savedDeveloperId}/step/2`)
+        router.push(`/build-partner/${savedDeveloperId}/step/2`)
       } else if (developerId) {
         navigateToStep(currentStep + 1)
       } else {
@@ -31,7 +31,7 @@ export const useStepNavigation = (developerId?: string) => {
         return currentStep + 1
       }
     } else {
-      router.push('/developers')
+      router.push('/build-partner')
       return 'completed'
     }
   }, [developerId, router, navigateToStep])
@@ -43,7 +43,7 @@ export const useStepNavigation = (developerId?: string) => {
   }, [navigateToStep])
 
   const navigateToCompletion = useCallback(() => {
-    router.push('/developers')
+    router.push('/build-partner')
   }, [router])
 
   return {

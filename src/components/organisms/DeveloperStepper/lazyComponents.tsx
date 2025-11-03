@@ -1,5 +1,6 @@
 import React, { lazy, Suspense } from 'react'
-import { Box, Typography, CircularProgress } from '@mui/material'
+import { Box, Typography } from '@mui/material'
+import { GlobalLoading } from '@/components/atoms'
 
 // Lazy load step components
 const Step1 = lazy(() => import('./steps/Step1'))
@@ -13,18 +14,17 @@ const DocumentUploadStep = lazy(() => import('./steps/DocumentUploadStep'))
 const StepLoadingFallback = () => (
   <Box
     sx={{
+      backgroundColor: '#FFFFFFBF',
+      borderRadius: '16px',
+      margin: '0 auto',
+      width: '100%',
+      height: '400px',
       display: 'flex',
-      flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      minHeight: '200px',
-      gap: 2,
     }}
   >
-    <CircularProgress size={40} />
-    <Typography variant="body2" color="text.secondary">
-      Loading...
-    </Typography>
+    <GlobalLoading fullHeight className="min-h-[400px]" />
   </Box>
 )
 
@@ -91,9 +91,11 @@ export const preloadSteps = {
 // Preload next step for better performance
 export const preloadNextStep = (currentStep: number) => {
   const preloadMap: Record<number, () => Promise<any>> = {
-    0: preloadSteps.documentUpload,
-    1: preloadSteps.step2,
-    2: preloadSteps.step5,
+    0: preloadSteps.step2,
+    1: preloadSteps.documentUpload,
+    2: preloadSteps.step3,
+    3: preloadSteps.step4,
+    4: preloadSteps.step5,
   }
 
   const preloadFn = preloadMap[currentStep]
