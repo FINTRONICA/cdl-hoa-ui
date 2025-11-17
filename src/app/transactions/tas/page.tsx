@@ -8,7 +8,7 @@ import LeftSlidePanel from '@/components/organisms/LeftSlidePanel/LeftSlidePanel
 import { useTasPayments, FundEgressData } from '@/hooks/useFundEgress'
 import { useSidebarConfig } from '@/hooks/useSidebarConfig'
 import { useManualPaymentLabelsWithCache } from '@/hooks/useManualPaymentLabelsWithCache'
-import { VOUCHER_LABELS } from '@/constants/mappings/manualPaymentLabels'
+import { MANUAL_PAYMENT_LABELS } from '@/constants/mappings/manualPaymentLabels'
 import { useDeleteConfirmation } from '@/store/confirmationDialogStore'
 import { PermissionAwareDataTable } from '@/components/organisms/PermissionAwareDataTable/PermissionAwareDataTable'
 import { GlobalLoading, GlobalError } from '@/components/atoms'
@@ -43,8 +43,8 @@ const transformFundEgressToTasPayment = (
       ? new Date(fundEgress.fePaymentDate).toLocaleDateString('en-GB')
       : 'N/A',
     takermsPaymentRefNo: fundEgress.fePaymentRefNumber || 'N/A',
-    developerName: fundEgress.buildPartnerDTO?.bpName || 'N/A',
-    projectName: fundEgress.realEstateAssestDTO?.reaName || 'N/A',
+    developerName: fundEgress.assetRegisterDTO?.arName || 'N/A',
+    projectName: fundEgress.managementFirmDTO?.mfName || 'N/A',
     paymentType: fundEgress.voucherPaymentTypeDTO?.name || 'N/A',
     approvalStatus: mapApiStatus(fundEgress.taskStatusDTO),
   }
@@ -65,9 +65,9 @@ const createTableColumns = (
   {
     key: 'date',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.DATE,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.DATE,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.DATE
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.DATE
     ),
     type: 'text' as const,
     width: 'w-32',
@@ -76,9 +76,9 @@ const createTableColumns = (
   {
     key: 'takermsPaymentRefNo',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.EMS_REF,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.EMS_REF,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.EMS_REF
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.EMS_REF
     ),
     type: 'text' as const,
     width: 'w-48',
@@ -87,9 +87,9 @@ const createTableColumns = (
   {
     key: 'developerName',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.DEVELOPER_NAME,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.DEVELOPER_NAME,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.DEVELOPER_NAME
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.DEVELOPER_NAME
     ),
     type: 'text' as const,
     width: 'w-48',
@@ -98,9 +98,9 @@ const createTableColumns = (
   {
     key: 'projectName',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.PROJECT_NAME,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.PROJECT_NAME,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.PROJECT_NAME
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.PROJECT_NAME
     ),
     type: 'text' as const,
     width: 'w-48',
@@ -109,9 +109,9 @@ const createTableColumns = (
   {
     key: 'paymentType',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.PAYMENT_TYPE,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.PAYMENT_TYPE,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.PAYMENT_TYPE
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.PAYMENT_TYPE
     ),
     type: 'text' as const,
     width: 'w-48',
@@ -120,9 +120,9 @@ const createTableColumns = (
   {
     key: 'approvalStatus',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.APPROVAL_STATUS,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.APPROVAL_STATUS,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.APPROVAL_STATUS
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.APPROVAL_STATUS
     ),
     type: 'status' as const,
     width: 'w-40',
@@ -131,9 +131,9 @@ const createTableColumns = (
   {
     key: 'actions',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.ACTIONS,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.ACTIONS,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.ACTIONS
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.ACTIONS
     ),
     type: 'actions' as const,
     width: 'w-20',
@@ -291,18 +291,18 @@ const TASPaymentPage: React.FC = () => {
       <div className="space-y-4">
         <h4 className="text-sm font-semibold text-gray-900 mb-4">
           {getLabel(
-            VOUCHER_LABELS.EXPANDED_SECTIONS.PAYMENT_INFO,
+            MANUAL_PAYMENT_LABELS.EXPANDED_SECTIONS.PAYMENT_INFO,
             'EN',
-            VOUCHER_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_INFO
+            MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_INFO
           )}
         </h4>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-gray-600">
               {getLabel(
-                VOUCHER_LABELS.EXPANDED_FIELDS.DATE,
+                MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.DATE,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.DATE
+                MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.DATE
               )}
               :
             </span>
@@ -313,9 +313,9 @@ const TASPaymentPage: React.FC = () => {
           <div>
             <span className="text-gray-600">
               {getLabel(
-                VOUCHER_LABELS.EXPANDED_FIELDS.EMS_REF,
+                MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.EMS_REF,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.EMS_REF
+                MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.EMS_REF
               )}
               :
             </span>
@@ -326,9 +326,9 @@ const TASPaymentPage: React.FC = () => {
           <div>
             <span className="text-gray-600">
               {getLabel(
-                VOUCHER_LABELS.EXPANDED_FIELDS.DEVELOPER_NAME,
+                MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.DEVELOPER_NAME,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.DEVELOPER_NAME
+                MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.DEVELOPER_NAME
               )}
               :
             </span>
@@ -339,9 +339,9 @@ const TASPaymentPage: React.FC = () => {
           <div>
             <span className="text-gray-600">
               {getLabel(
-                VOUCHER_LABELS.EXPANDED_FIELDS.PROJECT_NAME,
+                MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.PROJECT_NAME,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.PROJECT_NAME
+                MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.PROJECT_NAME
               )}
               :
             </span>
@@ -352,9 +352,9 @@ const TASPaymentPage: React.FC = () => {
           <div>
             <span className="text-gray-600">
               {getLabel(
-                VOUCHER_LABELS.EXPANDED_FIELDS.PAYMENT_TYPE,
+                MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.PAYMENT_TYPE,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.PAYMENT_TYPE
+                MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.PAYMENT_TYPE
               )}
               :
             </span>
@@ -365,9 +365,9 @@ const TASPaymentPage: React.FC = () => {
           <div>
             <span className="text-gray-600">
               {getLabel(
-                VOUCHER_LABELS.EXPANDED_FIELDS.APPROVAL_STATUS,
+                MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.APPROVAL_STATUS,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.APPROVAL_STATUS
+                MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.APPROVAL_STATUS
               )}
               :
             </span>
@@ -380,38 +380,38 @@ const TASPaymentPage: React.FC = () => {
       <div className="space-y-4">
         <h4 className="text-sm font-semibold text-gray-900 mb-4">
           {getLabel(
-            VOUCHER_LABELS.EXPANDED_SECTIONS.PAYMENT_DOCUMENTS,
+            MANUAL_PAYMENT_LABELS.EXPANDED_SECTIONS.PAYMENT_DOCUMENTS,
             'EN',
-            VOUCHER_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_DOCUMENTS
+            MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_DOCUMENTS
           )}
         </h4>
         <div className="space-y-3">
           <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
             {getLabel(
-              VOUCHER_LABELS.DOCUMENTS.INVOICE,
+              MANUAL_PAYMENT_LABELS.DOCUMENTS.INVOICE,
               'EN',
-              VOUCHER_LABELS.FALLBACKS.DOCUMENTS.INVOICE
+              MANUAL_PAYMENT_LABELS.FALLBACKS.DOCUMENTS.INVOICE
             )}
           </button>
           <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
             {getLabel(
-              VOUCHER_LABELS.DOCUMENTS.CONSTRUCTION_PROGRESS,
+              MANUAL_PAYMENT_LABELS.DOCUMENTS.CONSTRUCTION_PROGRESS,
               'EN',
-              VOUCHER_LABELS.FALLBACKS.DOCUMENTS.CONSTRUCTION_PROGRESS
+              MANUAL_PAYMENT_LABELS.FALLBACKS.DOCUMENTS.CONSTRUCTION_PROGRESS
             )}
           </button>
           <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
             {getLabel(
-              VOUCHER_LABELS.DOCUMENTS.APPROVAL,
+              MANUAL_PAYMENT_LABELS.DOCUMENTS.APPROVAL,
               'EN',
-              VOUCHER_LABELS.FALLBACKS.DOCUMENTS.APPROVAL
+              MANUAL_PAYMENT_LABELS.FALLBACKS.DOCUMENTS.APPROVAL
             )}
           </button>
           <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
             {getLabel(
-              VOUCHER_LABELS.DOCUMENTS.HISTORY,
+              MANUAL_PAYMENT_LABELS.DOCUMENTS.HISTORY,
               'EN',
-              VOUCHER_LABELS.FALLBACKS.DOCUMENTS.HISTORY
+              MANUAL_PAYMENT_LABELS.FALLBACKS.DOCUMENTS.HISTORY
             )}
           </button>
         </div>

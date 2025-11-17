@@ -7,58 +7,77 @@ import { safeParseInt } from './utils'
 export const useStepDataTransformers = () => {
   return useMemo(() => ({
     1: (formData: ProjectData) => ({
-      bpDeveloperId: formData.bpDeveloperId,
-      bpCifrera: formData.bpCifrera,
-      bpDeveloperRegNo: formData.bpDeveloperRegNo,
-      bpName: formData.bpName,
-      bpMasterName: formData.bpMasterName,
-      bpNameLocal: formData.bpNameLocal,
-      bpOnboardingDate: formData.bpOnboardingDate
-        ? typeof formData.bpOnboardingDate === 'string'
-          ? formData.bpOnboardingDate
-          : convertDatePickerToZonedDateTime(formData.bpOnboardingDate.format('YYYY-MM-DD'))
+      arDeveloperId: formData.arDeveloperId,
+      arCifrera: formData.arCifrera,
+      arDeveloperRegNo: formData.arDeveloperRegNo,
+      arName: formData.arName,
+      arMasterName: formData.arMasterName,
+      arNameLocal: formData.arNameLocal,
+      arOnboardingDate: formData.arOnboardingDate
+        ? typeof formData.arOnboardingDate === 'string'
+          ? formData.arOnboardingDate
+          : convertDatePickerToZonedDateTime(formData.arOnboardingDate.format('YYYY-MM-DD'))
         : null,
-      bpContactAddress: formData.bpContactAddress,
-      bpContactTel: formData.bpContactTel,
-      bpPoBox: formData.bpPoBox,
-      bpMobile: formData.bpMobile,
-      bpFax: formData.bpFax,
-      bpEmail: formData.bpEmail,
-      bpLicenseNo: formData.bpLicenseNo,
-      bpLicenseExpDate: formData.bpLicenseExpDate
-        ? typeof formData.bpLicenseExpDate === 'string'
-          ? formData.bpLicenseExpDate
-          : convertDatePickerToZonedDateTime(formData.bpLicenseExpDate.format('YYYY-MM-DD'))
+      arContactAddress: formData.arContactAddress,
+      arContactTel: formData.arContactTel,
+      arPoBox: formData.arPoBox,
+      arMobile: formData.arMobile,
+      arFax: formData.arFax,
+      arEmail: formData.arEmail,
+      arLicenseNo: formData.arLicenseNo,
+      arLicenseExpDate: formData.arLicenseExpDate
+        ? typeof formData.arLicenseExpDate === 'string'
+          ? formData.arLicenseExpDate
+          : convertDatePickerToZonedDateTime(formData.arLicenseExpDate.format('YYYY-MM-DD'))
         : null,
-      bpWorldCheckFlag: formData.bpWorldCheckFlag,
-      bpWorldCheckRemarks: formData.bpWorldCheckRemarks,
-      bpMigratedData: formData.bpMigratedData,
-      bpremark: formData.bpremark,
-      bpRegulatorId: formData.bpRegulatorDTO?.id || formData.bpRegulatorId,
-      bpRegulatorDTO: {
-        id: safeParseInt(formData.bpRegulatorDTO?.id),
+      arWorldCheckFlag: formData.arWorldCheckFlag,
+      arWorldCheckRemarks: formData.arWorldCheckRemarks,
+      arMigratedData: formData.arMigratedData,
+      arRemark: formData.arRemark,
+      arRegulatorId: formData.arRegulatorDTO?.id || formData.arRegulatorId,
+      arRegulatorDTO: {
+        id: safeParseInt(formData.arRegulatorDTO?.id),
       },
+      arProjectName: formData.arProjectName,
+      arCompanyNumber: formData.arCompanyNumber,
+      arMasterCommunity: formData.arMasterCommunity,
+      arMasterDeveloper: formData.arMasterDeveloper,
     }),
     2: (formData: ProjectData) => {
       const contact = formData.contactData?.[0]
       if (!contact) {
         throw new Error('Contact data is required for step 2')
       }
-      
+
+      const arcContactName =
+        contact.arcContactName ??
+        `${contact.arcFirstName ?? ''} ${contact.arcLastName ?? ''}`.trim()
+
       return {
-        bpcFirstName: contact.name?.split(' ')[0] || '',
-        bpcLastName: contact.name?.split(' ').slice(1).join(' ') || '',
-        bpcContactEmail: contact.email || '',
-        bpcContactAddressLine1: contact.address || '',
-        bpcContactAddressLine2: '', 
-        bpcContactPoBox: contact.pobox || '',
-        bpcCountryMobCode: contact.countrycode || '',
-        bpcContactTelNo: contact.telephoneno || '',
-        bpcContactMobNo: contact.mobileno || '',
-        bpcContactFaxNo: contact.fax || '',
-        buildPartnerDTO: {
-          id: formData.bpDeveloperId ? parseInt(formData.bpDeveloperId) : undefined
-        }
+        arcContactName,
+        arcFirstName: contact.arcFirstName ?? '',
+        arcLastName: contact.arcLastName ?? '',
+        arcContactEmail: contact.arcContactEmail ?? '',
+        arcContactAddress: contact.arcContactAddress ?? '',
+        arcContactAddressLine1: contact.arcContactAddressLine1 ?? '',
+        arcContactAddressLine2: contact.arcContactAddressLine2 ?? '',
+        arcContactPoBox: contact.arcContactPoBox ?? '',
+        arcContactTelCode: contact.arcContactTelCode ?? '',
+        arcCountryMobCode: contact.arcCountryMobCode ?? '',
+        arcContactMobNo: contact.arcContactMobNo ?? '',
+        arcContactTelNo: contact.arcContactTelNo ?? '',
+        arcContactFaxNo: contact.arcContactFaxNo ?? '',
+        enabled: contact.enabled ?? true,
+        deleted: contact.deleted ?? false,
+        assetRegisterDTO:
+          contact.assetRegisterDTO ??
+          (formData.arDeveloperId
+            ? {
+                id: parseInt(formData.arDeveloperId, 10),
+                enabled: true,
+                deleted: false,
+              }
+            : undefined),
       }
     },
     3: (formData: ProjectData) => ({

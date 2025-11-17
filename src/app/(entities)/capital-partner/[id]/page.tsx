@@ -15,7 +15,7 @@ function InvestorStepPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const capitalPartnerId = params.id as string
+  const ownerRegistryId = params.id as string
   const mode = searchParams.get('mode')
   const editing = searchParams.get('editing')
   const isViewMode = mode === 'view'
@@ -33,7 +33,7 @@ function InvestorStepPageContent() {
         setIsLoading(true)
         setError(null)
         const data = await capitalPartnerService.getCapitalPartnerById(
-          parseInt(capitalPartnerId)
+          parseInt(ownerRegistryId)
         )
         setCapitalPartnerData(data)
       } catch (err: any) {
@@ -43,18 +43,15 @@ function InvestorStepPageContent() {
       }
     }
 
-    if (capitalPartnerId) {
+    if (ownerRegistryId) {
       fetchCapitalPartnerData()
     }
-  }, [capitalPartnerId])
+  }, [ownerRegistryId])
 
   // Show loading state
   if (isLoading) {
     return (
-      <DashboardLayout
-        title="Capital Partner Details"
-        subtitle=""
-      >
+      <DashboardLayout title="Owner Registry Details" subtitle="">
         <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
           <GlobalLoading fullHeight />
         </div>
@@ -66,14 +63,14 @@ function InvestorStepPageContent() {
   if (error) {
     return (
       <DashboardLayout
-        title="Capital Partner Details"
-        subtitle="Error loading investor details"
+        title="Owner Registry Details"
+        subtitle="Error loading owner registry details"
       >
         <div className="p-6 text-red-600">
           <p>Error: {error}</p>
           <button
             onClick={() => router.push('/capital-partner')}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="px-4 py-2 mt-4 text-white bg-blue-500 rounded hover:bg-blue-600"
           >
             Back to Investors
           </button>
@@ -84,40 +81,40 @@ function InvestorStepPageContent() {
 
   return (
     <DashboardLayout
-      title="Capital Partner Details"
+      title="Owner Registry Details"
       subtitle={
         isViewMode
-          ? 'View investor details and configuration (Read-only)'
+          ? 'View owner registry details and configuration (Read-only)'
           : isEditingMode
-          ? 'Edit investor details and configuration'
-          : 'Manage your investor details and configuration'
+            ? 'Edit owner registry details and configuration'
+            : 'Manage your owner registry details and configuration'
       }
     >
-      <div className="flex gap-7 items-start px-7 py-2">
+      <div className="flex items-start py-2 gap-7 px-7">
         <div className="flex flex-col min-w-[200px] gap-1">
           <label className="font-sans font-normal text-[12px] leading-[1] tracking-normal text-[#4A5565]">
-            Capital Partner Name
+            Owner Registry Name
           </label>
           <span className="font-outfit font-normal text-[16px] leading-[1] tracking-normal align-middle text-[#1E2939]">
             {capitalPartnerData
-              ? `${capitalPartnerData.capitalPartnerName || ''} ${capitalPartnerData.capitalPartnerMiddleName || ''} ${capitalPartnerData.capitalPartnerLastName || ''}`.trim() ||
+              ? `${capitalPartnerData.ownerRegistryName || ''} ${capitalPartnerData.ownerRegistryMiddleName || ''} ${capitalPartnerData.ownerRegistryLastName || ''}`.trim() ||
                 'N/A'
               : 'N/A'}
           </span>
         </div>
         <div className="flex flex-col min-w-[200px] gap-1">
           <label className="font-sans font-normal text-[12px] leading-[1] tracking-normal text-[#4A5565]">
-            Capital Partner ID
+            Owner Registry ID
           </label>
           <span className="font-outfit font-normal text-[16px] leading-[1] tracking-normal align-middle text-[#1E2939]">
-            {capitalPartnerData?.capitalPartnerId || 'N/A'}
+            {capitalPartnerData?.ownerRegistryId || 'N/A'}
           </span>
         </div>
       </div>
       <div className="px-3 mt-[10px]">
         <InvestorsStepperWrapper
-          initialCapitalPartnerId={
-            capitalPartnerId ? parseInt(capitalPartnerId) : null
+          initialownerRegistryId={
+            ownerRegistryId ? parseInt(ownerRegistryId) : null
           }
           initialStep={0}
           isViewMode={isViewMode}
@@ -131,7 +128,7 @@ export default function InvestorStepPage() {
   return (
     <Suspense
       fallback={
-        <DashboardLayout title="Capital Partner Details" subtitle="">
+        <DashboardLayout title="Owner Registry Details" subtitle="">
           <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
             <GlobalLoading fullHeight />
           </div>

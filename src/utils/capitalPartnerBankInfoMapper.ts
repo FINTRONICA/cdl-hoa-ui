@@ -28,7 +28,7 @@ export interface DropdownOption {
  */
 export function mapStep4ToCapitalPartnerBankInfoPayload(
   formData: Step4FormData,
-  capitalPartnerId: number, // ID from Step1 response
+  ownerRegistryId: number, // ID from Step1 response
   paymentModes: DropdownOption[] = []
 ): any {
   // Find the selected payment mode
@@ -41,31 +41,31 @@ export function mapStep4ToCapitalPartnerBankInfoPayload(
 
   // Map form fields to API fields
   if (formData.payeeName) {
-    payload.cpbiPayeeName = formData.payeeName // Payee name -> cpbiPayeeName
+    payload.ownbiPayeeName = formData.payeeName // Payee name -> ownbiPayeeName
   }
 
   if (formData.payeeAddress) {
-    payload.cpbiPayeeAddress = formData.payeeAddress // Payee address -> cpbiPayeeAddress
+    payload.ownbiPayeeAddress = formData.payeeAddress // Payee address -> ownbiPayeeAddress
   }
 
   if (formData.bankName) {
-    payload.cpbiBankName = formData.bankName // Bank name -> cpbiBankName
+    payload.ownbiBankName = formData.bankName // Bank name -> ownbiBankName
   }
 
   if (formData.bankAddress) {
-    payload.cpbiBankAddress = formData.bankAddress // Bank address -> cpbiBankAddress
+    payload.ownbiBankAddress = formData.bankAddress // Bank address -> ownbiBankAddress
   }
 
   if (formData.bic) {
-    payload.cpbiBicCode = formData.bic // BIC -> cpbiBicCode
+    payload.ownbiBicCode = formData.bic // BIC -> ownbiBicCode
   }
 
   if (formData.beneficiaryRoutingCode) {
-    payload.cpbiBeneRoutingCode = formData.beneficiaryRoutingCode // Beneficiary routing code -> cpbiBeneRoutingCode
+    payload.ownbiBeneRoutingCode = formData.beneficiaryRoutingCode // Beneficiary routing code -> ownbiBeneRoutingCode
   }
 
   if (formData.accountNumber) {
-    payload.cpbiAccountNumber = formData.accountNumber // Account number -> cpbiAccountNumber
+    payload.ownbiAccountNumber = formData.accountNumber // Account number -> ownbiAccountNumber
   }
 
   // Add payment mode DTO if selected
@@ -76,8 +76,8 @@ export function mapStep4ToCapitalPartnerBankInfoPayload(
   }
 
   // Add capital partner ID from Step1 response
-  payload.capitalPartnerDTO = {
-    id: capitalPartnerId.toString(),
+  payload.ownerRegistryDTO = {
+    id: ownerRegistryId.toString(),
   }
 
   // Add required defaults

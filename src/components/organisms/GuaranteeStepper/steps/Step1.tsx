@@ -135,22 +135,22 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
           suretyBond.suretyBondDate ? dayjs(suretyBond.suretyBondDate) : null
         )
         // Set project CIF from the real estate asset data
-        setValue('projectCif', suretyBond.realEstateAssestDTO?.reaCif || '')
+        setValue('projectCif', suretyBond.managementFirmDTO?.mfCif || '')
         setValue(
           'projectName',
-          suretyBond.realEstateAssestDTO?.id?.toString() || ''
+          suretyBond.managementFirmDTO?.id?.toString() || ''
         )
-        // Set Build Partner Name from realEstateAssestDTO.buildPartnerDTO.bpName
+        // Set Build Partner Name from managementFirmDTO.assetRegisterDTO.arName
         setValue(
           'developerName',
-          suretyBond.realEstateAssestDTO?.buildPartnerDTO?.bpName || ''
+          suretyBond.managementFirmDTO?.assetRegisterDTO?.arName || ''
         )
         setValue('openEndedGuarantee', suretyBond.suretyBondOpenEnded || false)
         // Set project completion date from the real estate asset
         setValue(
           'projectCompletionDate',
-          suretyBond.realEstateAssestDTO?.reaCompletionDate
-            ? dayjs(suretyBond.realEstateAssestDTO.reaCompletionDate)
+          suretyBond.managementFirmDTO?.mfCompletionDate
+            ? dayjs(suretyBond.managementFirmDTO.mfCompletionDate)
             : null
         )
         setValue('noOfAmendments', suretyBond.suretyBondNoOfAmendment || '')
@@ -184,26 +184,26 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
         )
         if (selectedAsset) {
           // Auto-populate Build Partner Assets CIF
-          if (selectedAsset.reaCif) {
-            setValue('projectCif', selectedAsset.reaCif, {
+          if (selectedAsset.mfCif) {
+            setValue('projectCif', selectedAsset.mfCif, {
               shouldValidate: true,
             })
             trigger('projectCif')
           }
 
           // Auto-populate Completion Date
-          if (selectedAsset.reaCompletionDate) {
+          if (selectedAsset.mfCompletionDate) {
             setValue(
               'projectCompletionDate',
-              dayjs(selectedAsset.reaCompletionDate),
+              dayjs(selectedAsset.mfCompletionDate),
               { shouldValidate: true }
             )
             trigger('projectCompletionDate')
           }
 
-          // Auto-populate Build Partner Name from realEstateAssestDTO.buildPartnerDTO.bpName
-          if (selectedAsset.buildPartnerDTO?.bpName) {
-            setValue('developerName', selectedAsset.buildPartnerDTO.bpName, {
+          // Auto-populate Build Partner Name from managementFirmDTO.assetRegisterDTO.arName
+          if (selectedAsset.assetRegisterDTO?.arName) {
+            setValue('developerName', selectedAsset.assetRegisterDTO.arName, {
               shouldValidate: true,
             })
             trigger('developerName')
@@ -776,41 +776,55 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
     gridSize: number = 6
   ) => (
     <Grid key={name} size={{ xs: 12, md: gridSize }}>
-      <div className="text-sm">{label}</div>
-      <Controller
-        name={name}
-        control={control}
-        defaultValue={false}
-        render={({ field }) => (
-          <FormControlLabel
-            control={
-              <Checkbox
-                {...field}
-                checked={!!field.value}
-                disabled={!!isViewMode}
-                sx={{
-                  color: isViewMode ? '#D1D5DB' : '#CAD5E2',
-                  '&.Mui-checked': {
-                    color: isViewMode ? '#9CA3AF' : '#2563EB',
-                  },
-                }}
-              />
-            }
-            label="Yes"
-            sx={{
-              '& .MuiFormControlLabel-label': {
-                fontFamily: 'Outfit, sans-serif',
-                fontStyle: 'normal',
-                fontSize: '14px',
-                lineHeight: '24px',
-                letterSpacing: '0.5px',
-                verticalAlign: 'middle',
-                color: isViewMode ? '#6B7280' : 'inherit',
-              },
-            }}
-          />
-        )}
-      />
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, height: '46px' }}>
+        <Typography
+          sx={{
+            fontFamily: 'Outfit, sans-serif',
+            fontWeight: 500,
+            fontSize: '13px',
+            color: '#374151',
+            letterSpacing: '0.025em',
+            minWidth: 'fit-content',
+          }}
+        >
+          {label}
+        </Typography>
+        <Controller
+          name={name}
+          control={control}
+          defaultValue={false}
+          render={({ field }) => (
+            <FormControlLabel
+              control={
+                <Checkbox
+                  {...field}
+                  checked={!!field.value}
+                  disabled={!!isViewMode}
+                  sx={{
+                    color: isViewMode ? '#D1D5DB' : '#CAD5E2',
+                    '&.Mui-checked': {
+                      color: isViewMode ? '#9CA3AF' : '#2563EB',
+                    },
+                  }}
+                />
+              }
+              label="Yes"
+              sx={{
+                margin: 0,
+                '& .MuiFormControlLabel-label': {
+                  fontFamily: 'Outfit, sans-serif',
+                  fontStyle: 'normal',
+                  fontSize: '14px',
+                  lineHeight: '24px',
+                  letterSpacing: '0.5px',
+                  verticalAlign: 'middle',
+                  color: isViewMode ? '#6B7280' : 'inherit',
+                },
+              }}
+            />
+          )}
+        />
+      </Box>
     </Grid>
   )
 
@@ -1043,11 +1057,11 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
                 : realEstateAssets.length > 0
                   ? realEstateAssets
                       .filter(
-                        (asset) => asset.reaName && asset.reaName.trim() !== ''
+                        (asset) => asset.mfName && asset.mfName.trim() !== ''
                       )
                       .map((asset) => ({
                         id: asset.id,
-                        displayName: asset.reaName,
+                        displayName: asset.mfName,
                       }))
                   : [
                       {
@@ -1076,13 +1090,11 @@ const Step1 = ({ savedId, isEditMode, isViewMode }: Step1Props) => {
               true,
               'Auto-filled when Build Partner Assets is selected'
             )}
-            <div className="pl-2">
-              {renderCheckboxField(
-                'openEndedGuarantee',
-                getTranslatedLabel('CDL_SB_OPEN_ENDED'),
-                3
-              )}
-            </div>
+            {renderCheckboxField(
+              'openEndedGuarantee',
+              getTranslatedLabel('CDL_SB_OPEN_ENDED'),
+              3
+            )}
             {renderDatePickerField(
               'projectCompletionDate',
               getTranslatedLabel('CDL_SB_BPA_COMPLETION_DATE'),

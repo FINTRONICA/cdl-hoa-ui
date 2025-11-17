@@ -7,6 +7,7 @@ export class SessionService {
   private static sessionTimer?: NodeJS.Timeout;
 
   static startSession(): void {
+    if (typeof window === 'undefined') return;
     const now = Date.now();
     const timeoutMs = this.TIMEOUT_MINUTES * 60 * 1000;
 
@@ -28,10 +29,12 @@ export class SessionService {
   }
 
   static updateActivity(): void {
+    if (typeof window === 'undefined') return;
     localStorage.setItem('last_activity', Date.now().toString());
   }
 
   static checkSessionTimeout(): boolean {
+    if (typeof window === 'undefined') return true;
     const lastActivity = localStorage.getItem('last_activity');
     const sessionTimeout = localStorage.getItem('session_timeout');
 
@@ -47,6 +50,7 @@ export class SessionService {
   }
 
   static shouldShowWarning(): boolean {
+    if (typeof window === 'undefined') return false;
     const lastActivity = localStorage.getItem('last_activity');
     if (!lastActivity) return false;
 
@@ -70,6 +74,7 @@ export class SessionService {
   }
 
   static forceLogout(): void {
+    if (typeof window === 'undefined') return;
     // Clear all data
     localStorage.clear();
     sessionStorage.clear();

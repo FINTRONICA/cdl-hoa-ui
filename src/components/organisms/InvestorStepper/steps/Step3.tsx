@@ -101,13 +101,14 @@ interface Step3Props {
   paymentPlan: ExtendedPaymentPlanData[]
   onPaymentPlanChange: (paymentPlan: ExtendedPaymentPlanData[]) => void
   onSaveAndNext?: (data: any) => void
-  capitalPartnerId?: number | null
+  ownerRegistryId?: number | null
   isEditMode?: boolean
   isViewMode?: boolean
 }
 
 export interface Step3Ref {
   handleSaveAndNext: () => Promise<void>
+  hasUnconfirmedEntries: () => boolean
 }
 
 const Step3 = forwardRef<Step3Ref, Step3Props>(
@@ -116,7 +117,7 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
       paymentPlan,
       onPaymentPlanChange,
       onSaveAndNext,
-      capitalPartnerId,
+      ownerRegistryId,
       isEditMode,
       isViewMode = false,
     },
@@ -143,10 +144,10 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
       data: existingPaymentPlanData,
       isLoading: isLoadingExistingPaymentPlan,
     } = useGetEnhanced<PaymentPlanResponse[]>(
-      `${API_ENDPOINTS.CAPITAL_PARTNER_PAYMENT_PLAN.GET_ALL}?capitalPartnerId.equals=${capitalPartnerId || 0}&deleted.equals=false&enabled.equals=true`,
+      `${API_ENDPOINTS.OWNER_REGISTRY_PAYMENT_PLAN.GET_ALL}?ownerRegistryId.equals=${ownerRegistryId || 0}&deleted.equals=false&enabled.equals=true`,
       {},
       {
-        enabled: Boolean(isEditMode && capitalPartnerId),
+        enabled: Boolean(isEditMode && ownerRegistryId),
         // Disable caching to always fetch fresh data
         gcTime: 0,
         staleTime: 0,
@@ -156,10 +157,10 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
       }
     )
 
-    // Reset data loaded flag when capitalPartnerId changes (e.g., navigating to different capital partner)
+    // Reset data loaded flag when ownerRegistryId changes (e.g., navigating to different capital partner)
     useEffect(() => {
       setIsDataLoaded(false)
-    }, [capitalPartnerId])
+    }, [ownerRegistryId])
 
     // Update current existing payment plan data when fetched data changes
     useEffect(() => {
@@ -187,18 +188,19 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
         const mappedPaymentPlan: PaymentPlanData[] =
           existingPaymentPlanData.map((plan, index) => {
             // Set the installment date in the form
-            if (plan.cpppInstallmentDate) {
+            if (plan.ownppInstallmentDate) {
               setValue(
                 `installmentDate${index}`,
-                dayjs(plan.cpppInstallmentDate)
+                dayjs(plan.ownppInstallmentDate)
               )
             }
 
             return {
-              installmentNumber: plan.cpppInstallmentNumber || index + 1,
+              installmentNumber: plan.ownppInstallmentNumber || index + 1,
               installmentPercentage: '',
               projectCompletionPercentage:
-                plan.cpppBookingAmount?.toString() || '',
+                plan.ownppBookingAmount?.toString() || '',
+              isNewEntry: false, // Explicitly mark existing entries as confirmed
             }
           })
 
@@ -235,7 +237,7 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
 
     const handleSaveAndNext = async () => {
       try {
-        if (!capitalPartnerId) {
+        if (!ownerRegistryId) {
           throw new Error('Capital Partner ID is required from Step1')
         }
 
@@ -268,7 +270,7 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
 
         const payloadArray = mapStep3ToCapitalPartnerPaymentPlanPayload(
           formData,
-          capitalPartnerId
+          ownerRegistryId
         )
 
         const responses = []
@@ -284,10 +286,13 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
             // Update existing payment plan
             const existingPaymentPlanId = currentExistingPaymentPlanData[i]?.id
             if (existingPaymentPlanId) {
-              // Add the id to the payload for update requests
+              // Add the id and preserve deleted/enabled fields for update requests
+              const existingPlan = currentExistingPaymentPlanData[i]
               const updatePayload = {
                 ...payload,
                 id: existingPaymentPlanId,
+                deleted: existingPlan?.deleted ?? false,
+                enabled: existingPlan?.enabled ?? true,
               }
               response =
                 await capitalPartnerPaymentPlanService.updateCapitalPartnerPaymentPlan(
@@ -324,12 +329,40 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
         throw error
       }
     }
+    const hasUnconfirmedEntries = () => {
+      return (
+        editingIndex !== null ||
+        paymentPlan.some((plan) => plan.isNewEntry === true)
+      )
+    }
+
+    // Expose validation state to parent stepper via window object
+    useEffect(() => {
+      if (typeof window !== 'undefined') {
+        const hasUnsavedChanges = hasUnconfirmedEntries()
+        ;(window as any).step3ValidationState = {
+          hasUnsavedChanges,
+          isValid: !hasUnsavedChanges,
+        }
+      }
+    }, [editingIndex, paymentPlan])
+
+    // Cleanup on unmount
+    useEffect(() => {
+      return () => {
+        if (typeof window !== 'undefined') {
+          delete (window as any).step3ValidationState
+        }
+      }
+    }, [])
+
     useImperativeHandle(
       ref,
       () => ({
         handleSaveAndNext,
+        hasUnconfirmedEntries,
       }),
-      [handleSaveAndNext]
+      [handleSaveAndNext, editingIndex, paymentPlan]
     )
 
     const addPaymentPlan = () => {
@@ -396,21 +429,23 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
             currentExistingPaymentPlanData[index]?.id
           if (
             existingPaymentPlanId &&
-            capitalPartnerId &&
+            ownerRegistryId &&
             updatedPaymentPlan[index]
           ) {
+            const existingPlan = currentExistingPaymentPlanData[index]
             const payload = {
               id: existingPaymentPlanId,
-              cpppInstallmentNumber:
+              ownppInstallmentNumber:
                 updatedPaymentPlan[index].installmentNumber,
-              cpppInstallmentDate: editingData.date
+              ownppInstallmentDate: editingData.date
                 ?.startOf?.('day')
                 ?.toISOString?.(),
-              cpppBookingAmount: parseFloat(editingData.amount) || 0,
-              capitalPartnerDTO: {
-                id: capitalPartnerId,
+              ownppBookingAmount: parseFloat(editingData.amount) || 0,
+              ownerRegistryDTO: {
+                id: ownerRegistryId,
               },
-              deleted: false,
+              deleted: existingPlan?.deleted ?? false,
+              enabled: existingPlan?.enabled ?? true,
             }
 
             await capitalPartnerPaymentPlanService.updateCapitalPartnerPaymentPlan(
@@ -430,7 +465,7 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
 
     const handleSaveNewEntry = async (index: number) => {
       try {
-        if (!capitalPartnerId) {
+        if (!ownerRegistryId) {
           return
         }
 
@@ -471,13 +506,13 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
         })
 
         const payload = {
-          cpppInstallmentNumber: plan.installmentNumber,
-          cpppInstallmentDate: installmentDate
+          ownppInstallmentNumber: plan.installmentNumber,
+          ownppInstallmentDate: installmentDate
             ?.startOf?.('day')
             ?.toISOString?.(),
-          cpppBookingAmount: parseFloat(plan.projectCompletionPercentage) || 0,
-          capitalPartnerDTO: {
-            id: capitalPartnerId,
+          ownppBookingAmount: parseFloat(plan.projectCompletionPercentage) || 0,
+          ownerRegistryDTO: {
+            id: ownerRegistryId,
           },
           deleted: false,
         }
@@ -505,6 +540,39 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
       } catch (error) {
         console.error('Error saving new entry:', error)
       }
+    }
+
+    const handleCancelNewEntry = (index: number) => {
+      // Store dates from form values before deletion
+      const savedDates: any[] = []
+      paymentPlan.forEach((_, i) => {
+        savedDates[i] = watch(`installmentDate${i}`)
+      })
+
+      // Remove the new entry from payment plan
+      const updatedPaymentPlan = paymentPlan.filter((_, i) => i !== index)
+
+      // Reorganize form date values for remaining rows
+      const filteredDates = savedDates.filter((_, i) => i !== index)
+
+      // Clear all existing date form values first
+      paymentPlan.forEach((_, i) => {
+        setValue(`installmentDate${i}`, null)
+      })
+
+      // Set dates for remaining rows with new indices
+      filteredDates.forEach((date, newIndex) => {
+        setValue(`installmentDate${newIndex}`, date)
+      })
+
+      // Clear any field errors for this row
+      setFieldErrors((prev) => {
+        const updated = { ...prev }
+        delete updated[`row${index}`]
+        return updated
+      })
+
+      onPaymentPlanChange(updatedPaymentPlan)
     }
 
     const deletePaymentPlan = async (index: number) => {
@@ -620,29 +688,35 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
           }}
         >
           <CardContent>
-            <Box display="flex" justifyContent="end" alignItems="center" mb={2}>
-              <Button
-                variant="outlined"
-                startIcon={<AddCircleOutlineOutlinedIcon />}
-                onClick={addPaymentPlan}
-                disabled={isViewMode}
-                sx={{
-                  fontFamily: 'Outfit, sans-serif',
-                  fontWeight: 500,
-                  fontStyle: 'normal',
-                  fontSize: '16px',
-                  lineHeight: '24px',
-                  letterSpacing: '0.5px',
-                  verticalAlign: 'middle',
-                }}
+            {!isViewMode && (
+              <Box
+                display="flex"
+                justifyContent="end"
+                alignItems="center"
+                mb={2}
               >
-                {getLabel(
-                  'CDL_CP_ADD_PAYMENT_PLAN',
-                  currentLanguage,
-                  'Add Payment Plan'
-                )}
-              </Button>
-            </Box>
+                <Button
+                  variant="outlined"
+                  startIcon={<AddCircleOutlineOutlinedIcon />}
+                  onClick={addPaymentPlan}
+                  sx={{
+                    fontFamily: 'Outfit, sans-serif',
+                    fontWeight: 500,
+                    fontStyle: 'normal',
+                    fontSize: '16px',
+                    lineHeight: '24px',
+                    letterSpacing: '0.5px',
+                    verticalAlign: 'middle',
+                  }}
+                >
+                  {getLabel(
+                    'CDL_PAYMENT_PLAN_NEW',
+                    currentLanguage,
+                    'Add Payment Plan'
+                  )}
+                </Button>
+              </Box>
+            )}
             <TableContainer
               component={Paper}
               sx={{ boxShadow: 'none', borderRadius: '8px' }}
@@ -652,27 +726,27 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
                   <TableRow>
                     <TableCell sx={valueSx}>
                       {getLabel(
-                        'CDL_CP_SEQ_NO',
+                        'CDL_OWNER_SEQ_NO',
                         currentLanguage,
                         'Installment Number'
                       )}
                     </TableCell>
                     <TableCell sx={valueSx}>
                       {getLabel(
-                        'CDL_CP_DUE_DATE',
+                        'CDL_OWNER_DUE_DATE',
                         currentLanguage,
                         'Installment Date'
                       )}
                     </TableCell>
                     <TableCell sx={valueSx}>
                       {getLabel(
-                        'CDL_CP_BOOKING_AMOUNT',
+                        'CDL_OWNER_UNIT_BOOKING_AMOUNT',
                         currentLanguage,
                         'Booking Amount'
                       )}
                     </TableCell>
                     <TableCell sx={valueSx}>
-                      {getLabel('CDL_CP_ACTION', currentLanguage, 'Action')}
+                      {getLabel('CDL_OWNER_ACTION', currentLanguage, 'Action')}
                     </TableCell>
                   </TableRow>
                 </TableHead>
@@ -740,7 +814,10 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
                                       }
                                     }}
                                     format="DD/MM/YYYY"
-                                    disabled={isViewMode}
+                                    disabled={
+                                      isViewMode ||
+                                      (!plan.isNewEntry && !isEditing)
+                                    }
                                     slots={{
                                       openPickerIcon: StyledCalendarIcon,
                                     }}
@@ -769,7 +846,7 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
                               size="small"
                               fullWidth
                               placeholder={getLabel(
-                                'CDL_CP_AMOUNT',
+                                'CDL_OWNER_AMOUNT',
                                 currentLanguage,
                                 'Amount'
                               )}
@@ -789,9 +866,11 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
                               name={`bookingAmount${index}`}
                               size="small"
                               fullWidth
-                              disabled={isViewMode}
+                              disabled={
+                                isViewMode || (!plan.isNewEntry && !isEditing)
+                              }
                               placeholder={getLabel(
-                                'CDL_CP_AMOUNT',
+                                'CDL_OWNER_AMOUNT',
                                 currentLanguage,
                                 'Amount'
                               )}
@@ -854,38 +933,52 @@ const Step3 = forwardRef<Step3Ref, Step3Props>(
                                 </IconButton>
                               </>
                             ) : plan.isNewEntry ? (
-                              // Show Save button for new entries
-                              <button
-                                onClick={() => handleSaveNewEntry(index)}
-                                disabled={isViewMode}
-                                className="p-1 transition-colors rounded cursor-pointer hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                aria-label="Save"
-                                title="Save"
-                              >
-                                <CheckIcon className="w-4 h-4 text-green-600 hover:text-green-800" />
-                              </button>
-                            ) : (
-                              // Show Edit and Delete buttons for existing entries
+                              // Show Save and Cancel buttons for new entries
                               <>
-                                <button
-                                  onClick={() => handleEditRow(index)}
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleSaveNewEntry(index)}
                                   disabled={isViewMode}
-                                  className="p-1 transition-colors rounded cursor-pointer hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  aria-label="Edit"
-                                  title="Edit"
+                                  sx={{
+                                    color: '#10B981',
+                                    '&:hover': { backgroundColor: '#D1FAE5' },
+                                  }}
                                 >
-                                  <Pencil className="w-4 h-4 text-blue-600 hover:text-blue-800" />
-                                </button>
-                                <button
-                                  onClick={() => deletePaymentPlan(index)}
+                                  <CheckIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleCancelNewEntry(index)}
                                   disabled={isViewMode}
-                                  className="p-1 transition-colors rounded cursor-pointer hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  aria-label="Delete"
-                                  title="Delete"
+                                  sx={{
+                                    color: '#EF4444',
+                                    '&:hover': { backgroundColor: '#FEE2E2' },
+                                  }}
                                 >
-                                  <Trash2 className="w-4 h-4 text-red-600 hover:text-red-800" />
-                                </button>
+                                  <CloseIcon fontSize="small" />
+                                </IconButton>
                               </>
+                            ) : (
+                              !isViewMode && (
+                                <>
+                                  <button
+                                    onClick={() => handleEditRow(index)}
+                                    className="p-1 transition-colors rounded cursor-pointer hover:bg-blue-50"
+                                    aria-label="Edit"
+                                    title="Edit"
+                                  >
+                                    <Pencil className="w-4 h-4 text-blue-600 hover:text-blue-800" />
+                                  </button>
+                                  <button
+                                    onClick={() => deletePaymentPlan(index)}
+                                    className="p-1 transition-colors rounded cursor-pointer hover:bg-red-50"
+                                    aria-label="Delete"
+                                    title="Delete"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-red-600 hover:text-red-800" />
+                                  </button>
+                                </>
+                              )
                             )}
                           </Box>
                         </TableCell>

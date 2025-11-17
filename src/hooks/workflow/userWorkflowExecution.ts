@@ -38,7 +38,6 @@ export function useCreateWorkflowExecution() {
       return result
     },
     onSuccess: (data) => {
-      console.log('Workflow execution successful:', data)
       queryClient.invalidateQueries({ queryKey: [WORKFLOW_EXECUTIONS_QUERY_KEY] })
     },
     onError: (error) => {

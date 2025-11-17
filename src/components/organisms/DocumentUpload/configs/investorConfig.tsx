@@ -21,7 +21,7 @@ export const investorDocumentService: DocumentService<
   getDocuments: async (investorId: string, page = 0, size = 20) => {
     return buildPartnerService.getBuildPartnerDocuments(
       investorId,
-      'CAPITAL_PARTNER',
+      'OWNER_REGISTRY',
       page,
       size
     )
@@ -35,7 +35,7 @@ export const investorDocumentService: DocumentService<
     return buildPartnerService.uploadBuildPartnerDocument(
       file,
       investorId,
-      'CAPITAL_PARTNER',
+      'OWNER_REGISTRY',
       documentType
     )
   },
@@ -190,11 +190,11 @@ export const createInvestorDocumentConfig = (
 
   const config: DocumentUploadConfig<DocumentItem, ApiDocumentResponse> = {
     entityId: investorId,
-    entityType: 'INVESTOR',
+    entityType: 'OWNER_REGISTRY',
     documentService: investorDocumentService,
     mapApiToDocument: mapApiToInvestorDocumentItem,
     documentTypeSettingKey: 'INVESTOR_ID_TYPE',
-    title: options?.title || 'Investor Documents',
+    title: options?.title || 'Owner Registry Documents',
     description:
       options?.description ||
       'This step is optional. You can upload investor-related documents or skip to continue.',

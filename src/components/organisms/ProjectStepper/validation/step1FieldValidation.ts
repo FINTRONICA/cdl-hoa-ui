@@ -1,49 +1,57 @@
 // Field validation rules - Single source of truth
 export const FIELD_VALIDATION_RULES = {
   // Section 1 - Project Details
-  reaId: {
+  mfId: {
     required: true, // Auto-generated field
     maxLength: 50,
-    message: 'Project ID must be less than 50 characters'
+    message: 'Build Partner Asset ID must be less than 50 characters',
   },
-  reaName: {
+  mfName: {
     required: true,
     maxLength: 100,
-    message: 'Project Name is mandatory'
+    message: 'Build Partner Asset Name is mandatory',
   },
-  reaCif: {
-    required: true,
-    message: 'Developer ID (RERA) is mandatory'
+  mfId: {
+    required: false,
+    message: 'CIF  is optional',
   },
-  reaManagedBy: {
+  mfManagedBy: {
     required: true,
     maxLength: 100,
-    message: 'Developer Name is mandatory'
+    message: 'Build Partner Name is mandatory',
   },
   unitReferenceNumber: {
     required: true,
     maxLength: 20,
     pattern: /^[a-zA-Z0-9\s\-_.,()]+$/,
-    message: 'Unit Reference Number can only contain alphanumeric characters and special characters'
+    message:
+      'Unit Reference Number can only contain alphanumeric characters and special characters',
   },
-  reaReraNumber: {
-    required:true,
+  mfReraNumber: {
+    required: true,
     maxLength: 20,
     pattern: /^[a-zA-Z0-9\s\-_.,()]+$/,
-    message: 'Project RERA Number can only contain alphanumeric characters and special characters'
+    message:
+      'Build Partner Asset RERA Number can only contain alphanumeric characters and special characters',
   },
   unitNumber: {
     required: true,
     maxLength: 20,
     pattern: /^[a-zA-Z0-9\s\-_.,()]+$/,
-    message: 'Unit No. is mandatory (Alpha Numeric special character)'
+    message: 'Unit No. is mandatory (Alpha Numeric special character)',
   },
   unitStatus: {
     required: true,
-    options: ['Opened', 'Transfer', 'Cancel', 'Transfer Joint', 'Cancellation under process'],
-    message: 'Unit Status is mandatory'
+    options: [
+      'Opened',
+      'Transfer',
+      'Cancel',
+      'Transfer Joint',
+      'Cancellation under process',
+    ],
+    message: 'Unit Status is mandatory',
   },
-  
+
   // Section 2 - Property Details
   towerBuildingName: {
     required: false,
@@ -51,103 +59,104 @@ export const FIELD_VALIDATION_RULES = {
     conditional: {
       field: 'propertyId',
       value: '3',
-      message: 'Tower/Building Name is mandatory when Property ID is Unit (3)'
-    }
+      message: 'Tower/Building Name is mandatory when Property ID is Unit (3)',
+    },
   },
   unitPlotSize: {
     required: true,
     maxLength: 20,
     pattern: /^[a-zA-Z0-9\s\-_.,()]+$/,
-    message: 'Unit/Plot size is mandatory (Alpha Numeric special character)'
+    message: 'Unit/Plot size is mandatory (Alpha Numeric special character)',
   },
   propertyId: {
     required: true,
     options: ['1', '2', '3'],
-    message: 'Property ID is mandatory'
+    message: 'Property ID is mandatory',
   },
   unitIban: {
     required: false,
     maxLength: 50,
-    message: 'Unit IBAN is auto-generated'
+    message: 'Unit IBAN is auto-generated',
   },
   unitRegistrationFee: {
     required: false,
     maxLength: 10,
     pattern: /^\d+(\.\d{1,2})?$/,
-    message: 'Unit Registration fee must be a valid number'
+    message: 'Unit Registration fee must be a valid number',
   },
   nameOfAgent: {
     required: false,
     maxLength: 35,
-    message: 'Name of Agent must be less than 35 characters'
+    message: 'Name of Agent must be less than 35 characters',
   },
   agentNationalId: {
     required: false,
     maxLength: 10,
     pattern: /^[a-zA-Z0-9]+$/,
-    message: 'Agent National ID must be alphanumeric'
+    message: 'Agent National ID must be alphanumeric',
   },
   grossSalePrice: {
     required: true,
     maxLength: 15,
     pattern: /^\d+(\.\d{1,2})?$/,
-    message: 'Gross Sale Price is mandatory'
+    message: 'Gross Sale Price is mandatory',
   },
   salePrice: {
     required: false,
     maxLength: 15,
     pattern: /^\d+(\.\d{1,2})?$/,
-    message: 'Sale Price must be a valid number'
+    message: 'Sale Price must be a valid number',
   },
   vatApplicable: {
     required: false,
-    message: 'VAT Applicable is optional'
+    message: 'VAT Applicable is optional',
   },
   deedNumber: {
     required: false,
     maxLength: 15,
-    message: 'Deed No. must be less than 15 characters'
+    message: 'Deed No. must be less than 15 characters',
   },
   agreementNumber: {
     required: false,
     maxLength: 15,
-    message: 'Agreement No./Contract No. must be less than 15 characters'
+    message: 'Agreement No./Contract No. must be less than 15 characters',
   },
   agreementDate: {
     required: false,
-    message: 'Agreement Date is optional'
+    message: 'Agreement Date is optional',
   },
   salePurchaseAgreement: {
     required: false,
-    message: 'Sale Purchase Agreement is optional'
+    message: 'Sale Purchase Agreement is optional',
   },
   projectPaymentPlan: {
     required: false,
-    message: 'Project payment Plan is optional'
+    message: 'Build Partner Asset payment Plan is optional',
   },
   paymentPlanSelection: {
     required: false,
-    message: 'Payment Plan is optional'
+    message: 'Payment Plan is optional',
   },
-  
+
   // Section 3 - Financial Details
   worldCheck: {
     required: false,
     options: ['Yes', 'No'],
     defaultValue: 'No',
-    message: 'World Check is optional'
+    message: 'World Check is optional',
   },
   amountPaidToDeveloperWithinEscrow: {
     required: false,
     maxLength: 15,
     pattern: /^\d+(\.\d{1,2})?$/,
-    message: 'Amount Paid to Developer (INR) must be a valid number'
+    message: 'Amount Paid to Build Partner (INR) must be a valid number',
   },
   amountPaidToDeveloperOutOfEscrow: {
     required: false,
     maxLength: 15,
     pattern: /^\d+(\.\d{1,2})?$/,
-    message: 'Amount Paid to Developer (INR) Out of Escrow must be a valid number'
+    message:
+      'Amount Paid to Build Partner (INR) Out of Escrow must be a valid number',
   },
   totalAmountPaid: {
     required: false,
@@ -155,81 +164,105 @@ export const FIELD_VALIDATION_RULES = {
     pattern: /^\d+(\.\d{1,2})?$/,
     calculation: {
       fields: ['grossSalePrice', 'amountPaidToDeveloperOutOfEscrow'],
-      message: 'Total Amount Paid must equal Gross Sale Price + Amount Paid to Developer Out of Escrow'
-    }
+      message:
+        'Total Amount Paid must equal Gross Sale Price + Amount Paid to Build Partner Out of Escrow',
+    },
   },
   reservationBookingForm: {
     required: false,
-    message: 'Reservation Booking form is optional'
+    message: 'Reservation Booking form is optional',
   },
   unitAreaSize: {
     required: false,
     maxLength: 15,
     pattern: /^\d+(\.\d{1,2})?$/,
-    message: 'Unit Area Size must be a valid number'
+    message: 'Unit Area Size must be a valid number',
   },
   forfeitAmount: {
     required: false,
     maxLength: 15,
     pattern: /^\d+(\.\d{1,2})?$/,
-    message: 'Forfeit Amount must be a valid number'
+    message: 'Forfeit Amount must be a valid number',
   },
   refundAmount: {
     required: false,
     maxLength: 15,
     pattern: /^\d+(\.\d{1,2})?$/,
-    message: 'Refund Amount must be a valid number'
+    message: 'Refund Amount must be a valid number',
   },
   additionalRemarks: {
     required: false,
     maxLength: 50,
-    message: 'Remarks must be less than 50 characters'
+    message: 'Remarks must be less than 50 characters',
   },
   transferredAmount: {
     required: false,
     maxLength: 15,
     pattern: /^\d+(\.\d{1,2})?$/,
-    message: 'Transferred Amount must be a valid number'
-  }
+    message: 'Transferred Amount must be a valid number',
+  },
 }
 
 // Validation function for individual fields
 export const validateField = (fieldName: string, value: any): string | null => {
-  const rule = FIELD_VALIDATION_RULES[fieldName as keyof typeof FIELD_VALIDATION_RULES]
+  const rule =
+    FIELD_VALIDATION_RULES[fieldName as keyof typeof FIELD_VALIDATION_RULES]
   if (!rule) return null
 
   // Auto-generated fields - always skip validation if empty
-  const autoGeneratedFields = ['reaId', 'unitIban']
+  const autoGeneratedFields = ['mfId', 'unitIban']
   if (autoGeneratedFields.includes(fieldName)) {
     if (!value || (typeof value === 'string' && value.trim() === '')) {
       return null // Auto-generated fields can be empty, no validation error
     }
     // If auto-generated field has value, validate format/length but not required
-    if ('maxLength' in rule && rule.maxLength && typeof value === 'string' && value.length > rule.maxLength) {
-      const message = 'message' in rule ? rule.message : 'Maximum length exceeded'
+    if (
+      'maxLength' in rule &&
+      rule.maxLength &&
+      typeof value === 'string' &&
+      value.length > rule.maxLength
+    ) {
+      const message =
+        'message' in rule ? rule.message : 'Maximum length exceeded'
       return `${message} (max ${rule.maxLength} characters)`
     }
     return null // No other validation for auto-generated fields
   }
 
   // Required field validation (for non-auto-generated fields)
-  if (rule.required && (!value || (typeof value === 'string' && value.trim() === ''))) {
+  if (
+    rule.required &&
+    (!value || (typeof value === 'string' && value.trim() === ''))
+  ) {
     return 'message' in rule ? rule.message : 'This field is required'
   }
 
   // Skip validation for empty optional fields
-  if (!rule.required && (!value || (typeof value === 'string' && value.trim() === ''))) {
+  if (
+    !rule.required &&
+    (!value || (typeof value === 'string' && value.trim() === ''))
+  ) {
     return null
   }
 
   // Max length validation
-  if ('maxLength' in rule && rule.maxLength && typeof value === 'string' && value.length > rule.maxLength) {
+  if (
+    'maxLength' in rule &&
+    rule.maxLength &&
+    typeof value === 'string' &&
+    value.length > rule.maxLength
+  ) {
     const message = 'message' in rule ? rule.message : 'Maximum length exceeded'
     return `${message} (max ${rule.maxLength} characters)`
   }
 
   // Pattern validation
-  if ('pattern' in rule && rule.pattern && typeof value === 'string' && !rule.pattern.test(value)) {
+  if (
+    'pattern' in rule &&
+    rule.pattern &&
+    typeof value === 'string' &&
+    !rule.pattern.test(value)
+  ) {
     return 'message' in rule ? rule.message : 'Invalid format'
   }
 
@@ -242,13 +275,21 @@ export const validateField = (fieldName: string, value: any): string | null => {
 }
 
 // Validation function for conditional fields
-export const validateConditionalField = (fieldName: string, value: any, formData: any): string | null => {
-  const rule = FIELD_VALIDATION_RULES[fieldName as keyof typeof FIELD_VALIDATION_RULES]
+export const validateConditionalField = (
+  fieldName: string,
+  value: any,
+  formData: any
+): string | null => {
+  const rule =
+    FIELD_VALIDATION_RULES[fieldName as keyof typeof FIELD_VALIDATION_RULES]
   if (!rule || !('conditional' in rule) || !rule.conditional) return null
 
   const { field, value: requiredValue, message } = rule.conditional
-  
-  if (formData[field] === requiredValue && (!value || (typeof value === 'string' && value.trim() === ''))) {
+
+  if (
+    formData[field] === requiredValue &&
+    (!value || (typeof value === 'string' && value.trim() === ''))
+  ) {
     return message
   }
 
@@ -256,16 +297,26 @@ export const validateConditionalField = (fieldName: string, value: any, formData
 }
 
 // Validation function for calculated fields
-export const validateCalculatedField = (fieldName: string, value: any, formData: any): string | null => {
-  const rule = FIELD_VALIDATION_RULES[fieldName as keyof typeof FIELD_VALIDATION_RULES]
+export const validateCalculatedField = (
+  fieldName: string,
+  value: any,
+  formData: any
+): string | null => {
+  const rule =
+    FIELD_VALIDATION_RULES[fieldName as keyof typeof FIELD_VALIDATION_RULES]
   if (!rule || !('calculation' in rule) || !rule.calculation) return null
 
   const { fields, message } = rule.calculation
-  
-  const fieldValues = fields.map((field: string) => parseFloat(formData[field] || '0'))
-  const calculatedTotal = fieldValues.reduce((sum: number, val: number) => sum + val, 0)
+
+  const fieldValues = fields.map((field: string) =>
+    parseFloat(formData[field] || '0')
+  )
+  const calculatedTotal = fieldValues.reduce(
+    (sum: number, val: number) => sum + val,
+    0
+  )
   const currentValue = parseFloat(value || '0')
-  
+
   if (Math.abs(currentValue - calculatedTotal) >= 0.01) {
     return message
   }
@@ -274,24 +325,28 @@ export const validateCalculatedField = (fieldName: string, value: any, formData:
 }
 
 // Complete validation function for all fields
-export const validateAllFields = (formData: any, isSubmissionValidation = false): Record<string, string> => {
+export const validateAllFields = (
+  formData: any,
+  isSubmissionValidation = false
+): Record<string, string> => {
   const errors: Record<string, string> = {}
 
-  Object.keys(FIELD_VALIDATION_RULES).forEach(fieldName => {
+  Object.keys(FIELD_VALIDATION_RULES).forEach((fieldName) => {
     const value = formData[fieldName]
-    const rule = FIELD_VALIDATION_RULES[fieldName as keyof typeof FIELD_VALIDATION_RULES]
-    
+    const rule =
+      FIELD_VALIDATION_RULES[fieldName as keyof typeof FIELD_VALIDATION_RULES]
+
     // Auto-generated fields - handle differently for submission vs real-time validation
-    const autoGeneratedFields = ['reaId', 'unitIban']
+    const autoGeneratedFields = ['mfId', 'unitIban']
     if (autoGeneratedFields.includes(fieldName)) {
-      // For submission validation, reaId is required but unitIban is optional
-      if (isSubmissionValidation && fieldName === 'reaId') {
+      // For submission validation, mfId is required but unitIban is optional
+      if (isSubmissionValidation && fieldName === 'mfId') {
         if (!value || (typeof value === 'string' && value.trim() === '')) {
-          errors[fieldName] = 'Project ID is mandatory'
+          errors[fieldName] = 'Build Partner Asset ID is mandatory'
           return
         }
       }
-      
+
       // Only validate format/length if they have values
       if (value && typeof value === 'string' && value.trim() !== '') {
         const fieldError = validateField(fieldName, value)
@@ -301,13 +356,17 @@ export const validateAllFields = (formData: any, isSubmissionValidation = false)
       }
       return // Skip other validation for auto-generated fields
     }
-    
+
     // Required field validation for non-auto-generated fields
-    if (rule.required && (!value || (typeof value === 'string' && value.trim() === ''))) {
-      errors[fieldName] = 'message' in rule ? rule.message : 'This field is required'
+    if (
+      rule.required &&
+      (!value || (typeof value === 'string' && value.trim() === ''))
+    ) {
+      errors[fieldName] =
+        'message' in rule ? rule.message : 'This field is required'
       return // Don't do other validation if required field is empty
     }
-    
+
     // Basic field validation
     const fieldError = validateField(fieldName, value)
     if (fieldError) {
@@ -315,7 +374,11 @@ export const validateAllFields = (formData: any, isSubmissionValidation = false)
     }
 
     // Conditional validation
-    const conditionalError = validateConditionalField(fieldName, value, formData)
+    const conditionalError = validateConditionalField(
+      fieldName,
+      value,
+      formData
+    )
     if (conditionalError) {
       errors[fieldName] = conditionalError
     }
@@ -332,39 +395,47 @@ export const validateAllFields = (formData: any, isSubmissionValidation = false)
 
 // Get validation rules for React Hook Form
 export const getFieldValidationRules = (fieldName: string) => {
-  const rule = FIELD_VALIDATION_RULES[fieldName as keyof typeof FIELD_VALIDATION_RULES]
+  const rule =
+    FIELD_VALIDATION_RULES[fieldName as keyof typeof FIELD_VALIDATION_RULES]
   if (!rule) return {}
 
   // Auto-generated fields - never show as required in React Hook Form
-  const autoGeneratedFields = ['reaId', 'unitIban']
+  const autoGeneratedFields = ['mfId', 'unitIban']
   if (autoGeneratedFields.includes(fieldName)) {
     return {
       validate: (value: any) => {
         const error = validateField(fieldName, value)
         return error || true
-      }
+      },
     }
   }
 
   return {
-    required: rule.required ? ('message' in rule ? rule.message : 'This field is required') : false,
+    required: rule.required
+      ? 'message' in rule
+        ? rule.message
+        : 'This field is required'
+      : false,
     validate: (value: any) => {
       const error = validateField(fieldName, value)
       return error || true
-    }
+    },
   }
 }
 
 // Required fields list (excluding auto-generated fields)
 export const REQUIRED_FIELDS = Object.keys(FIELD_VALIDATION_RULES).filter(
-  fieldName => {
-    const rule = FIELD_VALIDATION_RULES[fieldName as keyof typeof FIELD_VALIDATION_RULES]
-    const autoGeneratedFields = ['reaId', 'unitIban']
+  (fieldName) => {
+    const rule =
+      FIELD_VALIDATION_RULES[fieldName as keyof typeof FIELD_VALIDATION_RULES]
+    const autoGeneratedFields = ['mfId', 'unitIban']
     return rule.required && !autoGeneratedFields.includes(fieldName)
   }
 )
 
 // Optional fields list
 export const OPTIONAL_FIELDS = Object.keys(FIELD_VALIDATION_RULES).filter(
-  fieldName => !FIELD_VALIDATION_RULES[fieldName as keyof typeof FIELD_VALIDATION_RULES].required
+  (fieldName) =>
+    !FIELD_VALIDATION_RULES[fieldName as keyof typeof FIELD_VALIDATION_RULES]
+      .required
 )

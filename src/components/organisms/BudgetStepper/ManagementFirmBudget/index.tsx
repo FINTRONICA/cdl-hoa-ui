@@ -1,287 +1,321 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import {
-  Box,
-  Button,
+  Stepper,
   Step,
   StepLabel,
-  Stepper,
+  Button,
+  Box,
   Typography,
+  Alert,
+  Snackbar,
 } from '@mui/material'
-import { FormProvider, useForm, type Resolver } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'react-hot-toast'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
-
-import Step1 from './steps/Step1'
-import Step2 from './steps/Step2'
-import { BudgetDataProvider, useBudgetData } from './steps/BudgetDataProvider'
-import { useBudgetLabels } from '@/hooks/budget/useBudgetLabels'
-import { BUDGET_LABELS } from '@/constants/mappings/budgetLabels'
-import DocumentUploadFactory from '@/components/organisms/DocumentUpload/DocumentUploadFactory'
-import { GlobalLoading } from '@/components/atoms'
-import { managementFirmBudgetService } from '@/services/api/budget/managementFirmBudgetService'
 import {
-  budgetManagementFirmStep1Schema,
-  type BudgetManagementFirmStep1FormValues,
+  FormProvider,
+  useForm,
+  type Resolver,
+  type ResolverResult,
+} from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  BudgetStep1Schema,
+  BudgetStep2Schema,
+  type BudgetStep1Data,
+  type BudgetStep2Data,
 } from '@/lib/validation/budgetSchemas'
 
-interface BudgetStepperWrapperProps {
-  isReadOnly?: boolean
+import Step1, { type Step1Ref } from './steps/Step1'
+import Step2, { type Step2Ref } from './steps/Step2'
+import Step3 from './steps/Step3'
+import DocumentUploadFactory from '../../DocumentUpload/DocumentUploadFactory'
+import { DocumentItem } from '../../DeveloperStepper/developerTypes'
+
+type BudgetFormData = BudgetStep1Data &
+  BudgetStep2Data & {
+    documents?: DocumentItem[]
+  }
+
+import { useBudgetManagementFirmLabelsApi } from '@/hooks/useBudgetManagementFirmLabelsApi'
+import { useAppStore } from '@/store'
+import { BUDGET_LABELS } from '@/constants/mappings/budgetLabels'
+
+// Step configuration with config IDs for dynamic labels
+const stepConfigs = [
+  { key: 'details', configId: BUDGET_LABELS.STEPS.DETAILS },
+  { key: 'documents', configId: BUDGET_LABELS.STEPS.DOCUMENTS },
+  { key: 'items', configId: 'CDL_BDG_STEP_ITEMS' },
+  { key: 'review', configId: BUDGET_LABELS.STEPS.REVIEW },
+]
+
+// Fallback step labels
+const fallbackSteps = [
+  'Budget Details',
+  'Documents',
+  'Budget Items',
+  'Review',
+]
+
+interface BudgetManagementFirmStepperWrapperProps {
+  initialBudgetId?: number | null
+  initialStep?: number
+  isViewMode?: boolean
 }
 
-const defaultValues: BudgetManagementFirmStep1FormValues = {
-  managementFirmGroupId: '',
-  managementFirmGroupName: '',
-  managementFirmGroupLocalName: '',
-  masterCommunityName: '',
-  masterCommunityLocalName: '',
-  managementCompanyId: '',
-  managementCompanyName: '',
-  managementCompanyLocalName: '',
-  managementFirmManagerEmail: '',
-  serviceChargeGroupId: '',
-  serviceChargeGroupName: '',
-  serviceChargeGroupLocalName: '',
-  budgetPeriodCode: '',
-  budgetPeriodTitle: '',
-  budgetPeriodFrom: null,
-  budgetPeriodTo: null,
-  categoryCode: '',
-  categoryName: '',
-  categoryLocalName: '',
-  subCategoryCode: '',
-  subCategoryName: '',
-  subCategoryLocalName: '',
-  serviceCode: '',
-  serviceName: '',
-  serviceLocalName: '',
-  totalCost: '',
-  vatAmount: '',
-}
-
-const mapFormToPayload = (values: BudgetManagementFirmStep1FormValues) => ({
-  managementFirmGroupId: values.managementFirmGroupId,
-  managementFirmGroupName: values.managementFirmGroupName,
-  managementFirmGroupLocalName: values.managementFirmGroupLocalName,
-  masterCommunityName: values.masterCommunityName,
-  masterCommunityLocalName: values.masterCommunityLocalName,
-  managementCompanyId: values.managementCompanyId,
-  managementCompanyName: values.managementCompanyName,
-  managementCompanyLocalName: values.managementCompanyLocalName,
-  managementFirmManagerEmail: values.managementFirmManagerEmail,
-  serviceChargeGroupId: values.serviceChargeGroupId,
-  serviceChargeGroupName: values.serviceChargeGroupName,
-  serviceChargeGroupLocalName: values.serviceChargeGroupLocalName,
-  budgetPeriodCode: values.budgetPeriodCode,
-  budgetPeriodTitle: values.budgetPeriodTitle,
-  budgetPeriodFrom: values.budgetPeriodFrom ? values.budgetPeriodFrom.toISOString() : null,
-  budgetPeriodTo: values.budgetPeriodTo ? values.budgetPeriodTo.toISOString() : null,
-  categoryCode: values.categoryCode,
-  categoryName: values.categoryName,
-  categoryLocalName: values.categoryLocalName,
-  subCategoryCode: values.subCategoryCode,
-  subCategoryName: values.subCategoryName,
-  subCategoryLocalName: values.subCategoryLocalName,
-  serviceCode: values.serviceCode,
-  serviceName: values.serviceName,
-  serviceLocalName: values.serviceLocalName,
-  totalCost: values.totalCost ? Number(values.totalCost) : 0,
-  vatAmount: values.vatAmount ? Number(values.vatAmount) : 0,
-})
-
-function BudgetStepperContent({ isReadOnly = false }: BudgetStepperWrapperProps) {
+export default function BudgetManagementFirmStepperWrapper({
+  initialBudgetId = null,
+  initialStep = 0,
+  isViewMode = false,
+}: BudgetManagementFirmStepperWrapperProps = {}) {
   const router = useRouter()
   const params = useParams()
   const searchParams = useSearchParams()
-  const { isInitialLoading } = useBudgetData()
-  const { getLabel } = useBudgetLabels('EN')
 
-  const [activeStep, setActiveStep] = useState(0)
-  const [savedId, setSavedId] = useState<string | null>(null)
-  const [isEditMode, setIsEditMode] = useState(false)
+  // Get labels from API
+  const { getLabel } = useBudgetManagementFirmLabelsApi()
+  const currentLanguage = useAppStore((state) => state.language)
+
+  const [activeStep, setActiveStep] = useState(initialStep)
   const [isSaving, setIsSaving] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [budgetId, setBudgetId] = useState<number | null>(initialBudgetId)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-  const methods = useForm<BudgetManagementFirmStep1FormValues>({
-    defaultValues,
-    resolver: zodResolver(
-      budgetManagementFirmStep1Schema
-    ) as Resolver<BudgetManagementFirmStep1FormValues>,
-    mode: 'onChange',
-  })
-
-  const steps = useMemo(
-    () => [
-      getLabel(
-        BUDGET_LABELS.STEPS.DETAILS,
-        'EN',
-        BUDGET_LABELS.FALLBACKS.STEPS.DETAILS
-      ),
-      getLabel(
-        BUDGET_LABELS.STEPS.DOCUMENTS,
-        'EN',
-        BUDGET_LABELS.FALLBACKS.STEPS.DOCUMENTS
-      ),
-      getLabel(
-        BUDGET_LABELS.STEPS.REVIEW,
-        'EN',
-        BUDGET_LABELS.FALLBACKS.STEPS.REVIEW
-      ),
-    ],
-    [getLabel]
+  // Create dynamic step labels
+  const steps = stepConfigs.map((config, index) =>
+    getLabel(config.configId, currentLanguage, fallbackSteps[index])
   )
 
-  useEffect(() => {
-    const id = params?.id as string | undefined
-    if (id) {
-      setSavedId(id)
-      setIsEditMode(true)
-    } else {
-      setSavedId(null)
-      setIsEditMode(false)
-    }
-  }, [params?.id])
+  const isEditMode = Boolean(budgetId)
+  const step1Ref = useRef<Step1Ref>(null)
+  const step2Ref = useRef<Step2Ref>(null)
 
+  // Keep active step in a ref so the resolver can react to step changes without remounting the form
+  const activeStepRef = useRef(activeStep)
   useEffect(() => {
-     const stepParam = searchParams?.get('step')
-     if (stepParam) {
-       const parsed = Number(stepParam)
-       if (!Number.isNaN(parsed) && parsed >= 0 && parsed < steps.length) {
-         setActiveStep(parsed)
-       }
-     }
-  }, [searchParams, steps])
+    activeStepRef.current = activeStep
+  }, [activeStep])
 
-  const navigateToStep = useCallback(
-    (stepIndex: number, targetId?: string | null) => {
-      const id = targetId ?? savedId
-      const query = `?step=${stepIndex}`
-      if (id) {
-        router.push(`/budget/management-firm-budget/new/${id}${query}`)
-      } else {
-        router.push(`/budget/management-firm-budget/new${query}`)
+  const dynamicResolver: Resolver<BudgetFormData> = useCallback(
+    async (
+      values: BudgetFormData,
+      context: unknown,
+      options: Parameters<Resolver<BudgetFormData>>[2]
+    ) => {
+      const step = activeStepRef.current
+      switch (step) {
+        case 0:
+          return (
+            zodResolver(
+              BudgetStep1Schema
+            ) as unknown as Resolver<BudgetFormData>
+          )(values, context, options)
+        case 2:
+          return (
+            zodResolver(
+              BudgetStep2Schema
+            ) as unknown as Resolver<BudgetFormData>
+          )(values, context, options)
+        default:
+          return {
+            values,
+            errors: {},
+          } as ResolverResult<BudgetFormData>
       }
     },
-    [router, savedId]
+    []
   )
 
-  const handleNext = () => {
-    const nextStep = Math.min(activeStep + 1, steps.length - 1)
-    setActiveStep(nextStep)
-    navigateToStep(nextStep)
-    toast.success(`Moved to ${steps[nextStep]} step.`)
+  const updateURL = (step: number, id?: number | null) => {
+    if (id && step >= 0) {
+      const queryParam = isViewMode ? '?mode=view' : '?editing=true'
+      router.push(`/budget/budget-management-firm/${id}/step/${step + 1}${queryParam}`)
+    } else if (step === 0) {
+      router.push('/budget/budget-management-firm/new')
+    }
+  }
+
+  useEffect(() => {
+    const stepFromUrl = searchParams.get('step')
+    if (stepFromUrl) {
+      const stepNumber = parseInt(stepFromUrl) - 1
+      if (
+        stepNumber !== activeStep &&
+        stepNumber >= 0 &&
+        stepNumber < steps.length
+      ) {
+        setActiveStep(stepNumber)
+      }
+    }
+  }, [searchParams, activeStep, steps.length])
+
+  useEffect(() => {
+    if (params.id && !budgetId) {
+      setBudgetId(parseInt(params.id as string))
+    }
+  }, [params.id, budgetId])
+
+  const methods = useForm<BudgetFormData>({
+    resolver: dynamicResolver,
+    mode: 'onChange',
+    defaultValues: {
+      // Step 1: Budget Basic Info
+      assetRegisterId: '',
+      managementFirmId: '',
+      budgetId: '',
+      budgetName: '',
+      budgetPeriodCode: '',
+      propertyGroupId: '',
+      propertyManagerEmail: '',
+      masterCommunityName: '',
+      masterCommunityNameLocale: '',
+      isActive: true,
+
+      // Step 2: Budget Items
+      budgetCategoryId: '',
+      budgetItems: [],
+
+      // Additional fields
+      documents: [],
+    },
+  })
+
+  const handleAsyncStep = async (stepRef: {
+    handleSaveAndNext: () => Promise<void>
+  }) => {
+    try {
+      setIsSaving(true)
+      await stepRef.handleSaveAndNext()
+      return true
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to save data'
+      setErrorMessage(errorMessage)
+      return false
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const navigateToNextStep = () => {
+    const nextStep = activeStep + 1
+    if (nextStep < steps.length) {
+      setActiveStep(nextStep)
+      updateURL(nextStep, budgetId)
+    }
+  }
+
+  const handleNext = async () => {
+    if (isViewMode) {
+      navigateToNextStep()
+      return
+    }
+
+    if (activeStep === 0 && step1Ref.current) {
+      const success = await handleAsyncStep(step1Ref.current)
+      if (success) {
+        navigateToNextStep()
+      }
+      return
+    }
+
+    if (activeStep === 1) {
+      navigateToNextStep()
+      return
+    }
+
+    if (activeStep === 2 && step2Ref.current) {
+      const success = await handleAsyncStep(step2Ref.current)
+      if (success) {
+        navigateToNextStep()
+      }
+      return
+    }
+
+    if (activeStep === 3) {
+      navigateToNextStep()
+      return
+    }
+
+    navigateToNextStep()
   }
 
   const handleBack = () => {
-    const prevStep = Math.max(activeStep - 1, 0)
-    setActiveStep(prevStep)
-    navigateToStep(prevStep)
+    const prevStep = activeStep - 1
+    if (prevStep >= 0) {
+      setActiveStep(prevStep)
+      updateURL(prevStep, budgetId)
+    }
   }
 
   const handleReset = () => {
     setActiveStep(0)
-    setSavedId(null)
-    setIsEditMode(false)
-    methods.reset(defaultValues)
-    router.push('/budget/management-firm-budget')
+    setBudgetId(null)
+    setIsSaving(false)
+    setErrorMessage(null)
+    setSuccessMessage(null)
+    methods.reset()
+    router.push('/budget/budget-management-firm')
   }
 
-  const handleSaveAndNext = async () => {
+  const onSubmit = () => {}
+
+  const handleStep1SaveAndNext = (data: { id: number }) => {
+    if (data && data.id) {
+      const nextStep = activeStep + 1
+      setBudgetId(data.id)
+      setActiveStep(nextStep)
+      updateURL(nextStep, data.id)
+    }
+  }
+
+  const handleStep2SaveAndNext = () => {
+    const nextStep = activeStep + 1
+    if (nextStep < steps.length) {
+      setActiveStep(nextStep)
+      updateURL(nextStep, budgetId)
+    }
+  }
+
+
+  const handleDocumentsChange = useCallback(
+    (documents: DocumentItem[]) => {
+      methods.setValue('documents', documents)
+    },
+    [methods]
+  )
+
+  const handleSubmit = async () => {
     try {
+      setErrorMessage(null)
+      setSuccessMessage(null)
       setIsSaving(true)
-      const values = methods.getValues()
-      const payload = mapFormToPayload(values)
-      const response = await managementFirmBudgetService.createBudget(payload)
+      
+      if (!budgetId) {
+        setErrorMessage(
+          'Budget ID not found. Please complete Step 1 first.'
+        )
+        setIsSaving(false)
+        return
+      }
 
-      setSavedId(response.id)
-      setIsEditMode(true)
-      setActiveStep(1)
-      navigateToStep(1, response.id)
-
-      toast.success('Budget saved successfully. Proceed to document upload.')
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to save budget details'
+      setSuccessMessage(
+        'Budget submitted successfully!'
       )
+      router.push('/budget/budget-management-firm')
+    } catch (error) {
+      const errorData = error as {
+        response?: { data?: { message?: string } }
+        message?: string
+      }
+      const errorMessage =
+        errorData?.response?.data?.message ||
+        errorData?.message ||
+        'Failed to submit budget. Please try again.'
+      setErrorMessage(errorMessage)
     } finally {
       setIsSaving(false)
-    }
-  }
-
-  const handleUpdate = async () => {
-    if (!savedId) {
-      toast.error('No saved budget found to update.')
-      return
-    }
-
-    try {
-      setIsSaving(true)
-      const values = methods.getValues()
-      const payload = mapFormToPayload(values)
-      await managementFirmBudgetService.updateBudget(savedId, payload)
-
-      setActiveStep(1)
-      navigateToStep(1)
-      toast.success('Budget updated successfully.')
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to update budget details'
-      )
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handleEdit = () => {
-    if (!savedId) {
-      toast.error('No budget ID found to edit.')
-      return
-    }
-
-    setActiveStep(0)
-    navigateToStep(0)
-    toast.success('Returned to budget details.')
-  }
-
-  const handleEditDocuments = () => {
-    if (!savedId) {
-      toast.error('No budget ID found to manage documents.')
-      return
-    }
-
-    setActiveStep(1)
-    navigateToStep(1)
-  }
-
-  const onSubmit = async () => {
-    if (!savedId) {
-      toast.error('Please save the budget details before submitting.')
-      return
-    }
-
-    try {
-      setIsSubmitting(true)
-      const values = methods.getValues()
-      const payload = mapFormToPayload(values)
-      await managementFirmBudgetService.updateBudget(savedId, payload)
-
-      toast.success('Budget submitted successfully!')
-      router.push('/budget/management-firm-budget')
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to submit budget.'
-      )
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const onError = (errors: Record<string, unknown>) => {
-    const messages = Object.values(errors)
-    if (messages.length > 0) {
-      toast.error('Please resolve the highlighted errors before continuing.')
     }
   }
 
@@ -290,62 +324,40 @@ function BudgetStepperContent({ isReadOnly = false }: BudgetStepperWrapperProps)
       case 0:
         return (
           <Step1
-            key={`${savedId ?? 'new'}-${activeStep}`}
-            savedId={savedId}
+            ref={step1Ref}
+            onSaveAndNext={handleStep1SaveAndNext}
             isEditMode={isEditMode}
-            isReadOnly={isReadOnly}
-            refreshKey={activeStep}
+            budgetId={budgetId}
+            isViewMode={isViewMode}
           />
         )
       case 1:
-        if (!savedId) {
-          return (
-            <Box sx={{ p: 3, textAlign: 'center' }}>
-              <Typography variant="h6" color="error">
-                {getLabel(
-                  BUDGET_LABELS.DOCUMENTS.SAVE_HEADING,
-                  'EN',
-                  BUDGET_LABELS.FALLBACKS.DOCUMENTS.SAVE_HEADING
-                )}
-              </Typography>
-              <Typography variant="body2" sx={{ mt: 1 }}>
-                {getLabel(
-                  BUDGET_LABELS.DOCUMENTS.SAVE_MESSAGE,
-                  'EN',
-                  BUDGET_LABELS.FALLBACKS.DOCUMENTS.SAVE_MESSAGE
-                )}
-              </Typography>
-            </Box>
-          )
-        }
-
         return (
           <DocumentUploadFactory
             type="BUDGET"
-            entityId={savedId}
-            isOptional
-            isReadOnly={isReadOnly}
-            onDocumentsChange={(documents) => {
-              methods.setValue('documents', documents)
-            }}
-            title={getLabel(
-              BUDGET_LABELS.DOCUMENTS.TITLE,
-              'EN',
-              BUDGET_LABELS.FALLBACKS.DOCUMENTS.TITLE
-            )}
-            description={getLabel(
-              BUDGET_LABELS.DOCUMENTS.DESCRIPTION,
-              'EN',
-              BUDGET_LABELS.FALLBACKS.DOCUMENTS.DESCRIPTION
-            )}
+            entityId={budgetId?.toString() || ''}
+            isOptional={true}
+            onDocumentsChange={handleDocumentsChange}
+            formFieldName="documents"
+            isReadOnly={isViewMode}
           />
         )
       case 2:
         return (
           <Step2
-            onEdit={handleEdit}
-            onEditDocuments={handleEditDocuments}
-            isReadOnly={isReadOnly}
+            key={`step2-${budgetId || 'new'}-${activeStep}`}
+            ref={step2Ref}
+            budgetId={budgetId}
+            onSaveAndNext={handleStep2SaveAndNext}
+            isEditMode={isEditMode}
+            isViewMode={isViewMode}
+          />
+        )
+      case 3:
+        return (
+          <Step3
+            budgetId={budgetId}
+            isViewMode={isViewMode}
           />
         )
       default:
@@ -353,31 +365,9 @@ function BudgetStepperContent({ isReadOnly = false }: BudgetStepperWrapperProps)
     }
   }
 
-  const primaryButtonLabel = useMemo(() => {
-    if (activeStep === 0) {
-      return isSaving
-        ? 'Saving...'
-        : isEditMode
-          ? 'Update & Continue'
-          : 'Save & Continue'
-    }
-
-    if (activeStep === steps.length - 1) {
-      return isSubmitting ? 'Submitting...' : 'Submit Budget'
-    }
-
-    return 'Continue'
-  }, [activeStep, isEditMode, isSaving, isSubmitting, steps.length])
-
-  const isPrimaryDisabled = useMemo(() => {
-    if (activeStep === 0) return isSaving
-    if (activeStep === steps.length - 1) return isSubmitting
-    return false
-  }, [activeStep, isSaving, isSubmitting, steps.length])
-
   return (
     <FormProvider {...methods}>
-      <form onSubmit={methods.handleSubmit(onSubmit, onError)}>
+      <form onSubmit={methods.handleSubmit(onSubmit)}>
         <Box
           sx={{
             width: '100%',
@@ -385,14 +375,26 @@ function BudgetStepperContent({ isReadOnly = false }: BudgetStepperWrapperProps)
             borderRadius: '16px',
             paddingTop: '16px',
             border: '1px solid #FFFFFF',
-            position: 'relative',
           }}
         >
           <Stepper activeStep={activeStep} alternativeLabel>
             {steps.map((label) => (
               <Step key={label}>
                 <StepLabel>
-                  <Typography variant="caption" sx={{ textTransform: 'uppercase' }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontFamily: 'Outfit, sans-serif',
+                      fontWeight: 400,
+                      fontStyle: 'normal',
+                      fontSize: '12px',
+                      lineHeight: '100%',
+                      letterSpacing: '0.36px',
+                      textAlign: 'center',
+                      verticalAlign: 'middle',
+                      textTransform: 'uppercase',
+                    }}
+                  >
                     {label}
                   </Typography>
                 </StepLabel>
@@ -400,72 +402,139 @@ function BudgetStepperContent({ isReadOnly = false }: BudgetStepperWrapperProps)
             ))}
           </Stepper>
 
-          <Box sx={{ my: 4, backgroundColor: '#FFFFFFBF', position: 'relative' }}>
-            {isInitialLoading ? (
-              <GlobalLoading fullHeight className="min-h-[320px]" />
-            ) : (
-              getStepContent(activeStep)
-            )}
+          <Box
+            key={`step-${activeStep}-${budgetId}`}
+            sx={{ my: 4, backgroundColor: '#FFFFFFBF', boxShadow: 'none' }}
+          >
+            {getStepContent(activeStep)}
 
-            {!isReadOnly && (
-              <Box
-                display="flex"
-                justifyContent="space-between"
-                alignItems="center"
-                sx={{ mt: 3, mx: 6, mb: 2, p: 2, backgroundColor: '#FFFFFFBF' }}
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              sx={{ backgroundColor: '#FFFFFFBF', mt: 3, mx: 6, mb: 2 }}
+            >
+              <Button
+                onClick={handleReset}
+                sx={{
+                  fontFamily: 'Outfit, sans-serif',
+                  fontWeight: 500,
+                  fontStyle: 'normal',
+                  fontSize: '14px',
+                  lineHeight: '20px',
+                  letterSpacing: 0,
+                }}
               >
-                <Button variant="outlined" onClick={handleReset} disabled={isSaving || isSubmitting}>
-                  Cancel
-                </Button>
-
-                <Box display="flex" gap={2}>
-                  {activeStep > 0 && (
-                    <Button variant="outlined" onClick={handleBack}>
-                      Back
-                    </Button>
-                  )}
-
+                Cancel
+              </Button>
+              <Box>
+                {activeStep !== 0 && (
                   <Button
-                    variant="contained"
-                    disabled={isPrimaryDisabled}
-                    onClick={() => {
-                      if (activeStep === 0) {
-                        methods.handleSubmit(async () => {
-                          if (isEditMode) {
-                            await handleUpdate()
-                          } else {
-                            await handleSaveAndNext()
-                          }
-                        }, onError)()
-                        return
-                      }
-
-                      if (activeStep === steps.length - 1) {
-                        methods.handleSubmit(onSubmit, onError)()
-                        return
-                      }
-
-                      handleNext()
+                    onClick={handleBack}
+                    sx={{
+                      width: '114px',
+                      height: '36px',
+                      gap: '6px',
+                      opacity: 1,
+                      paddingTop: '2px',
+                      paddingRight: '3px',
+                      paddingBottom: '2px',
+                      paddingLeft: '3px',
+                      borderRadius: '6px',
+                      backgroundColor: '#DBEAFE',
+                      color: '#155DFC',
+                      border: 'none',
+                      mr: 2,
+                      fontFamily: 'Outfit, sans-serif',
+                      fontWeight: 500,
+                      fontStyle: 'normal',
+                      fontSize: '14px',
+                      lineHeight: '20px',
+                      letterSpacing: 0,
                     }}
+                    variant="outlined"
                   >
-                    {primaryButtonLabel}
+                    Back
                   </Button>
-                </Box>
+                )}
+                <Button
+                  onClick={
+                    activeStep === steps.length - 1
+                      ? isViewMode
+                        ? () => router.push('/budget/budget-management-firm')
+                        : handleSubmit
+                      : handleNext
+                  }
+                  variant="contained"
+                  disabled={isSaving}
+                  sx={{
+                    width: '114px',
+                    height: '36px',
+                    gap: '6px',
+                    opacity: 1,
+                    paddingTop: '2px',
+                    paddingRight: '3px',
+                    paddingBottom: '2px',
+                    paddingLeft: '3px',
+                    borderRadius: '6px',
+                    backgroundColor: '#2563EB',
+                    color: '#FFFFFF',
+                    boxShadow: 'none',
+                    fontFamily: 'Outfit, sans-serif',
+                    fontWeight: 500,
+                    fontStyle: 'normal',
+                    fontSize: '14px',
+                    lineHeight: '20px',
+                    letterSpacing: 0,
+                  }}
+                >
+                  {isSaving
+                    ? activeStep === steps.length - 1
+                      ? 'Submitting...'
+                      : 'Saving...'
+                    : activeStep === steps.length - 1
+                      ? isViewMode
+                        ? 'Close'
+                        : 'Submit'
+                      : isViewMode
+                        ? 'Next'
+                        : 'Save and Next'}
+                </Button>
               </Box>
-            )}
+            </Box>
+
+            {/* Error and Success Notifications */}
+            <Snackbar
+              open={!!errorMessage}
+              autoHideDuration={6000}
+              onClose={() => setErrorMessage(null)}
+              anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+              <Alert
+                onClose={() => setErrorMessage(null)}
+                severity="error"
+                sx={{ width: '100%' }}
+              >
+                {errorMessage}
+              </Alert>
+            </Snackbar>
+
+            <Snackbar
+              open={!!successMessage}
+              autoHideDuration={3000}
+              onClose={() => setSuccessMessage(null)}
+              anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+              <Alert
+                onClose={() => setSuccessMessage(null)}
+                severity="success"
+                sx={{ width: '100%' }}
+              >
+                {successMessage}
+              </Alert>
+            </Snackbar>
           </Box>
         </Box>
       </form>
     </FormProvider>
-  )
-}
-
-export default function BudgetStepperWrapper({
-  isReadOnly = false,
-}: BudgetStepperWrapperProps = {}) {
-  return (
-    <BudgetDataProvider>
-      <BudgetStepperContent isReadOnly={isReadOnly} />
-    </BudgetDataProvider>
   )
 }

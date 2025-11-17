@@ -1,479 +1,562 @@
 'use client'
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useBudgetLabelsWithCache } from '@/hooks/budget/useBudgetLabelsWithCache'
+import { useAppStore } from '@/store'
+import React from 'react'
 import {
   Box,
-  Button,
+  Grid,
+  Typography,
   Card,
   CardContent,
-  CircularProgress,
   Divider,
-  Grid,
-  Paper,
+  Button,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Typography,
+  Paper,
 } from '@mui/material'
 import EditIcon from '@mui/icons-material/Edit'
-import dayjs from 'dayjs'
+import { useRouter } from 'next/navigation'
+import { useGetEnhanced } from '@/hooks/useApiEnhanced'
+import { API_ENDPOINTS } from '@/constants/apiEndpoints'
+
+import { GlobalLoading } from '@/components/atoms'
+import {
+  DocumentItem,
+  ApiDocumentResponse,
+  PaginatedDocumentResponse,
+} from '../../DeveloperStepper/developerTypes'
+import { buildPartnerService } from '@/services/api/buildPartnerService'
+import { mapApiToDocumentItem } from '../../../DocumentUpload/configs/budgetConfig'
+import { MASTER_BUDGET_LABELS } from '@/constants/mappings/budgetLabels'
+import { budgetCategoryService, type BudgetCategoryResponse } from '@/services/api/budgetApi/budgetCategoryService'
 import { useParams } from 'next/navigation'
 
-import { masterBudgetService } from '@/services/api/budget/masterBudgetService'
-import type { MasterBudgetData } from './MasterBudgetType'
-import { useBudgetLabels } from '@/hooks/budget/useBudgetLabels'
-import { MASTER_BUDGET_LABELS } from '@/constants/mappings/budgetLabels'
-import { buildPartnerService } from '@/services/api/buildPartnerService'
-import type { DocumentItem } from '../../../DeveloperStepper/developerTypes'
-import { mapApiToBudgetDocumentItem } from '../../../DocumentUpload/configs/budgetConfig'
+const labelSx = {
+  color: '#6A7282',
+  fontFamily: 'Outfit',
+  fontWeight: 400,
+  fontStyle: 'normal',
+  fontSize: '12px',
+  letterSpacing: 0,
+}
 
-interface MasterBudgetStep2Props {
-  onEdit: () => void
+const valueSx = {
+  color: '#1E2939',
+  fontFamily: 'Outfit',
+  fontWeight: 400,
+  fontStyle: 'normal',
+  fontSize: '14px',
+  letterSpacing: 0,
+  wordBreak: 'break-word',
+}
+
+const fieldBoxSx = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 0.5,
+}
+
+const renderDisplayField = (
+  label: string,
+  value: string | number | null = '-'
+) => (
+  <Box sx={fieldBoxSx}>
+    <Typography sx={labelSx}>{label}</Typography>
+    <Typography sx={valueSx}>{value || '-'}</Typography>
+  </Box>
+)
+
+const SectionLoader = ({ sectionName }: { sectionName: string }) => (
+  <Box
+    sx={{
+      backgroundColor: '#FFFFFFBF',
+      borderRadius: '16px',
+      margin: '0 auto',
+      width: '100%',
+      height: '120px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}
+    aria-label={`${sectionName} loading`}
+    role="status"
+  >
+    <GlobalLoading fullHeight className="min-h-[120px]" />
+  </Box>
+)
+
+const SectionError = ({
+  sectionName,
+  error,
+}: {
+  sectionName: string
+  error: Error
+}) => (
+  <Box
+    sx={{
+      border: '1px solid #FECACA',
+      borderRadius: 1,
+      backgroundColor: '#FEF2F2',
+      p: 2,
+    }}
+  >
+    <Typography variant="body2" color="error">
+      Failed to load {sectionName}: {error.message}
+    </Typography>
+  </Box>
+)
+
+const renderSectionContent = (
+  sectionName: string,
+  isLoading: boolean,
+  error: Error | null,
+  content: React.ReactNode
+) => {
+  if (isLoading) {
+    return <SectionLoader sectionName={sectionName} />
+  }
+  if (error) {
+    return <SectionError sectionName={sectionName} error={error} />
+  }
+  return content
+}
+
+interface Step2Props {
+  onEdit?: () => void
   onEditDocuments?: () => void
   isReadOnly?: boolean
 }
 
-const formatDate = (value?: string | null) => {
-  if (!value) return '-'
-  const parsed = dayjs(value)
-  return parsed.isValid() ? parsed.format('DD/MM/YYYY') : '-'
-}
-
-const MasterBudgetStep2: React.FC<MasterBudgetStep2Props> = ({
+const Step2: React.FC<Step2Props> = ({
   onEdit,
   onEditDocuments,
   isReadOnly = false,
 }) => {
+  const router = useRouter()
   const params = useParams()
-  const [budget, setBudget] = useState<MasterBudgetData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [documents, setDocuments] = useState<DocumentItem[]>([])
-  const [documentsLoading, setDocumentsLoading] = useState(false)
-  const [documentsError, setDocumentsError] = useState<string | null>(null)
-  const { getLabel } = useBudgetLabels('EN')
-  const editLabel = getLabel('CDL_GENERIC_EDIT', 'EN', 'Edit')
-  const manageDocumentsLabel = getLabel(
-    'CDL_GENERIC_MANAGE_DOCUMENTS',
-    'EN',
-    'Manage Documents'
+  const { getLabel } = useBudgetLabelsWithCache('EN')
+  const currentLanguage = useAppStore((state) => state.language)
+
+  const budgetId = params?.id as string | undefined
+
+  const handleEditBasicDetails = () => {
+    if (onEdit) {
+      onEdit()
+    } else if (budgetId) {
+      router.push(`/budget/budget-master/new/${budgetId}?step=0`)
+    }
+  }
+
+
+
+
+  const {
+    data: budgetData,
+    isLoading: isLoadingBasic,
+    error: errorBasic,
+  } = useGetEnhanced<BudgetCategoryResponse>(
+    API_ENDPOINTS.BUDGET_CATEGORY.GET_BY_ID(budgetId?.toString() || ''),
+    {},
+    {
+      enabled: !!budgetId,
+      // Disable caching to always fetch fresh data
+      gcTime: 0,
+      staleTime: 0,
+      // Always refetch when component mounts
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: false,
+    }
   )
 
-  const labelSx = useMemo(
-    () => ({
-      color: '#6A7282',
-      fontFamily: 'Outfit, sans-serif',
-      fontWeight: 400,
-      fontSize: '12px',
-      letterSpacing: 0,
-    }),
-    []
-  )
 
-  const valueSx = useMemo(
-    () => ({
-      color: '#1E2939',
-      fontFamily: 'Outfit, sans-serif',
-      fontWeight: 400,
-      fontSize: '14px',
-      letterSpacing: 0,
-      wordBreak: 'break-word',
-    }),
-    []
-  )
 
-  useEffect(() => {
-    const loadBudget = async () => {
-      const id = params?.id as string | undefined
-      if (!id) {
-        setLoading(false)
-        return
-      }
+  const [documents, setDocuments] = React.useState<DocumentItem[]>([])
+  const [isLoadingDocuments, setIsLoadingDocuments] = React.useState(false)
+  const [documentsError, setDocumentsError] = React.useState<Error | null>(null)
+
+  React.useEffect(() => {
+    if (!budgetId) {
+      setDocuments([])
+      setDocumentsError(null)
+      return
+    }
+
+    const loadDocuments = async () => {
+      setIsLoadingDocuments(true)
+      setDocumentsError(null)
 
       try {
-        setLoading(true)
-        setError(null)
-        const result = await masterBudgetService.getBudgetById(id)
-        setBudget(result)
+        const response = await buildPartnerService.getBuildPartnerDocuments(
+          budgetId,
+          'BUDGET',
+          0,
+          50
+        )
 
-        try {
-          setDocumentsLoading(true)
-          setDocumentsError(null)
-          const response = await buildPartnerService.getBudgetDocuments(
-            id,
-            'BUDGET',
-            0,
-            100
-          )
-          const mapped = response.content.map(mapApiToBudgetDocumentItem)
-          setDocuments(mapped)
-        } catch (docError) {
-          setDocumentsError(
-            docError instanceof Error
-              ? docError.message
-              : 'Failed to load documents.'
-          )
-        } finally {
-          setDocumentsLoading(false)
+        let apiDocuments: ApiDocumentResponse[] = []
+
+        if (Array.isArray(response)) {
+          apiDocuments = response as ApiDocumentResponse[]
+        } else if (response && 'content' in response) {
+          const paginated = response as PaginatedDocumentResponse
+          apiDocuments = paginated?.content ?? []
         }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load master budget data')
+
+        const mappedDocuments = apiDocuments.map(mapApiToDocumentItem)
+        setDocuments(mappedDocuments)
+      } catch (error) {
+        setDocumentsError(
+          error instanceof Error ? error : new Error('Failed to load documents')
+        )
       } finally {
-        setLoading(false)
+        setIsLoadingDocuments(false)
       }
     }
 
-    loadBudget()
-  }, [params?.id])
+    loadDocuments()
+  }, [budgetId])
 
-  const fieldBoxSx = useMemo(
-    () => ({
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 0.5,
-    }),
-    []
-  )
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-'
+    try {
+      return new Date(dateString).toLocaleDateString()
+    } catch {
+      return dateString
+    }
+  }
 
-  const generalInformation = useMemo(() => {
-    if (!budget) return []
+  const formatDocumentDate = (dateValue?: Date | string | null): string => {
+    if (!dateValue) return '-'
+    if (dateValue instanceof Date) {
+      return dateValue.toLocaleDateString()
+    }
+    return formatDate(dateValue)
+  }
 
-    return [
-      {
-        gridSize: 4,
-        label: getLabel(
-          MASTER_BUDGET_LABELS.FORM_FIELDS.CHARGE_TYPE_ID,
-          'EN',
-          MASTER_BUDGET_LABELS.FALLBACKS.FORM_FIELDS.CHARGE_TYPE_ID
-        ),
-        value: String(budget.chargeTypeId),
-      },
-      {
-        gridSize: 4,
-        label: getLabel(
-          MASTER_BUDGET_LABELS.FORM_FIELDS.CHARGE_TYPE,
-          'EN',
-          MASTER_BUDGET_LABELS.FALLBACKS.FORM_FIELDS.CHARGE_TYPE
-        ),
-        value: budget.chargeType,
-      },
-      {
-        gridSize: 4,
-        label: getLabel(
-          MASTER_BUDGET_LABELS.FORM_FIELDS.GROUP_NAME,
-          'EN',
-          MASTER_BUDGET_LABELS.FALLBACKS.FORM_FIELDS.GROUP_NAME
-        ),
-        value: budget.groupName,
-      },
-    ]
-  }, [budget, getLabel])
-
-  const categorisation = useMemo(() => {
-    if (!budget) return []
+  const getBasicFields = () => {
+    if (!budgetData) return []
 
     return [
       {
         gridSize: 3,
         label: getLabel(
+          MASTER_BUDGET_LABELS.FORM_FIELDS.CHARGE_TYPE,
+          currentLanguage,
+          MASTER_BUDGET_LABELS.FALLBACKS.FORM_FIELDS.CHARGE_TYPE
+        ),
+        value: budgetData.chargeType || '-',
+      },
+      {
+        gridSize: 3,
+        label: getLabel(
+          MASTER_BUDGET_LABELS.FORM_FIELDS.GROUP_NAME,
+          currentLanguage,
+          MASTER_BUDGET_LABELS.FALLBACKS.FORM_FIELDS.GROUP_NAME
+        ),
+        value: budgetData.serviceChargeGroupName || '-',
+      },
+      {
+        gridSize: 3,
+        label: getLabel(
           MASTER_BUDGET_LABELS.FORM_FIELDS.CATEGORY_CODE,
-          'EN',
+          currentLanguage,
           MASTER_BUDGET_LABELS.FALLBACKS.FORM_FIELDS.CATEGORY_CODE
         ),
-        value: budget.categoryCode,
+        value: budgetData.categoryCode || '-',
       },
       {
         gridSize: 3,
         label: getLabel(
           MASTER_BUDGET_LABELS.FORM_FIELDS.CATEGORY_NAME,
-          'EN',
+          currentLanguage,
           MASTER_BUDGET_LABELS.FALLBACKS.FORM_FIELDS.CATEGORY_NAME
         ),
-        value: budget.categoryName,
+        value: budgetData.categoryName || '-',
       },
       {
         gridSize: 3,
         label: getLabel(
           MASTER_BUDGET_LABELS.FORM_FIELDS.CATEGORY_SUB_CODE,
-          'EN',
+          currentLanguage,
           MASTER_BUDGET_LABELS.FALLBACKS.FORM_FIELDS.CATEGORY_SUB_CODE
         ),
-        value: budget.categorySubCode,
+        value: budgetData.categorySubCode || '-',
       },
       {
         gridSize: 3,
         label: getLabel(
           MASTER_BUDGET_LABELS.FORM_FIELDS.CATEGORY_SUB_NAME,
-          'EN',
+          currentLanguage,
           MASTER_BUDGET_LABELS.FALLBACKS.FORM_FIELDS.CATEGORY_SUB_NAME
         ),
-        value: budget.categorySubName,
+        value: budgetData.categorySubName || '-',
       },
       {
         gridSize: 3,
         label: getLabel(
           MASTER_BUDGET_LABELS.FORM_FIELDS.CATEGORY_SUB_TO_SUB_CODE,
-          'EN',
+          currentLanguage,
           MASTER_BUDGET_LABELS.FALLBACKS.FORM_FIELDS.CATEGORY_SUB_TO_SUB_CODE
         ),
-        value: budget.categorySubToSubCode,
+        value: budgetData.categorySubToSubCode || '-',
       },
       {
         gridSize: 3,
         label: getLabel(
           MASTER_BUDGET_LABELS.FORM_FIELDS.CATEGORY_SUB_TO_SUB_NAME,
-          'EN',
+          currentLanguage,
           MASTER_BUDGET_LABELS.FALLBACKS.FORM_FIELDS.CATEGORY_SUB_TO_SUB_NAME
         ),
-        value: budget.categorySubToSubName,
+        value: budgetData.categorySubToSubName || '-',
       },
       {
         gridSize: 3,
         label: getLabel(
           MASTER_BUDGET_LABELS.FORM_FIELDS.SERVICE_CODE,
-          'EN',
+          currentLanguage,
           MASTER_BUDGET_LABELS.FALLBACKS.FORM_FIELDS.SERVICE_CODE
         ),
-        value: budget.serviceCode,
+        value: budgetData.serviceCode || '-',
       },
       {
         gridSize: 3,
         label: getLabel(
           MASTER_BUDGET_LABELS.FORM_FIELDS.SERVICE_NAME,
-          'EN',
+          currentLanguage,
           MASTER_BUDGET_LABELS.FALLBACKS.FORM_FIELDS.SERVICE_NAME
         ),
-        value: budget.serviceName,
+        value: budgetData.serviceName || '-',
       },
       {
         gridSize: 3,
         label: getLabel(
           MASTER_BUDGET_LABELS.FORM_FIELDS.PROVISIONAL_BUDGET_CODE,
-          'EN',
+          currentLanguage,
           MASTER_BUDGET_LABELS.FALLBACKS.FORM_FIELDS.PROVISIONAL_BUDGET_CODE
         ),
-        value: budget.provisionalBudgetCode,
-      },
-      {
-        gridSize: 3,
-        label: 'Created At',
-        value: budget.createdAt ? formatDate(budget.createdAt) : '-',
-      },
-      {
-        gridSize: 3,
-        label: 'Last Updated',
-        value: budget.updatedAt ? formatDate(budget.updatedAt) : '-',
+        value: budgetData.provisionalBudgetCode || '-',
       },
     ]
-  }, [budget, getLabel])
-
-  const formatFileSize = useCallback((size?: number) => {
-    if (!size) return '-'
-    if (size < 1024) {
-      return `${size} B`
-    }
-    if (size < 1024 * 1024) {
-      return `${(size / 1024).toFixed(1)} KB`
-    }
-    return `${(size / (1024 * 1024)).toFixed(1)} MB`
-  }, [])
-
-  if (loading) {
-    return (
-      <Box display="flex" alignItems="center" justifyContent="center" minHeight={320}>
-        <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Loading master budget summary...</Typography>
-      </Box>
-    )
   }
 
-  if (error) {
-    return (
-      <Box display="flex" alignItems="center" justifyContent="center" minHeight={320}>
-        <Typography color="error">{error}</Typography>
-      </Box>
-    )
-  }
-
-  if (!budget) {
-    return (
-      <Box display="flex" alignItems="center" justifyContent="center" minHeight={320}>
-        <Typography>
-          {getLabel(
-            MASTER_BUDGET_LABELS.LIST.EMPTY_STATE,
-            'EN',
-            MASTER_BUDGET_LABELS.FALLBACKS.LIST.EMPTY_STATE
-          )}
-        </Typography>
-      </Box>
-    )
-  }
-
-  const renderDisplayField = (
-    label: string,
-    value: string | number | null | undefined = '-'
-  ) => (
-    <Box sx={fieldBoxSx}>
-      <Typography sx={labelSx}>{label}</Typography>
-      <Typography sx={valueSx}>{value ?? '-'}</Typography>
-    </Box>
-  )
-
-  const Section = ({
-    title,
-    fields,
-  }: {
-    title: string
-    fields: {
-      gridSize: number
-      label: string
-      value: string | number | null
-    }[]
-  }) => (
-    <Box mb={4}>
-      <Typography
-        variant="h6"
-        fontWeight={600}
-        sx={{
-          fontFamily: 'Outfit, sans-serif',
-          fontSize: '18px',
-          lineHeight: '28px',
-        }}
-        gutterBottom
-      >
-        {title}
-      </Typography>
-      <Grid container rowSpacing={3} columnSpacing={3} sx={{ mt: 1 }}>
-        {fields.map((field, idx) => (
-          <Grid size={{ xs: 12, md: field.gridSize }} key={`${title}-${idx}`}>
-            {renderDisplayField(field.label, field.value)}
-          </Grid>
-        ))}
-      </Grid>
-    </Box>
-  )
+  const basicFields = getBasicFields()
 
   return (
     <Card
       sx={{
-        backgroundColor: '#FFFFFFBF',
         boxShadow: 'none',
+        backgroundColor: '#FFFFFFBF',
         width: '94%',
         margin: '0 auto',
       }}
     >
       <CardContent>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h5" fontWeight={600} sx={{ fontFamily: 'Outfit, sans-serif', fontSize: '20px' }}>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={2}
+        >
+          <Typography
+            variant="h6"
+            fontWeight={600}
+            gutterBottom
+            sx={{
+              fontFamily: 'Outfit, sans-serif',
+              fontWeight: 500,
+              fontStyle: 'normal',
+              fontSize: '18px',
+              lineHeight: '28px',
+              letterSpacing: '0.15px',
+              verticalAlign: 'middle',
+            }}
+          >
             {getLabel(
-              MASTER_BUDGET_LABELS.REVIEW.SUMMARY_TITLE,
-              'EN',
-              MASTER_BUDGET_LABELS.FALLBACKS.REVIEW.SUMMARY_TITLE
+              MASTER_BUDGET_LABELS.SECTION_TITLES.GENERAL,
+              currentLanguage,
+              MASTER_BUDGET_LABELS.FALLBACKS.SECTION_TITLES.GENERAL
             )}
           </Typography>
           {!isReadOnly && (
-            <Box display="flex" gap={1}>
-              <Button
-                startIcon={<EditIcon />}
-                onClick={onEdit}
-                sx={{ textTransform: 'none', color: '#2563EB', '&:hover': { backgroundColor: '#DBEAFE' } }}
-              >
-                {editLabel}
-              </Button>
-              {onEditDocuments && (
-                <Button
-                  startIcon={<EditIcon />}
-                  onClick={onEditDocuments}
-                  sx={{ textTransform: 'none', color: '#2563EB', '&:hover': { backgroundColor: '#DBEAFE' } }}
-                >
-                  {manageDocumentsLabel}
-                </Button>
-              )}
-            </Box>
+            <Button
+              startIcon={<EditIcon />}
+              onClick={handleEditBasicDetails}
+              sx={{
+                fontFamily: 'Outfit, sans-serif',
+                fontWeight: 500,
+                fontStyle: 'normal',
+                fontSize: '14px',
+                lineHeight: '24px',
+                letterSpacing: '0.5px',
+                verticalAlign: 'middle',
+              }}
+            >
+              Edit
+            </Button>
           )}
         </Box>
-        <Divider sx={{ mb: 3 }} />
+        <Divider sx={{ mb: 2 }} />
+        {renderSectionContent(
+          getLabel(
+            MASTER_BUDGET_LABELS.SECTION_TITLES.GENERAL,
+            currentLanguage,
+            MASTER_BUDGET_LABELS.FALLBACKS.SECTION_TITLES.GENERAL
+          ),
+          isLoadingBasic,
+          errorBasic,
+          <Grid container spacing={3}>
+            {basicFields.map((field, idx) => (
+              <Grid size={{ xs: 12, md: field.gridSize }} key={`basic-${idx}`}>
+                {renderDisplayField(field.label, field.value)}
+              </Grid>
+            ))}
+          </Grid>
+        )}
+      </CardContent>
 
-        <Section
-          title={getLabel(
-            MASTER_BUDGET_LABELS.REVIEW.GENERAL_SECTION,
-            'EN',
-            MASTER_BUDGET_LABELS.FALLBACKS.REVIEW.GENERAL_SECTION
-          )}
-          fields={generalInformation}
-        />
-
-        <Section
-          title={getLabel(
-            MASTER_BUDGET_LABELS.REVIEW.CATEGORIZATION_SECTION,
-            'EN',
-            MASTER_BUDGET_LABELS.FALLBACKS.REVIEW.CATEGORIZATION_SECTION
-          )}
-          fields={categorisation}
-        />
-
-        <Box mb={4}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-            <Typography
-              variant="h6"
-              fontWeight={600}
-              sx={{ fontFamily: 'Outfit, sans-serif', fontSize: '18px', lineHeight: '28px' }}
-            >
-              {getLabel(
-                MASTER_BUDGET_LABELS.DOCUMENTS.TITLE,
-                'EN',
-                MASTER_BUDGET_LABELS.FALLBACKS.DOCUMENTS.TITLE
-              )}
-            </Typography>
-            {!isReadOnly && onEditDocuments && (
-              <Button
-                startIcon={<EditIcon />}
-                onClick={onEditDocuments}
-                sx={{ textTransform: 'none', color: '#2563EB', '&:hover': { backgroundColor: '#DBEAFE' } }}
-              >
-                {manageDocumentsLabel}
-              </Button>
+      <CardContent>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={2}
+        >
+          <Typography
+            variant="h6"
+            fontWeight={600}
+            gutterBottom
+            sx={{
+              fontFamily: 'Outfit, sans-serif',
+              fontWeight: 500,
+              fontStyle: 'normal',
+              fontSize: '18px',
+              lineHeight: '28px',
+              letterSpacing: '0.15px',
+              verticalAlign: 'middle',
+            }}
+          >
+            {getLabel(
+              MASTER_BUDGET_LABELS.DOCUMENTS.TITLE,
+              currentLanguage,
+              MASTER_BUDGET_LABELS.FALLBACKS.DOCUMENTS.TITLE
             )}
-          </Box>
-          <Divider sx={{ mt: 1, mb: 3 }} />
-
-          {documentsLoading ? (
-            <Box display="flex" justifyContent="center" py={4}>
-              <CircularProgress size={24} />
-              <Typography sx={{ ml: 2 }}>Loading documents...</Typography>
-            </Box>
-          ) : documentsError ? (
-            <Typography variant="body2" color="error">
-              {documentsError}
-            </Typography>
-          ) : documents.length > 0 ? (
-            <TableContainer component={Paper} sx={{ boxShadow: 'none', backgroundColor: '#FFFFFFBF' }}>
-              <Table size="small">
+          </Typography>
+          {!isReadOnly && budgetId && (
+            <Button
+              startIcon={<EditIcon />}
+              onClick={() => {
+                if (onEditDocuments) {
+                  onEditDocuments()
+                } else {
+                  router.push(`/budget/budget-master/new/${budgetId}?step=1`)
+                }
+              }}
+              sx={{
+                fontFamily: 'Outfit, sans-serif',
+                fontWeight: 500,
+                fontStyle: 'normal',
+                fontSize: '14px',
+                lineHeight: '24px',
+                letterSpacing: '0.5px',
+                verticalAlign: 'middle',
+              }}
+            >
+              Edit
+            </Button>
+          )}
+        </Box>
+        <Divider sx={{ mb: 2 }} />
+        {renderSectionContent(
+          getLabel(
+            MASTER_BUDGET_LABELS.DOCUMENTS.TITLE,
+            currentLanguage,
+            MASTER_BUDGET_LABELS.FALLBACKS.DOCUMENTS.TITLE
+          ),
+          isLoadingDocuments,
+          documentsError,
+          documents.length > 0 ? (
+            <TableContainer
+              component={Paper}
+              sx={{ boxShadow: 'none', border: '1px solid #E5E7EB' }}
+            >
+              <Table>
                 <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ ...labelSx, fontWeight: 600 }}>Document Name</TableCell>
-                    <TableCell sx={{ ...labelSx, fontWeight: 600 }}>Document Type</TableCell>
-                    <TableCell sx={{ ...labelSx, fontWeight: 600 }}>Upload Date</TableCell>
-                    <TableCell sx={{ ...labelSx, fontWeight: 600 }} align="right">
-                      Size
+                  <TableRow sx={{ backgroundColor: '#F9FAFB' }}>
+                    <TableCell
+                      sx={{
+                        fontFamily: 'Outfit, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        color: '#374151',
+                        borderBottom: '1px solid #E5E7EB',
+                      }}
+                    >
+                      Name
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontFamily: 'Outfit, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        color: '#374151',
+                        borderBottom: '1px solid #E5E7EB',
+                      }}
+                    >
+                      Date
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontFamily: 'Outfit, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        color: '#374151',
+                        borderBottom: '1px solid #E5E7EB',
+                      }}
+                    >
+                      Type
                     </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {documents.map((document) => (
-                    <TableRow key={document.id}>
-                      <TableCell sx={valueSx}>{document.name}</TableCell>
-                      <TableCell sx={valueSx}>{document.classification ?? 'N/A'}</TableCell>
-                      <TableCell sx={valueSx}>
-                        {document.uploadDate
-                          ? formatDate(document.uploadDate.toISOString())
-                          : '-'}
+                  {documents.map((doc) => (
+                    <TableRow
+                      key={doc.id}
+                      sx={{ '&:hover': { backgroundColor: '#F9FAFB' } }}
+                    >
+                      <TableCell
+                        sx={{
+                          fontFamily: 'Outfit, sans-serif',
+                          fontSize: '14px',
+                          color: '#374151',
+                          borderBottom: '1px solid #E5E7EB',
+                        }}
+                      >
+                        {doc.name || 'Document'}
                       </TableCell>
-                      <TableCell sx={valueSx} align="right">
-                        {formatFileSize(document.size)}
+                      <TableCell
+                        sx={{
+                          fontFamily: 'Outfit, sans-serif',
+                          fontSize: '14px',
+                          color: '#374151',
+                          borderBottom: '1px solid #E5E7EB',
+                        }}
+                      >
+                        {formatDocumentDate(doc.uploadDate)}
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontFamily: 'Outfit, sans-serif',
+                          fontSize: '14px',
+                          color: '#374151',
+                          borderBottom: '1px solid #E5E7EB',
+                        }}
+                      >
+                        {doc.classification || 'N/A'}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -481,19 +564,25 @@ const MasterBudgetStep2: React.FC<MasterBudgetStep2Props> = ({
               </Table>
             </TableContainer>
           ) : (
-            <Typography sx={{ ...valueSx, py: 2 }}>
+            <Typography
+              sx={{
+                fontFamily: 'Outfit, sans-serif',
+                fontSize: '14px',
+                color: '#6A7282',
+              }}
+            >
               {getLabel(
-                'CDL_GENERIC_NO_DOCUMENTS',
-                'EN',
-                'No documents uploaded yet.'
+                MASTER_BUDGET_LABELS.DOCUMENTS.DESCRIPTION,
+                currentLanguage,
+                'No documents uploaded.'
               )}
             </Typography>
-          )}
-        </Box>
+          )
+        )}
       </CardContent>
     </Card>
   )
 }
 
-export default MasterBudgetStep2
-
+export default Step2
+export type { Step2Props }

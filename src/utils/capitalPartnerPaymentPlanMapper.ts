@@ -8,11 +8,11 @@ export interface Step3FormData {
 
 /**
  * Maps Step3 payment plan data to Capital Partner Payment Plan API payload
- * Only includes the 3 UI fields: cpppInstallmentNumber, cpppInstallmentDate, cpppBookingAmount
+ * Only includes the 3 UI fields: ownppInstallmentNumber, ownppInstallmentDate, ownppBookingAmount
  */
 export function mapStep3ToCapitalPartnerPaymentPlanPayload(
   formData: Step3FormData,
-  capitalPartnerId: number // ID from Step1 response
+  ownerRegistryId: number // ID from Step1 response
 ): any[] {
   // Format the installment date to ISO string if it exists
   const formatInstallmentDate = (date: any): string | undefined => {
@@ -47,26 +47,26 @@ export function mapStep3ToCapitalPartnerPaymentPlanPayload(
   const paymentPlans = formData.paymentPlan.map((plan, index) => {
     const payload: any = {}
 
-    // 1. cpppInstallmentNumber - Installment Number from UI
+    // 1. ownppInstallmentNumber - Installment Number from UI
     if (plan.installmentNumber) {
-      payload.cpppInstallmentNumber = plan.installmentNumber
+      payload.ownppInstallmentNumber = plan.installmentNumber
     }
 
-    // 2. cpppInstallmentDate - Installment Date from UI
+    // 2. ownppInstallmentDate - Installment Date from UI
     const installmentDateKey = `installmentDate${index}`
     const installmentDate = formData.installmentDates[installmentDateKey]
     if (installmentDate) {
-      payload.cpppInstallmentDate = formatInstallmentDate(installmentDate)
+      payload.ownppInstallmentDate = formatInstallmentDate(installmentDate)
     }
 
-    // 3. cpppBookingAmount - Booking Amount from UI (stored in projectCompletionPercentage field)
+    // 3. ownppBookingAmount - Booking Amount from UI (stored in projectCompletionPercentage field)
     if (plan.projectCompletionPercentage) {
-      payload.cpppBookingAmount = parseFloat(plan.projectCompletionPercentage)
+      payload.ownppBookingAmount = parseFloat(plan.projectCompletionPercentage)
     }
 
     // Add the capital partner reference with the ID from Step1 response
-    payload.capitalPartnerDTO = {
-      id: capitalPartnerId,
+    payload.ownerRegistryDTO = {
+      id: ownerRegistryId,
     }
 
     // Add required defaults

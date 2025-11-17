@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Box,
   Grid,
@@ -11,6 +11,14 @@ import {
   Button,
   Checkbox,
   FormControlLabel,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  CircularProgress,
 } from '@mui/material'
 import { GlobalLoading } from '@/components/atoms'
 import EditIcon from '@mui/icons-material/Edit'
@@ -21,7 +29,9 @@ import { getSuretyBondLabel } from '@/constants/mappings/suretyBondMapping'
 import { useAppStore } from '@/store'
 import { useSuretyBond } from '../../../../hooks/useSuretyBonds'
 import { useApplicationSettings } from '../../../../hooks/useApplicationSettings'
+import { BuildPartnerService } from '../../../../services/api/buildPartnerService'
 import dayjs from 'dayjs'
+import { formatDate } from '@/utils'
 
 const labelSx = {
   color: '#6A7282',
@@ -118,15 +128,24 @@ const Section = ({ title, fields }: SectionProps) => (
   </Box>
 )
 
+interface DocumentData {
+  id: string
+  fileName: string
+  documentType: string
+  uploadDate: string
+}
+
 interface Step2Props {
   onEdit: () => void
+  onEditDocuments?: () => void
   suretyBondId?: string | null
   isViewMode?: boolean
 }
 
-const Step2 = ({ onEdit, suretyBondId, isViewMode }: Step2Props) => {
-  const { watch, setValue } = useFormContext<GuaranteeData>()
-  const formData = watch()
+const Step2 = ({ onEdit, onEditDocuments, suretyBondId, isViewMode }: Step2Props) => {
+  const { setValue } = useFormContext<GuaranteeData>()
+  const [documents, setDocuments] = useState<DocumentData[]>([])
+  const [loadingDocuments, setLoadingDocuments] = useState(false)
 
   // Standardized surety bond label resolver
   const language = useAppStore((s) => s.language) || 'EN'
@@ -162,11 +181,11 @@ const Step2 = ({ onEdit, suretyBondId, isViewMode }: Step2Props) => {
       setValue('projectCif', '') // This would need to be fetched from the real estate asset
       setValue(
         'projectName',
-        suretyBond.realEstateAssestDTO?.id?.toString() || ''
+        suretyBond.managementFirmDTO?.id?.toString() || ''
       )
       setValue(
         'developerName',
-        suretyBond.buildPartnerDTO?.id?.toString() || ''
+        suretyBond.assetRegisterDTO?.id?.toString() || ''
       )
       setValue('openEndedGuarantee', suretyBond.suretyBondOpenEnded || false)
       setValue('projectCompletionDate', null) // This would need to be fetched from the real estate asset
@@ -186,6 +205,46 @@ const Step2 = ({ onEdit, suretyBondId, isViewMode }: Step2Props) => {
       setValue('status', suretyBond.suretyBondStatusDTO?.id?.toString() || '')
     }
   }, [suretyBond, suretyBondId, setValue])
+
+  // Fetch documents when surety bond ID is available
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      if (!suretyBondId) {
+        setDocuments([])
+        return
+      }
+
+      try {
+        setLoadingDocuments(true)
+        const buildPartnerService = new BuildPartnerService()
+        const docResponse = await buildPartnerService.getBuildPartnerDocuments(
+          suretyBondId,
+          'SURETY_BOND',
+          0,
+          100
+        )
+        const mappedDocuments: DocumentData[] = docResponse.content.map(
+          (doc: any) => ({
+            id: doc.id?.toString() || `doc_${Date.now()}`,
+            fileName: doc.documentName || 'Unknown Document',
+            documentType:
+              doc.documentTypeDTO?.languageTranslationId?.configValue ||
+              doc.documentTypeDTO?.settingValue ||
+              'N/A',
+            uploadDate: doc.uploadDate || '',
+          })
+        )
+        setDocuments(mappedDocuments)
+      } catch (error) {
+        console.error('Failed to fetch documents:', error)
+        setDocuments([])
+      } finally {
+        setLoadingDocuments(false)
+      }
+    }
+
+    fetchDocuments()
+  }, [suretyBondId])
 
   // Helper function to get translated label with mapping fallback
   const getTranslatedLabel = (configId: string, fallback?: string): string =>
@@ -236,17 +295,17 @@ const Step2 = ({ onEdit, suretyBondId, isViewMode }: Step2Props) => {
     {
       gridSize: 6,
       label: getTranslatedLabel('CDL_SB_BPA_CIF'),
-      value: suretyBond?.realEstateAssestDTO?.reaCif || '-',
+      value: suretyBond?.managementFirmDTO?.mfCif || '-',
     },
     {
       gridSize: 6,
       label: getTranslatedLabel('CDL_SB_BPA_NAME'),
-      value: suretyBond?.realEstateAssestDTO?.reaName || '-',
+      value: suretyBond?.managementFirmDTO?.mfName || '-',
     },
     {
       gridSize: 6,
       label: getTranslatedLabel('CDL_SB_BP_NAME'),
-      value: suretyBond?.realEstateAssestDTO?.reaManagedBy || '-',
+      value: suretyBond?.managementFirmDTO?.mfManagedBy || '-',
     },
   ]
 
@@ -259,8 +318,8 @@ const Step2 = ({ onEdit, suretyBondId, isViewMode }: Step2Props) => {
     {
       gridSize: 3,
       label: getTranslatedLabel('CDL_SB_BPA_COMPLETION_DATE'),
-      value: suretyBond?.realEstateAssestDTO?.reaCompletionDate
-        ? dayjs(suretyBond.realEstateAssestDTO.reaCompletionDate).format(
+      value: suretyBond?.managementFirmDTO?.mfCompletionDate
+        ? dayjs(suretyBond.managementFirmDTO.mfCompletionDate).format(
             'DD/MM/YYYY'
           )
         : '-',
@@ -303,15 +362,6 @@ const Step2 = ({ onEdit, suretyBondId, isViewMode }: Step2Props) => {
     },
   ]
 
-  const documentDetails = [
-    {
-      gridSize: 12,
-      label: getTranslatedLabel('CDL_SB_DOCUMENTS'),
-      value: formData.documents?.length
-        ? `${formData.documents.length} document(s) uploaded`
-        : 'No documents uploaded',
-    },
-  ]
 
   // Show loading state while fetching surety bond data
   if (suretyBondId && suretyBondLoading) {
@@ -436,10 +486,146 @@ const Step2 = ({ onEdit, suretyBondId, isViewMode }: Step2Props) => {
           title={getTranslatedLabel('CDL_SB_GUARANTEE_INFO')}
           fields={guaranteeDetails}
         />
-        <Section
-          title={getTranslatedLabel('CDL_SB_DOCUMENTS_SECTION')}
-          fields={documentDetails}
-        />
+
+        {/* Documents Section */}
+        <Box mb={4}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={2}
+          >
+            <Typography
+              variant="h6"
+              fontWeight={600}
+              sx={{
+                fontFamily: 'Outfit, sans-serif',
+                fontWeight: 600,
+                fontSize: '18px',
+                lineHeight: '24px',
+                color: '#1E2939',
+              }}
+            >
+              {getTranslatedLabel('CDL_SB_DOCUMENTS_SECTION', 'Documents')}
+            </Typography>
+            {!isViewMode && onEditDocuments && (
+              <Button
+                startIcon={<EditIcon />}
+                onClick={onEditDocuments}
+                sx={{
+                  fontSize: '14px',
+                textTransform: 'none',
+                color: '#2563EB',
+                '&:hover': {
+                  backgroundColor: '#DBEAFE',
+                },
+                }}
+              >
+                {getTranslatedLabel('CDL_SB_EDIT', 'Edit')}
+              </Button>
+            )}
+          </Box>
+          <Divider sx={{ mb: 2 }} />
+          {loadingDocuments ? (
+            <Box display="flex" justifyContent="center" py={4}>
+              <CircularProgress size={24} />
+              <Typography sx={{ ml: 2 }}>Loading documents...</Typography>
+            </Box>
+          ) : documents.length > 0 ? (
+            <TableContainer
+              component={Paper}
+              sx={{ boxShadow: 'none', border: '1px solid #E5E7EB' }}
+            >
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: '#F9FAFB' }}>
+                    <TableCell
+                      sx={{
+                        fontFamily: 'Outfit, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        color: '#374151',
+                        borderBottom: '1px solid #E5E7EB',
+                      }}
+                    >
+                      Name
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontFamily: 'Outfit, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        color: '#374151',
+                        borderBottom: '1px solid #E5E7EB',
+                      }}
+                    >
+                      Date
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontFamily: 'Outfit, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        color: '#374151',
+                        borderBottom: '1px solid #E5E7EB',
+                      }}
+                    >
+                      Type
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {documents.map((doc, index) => (
+                    <TableRow
+                      key={doc.id || index}
+                      sx={{ '&:hover': { backgroundColor: '#F9FAFB' } }}
+                    >
+                      <TableCell
+                        sx={{
+                          fontFamily: 'Outfit, sans-serif',
+                          fontSize: '14px',
+                          color: '#374151',
+                          borderBottom: '1px solid #E5E7EB',
+                        }}
+                      >
+                        {doc.fileName}
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontFamily: 'Outfit, sans-serif',
+                          fontSize: '14px',
+                          color: '#374151',
+                          borderBottom: '1px solid #E5E7EB',
+                        }}
+                      >
+                        {doc.uploadDate
+                          ? formatDate(doc.uploadDate, 'DD/MM/YYYY')
+                          : '-'}
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontFamily: 'Outfit, sans-serif',
+                          fontSize: '14px',
+                          color: '#374151',
+                          borderBottom: '1px solid #E5E7EB',
+                        }}
+                      >
+                        {doc.documentType}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Typography sx={{ ...valueSx, py: 2 }}>
+              {getTranslatedLabel(
+                'CDL_SB_NO_DOCUMENTS',
+                'No documents uploaded'
+              )}
+            </Typography>
+          )}
+        </Box>
       </CardContent>
     </Card>
   )

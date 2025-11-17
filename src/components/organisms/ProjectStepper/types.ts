@@ -2,36 +2,36 @@ import { Dayjs } from 'dayjs'
 
 export interface ProjectDetailsData {
   // API fields matching the JSON payload exactly
-  reaId: string
-  reaCif: string
-  reaName: string
-  reaLocation: string
-  reaReraNumber: string
-  reaAccoutStatusDate: Dayjs | null
-  reaRegistrationDate: Dayjs | null
-  reaStartDate: Dayjs | null
-  reaCompletionDate: Dayjs | null
-  reaRetentionPercent: string
-  reaPercentComplete: string
-  reaConstructionCost: number
-  reaAccStatusDate: Dayjs | null
-  reaNoOfUnits: number
-  reaRemarks: string
-  reaSpecialApproval: string
-  reaManagedBy: string
-  reaBackupUser: string
-  reaAdditionalRetentionPercent: string
-  reaTotalRetentionPercent: string
-  reaRetentionEffectiveDate: Dayjs | null
-  reaManagementExpenses: string
-  reaMarketingExpenses: string
-  reaTeamLeadName: string
-  reaRelationshipManagerName: string
-  reaAssestRelshipManagerName: string
-  reaRealEstateBrokerExp: number
-  reaAdvertisementExp: number
-  reaLandOwnerName: string
-  
+  mfId: string
+  mfId: string
+  mfName: string
+  mfLocation: string
+  mfReraNumber: string
+  mfAccoutStatusDate: Dayjs | null
+  mfRegistrationDate: Dayjs | null
+  mfStartDate: Dayjs | null
+  mfCompletionDate: Dayjs | null
+  mfRetentionPercent: string
+  mfPercentComplete: string
+  mfConstructionCost: number
+  mfAccStatusDate: Dayjs | null
+  mfNoOfUnits: number
+  mfRemarks: string
+  mfSpecialApproval: string
+  mfManagedBy: string
+  mfBackupUser: string
+  mfAdditionalRetentionPercent: string
+  mfTotalRetentionPercent: string
+  mfRetentionEffectiveDate: Dayjs | null
+  mfManagementExpenses: string
+  mfMarketingExpenses: string
+  mfTeamLeadName: string
+  mfRelationshipManagerName: string
+  mfAssestRelshipManagerName: string
+  mfRealEstateBrokerExp: number
+  mfAdvertisementExp: number
+  mfLandOwnerName: string
+
   // New fields from table specifications
   unitReferenceNumber?: string
   unitNumber?: string
@@ -62,33 +62,36 @@ export interface ProjectDetailsData {
   refundAmount?: string
   transferredAmount?: string
   additionalRemarks?: string
-  
+
   // DTO objects matching API structure exactly
-  buildPartnerDTO: {
+  assetRegisterDTO: {
     id: number
-    bpCifrera?: string
-    bpName?: string
-    bpMasterName?: string
+    arCifrera?: string
+    arName?: string
+    arMasterName?: string
   }
-  reaStatusDTO: {
-    id: number
-  }
-  reaTypeDTO: {
+  mfStatusDTO: {
     id: number
   }
-  reaAccountStatusDTO: {
+  mfTypeDTO: {
     id: number
   }
-  reaConstructionCostCurrencyDTO: {
+  mfAccountStatusDTO: {
     id: number
   }
-  
+  mfConstructionCostCurrencyDTO: {
+    id: number
+  }
+  mfBlockPaymentTypeDTO: {
+    id: number
+  }
+
   // Additional fields
   status: string | null
-  reaBlockPaymentTypeDTO: unknown | null
 }
 
 export interface AccountData {
+  id?: number | null
   trustAccountNumber: string
   ibanNumber: string
   dateOpened: Dayjs | null
@@ -97,27 +100,44 @@ export interface AccountData {
 }
 
 export interface FeeData {
+  id?: string
   feeType: string
   frequency: string
   debitAmount: string
   feeToBeCollected: string
-  nextRecoveryDate: Dayjs | null
+  nextRecoveryDate: Dayjs | string | null
   feePercentage: string
   amount: string
   vatPercentage: string
   currency: string
   debitAccount: string
+  enabled?: boolean
+  deleted?: boolean
+  display?: {
+    feeType: string
+    frequency: string
+    currency: string
+    debitAccount: string
+  }
 }
 
 export interface BeneficiaryData {
   id: string
-  expenseType: string
-  transferType: string
+  beneficiaryId: string
+  beneficiaryType: string
   name: string
   bankName: string
   swiftCode: string
   routingCode: string
-  account: string
+  accountNumber: string
+  // Normalized aliases to support legacy mf-prefixed fields
+  mfBeneficiaryId?: string
+  mfBeneficiaryType?: string
+  mfName?: string
+  mfBankName?: string
+  mfSwiftCode?: string
+  mfRoutingCode?: string
+  mfAccountNumber?: string
 }
 
 export interface PaymentPlanData {
@@ -134,6 +154,33 @@ export interface FinancialData {
 }
 
 export interface ProjectData extends ProjectDetailsData {
+  mfId: any
+  mfId: any
+  mfName: any
+  mfLocation: any
+  mfReraNumber: any
+  mfStartDate: any
+  mfCompletionDate: any
+  mfRegistrationDate: any
+  mfAccoutStatusDate: any
+  mfConstructionCost: any
+  mfNoOfUnits: any
+  mfRemarks: any
+  mfSpecialApproval: any
+  mfManagedBy: any
+  mfTeamLeadName: any
+  mfRelationshipManagerName: any
+  mfAssestRelshipManagerName: any
+  mfLandOwnerName: any
+  mfRetentionPercent: any
+  mfAdditionalRetentionPercent: any
+  mfTotalRetentionPercent: any
+  mfRetentionEffectiveDate: any
+  mfManagementExpenses: any
+  mfMarketingExpenses: any
+  mfRealEstateBrokerExp: any
+  mfAdvertisementExp: any
+  mfPercentComplete: any
   // Step 2: Documents (NEW)
   documents?: DocumentItem[]
 

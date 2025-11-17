@@ -16,7 +16,6 @@ import { TEMPLATE_FILES } from '@/constants'
 import { useDeleteConfirmation } from '@/store/confirmationDialogStore'
 import { PageActionButtons } from '@/components/molecules/PageActionButtons'
 import { GlobalLoading, GlobalError } from '@/components/atoms'
-import type { PendingTransactionUIData } from '@/services/api/pendingTransactionService'
 
 interface TransactionData extends Record<string, unknown> {
   id: number
@@ -29,17 +28,6 @@ interface TransactionData extends Record<string, unknown> {
   narration: string
   tasMatch: string
   approvalStatus: string
-  // New fields
-  managementFirmsNumber?: string
-  managementName?: string
-  transactionRefNumber?: string
-  ownerBuyerName?: string
-  unitReferenceNumber?: string
-  splitAmount?: number
-  receivableBucket?: string
-  depositMode?: string
-  reservePercentage?: number
-  reserveAmount?: number
 }
 
 const usePendingRows = (page: number, size: number) => {
@@ -55,9 +43,9 @@ const usePendingRows = (page: number, size: number) => {
       return []
     }
 
-    const items = data.content
+    const items = data.content as any[]
 
-    return items.map((ui: PendingTransactionUIData) => {
+    return items.map((ui: any) => {
       return {
         id: Number(ui.id),
         projectName: ui.projectName || '—',
@@ -73,17 +61,6 @@ const usePendingRows = (page: number, size: number) => {
         approvalStatus:
           ui.taskStatusDTO?.name ||
           mapPaymentStatusToApprovalStatus(ui.paymentStatus),
-        // New fields
-        ...(ui.managementFirmsNumber && { managementFirmsNumber: ui.managementFirmsNumber }),
-        ...(ui.managementName && { managementName: ui.managementName }),
-        ...(ui.transactionRefNumber && { transactionRefNumber: ui.transactionRefNumber }),
-        ...(ui.ownerBuyerName && { ownerBuyerName: ui.ownerBuyerName }),
-        ...(ui.unitReferenceNumber && { unitReferenceNumber: ui.unitReferenceNumber }),
-        ...(ui.splitAmount && { splitAmount: Number(ui.splitAmount) }),
-        ...(ui.receivableBucket && { receivableBucket: ui.receivableBucket }),
-        ...(ui.depositMode && { depositMode: ui.depositMode }),
-        ...(ui.reservePercentage && { reservePercentage: Number(ui.reservePercentage) }),
-        ...(ui.reserveAmount && { reserveAmount: Number(ui.reserveAmount) }),
       }
     })
   }, [data])
@@ -126,17 +103,15 @@ const UnallocatedTransactionPage: React.FC = () => {
   const handleDownloadTemplate = async () => {
     try {
       await downloadTemplate(TEMPLATE_FILES.SPLIT)
-    } catch {
-      // Error handled silently
-    }
+    } catch (error) {}
   }
 
   const [isDeleting, setIsDeleting] = useState(false)
 
   const { getLabelResolver } = useSidebarConfig()
   const unallocatedTitle = getLabelResolver
-    ? getLabelResolver('allocate-deposit', 'Allocate Deposit Transactions')
-    : 'Allocate Deposit Transactions'
+    ? getLabelResolver('unallocated', 'Unallocated')
+    : 'Unallocated'
   const {
     getLabel: getLabelFromApi,
     isLoading: labelsLoading,
@@ -197,12 +172,6 @@ const UnallocatedTransactionPage: React.FC = () => {
       'tranReference',
       'tranDesc',
       'narration',
-      'managementFirmsNumber',
-      'managementName',
-      'ownerBuyerName',
-      'unitReferenceNumber',
-      'receivableBucket',
-      'depositMode',
     ],
     initialRowsPerPage: currentApiSize,
   })
@@ -238,81 +207,17 @@ const UnallocatedTransactionPage: React.FC = () => {
     : Math.min(currentApiPage * currentApiSize, apiTotal)
 
   const tableColumns = [
-    // {
-    //   key: 'projectName',
-    //   label: getTransactionLabelDynamic('CDL_TRANS_BPA_NAME'),
-    //   type: 'text' as const,
-    //   width: 'w-48',
-    //   sortable: true,
-    // },
-    // {
-    //   key: 'projectRegulatorId',
-    //   label: getTransactionLabelDynamic('CDL_TRANS_BPA_REGULATOR'),
-    //   type: 'text' as const,
-    //   width: 'w-40',
-    //   sortable: true,
-    // },
     {
-      key: 'managementFirmsNumber',
-      label: getTransactionLabelDynamic('CDL_TRAN_MANAGEMENT_FIRMS_NUMBER'),
+      key: 'projectName',
+      label: getTransactionLabelDynamic('CDL_TRANS_MF_NAME'),
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
     },
     {
-      key: 'managementName',
-      label: getTransactionLabelDynamic('CDL_TRAN_MANAGEMENT_NAME'),
+      key: 'projectRegulatorId',
+      label: getTransactionLabelDynamic('CDL_TRANS_MF_REGULATOR'),
       type: 'text' as const,
-      width: 'w-48',
-      sortable: true,
-    },
-    {
-      key: 'ownerBuyerName',
-      label: getTransactionLabelDynamic('CDL_TRAN_OWNER_BUYER_NAME'),
-      type: 'text' as const,
-      width: 'w-48',
-      sortable: true,
-    },
-    {
-      key: 'unitReferenceNumber',
-      label: getTransactionLabelDynamic('CDL_TRAN_UNIT_REF'),
-      type: 'text' as const,
-      width: 'w-40',
-      sortable: true,
-    },
-    
-    {
-      key: 'receivableBucket',
-      label: getTransactionLabelDynamic('CDL_TRAN_RECEIVABLE_BUCKET'),
-      type: 'text' as const,
-      width: 'w-48',
-      sortable: true,
-    },
-    {
-      key: 'depositMode',
-      label: getTransactionLabelDynamic('CDL_TRAN_DEPOSIT_MODE'),
-      type: 'text' as const,
-      width: 'w-40',
-      sortable: true,
-    },
-    {
-      key: 'reservePercentage',
-      label: getTransactionLabelDynamic('CDL_TRAN_RESERVE_PERCENTAGE'),
-      type: 'text' as const,
-      width: 'w-40',
-      sortable: true,
-    },
-    {
-      key: 'reserveAmount',
-      label: getTransactionLabelDynamic('CDL_TRAN_RESERVE_AMOUNT'),
-      type: 'custom' as const,
-      width: 'w-40',
-      sortable: true,
-    },
-    {
-      key: 'splitAmount',
-      label: getTransactionLabelDynamic('CDL_TRAN_SPLIT_AMOUNT'),
-      type: 'custom' as const,
       width: 'w-40',
       sortable: true,
     },
@@ -365,7 +270,6 @@ const UnallocatedTransactionPage: React.FC = () => {
       width: 'w-40',
       sortable: true,
     },
-   
     {
       key: 'actions',
       label: getTransactionLabelDynamic('CDL_TRAN_ACTION'),
@@ -417,7 +321,7 @@ const UnallocatedTransactionPage: React.FC = () => {
   }
 
   const renderCustomCell = (column: string, value: unknown) => {
-    if ((column === 'tranAmount' || column === 'splitAmount' || column === 'reserveAmount') && typeof value === 'number') {
+    if (column === 'tranAmount' && typeof value === 'number') {
       return `${formatNumber(value)}`
     }
     return String(value || '')
@@ -426,153 +330,81 @@ const UnallocatedTransactionPage: React.FC = () => {
   const renderExpandedContent = (row: TransactionData) => (
     <div className="grid grid-cols-2 gap-8">
       <div className="space-y-4">
-        <h4 className="mb-4 text-sm font-semibold text-gray-900">
+        <h4 className="text-sm font-semibold text-gray-900 mb-4">
           Transaction Information
         </h4>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-gray-600">Project Name:</span>
-            <span className="ml-2 font-medium text-gray-800">
+            <span className="ml-2 text-gray-800 font-medium">
               {row.projectName}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Project Regulator ID:</span>
-            <span className="ml-2 font-medium text-gray-800">
+            <span className="ml-2 text-gray-800 font-medium">
               {row.projectRegulatorId}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Transaction Reference:</span>
-            <span className="ml-2 font-medium text-gray-800">
+            <span className="ml-2 text-gray-800 font-medium">
               {row.tranReference}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Transaction Description:</span>
-            <span className="ml-2 font-medium text-gray-800">
+            <span className="ml-2 text-gray-800 font-medium">
               {row.tranDesc}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Transaction Amount:</span>
-            <span className="ml-2 font-medium text-gray-800">
+            <span className="ml-2 text-gray-800 font-medium">
               {formatNumber(row.tranAmount)}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Transaction Date:</span>
-            <span className="ml-2 font-medium text-gray-800">
+            <span className="ml-2 text-gray-800 font-medium">
               {row.tranDate}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Narration:</span>
-            <span className="ml-2 font-medium text-gray-800">
+            <span className="ml-2 text-gray-800 font-medium">
               {row.narration}
             </span>
           </div>
           <div>
             <span className="text-gray-600">TAS Match:</span>
-            <span className="ml-2 font-medium text-gray-800">
+            <span className="ml-2 text-gray-800 font-medium">
               {row.tasMatch}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Approval Status:</span>
-            <span className="ml-2 font-medium text-gray-800">
+            <span className="ml-2 text-gray-800 font-medium">
               {row.approvalStatus}
             </span>
           </div>
-          {row.managementFirmsNumber && (
-            <div>
-              <span className="text-gray-600">Management Firm Number:</span>
-              <span className="ml-2 font-medium text-gray-800">
-                {row.managementFirmsNumber}
-              </span>
-            </div>
-          )}
-          {row.managementName && (
-            <div>
-              <span className="text-gray-600">Management Name:</span>
-              <span className="ml-2 font-medium text-gray-800">
-                {row.managementName}
-              </span>
-            </div>
-          )}
-          {row.ownerBuyerName && (
-            <div>
-              <span className="text-gray-600">Owner/Buyer Name:</span>
-              <span className="ml-2 font-medium text-gray-800">
-                {row.ownerBuyerName}
-              </span>
-            </div>
-          )}
-          {row.unitReferenceNumber && (
-            <div>
-              <span className="text-gray-600">Unit Reference Number:</span>
-              <span className="ml-2 font-medium text-gray-800">
-                {row.unitReferenceNumber}
-              </span>
-            </div>
-          )}
-          {row.splitAmount && (
-            <div>
-              <span className="text-gray-600">Split Amount:</span>
-              <span className="ml-2 font-medium text-gray-800">
-                {formatNumber(row.splitAmount)}
-              </span>
-            </div>
-          )}
-          {row.receivableBucket && (
-            <div>
-              <span className="text-gray-600">Receivable Bucket:</span>
-              <span className="ml-2 font-medium text-gray-800">
-                {row.receivableBucket}
-              </span>
-            </div>
-          )}
-          {row.depositMode && (
-            <div>
-              <span className="text-gray-600">Deposit Mode:</span>
-              <span className="ml-2 font-medium text-gray-800">
-                {row.depositMode}
-              </span>
-            </div>
-          )}
-          {row.reservePercentage && (
-            <div>
-              <span className="text-gray-600">Reserve Percentage:</span>
-              <span className="ml-2 font-medium text-gray-800">
-                {row.reservePercentage}%
-              </span>
-            </div>
-          )}
-          {row.reserveAmount && (
-            <div>
-              <span className="text-gray-600">Reserve Amount:</span>
-              <span className="ml-2 font-medium text-gray-800">
-                {formatNumber(row.reserveAmount)}
-              </span>
-            </div>
-          )}
         </div>
       </div>
       <div className="space-y-4">
-        <h4 className="mb-4 text-sm font-semibold text-gray-900">
+        <h4 className="text-sm font-semibold text-gray-900 mb-4">
           Transaction Actions
         </h4>
         <div className="space-y-3">
-          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
+          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
             View Transaction Details
           </button>
-          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
+          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
             Allocate Transaction
           </button>
-          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
+          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
             Download Transaction Report
           </button>
-          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
+          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
             Export Transaction Data
           </button>
         </div>

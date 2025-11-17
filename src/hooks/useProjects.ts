@@ -224,7 +224,7 @@ export function useSaveProjectFinancialSummary() {
       realProjectId?: string;
     }) => {
       if (isEdit) {
-       
+
         const financialSummaryId = parseInt(projectId)
         const actualProjectId = realProjectId ? parseInt(realProjectId) : parseInt(projectId)
         return realEstateAssetService.updateFinancialSummary(financialSummaryId, financialData, actualProjectId)

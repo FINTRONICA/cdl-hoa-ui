@@ -68,28 +68,6 @@ export const PENDING_TRANSACTION_LABELS = {
   CDL_PFI_SPECIAL_4: 'Special Field 4',
   CDL_PFI_SPECIAL_5: 'Special Field 5',
 
-  // New Fields
-  CDL_PFI_MANAGEMENT_FIRMS_NUMBER: 'Management Firm Number',
-  CDL_PFI_MANAGEMENT_NAME: 'Management Name',
-  CDL_PFI_TRANSACTION_REF_NUMBER: 'Transaction Reference Number',
-  CDL_PFI_OWNER_BUYER_NAME: 'Owner/Buyer Name',
-  CDL_PFI_SPLIT_AMOUNT: 'Split Amount',
-  CDL_PFI_RECEIVABLE_BUCKET: 'Receivable Bucket',
-  CDL_PFI_DEPOSIT_MODE: 'Deposit Mode',
-  CDL_PFI_RESERVE_PERCENTAGE: 'Reserve Percentage',
-  CDL_PFI_RESERVE_AMOUNT: 'Reserve Amount',
-
-  // CDL_TRAN_ equivalents for New Fields
-  CDL_TRAN_MANAGEMENT_FIRMS_NUMBER: 'Management Firm Number',
-  CDL_TRAN_MANAGEMENT_NAME: 'Management Name',
-  CDL_TRAN_OWNER_BUYER_NAME: 'Owner/Buyer Name',
-  CDL_TRAN_UNIT_REF: 'Unit Reference Number',
-  CDL_TRAN_SPLIT_AMOUNT: 'Split Amount',
-  CDL_TRAN_RECEIVABLE_BUCKET: 'Receivable Bucket',
-  CDL_TRAN_DEPOSIT_MODE: 'Deposit Mode',
-  CDL_TRAN_RESERVE_PERCENTAGE: 'Reserve Percentage',
-  CDL_TRAN_RESERVE_AMOUNT: 'Reserve Amount',
-
   // Actions
   CDL_PFI_ACTIONS: 'Actions',
   CDL_PFI_ALLOCATE_ACTION: 'Allocate',

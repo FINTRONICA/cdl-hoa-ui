@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { DashboardLayout } from '@/components/templates/DashboardLayout/DashboardLayout'
@@ -42,14 +42,14 @@ const ProjectsPage: React.FC = () => {
   const queryClient = useQueryClient()
   const router = useRouter()
 
-  // Get current language from store
+
   const currentLanguage = useAppStore((state) => state.language)
   const { getLabelResolver } = useSidebarConfig()
   const projectsTitle = getLabelResolver
-    ? getLabelResolver('projects', 'Projects')
-    : 'Projects'
+    ? getLabelResolver('management-firms', 'Management Firm')
+    : 'Management Firm  '
 
-  // Template download hook
+
   const {
     downloadTemplate,
     isLoading: isDownloading,
@@ -57,15 +57,15 @@ const ProjectsPage: React.FC = () => {
     clearError,
   } = useTemplateDownload()
 
-  // Fetch build partner asset labels from BUILD_PARTNER_ASSET API with localStorage cache
+ 
   const { data: buildPartnerAssetLabels, getLabel } =
     useBuildPartnerAssetLabelsWithCache()
 
-  // API-driven pagination state
+
   const [currentApiPage, setCurrentApiPage] = useState(1)
   const [currentApiSize, setCurrentApiSize] = useState(20)
 
-  // Fetch real estate assets data from API
+
   const {
     data: projectsResponse,
     isLoading: projectsLoading,
@@ -74,9 +74,21 @@ const ProjectsPage: React.FC = () => {
     apiPagination,
   } = useProjects(Math.max(0, currentApiPage - 1), currentApiSize)
 
-  // Extract the actual projects data from the paginated response and map to UI format
-  const projectsData =
-    projectsResponse?.content?.map(mapRealEstateAssetToProjectData) || []
+
+  const rawProjects = useMemo(() => {
+    if (Array.isArray(projectsResponse)) {
+      return projectsResponse
+    }
+    if (Array.isArray(projectsResponse?.content)) {
+      return projectsResponse.content
+    }
+    return []
+  }, [projectsResponse])
+
+  const projectsData = useMemo(
+    () => rawProjects.map(mapRealEstateAssetToProjectData),
+    [rawProjects]
+  )
 
   const deleteMutation = useDeleteProject()
   const confirmDelete = useDeleteConfirmation()
@@ -98,35 +110,35 @@ const ProjectsPage: React.FC = () => {
   const tableColumns = [
     {
       key: 'name',
-      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_NAME'),
+      label: getBuildPartnerAssetLabelDynamic('CDL_MF_NAME'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
-      key: 'developerId',
-      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_BP_ID'),
+      key: 'managementFirmId',
+      label: getBuildPartnerAssetLabelDynamic('CDL_MF_AR_ID'),
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
     },
     {
-      key: 'developerCif',
-      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_BP_CIF'),
+      key: 'managementFirmCif',
+      label: getBuildPartnerAssetLabelDynamic('CDL_MF_AR_CIF'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
-      key: 'developerName',
-      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_BP_NAME'),
+      key: 'managementFirmName',
+      label: getBuildPartnerAssetLabelDynamic('CDL_MF_AR_NAME'),
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
     },
     {
-      key: 'projectStatus',
-      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_BP_STATUS'),
+      key: 'status',
+      label: getBuildPartnerAssetLabelDynamic('CDL_MF_AR_STATUS'),
       type: 'status' as const,
       width: 'w-40',
       sortable: true,
@@ -134,7 +146,7 @@ const ProjectsPage: React.FC = () => {
     },
     {
       key: 'approvalStatus',
-      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_BP_APPROVAL_STATUS'),
+      label: getBuildPartnerAssetLabelDynamic('CDL_MF_AR_APPROVAL_STATUS'),
       type: 'status' as const,
       width: 'w-40',
       sortable: true,
@@ -142,7 +154,7 @@ const ProjectsPage: React.FC = () => {
     },
     {
       key: 'actions',
-      label: getBuildPartnerAssetLabelDynamic('CDL_BPA_DOC_ACTION'),
+      label: getBuildPartnerAssetLabelDynamic('CDL_MF_DOC_ACTION'),
       type: 'actions' as const,
       width: 'w-24',
     },
@@ -170,10 +182,10 @@ const ProjectsPage: React.FC = () => {
     data: projectsData,
     searchFields: [
       'name',
-      'developerId',
-      'developerCif',
-      'developerName',
-      'projectStatus',
+      'managementFirmId',
+      'managementFirmCif',
+      'managementFirmName',
+      'status',
       'approvalStatus',
     ],
     initialRowsPerPage: currentApiSize,
@@ -206,7 +218,7 @@ const ProjectsPage: React.FC = () => {
   const effectiveTotalPages = hasActiveSearch ? localTotalPages : apiTotalPages
   const effectivePage = hasActiveSearch ? localPage : currentApiPage
 
-  // Calculate effective startItem and endItem based on pagination type
+
   const effectiveStartItem = hasActiveSearch
     ? startItem
     : (currentApiPage - 1) * currentApiSize + 1
@@ -220,14 +232,14 @@ const ProjectsPage: React.FC = () => {
     }
 
     confirmDelete({
-      itemName: `project: ${row.name}`,
+      itemName: `management firm: ${row.name}`,
       onConfirm: async () => {
         try {
           setIsDeleting(true)
 
           await deleteMutation.mutateAsync(row.id.toString())
 
-          console.log(`Real Estate Asset has been deleted successfully.`)
+         
 
           await new Promise((resolve) => setTimeout(resolve, 500))
 
@@ -241,8 +253,8 @@ const ProjectsPage: React.FC = () => {
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error occurred'
-          console.error(`Failed to delete project: ${errorMessage}`)
-          throw error // Re-throw to keep dialog open on error
+          console.error(`Failed to delete management firm: ${errorMessage}`)
+          throw error 
         } finally {
           setIsDeleting(false)
         }
@@ -251,16 +263,16 @@ const ProjectsPage: React.FC = () => {
   }
 
   const handleRowView = (row: ProjectData) => {
-    // Navigate to view mode (read-only) with the project ID
+    
     router.push(`/build-partner-assets/${row.id}?mode=view`)
   }
 
   const handleRowEdit = (row: ProjectData) => {
-    // Navigate to edit mode with the project ID and editing flag
+   
     router.push(`/build-partner-assets/${row.id}?editing=true`)
   }
 
-  // Template download handler
+ 
   const handleDownloadTemplate = async () => {
     try {
       await downloadTemplate(TEMPLATE_FILES.BUILD_PARTNER_ASSET)
@@ -309,7 +321,7 @@ const ProjectsPage: React.FC = () => {
           <GlobalError 
             error={projectsError} 
             onRetry={() => window.location.reload()}
-            title="Error loading projects"
+            title="Error loading management firm assets"
             fullHeight
           />
         </div>
@@ -326,9 +338,9 @@ const ProjectsPage: React.FC = () => {
         />
       )}
 
-      {/* Download Error Alert */}
+  
       {downloadError && (
-        <div className="fixed top-4 right-4 z-50 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-lg">
+        <div className="fixed z-50 px-4 py-3 text-red-700 bg-red-100 border border-red-400 rounded shadow-lg top-4 right-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">
               Download Error: {downloadError}
@@ -353,7 +365,7 @@ const ProjectsPage: React.FC = () => {
             />
           </div>
 
-          <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex flex-col flex-1 min-h-0">
             <div className="flex-1 overflow-auto">
               <PermissionAwareDataTable<ProjectData>
                 key={`projects-table-${tableKey}`}

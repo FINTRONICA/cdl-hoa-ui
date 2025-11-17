@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import { Box, Card, CardContent, Button } from '@mui/material'
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
@@ -19,8 +19,6 @@ import { useBuildPartnerLabelsWithCache } from '@/hooks/useBuildPartnerLabelsWit
 import { getBuildPartnerLabel } from '@/constants/mappings/buildPartnerMapping'
 import { useAppStore } from '@/store'
 
-
-
 interface Step2Props {
   contactData: ContactData[]
   onFeesChange: (contactData: ContactData[]) => void
@@ -28,28 +26,47 @@ interface Step2Props {
   isReadOnly?: boolean
 }
 
-
 const mapApiContactToContactData = (
   apiContact: BuildPartnerContactResponse
-): ContactData => {
-  return {
-    id: apiContact.id,
-    name: `${apiContact.bpcFirstName} ${apiContact.bpcLastName}`,
-    address:
-      apiContact.bpcContactAddressLine1 +
-      (apiContact.bpcContactAddressLine2
-        ? ` ${apiContact.bpcContactAddressLine2}`
-        : ''),
-    email: apiContact.bpcContactEmail,
-    pobox: apiContact.bpcContactPoBox,
-    countrycode: apiContact.bpcCountryMobCode,
-    mobileno: apiContact.bpcContactMobNo,
-    telephoneno: apiContact.bpcContactTelNo,
-    fax: apiContact.bpcContactFaxNo,
-    ...(apiContact.buildPartnerDTO && {
-      buildPartnerDTO: { id: apiContact.buildPartnerDTO.id },
-    }),
-  }
+): ContactData => ({
+  id: apiContact.id,
+  arcContactName: apiContact.arcContactName ?? null,
+  arcFirstName: apiContact.arcFirstName ?? null,
+  arcLastName: apiContact.arcLastName ?? null,
+  arcContactTelCode: apiContact.arcContactTelCode ?? null,
+  arcContactTelNo: apiContact.arcContactTelNo ?? null,
+  arcCountryMobCode: apiContact.arcCountryMobCode ?? null,
+  arcContactMobNo: apiContact.arcContactMobNo ?? null,
+  arcContactEmail: apiContact.arcContactEmail ?? null,
+  arcContactAddress: apiContact.arcContactAddress ?? null,
+  arcContactAddressLine1: apiContact.arcContactAddressLine1 ?? null,
+  arcContactAddressLine2: apiContact.arcContactAddressLine2 ?? null,
+  arcContactPoBox: apiContact.arcContactPoBox ?? null,
+  arcContactFaxNo: apiContact.arcContactFaxNo ?? null,
+  enabled: apiContact.enabled ?? false,
+  workflowStatus: apiContact.workflowStatus ?? null,
+  deleted: apiContact.deleted ?? null,
+  ...(apiContact.assetRegisterDTO && {
+    assetRegisterDTO: {
+      id: apiContact.assetRegisterDTO.id,
+      enabled:
+        (apiContact.assetRegisterDTO as { enabled?: boolean }).enabled ?? true,
+      deleted:
+        (apiContact.assetRegisterDTO as { deleted?: boolean }).deleted ?? false,
+    },
+  }),
+})
+
+type ContactTableRow = {
+  id: number | string | null
+  name: string
+  address: string
+  email: string
+  pobox: string
+  countrycode: string
+  mobileno: string
+  telephoneno: string
+  fax: string
 }
 
 const Step2: React.FC<Step2Props> = ({
@@ -72,14 +89,14 @@ const Step2: React.FC<Step2Props> = ({
   const confirmDelete = useDeleteConfirmation()
   const deleteMutation = useDeleteBuildPartnerContact()
 
- 
-  const { data: buildPartnerLabels, getLabel } = useBuildPartnerLabelsWithCache()
+  const { data: buildPartnerLabels, getLabel } =
+    useBuildPartnerLabelsWithCache()
   const currentLanguage = useAppStore((state) => state.language) || 'EN'
 
   const getBuildPartnerLabelDynamic = useCallback(
     (configId: string): string => {
       const fallback = getBuildPartnerLabel(configId)
-      
+
       if (buildPartnerLabels) {
         return getLabel(configId, currentLanguage, fallback)
       }
@@ -88,7 +105,6 @@ const Step2: React.FC<Step2Props> = ({
     [buildPartnerLabels, currentLanguage, getLabel]
   )
 
- 
   const {
     data: apiContactsResponse,
     refetch: refetchContacts,
@@ -96,11 +112,41 @@ const Step2: React.FC<Step2Props> = ({
     apiPagination,
   } = useBuildPartnerContacts(buildPartnerId, currentPage, currentPageSize)
 
- 
-  const contacts: ContactData[] =
-    apiContactsResponse?.content && apiContactsResponse.content.length > 0
-      ? apiContactsResponse.content.map(mapApiContactToContactData)
-      : contactData || []
+  const contacts: ContactData[] = useMemo(() => {
+    if (apiContactsResponse?.content && apiContactsResponse.content.length > 0) {
+      return apiContactsResponse.content.map(mapApiContactToContactData)
+    }
+    return contactData || []
+  }, [apiContactsResponse, contactData])
+
+  const tableRows: ContactTableRow[] = useMemo(
+    () =>
+      contacts.map((contact) => {
+        const first = contact.arcFirstName ?? ''
+        const last = contact.arcLastName ?? ''
+        const name =
+          contact.arcContactName ||
+          `${first} ${last}`.trim() ||
+          'N/A'
+        const addressLine1 =
+          contact.arcContactAddressLine1 || contact.arcContactAddress || ''
+        const addressLine2 = contact.arcContactAddressLine2 || ''
+        const address = `${addressLine1} ${addressLine2}`.trim() || 'N/A'
+        return {
+          id: contact.id ?? null,
+          name,
+          address,
+          email: contact.arcContactEmail || 'N/A',
+          pobox: contact.arcContactPoBox || '',
+          countrycode:
+            contact.arcContactTelCode || contact.arcCountryMobCode || '',
+          mobileno: contact.arcContactMobNo || '',
+          telephoneno: contact.arcContactTelNo || '',
+          fax: contact.arcContactFaxNo || '',
+        }
+      }),
+    [contacts]
+  )
 
   const addContact = () => {
     setEditMode('add')
@@ -110,54 +156,75 @@ const Step2: React.FC<Step2Props> = ({
   }
 
   const handleContactAdded = (newContact: unknown) => {
-    const updatedContacts = [...contacts, newContact as ContactData]
+    const nextContact = newContact as ContactData
+    const existing = contactData || []
+    const existingIndex = existing.findIndex(
+      (item) => item.id === nextContact.id
+    )
+    const updatedContacts =
+      existingIndex === -1
+        ? [...existing, nextContact]
+        : existing.map((item, idx) =>
+            idx === existingIndex ? nextContact : item
+          )
     onFeesChange(updatedContacts)
 
-    
     if (buildPartnerId) {
       refetchContacts()
     }
   }
 
   const handleContactUpdated = (updatedContact: unknown, index: number) => {
-    const updatedContacts = [...contacts]
-    updatedContacts[index] = updatedContact as ContactData
+    const updatedContacts = [...(contactData || [])]
+    const updated = updatedContact as ContactData
+    const existingIndex = updatedContacts.findIndex(
+      (item) => item.id === updated.id
+    )
+    if (existingIndex !== -1) {
+      updatedContacts[existingIndex] = updated
+    } else if (index >= 0 && index < updatedContacts.length) {
+      updatedContacts[index] = updated
+    } else {
+      updatedContacts.push(updated)
+    }
     onFeesChange(updatedContacts)
 
-    
     if (buildPartnerId) {
       refetchContacts()
     }
   }
 
-  const handleEdit = (row: ContactData, index: number) => {
+  const handleEdit = (row: ContactTableRow, index: number) => {
+    const contact =
+      contacts.find((item) => item.id === row.id) || null
     setEditMode('edit')
-    setSelectedContact(row)
+    setSelectedContact(contact)
     setSelectedContactIndex(index)
     setIsPanelOpen(true)
   }
 
-  const handleDelete = (row: ContactData, index: number) => {
+  const handleDelete = (row: ContactTableRow, indexToRemove: number) => {
     confirmDelete({
       itemName: `contact: ${row.name}`,
       onConfirm: async () => {
         try {
-          
-          if (row.id) {
-            await deleteMutation.mutateAsync(row.id)
+          const contactId = row.id
+          if (contactId) {
+            await deleteMutation.mutateAsync(contactId)
           }
 
-          
-          const updatedContacts = contacts.filter((_, i) => i !== index)
+          const updatedContacts = (contactData || []).filter((item, idx) =>
+            contactId !== null && contactId !== undefined
+              ? item.id !== contactId
+              : idx !== indexToRemove
+          )
           onFeesChange(updatedContacts)
 
-          
           if (buildPartnerId) {
             refetchContacts()
           }
         } catch (error) {
-         
-          throw error 
+          throw error
         }
       },
     })
@@ -173,72 +240,75 @@ const Step2: React.FC<Step2Props> = ({
   const tableColumns = [
     {
       key: 'name',
-      label: getBuildPartnerLabelDynamic('CDL_BP_AUTH_NAME'),
+      label: getBuildPartnerLabelDynamic('CDL_AR_AUTH_NAME'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
       key: 'address',
-      label: getBuildPartnerLabelDynamic('CDL_BP_BUSINESS_ADDRESS'),
+      label: getBuildPartnerLabelDynamic('CDL_AR_BUSINESS_ADDRESS'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
       key: 'email',
-      label: getBuildPartnerLabelDynamic('CDL_BP_EMAIL_ADDRESS'),
+      label: getBuildPartnerLabelDynamic('CDL_AR_EMAIL_ADDRESS'),
       type: 'text' as const,
       width: 'w-40',
       sortable: true,
     },
     {
       key: 'pobox',
-      label: getBuildPartnerLabelDynamic('CDL_BP_POBOX'),
+      label: getBuildPartnerLabelDynamic('CDL_AR_POBOX'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
     },
     {
       key: 'countrycode',
-      label: getBuildPartnerLabelDynamic('CDL_BP_COUNTRY_CODE'),
+      label: getBuildPartnerLabelDynamic('CDL_AR_COUNTRY_CODE'),
       type: 'text' as const,
       width: 'w-20',
       sortable: true,
     },
     {
       key: 'mobileno',
-      label: getBuildPartnerLabelDynamic('CDL_BP_MOBILE_NUMBER'),
+      label: getBuildPartnerLabelDynamic('CDL_AR_MOBILE_NUMBER'),
       type: 'text' as const,
       width: 'w-26',
       sortable: true,
     },
     {
       key: 'telephoneno',
-      label: getBuildPartnerLabelDynamic('CDL_BP_TELEPHONE_NUMBER'),
+      label: getBuildPartnerLabelDynamic('CDL_AR_TELEPHONE_NUMBER'),
       type: 'text' as const,
       width: 'w-26',
       sortable: true,
     },
     {
       key: 'fax',
-      label: getBuildPartnerLabelDynamic('CDL_BP_FAX_NUMBER'),
+      label: getBuildPartnerLabelDynamic('CDL_AR_FAX_NUMBER'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
     },
-    {
-      key: 'actions',
-      label: 'Action',
-      type: 'actions' as const,
-      width: 'w-20',
-    },
+    ...(isReadOnly
+      ? []
+      : [
+          {
+            key: 'actions',
+            label: 'Action',
+            type: 'actions' as const,
+            width: 'w-20',
+          },
+        ]),
   ]
 
-  
   const totalRows = buildPartnerId
     ? apiPagination.totalElements
-    : contacts.length
+    : tableRows.length
   const totalPages = buildPartnerId
     ? apiPagination.totalPages
     : Math.ceil(contacts.length / 20)
@@ -257,8 +327,8 @@ const Step2: React.FC<Step2Props> = ({
     handleRowsPerPageChange: handleLocalRowsPerPageChange,
     handleRowSelectionChange,
     handleRowExpansionChange,
-  } = useTableState({
-    data: contacts,
+  } = useTableState<ContactTableRow>({
+    data: tableRows,
     searchFields: [
       'name',
       'address',
@@ -272,10 +342,41 @@ const Step2: React.FC<Step2Props> = ({
     initialRowsPerPage: 20,
   })
 
- 
-  const page = buildPartnerId ? currentPage + 1 : localPage 
-  const rowsPerPage = buildPartnerId ? currentPageSize : localRowsPerPage
+  // Filter contacts based on search state when buildPartnerId exists (client-side filtering)
+  const filteredContacts = useMemo(() => {
+    if (!buildPartnerId) return tableRows
 
+    // Check if there are any search values
+    const hasSearchValues = Object.values(search).some(
+      (val) => val.trim() !== ''
+    )
+    if (!hasSearchValues) return tableRows
+
+    // Filter contacts based on search state (same logic as useTableState)
+    return tableRows.filter((contact) => {
+      return [
+        'name',
+        'address',
+        'email',
+        'pobox',
+        'countrycode',
+        'mobileno',
+        'telephoneno',
+        'fax',
+      ].every((field) => {
+        const searchVal = search[field]?.trim() || ''
+        if (!searchVal) return true
+
+        const value = contact[field as keyof ContactTableRow]
+        const searchLower = searchVal.toLowerCase()
+        const valueLower = String(value ?? '').toLowerCase()
+        return valueLower.includes(searchLower)
+      })
+    })
+  }, [tableRows, search, buildPartnerId])
+
+  const page = buildPartnerId ? currentPage + 1 : localPage
+  const rowsPerPage = buildPartnerId ? currentPageSize : localRowsPerPage
 
   const startItem = buildPartnerId
     ? currentPage * currentPageSize + 1
@@ -284,10 +385,9 @@ const Step2: React.FC<Step2Props> = ({
     ? Math.min((currentPage + 1) * currentPageSize, totalRows)
     : localEndItem
 
- 
   const handlePageChange = (newPage: number) => {
     if (buildPartnerId) {
-      const apiPage = newPage - 1 
+      const apiPage = newPage - 1
       setCurrentPage(apiPage)
       updatePagination(apiPage, currentPageSize)
     } else {
@@ -339,8 +439,10 @@ const Step2: React.FC<Step2Props> = ({
               </Button>
             )}
           </Box>
-          <ExpandableDataTable<ContactData>
-            data={buildPartnerId ? contacts : paginated}
+          <ExpandableDataTable<ContactTableRow>
+            data={
+              (buildPartnerId ? filteredContacts : paginated) as ContactTableRow[]
+            }
             columns={tableColumns}
             searchState={search}
             onSearchChange={handleSearchChange}

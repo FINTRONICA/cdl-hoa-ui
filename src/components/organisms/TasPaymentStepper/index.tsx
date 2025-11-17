@@ -15,13 +15,14 @@ import TasStep1 from './steps/TasStep1'
 import TasStep2 from './steps/TasStep2'
 import DocumentUploadFactory from '../DocumentUpload/DocumentUploadFactory'
 import { DocumentItem } from '../DeveloperStepper/developerTypes'
+import { ManualPaymentDataProvider } from '../ManualPaymentStepper/ManualPaymentDataProvider'
 
 import { ProjectData } from './tasPaymentTypes'
 import { fundEgressService } from '@/services/api/fundEgressService'
 import { toast } from 'react-hot-toast'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import { useManualPaymentLabelsWithCache } from '@/hooks/useManualPaymentLabelsWithCache'
-import { VOUCHER_LABELS } from '@/constants/mappings/manualPaymentLabels'
+import { MANUAL_PAYMENT_LABELS } from '@/constants/mappings/manualPaymentLabels'
 import { GlobalLoading } from '@/components/atoms'
 
 export default function TasPaymentStepperWrapper() {
@@ -39,19 +40,19 @@ export default function TasPaymentStepperWrapper() {
   // Create dynamic step labels using translations
   const steps = [
     getLabel(
-      VOUCHER_LABELS.STEPS.DETAILS,
+      MANUAL_PAYMENT_LABELS.STEPS.DETAILS,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.STEPS.DETAILS
+      MANUAL_PAYMENT_LABELS.FALLBACKS.STEPS.DETAILS
     ),
     getLabel(
-      VOUCHER_LABELS.STEPS.DOCUMENTS,
+      MANUAL_PAYMENT_LABELS.STEPS.DOCUMENTS,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.STEPS.DOCUMENTS
+      MANUAL_PAYMENT_LABELS.FALLBACKS.STEPS.DOCUMENTS
     ),
     getLabel(
-      VOUCHER_LABELS.STEPS.REVIEW,
+      MANUAL_PAYMENT_LABELS.STEPS.REVIEW,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.STEPS.REVIEW
+      MANUAL_PAYMENT_LABELS.FALLBACKS.STEPS.REVIEW
     ),
   ]
 
@@ -66,7 +67,7 @@ export default function TasPaymentStepperWrapper() {
         if (paymentId) {
           if (!paymentId.startsWith('temp_')) {
             const data = await fundEgressService.getFundEgressById(paymentId)
-            console.log('data for tas payment', data)
+         
             setFundEgressData(data)
             setSavedId(paymentId)
           } else {
@@ -168,7 +169,7 @@ export default function TasPaymentStepperWrapper() {
 
         return (
           <DocumentUploadFactory
-            type="BUILD_PARTNER"
+            type="PAYMENTS"
             entityId={savedId}
             isOptional={true}
             onDocumentsChange={(documents: DocumentItem[]) => {
@@ -218,7 +219,8 @@ export default function TasPaymentStepperWrapper() {
   }
 
   return (
-    <FormProvider {...methods}>
+    <ManualPaymentDataProvider>
+      <FormProvider {...methods}>
       <Box
         className="border-gray-200 rounded-t-2xl"
         sx={{
@@ -370,5 +372,6 @@ export default function TasPaymentStepperWrapper() {
         </Box>
       </Box>
     </FormProvider>
+    </ManualPaymentDataProvider>
   )
 }

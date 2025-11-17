@@ -111,7 +111,7 @@ export default function GuaranteeWithIdPage() {
               Build Partner Assets Name
             </label>
             <span className="font-outfit font-normal text-[16px] leading-[1] tracking-normal align-middle text-[#1E2939]">
-              {suretyBondData.realEstateAssestDTO?.reaName || 'N/A'}
+              {suretyBondData.managementFirmDTO?.mfName || 'N/A'}
             </span>
           </div>
         </div>

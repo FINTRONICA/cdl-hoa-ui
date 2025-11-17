@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react'
 import {
   DialogTitle,
@@ -107,30 +108,41 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
       // Map display values back to IDs for editing
       const feeCategory = feeCategories.find(
         (category: unknown) =>
-          (category as { configValue: string }).configValue ===
-          editingFee.FeeType
+          (category as { id?: number; configValue: string }).configValue ===
+            editingFee.FeeType ||
+          (category as { id?: number }).id?.toString() ===
+            editingFee.feeType?.toString()
       )
       const feeFrequency = feeFrequencies.find(
         (frequency: unknown) =>
-          (frequency as { configValue: string }).configValue ===
-          editingFee.Frequency
+          (frequency as { id?: number; configValue: string }).configValue ===
+            editingFee.Frequency ||
+          (frequency as { id?: number }).id?.toString() ===
+            editingFee.frequency?.toString()
       )
       const debitAccount = debitAccounts.find(
         (account: unknown) =>
-          (account as { configValue: string }).configValue ===
-          editingFee.DebitAccount
+          (account as { id?: number; configValue: string }).configValue ===
+            editingFee.DebitAccount ||
+          (account as { id?: number }).id?.toString() ===
+            editingFee.debitAccount?.toString()
       )
       const currency = currencies.find(
         (curr: unknown) =>
-          (curr as { configValue: string }).configValue === editingFee.Currency
+          (curr as { id?: number; configValue: string }).configValue ===
+            editingFee.Currency ||
+          (curr as { id?: number }).id?.toString() ===
+            editingFee.currency?.toString()
       )
 
       const resetData = {
         feeType:
+          editingFee.feeType?.toString() ||
           (feeCategory as { id?: number })?.id?.toString() ||
           editingFee.FeeType ||
           '',
         frequency:
+          editingFee.frequency?.toString() ||
           (feeFrequency as { id?: number })?.id?.toString() ||
           editingFee.Frequency ||
           '',
@@ -138,6 +150,7 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
           ? editingFee.DebitAmount.toString()
           : '',
         debitAccount:
+          editingFee.debitAccount?.toString() ||
           (debitAccount as { id?: number })?.id?.toString() ||
           editingFee.DebitAccount ||
           '',
@@ -154,6 +167,7 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
           ? editingFee.VATPercentage.toString()
           : '',
         currency:
+          editingFee.currency?.toString() ||
           (currency as { id?: number })?.id?.toString() ||
           editingFee.Currency ||
           '',
@@ -213,42 +227,70 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
         setErrorMessage('Please fill in all required fields')
         return
       }
-      const feeData = {
+      const parseId = (value: string | number | null | undefined) => {
+        const numeric = value != null ? parseInt(value as string, 10) : NaN
+        return Number.isFinite(numeric) && numeric > 0 ? numeric : null
+      }
+
+      const buildDto = (value: string | number | null | undefined) => {
+        const id = parseId(value)
+        return id
+          ? {
+              id,
+              deleted: false,
+              enabled: true,
+            }
+          : null
+      }
+
+      const categoryDto = buildDto(data.feeType)
+      const frequencyDto = buildDto(data.frequency)
+      const accountTypeDto = buildDto(data.debitAccount)
+      const currencyDto = buildDto(data.currency)
+
+      if (!categoryDto || !frequencyDto || !accountTypeDto) {
+        setErrorMessage('Required dropdown values are missing.')
+        return
+      }
+
+      const feeData: Record<string, unknown> = {
         // Include ID for updates
         ...(editingFee?.id && { id: parseInt(editingFee.id.toString()) }),
-        reafCategoryDTO: {
-          id: parseInt(data.feeType) || 0,
-        },
-        reafFrequencyDTO: {
-          id: parseInt(data.frequency) || 0,
-        },
-        reafAccountTypeDTO: {
-          id: parseInt(data.debitAccount) || 0,
-        },
-        reafDebitAmount:
+        deleted: false,
+        enabled: true,
+        mffCategoryDTO: categoryDto,
+        mffFrequencyDTO: frequencyDto,
+        mffAccountTypeDTO: accountTypeDto,
+        mffDebitAmount:
           parseFloat(data.debitAmount?.replace(/,/g, '') || '0') || 0,
-        reafTotalAmount:
+        mffTotalAmount:
           parseFloat(data.totalAmount?.replace(/,/g, '') || '0') || 0,
-        reafCollectionDate: data.feeToBeCollected
+        mffCollectionDate: data.feeToBeCollected
           ? convertDatePickerToZonedDateTime(
               (data.feeToBeCollected as any).format('YYYY-MM-DD')
             )
           : '',
-        reafNextRecoveryDate: data.nextRecoveryDate
+        mffNextRecoveryDate: data.nextRecoveryDate
           ? convertDatePickerToZonedDateTime(
               (data.nextRecoveryDate as any).format('YYYY-MM-DD')
             )
           : '',
-        reafFeePercentage:
+        mffFeePercentage:
           parseFloat(data.feePercentage?.replace(/%/g, '') || '0') || 0,
-        reafVatPercentage:
+        mffVatPercentage:
           parseFloat(data.vatPercentage?.replace(/%/g, '') || '0') || 0,
-        reafCurrencyDTO: {
-          id: parseInt(data.currency || '0') || 0,
-        },
-        realEstateAssestDTO: {
-          id: projectId ? parseInt(projectId) : undefined,
-        },
+      }
+
+      if (currencyDto) {
+        feeData.mffCurrencyDTO = currencyDto
+      }
+
+      if (projectId) {
+        feeData.managementFirmDTO = {
+          id: parseInt(projectId),
+          deleted: false,
+          enabled: true,
+        }
       }
 
       const validationResult = projectFeeValidationSchema.safeParse(feeData)
@@ -262,7 +304,7 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
             issue.path.some(
               (path) =>
                 typeof path === 'string' &&
-                (path.includes('reafCategoryDTO') || path.includes('feeType'))
+                (path.includes('mffCategoryDTO') || path.includes('feeType'))
             ) ||
             issue.message.toLowerCase().includes('fee') ||
             issue.message.toLowerCase().includes('category')
@@ -306,6 +348,7 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
             ?.configValue || `Account ${data.debitAccount}`
 
         const feeForForm = {
+          id: editingFee?.id?.toString?.() || editingFee?.id || undefined,
           // Map to table column names with display labels
           FeeType: feeTypeLabel,
           Frequency: frequencyLabel,
@@ -344,6 +387,8 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
           feePercentage: data.feePercentage,
           vatPercentage: data.vatPercentage,
           totalAmount: data.totalAmount,
+          enabled: true,
+          deleted: false,
           realEstateAssetDTO: {
             id: projectId ? parseInt(projectId) : undefined,
           },
@@ -685,7 +730,7 @@ export const RightSlideProjectFeeDetailsPanel: React.FC<
               )}
               {renderDatePickerField(
                 'feeToBeCollected',
-                getLabel('CDL_BPA_FEES_TOTAL', 'Total Fees Due'),
+                getLabel('CDL_BPA_FEE_COLLECTION_DATE', 'Fee Collection Date'),
                 6,
                 true // Required
               )}

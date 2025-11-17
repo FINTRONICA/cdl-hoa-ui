@@ -81,43 +81,43 @@ export function mapStep1ToCapitalPartnerPayload(
 
   // Only add fields that have actual values from UI
   if (formData.investorId) {
-    payload.capitalPartnerId = formData.investorId
+    payload.ownerRegistryId = formData.investorId
   }
 
   if (formData.investorFirstName) {
-    payload.capitalPartnerName = formData.investorFirstName
+    payload.ownerRegistryName = formData.investorFirstName
   }
 
   if (formData.investorMiddleName) {
-    payload.capitalPartnerMiddleName = formData.investorMiddleName
+    payload.ownerRegistryMiddleName = formData.investorMiddleName
   }
 
   if (formData.investorLastName) {
-    payload.capitalPartnerLastName = formData.investorLastName
+    payload.ownerRegistryLastName = formData.investorLastName
   }
 
   if (formData.ownership) {
-    payload.capitalPartnerOwnershipPercentage = parseFloat(formData.ownership)
+    payload.ownerRegistryOwnershipPercentage = parseFloat(formData.ownership)
   }
 
   if (formData.idNumber) {
-    payload.capitalPartnerIdNo = formData.idNumber
+    payload.ownerRegistryIdNo = formData.idNumber
   }
 
   if (formData.accountContact) {
-    payload.capitalPartnerTelephoneNo = formData.accountContact
+    payload.ownerRegistryTelephoneNo = formData.accountContact
   }
 
   if (formData.mobileNumber) {
-    payload.capitalPartnerMobileNo = formData.mobileNumber
+    payload.ownerRegistryMobileNo = formData.mobileNumber
   }
 
   if (formData.email) {
-    payload.capitalPartnerEmail = formData.email
+    payload.ownerRegistryEmail = formData.email
   }
 
   if (formData.arabicName) {
-    payload.capitalPartnerLocaleName = formData.arabicName
+    payload.ownerRegistryLocaleName = formData.arabicName
   }
 
   // Add expiry date if it exists
@@ -140,7 +140,7 @@ export function mapStep1ToCapitalPartnerPayload(
   }
 
   // Add required defaults
-  payload.capitalPartnerOwnerNumber = 1073741824
+  payload.ownerRegistryOwnerNumber = 1073741824
   payload.isCurrent = true
   payload.deleted = false
 
@@ -151,5 +151,5 @@ export function mapStep1ToCapitalPartnerPayload(
  * Validates Step1 form data before mapping
  */
 // Step 1 validation is now handled exclusively by Zod schema in
-// `src/lib/validation/capitalPartnerSchemas.ts` and enforced in
+// `src/lib/validation/ownerRegistrySchemas.ts` and enforced in
 // `InvestorStepper/steps/Step1.tsx`.

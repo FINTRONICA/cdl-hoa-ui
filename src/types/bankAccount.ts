@@ -36,6 +36,7 @@ export interface BankAccountValidationResponse {
 }
 
 export interface BankAccountData {
+  id?: number | null;
   accountType: string;
   accountNumber: string;
   ibanNumber: string;
@@ -43,7 +44,7 @@ export interface BankAccountData {
   accountTitle: string;
   currencyCode: string;
   isValidated: boolean;
-  realEstateAssestDTO: {
+  managementFirmDTO: {
     id: number;
   };
 }

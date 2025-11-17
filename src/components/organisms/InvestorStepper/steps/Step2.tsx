@@ -50,7 +50,7 @@ import { FormError } from '../../../atoms/FormError'
 
 interface Step2Props {
   onSaveAndNext?: (data: any) => void
-  capitalPartnerId?: number | null
+  ownerRegistryId?: number | null
   isEditMode?: boolean
   isViewMode?: boolean
 }
@@ -61,7 +61,7 @@ export interface Step2Ref {
 
 const Step2 = forwardRef<Step2Ref, Step2Props>(
   (
-    { onSaveAndNext, capitalPartnerId, isEditMode, isViewMode = false },
+    { onSaveAndNext, ownerRegistryId, isEditMode, isViewMode = false },
     ref
   ) => {
     const {
@@ -79,11 +79,6 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
 
     const [selectedProject, setSelectedProject] = useState<any>(null)
     const [isFormInitialized, setIsFormInitialized] = useState<boolean>(false)
-
-    useEffect(() => {
-      setIsFormInitialized(false)
-      setSelectedProject(null)
-    }, [isEditMode, capitalPartnerId])
 
     // Auto-calculate Total Capital Partner Payment
     useEffect(() => {
@@ -119,10 +114,10 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
       isLoading: isLoadingExistingUnit,
       error: errorLoadingUnit,
     } = useGetEnhanced<CapitalPartnerUnitResponse[]>(
-      `${API_ENDPOINTS.CAPITAL_PARTNER_UNIT.GET_ALL}?capitalPartnerId.equals=${capitalPartnerId || 0}`,
+      `${API_ENDPOINTS.OWNER_REGISTRY_UNIT.GET_ALL}?ownerRegistryId.equals=${ownerRegistryId || 0}`,
       {},
       {
-        enabled: Boolean(isEditMode && capitalPartnerId),
+        enabled: Boolean(isEditMode && ownerRegistryId),
         // Disable caching to always fetch fresh data
         gcTime: 0,
         staleTime: 0,
@@ -139,11 +134,68 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
     const isUnitDataReady =
       !isLoadingExistingUnit && !errorLoadingUnit && !!unitId
 
+    // Clear all fields when component mounts or when entering create mode
+    // This must be after existingUnitData is declared
+    useEffect(() => {
+      setIsFormInitialized(false)
+      setSelectedProject(null)
+      
+      // Clear ALL form values when:
+      // 1. It's create mode (no ownerRegistryId), OR
+      // 2. We're in Step2 but there's no existing unit data yet (creating unit for existing owner)
+      // We need to clear because isEditMode becomes true after Step1 saves, but Step2 should be empty
+      // Only clear if not loading and there's no existing data
+      if ((!isEditMode || (!isLoadingExistingUnit && (!existingUnitData || existingUnitData.length === 0))) && !isFormInitialized) {
+        // Basic unit fields
+        setValue('projectNameDropdown', '', { shouldDirty: false, shouldTouch: false })
+        setValue('projectId', '', { shouldDirty: false, shouldTouch: false })
+        setValue('developerIdInput', '', { shouldDirty: false, shouldTouch: false })
+        setValue('developerNameInput', '', { shouldDirty: false, shouldTouch: false })
+        setValue('floor', '', { shouldDirty: false, shouldTouch: false })
+        setValue('bedroomCount', '', { shouldDirty: false, shouldTouch: false })
+        setValue('unitNoQaqood', '', { shouldDirty: false, shouldTouch: false })
+        setValue('unitStatus', '', { shouldDirty: false, shouldTouch: false })
+        setValue('buildingName', '', { shouldDirty: false, shouldTouch: false })
+        setValue('plotSize', '', { shouldDirty: false, shouldTouch: false })
+        setValue('propertyId', '', { shouldDirty: false, shouldTouch: false })
+        setValue('unitIban', '', { shouldDirty: false, shouldTouch: false })
+        
+        // Purchase/Registration fields
+        setValue('registrationFees', '', { shouldDirty: false, shouldTouch: false })
+        setValue('agentName', '', { shouldDirty: false, shouldTouch: false })
+        setValue('agentNationalId', '', { shouldDirty: false, shouldTouch: false })
+        setValue('grossSalePrice', '', { shouldDirty: false, shouldTouch: false })
+        setValue('VatApplicable', false, { shouldDirty: false, shouldTouch: false })
+        setValue('SalesPurchaseAgreement', false, { shouldDirty: false, shouldTouch: false })
+        setValue('ProjectPaymentPlan', false, { shouldDirty: false, shouldTouch: false })
+        setValue('salePrice', '', { shouldDirty: false, shouldTouch: false })
+        setValue('deedNo', '', { shouldDirty: false, shouldTouch: false })
+        setValue('contractNo', '', { shouldDirty: false, shouldTouch: false })
+        setValue('agreementDate', null, { shouldDirty: false, shouldTouch: false })
+        setValue('ModificationFeeNeeded', false, { shouldDirty: false, shouldTouch: false })
+        setValue('ReservationBookingForm', false, { shouldDirty: false, shouldTouch: false })
+        setValue('OqoodPaid', false, { shouldDirty: false, shouldTouch: false })
+        setValue('worldCheck', false, { shouldDirty: false, shouldTouch: false })
+        setValue('paidInEscrow', '', { shouldDirty: false, shouldTouch: false })
+        setValue('paidOutEscrow', '', { shouldDirty: false, shouldTouch: false })
+        setValue('totalPaid', '', { shouldDirty: false, shouldTouch: false })
+        setValue('qaqoodAmount', '', { shouldDirty: false, shouldTouch: false })
+        setValue('unitAreaSize', '', { shouldDirty: false, shouldTouch: false })
+        setValue('forfeitAmount', '', { shouldDirty: false, shouldTouch: false })
+        setValue('dldAmount', '', { shouldDirty: false, shouldTouch: false })
+        setValue('refundAmount', '', { shouldDirty: false, shouldTouch: false })
+        setValue('transferredAmount', '', { shouldDirty: false, shouldTouch: false })
+        setValue('unitRemarks', '', { shouldDirty: false, shouldTouch: false })
+        
+        clearErrors()
+      }
+    }, [isEditMode, ownerRegistryId, existingUnitData, isLoadingExistingUnit, setValue, clearErrors, isFormInitialized])
+
     const {
       data: existingUnitPurchaseData,
       isLoading: isLoadingExistingPurchase,
     } = useGetEnhanced<CapitalPartnerUnitPurchaseResponse[]>(
-      `${API_ENDPOINTS.CAPITAL_PARTNER_UNIT_PURCHASE.GET_ALL}?capitalPartnerUnitId.equals=${unitId || 0}`,
+      `${API_ENDPOINTS.OWNER_REGISTRY_UNIT_PURCHASE.GET_ALL}?ownerRegistryUnitId.equals=${unitId || 0}`,
       {},
       {
         enabled: Boolean(isEditMode && isUnitDataReady && unitId),
@@ -160,7 +212,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
       data: existingUnitBookingData,
       isLoading: isLoadingExistingBooking,
     } = useGetEnhanced<any[]>(
-      `${API_ENDPOINTS.CAPITAL_PARTNER_UNIT_BOOKING.GET_ALL}?capitalPartnerUnitId.equals=${unitId || 0}`,
+      `${API_ENDPOINTS.OWNER_REGISTRY_UNIT_BOOKING.GET_ALL}?ownerRegistryUnitId.equals=${unitId || 0}`,
       {},
       {
         enabled: Boolean(isEditMode && isUnitDataReady && unitId),
@@ -184,7 +236,9 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
         !isFormInitialized &&
         projectOptions.length > 0 &&
         propertyIds &&
-        propertyIds.length > 0
+        propertyIds.length > 0 &&
+        unitStatuses &&
+        unitStatuses.length > 0
       ) {
         const unitData = existingUnitData[0]
         if (!unitData) return
@@ -195,21 +249,27 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
             : null
 
         const projectOption = projectOptions.find(
-          (project) => project.projectId === unitData.realEstateAssestDTO?.reaId
+          (project) => project.projectId === unitData.managementFirmDTO?.mfId
         )
 
         if (projectOption) {
           setSelectedProject(projectOption)
           setValue('projectNameDropdown', projectOption.settingValue)
           setValue('projectId', projectOption.projectId)
-          setValue('developerIdInput', projectOption.developerId)
-          setValue('developerNameInput', projectOption.developerName)
+          setValue('developerIdInput', projectOption.assetRegisterId)
+          setValue('developerNameInput', projectOption.assetRegisterName)
         }
 
         setValue('floor', unitData.floor || '')
         setValue('bedroomCount', unitData.noofBedroom || '')
         setValue('unitNoQaqood', unitData.unitRefId || '')
-        setValue('unitStatus', unitData.unitStatusDTO?.settingValue || '')
+        
+        // Find the unit status option by ID to get the correct settingValue
+        const unitStatusOption = unitStatuses?.find(
+          (status) => status.id === unitData.unitStatusDTO?.id
+        )
+        setValue('unitStatus', unitStatusOption?.settingValue || unitData.unitStatusDTO?.settingValue || '')
+        
         setValue('buildingName', unitData.towerName || '')
         setValue('plotSize', unitData.unitPlotSize || '')
         const propertyIdOption = propertyIds?.find(
@@ -221,64 +281,64 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
         if (purchaseData) {
           setValue(
             'registrationFees',
-            purchaseData.cpupUnitRegistrationFee?.toString() || ''
+            purchaseData.ownupUnitRegistrationFee?.toString() || ''
           )
-          setValue('agentName', purchaseData.cpupAgentName || '')
-          setValue('agentNationalId', purchaseData.cpupAgentId || '')
+          setValue('agentName', purchaseData.ownupAgentName || '')
+          setValue('agentNationalId', purchaseData.ownupAgentId || '')
           setValue(
             'grossSalePrice',
-            purchaseData.cpupGrossSaleprice?.toString() || ''
+            purchaseData.ownupGrossSaleprice?.toString() || ''
           )
-          setValue('VatApplicable', purchaseData.cpupVatApplicable || false)
+          setValue('VatApplicable', purchaseData.ownupVatApplicable || false)
           setValue(
             'SalesPurchaseAgreement',
-            purchaseData.cpupSalePurchaseAgreement || false
+            purchaseData.ownupSalePurchaseAgreement || false
           )
           setValue(
             'ProjectPaymentPlan',
-            purchaseData.cpupProjectPaymentPlan || false
+            purchaseData.ownupProjectPaymentPlan || false
           )
-          setValue('salePrice', purchaseData.cpupSalePrice?.toString() || '')
-          setValue('deedNo', purchaseData.cpupDeedNo || '')
-          setValue('contractNo', purchaseData.cpupAgreementNo || '')
+          setValue('salePrice', purchaseData.ownupSalePrice?.toString() || '')
+          setValue('deedNo', purchaseData.ownupDeedNo || '')
+          setValue('contractNo', purchaseData.ownupAgreementNo || '')
           setValue(
             'agreementDate',
-            purchaseData.cpupAgreementDate
-              ? dayjs(purchaseData.cpupAgreementDate)
+            purchaseData.ownupAgreementDate
+              ? dayjs(purchaseData.ownupAgreementDate)
               : null
           )
           setValue(
             'ModificationFeeNeeded',
-            purchaseData.cpupModificationFeeNeeded || false
+            purchaseData.ownupModificationFeeNeeded || false
           )
           setValue(
             'ReservationBookingForm',
-            purchaseData.cpupReservationBookingForm || false
+            purchaseData.ownupReservationBookingForm || false
           )
-          setValue('OqoodPaid', purchaseData.cpupOqoodPaid || false)
-          setValue('worldCheck', purchaseData.cpupWorldCheck || false)
+          setValue('OqoodPaid', purchaseData.ownupOqoodPaid || false)
+          setValue('worldCheck', purchaseData.ownupWorldCheck || false)
           setValue(
             'paidInEscrow',
-            purchaseData.cpupAmtPaidToDevInEscorw?.toString() || ''
+            purchaseData.ownupAmtPaidToDevInEscorw?.toString() || ''
           )
           setValue(
             'paidOutEscrow',
-            purchaseData.cpupAmtPaidToDevOutEscorw?.toString() || ''
+            purchaseData.ownupAmtPaidToDevOutEscorw?.toString() || ''
           )
           setValue(
             'totalPaid',
-            purchaseData.cpupTotalAmountPaid?.toString() || ''
+            purchaseData.ownupTotalAmountPaid?.toString() || ''
           )
-          setValue('qaqoodAmount', purchaseData.cpupOqoodAmountPaid || '')
-          setValue('unitAreaSize', purchaseData.cpupUnitAreaSize || '')
-          setValue('forfeitAmount', purchaseData.cpupForfeitAmount || '')
-          setValue('dldAmount', purchaseData.cpupDldAmount || '')
-          setValue('refundAmount', purchaseData.cpupRefundAmount || '')
+          setValue('qaqoodAmount', purchaseData.ownupOqoodAmountPaid || '')
+          setValue('unitAreaSize', purchaseData.ownupUnitAreaSize || '')
+          setValue('forfeitAmount', purchaseData.ownupForfeitAmount || '')
+          setValue('dldAmount', purchaseData.ownupDldAmount || '')
+          setValue('refundAmount', purchaseData.ownupRefundAmount || '')
           setValue(
             'transferredAmount',
-            purchaseData.cpupTransferredAmount || ''
+            purchaseData.ownupTransferredAmount || ''
           )
-          setValue('unitRemarks', purchaseData.cpupRemarks || '')
+          setValue('unitRemarks', purchaseData.ownupRemarks || '')
         }
 
         setIsFormInitialized(true)
@@ -294,6 +354,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
       setValue,
       projectOptions,
       propertyIds,
+      unitStatuses,
       isFormInitialized,
     ])
     const handleProjectSelection = (projectId: string) => {
@@ -308,12 +369,12 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
           shouldDirty: true,
           shouldTouch: true,
         })
-        setValue('developerIdInput', selectedProjectData.developerId, {
+        setValue('developerIdInput', selectedProjectData.assetRegisterId, {
           shouldValidate: true,
           shouldDirty: true,
           shouldTouch: true,
         })
-        setValue('developerNameInput', selectedProjectData.developerName, {
+        setValue('developerNameInput', selectedProjectData.assetRegisterName, {
           shouldValidate: true,
           shouldDirty: true,
           shouldTouch: true,
@@ -327,53 +388,78 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
       }
     }
     const handleSaveAndNext = async () => {
-      
       try {
-        // Validate required fields first so UI shows errors immediately
-        const requiredValid = await (async () => {
-          try {
-            const result = CapitalPartnerStep2Schema.safeParse({
-              projectNameDropdown: watch('projectNameDropdown'),
-              projectId: watch('projectId'),
-              developerIdInput: watch('developerIdInput'),
-              developerNameInput: watch('developerNameInput'),
-              unitNoQaqood: watch('unitNoQaqood'),
-              unitStatus: watch('unitStatus'),
-              plotSize: watch('plotSize'),
-              propertyId: watch('propertyId'),
-            })
-            if (!result.success) {
-              const fieldsToCheck = [
-                'projectNameDropdown',
-                'projectId',
-                'developerIdInput',
-                'developerNameInput',
-                'unitNoQaqood',
-                'unitStatus',
-                'plotSize',
-                'propertyId',
-              ] as const
-              clearErrors(fieldsToCheck as unknown as any)
-              result.error.issues.forEach((issue) => {
-                const field = (issue.path?.[0] as string) || ''
-                if (field) {
-                  setError(field as any, {
-                    type: 'manual',
-                    message: issue.message,
-                  })
-                }
-              })
-              return false
-            }
-            return true
-          } catch {
-            return false
-          }
-        })()
-        if (!requiredValid) {
-          throw new Error('Please fill all required fields')
+        // First, trigger React Hook Form validation to show field-level errors
+        const fieldsToValidate = [
+          'projectNameDropdown',
+          'projectId',
+          'developerIdInput',
+          'developerNameInput',
+          'unitNoQaqood',
+          'unitStatus',
+          'plotSize',
+          'propertyId',
+        ] as const
+        
+        // Trigger validation for all required fields
+        const isValid = await trigger(fieldsToValidate as unknown as any[])
+        
+        // Get form values for Zod validation
+        const formValues = {
+          projectNameDropdown: watch('projectNameDropdown'),
+          projectId: watch('projectId'),
+          developerIdInput: watch('developerIdInput'),
+          developerNameInput: watch('developerNameInput'),
+          unitNoQaqood: watch('unitNoQaqood'),
+          unitStatus: watch('unitStatus'),
+          plotSize: watch('plotSize'),
+          propertyId: watch('propertyId'),
         }
-        if (!capitalPartnerId) {
+        
+        // Validate with Zod to get specific error messages
+        const zodResult = CapitalPartnerStep2Schema.safeParse(formValues)
+        
+        if (!isValid || !zodResult.success) {
+          // Clear existing errors first
+          clearErrors(fieldsToValidate as unknown as any)
+          
+          // Set errors from Zod validation for better error messages
+          if (!zodResult.success) {
+            zodResult.error.issues.forEach((issue) => {
+              const field = (issue.path?.[0] as string) || ''
+              if (field) {
+                setError(field as any, {
+                  type: 'manual',
+                  message: issue.message,
+                })
+              }
+            })
+          }
+          
+          // Also trigger validation again to show React Hook Form errors
+          await trigger(fieldsToValidate as unknown as any[])
+          
+          // Scroll to first error field to make it visible
+          if (!zodResult.success && zodResult.error.issues.length > 0) {
+            const firstError = zodResult.error.issues[0]
+            const firstErrorField = (firstError.path?.[0] as string) || ''
+            if (firstErrorField) {
+              // Try to find the field element by name or ID
+              const element = document.querySelector(`[name="${firstErrorField}"]`) as HTMLElement
+              if (element) {
+                setTimeout(() => {
+                  element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  element.focus()
+                }, 100)
+              }
+            }
+          }
+          
+          // Throw error to prevent navigation and show error message
+          throw new Error('Please fill all required fields correctly')
+        }
+        
+        if (!ownerRegistryId) {
           throw new Error('Capital Partner ID is required from Step1')
         }
         const formData: Step2FormData = {
@@ -415,35 +501,41 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
           transferredAmount: watch('transferredAmount'),
           unitRemarks: watch('unitRemarks'),
         }
-      
-        const zodResult = CapitalPartnerStep2Schema.safeParse(formData)
-       
-        if (!zodResult.success) {
-          const fieldsToCheck = [
-            'projectNameDropdown',
-            'projectId',
-            'developerIdInput',
-            'developerNameInput',
-            'unitNoQaqood',
-            'unitStatus',
-            'plotSize',
-            'propertyId',
-          ] as const
-          clearErrors(fieldsToCheck as unknown as any)
-          zodResult.error.issues.forEach((issue) => {
+
+        // Validate complete form data with Zod as a final check
+        const finalZodResult = CapitalPartnerStep2Schema.safeParse(formData)
+
+        if (!finalZodResult.success) {
+          // Clear existing errors first
+          clearErrors(fieldsToValidate as unknown as any)
+          
+          // Set errors from Zod validation
+          finalZodResult.error.issues.forEach((issue) => {
             const field = (issue.path?.[0] as string) || ''
             if (field) {
               setError(field as any, { type: 'manual', message: issue.message })
             }
           })
+          
+          // Trigger validation again to ensure errors are visible
+          await trigger(fieldsToValidate as unknown as any[])
+          
+          // Scroll to first error field
+          const firstErrorField = finalZodResult.error.issues[0]?.path?.[0] as string
+          if (firstErrorField) {
+            const element = document.querySelector(`[name="${firstErrorField}"]`)
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              ;(element as HTMLElement).focus()
+            }
+          }
+          
           throw new Error('Please fix validation errors')
-        } else {
-          clearErrors()
         }
         const { unitPayload, bookingPayload, purchasePayload } =
           mapStep2ToCapitalPartnerUnitPayload(
             formData,
-            capitalPartnerId,
+            ownerRegistryId,
             unitStatuses,
             selectedProject,
             propertyIds
@@ -483,7 +575,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
         if (Object.keys(bookingPayload).length > 0) {
           const bookingPayloadWithId = {
             ...bookingPayload,
-            capitalPartnerUnitDTOS: [
+            ownerRegistryUnitDTOS: [
               {
                 id: finalUnitId,
               },
@@ -491,20 +583,46 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
           }
 
           try {
+            if (
+              isEditMode &&
+              existingUnitBookingData &&
+              existingUnitBookingData.length > 0
+            ) {
+              const existingBookingId = existingUnitBookingData[0]?.id
+              if (existingBookingId) {
+                const updateBookingPayload = {
+                  ...bookingPayloadWithId,
+                  id: existingBookingId,
+                }
+                bookingResponse =
+                  await capitalPartnerUnitBookingService.updateCapitalPartnerUnitBooking(
+                    existingBookingId,
+                    updateBookingPayload
+                  )
+              } else {
             bookingResponse =
               await capitalPartnerUnitBookingService.createCapitalPartnerUnitBooking(
                 bookingPayloadWithId
               )
-          } catch (error) {}
+              }
+            } else {
+              bookingResponse =
+                await capitalPartnerUnitBookingService.createCapitalPartnerUnitBooking(
+                  bookingPayloadWithId
+                )
+            }
+          } catch (error) {
+            console.error('Error saving booking:', error)
+          }
         }
         if (Object.keys(purchasePayload).length > 0) {
           const purchasePayloadWithId = {
             ...purchasePayload,
-            capitalPartnerUnitDTO: {
+            ownerRegistryUnitDTO: {
               id: finalUnitId,
-              capitalPartnerDTOS: [
+              ownerRegistryDTOS: [
                 {
-                  id: capitalPartnerId,
+                  id: ownerRegistryId,
                 },
               ],
             },
@@ -539,7 +657,9 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                   purchasePayloadWithId
                 )
             }
-          } catch (error) {}
+          } catch (error) {
+            console.error('Error saving purchase:', error)
+          }
         }
         if (onSaveAndNext) {
           onSaveAndNext({ unitResponse, bookingResponse, purchaseResponse })
@@ -663,7 +783,6 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
             name={name}
             control={control}
             rules={required ? { required: `${label} is required` } : {}}
-            defaultValue={defaultValue}
             render={({ field }) => (
               <>
                 <TextField
@@ -672,6 +791,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                   fullWidth
                   disabled={disabled || isViewMode}
                   error={!!errors[name]}
+                  helperText={errors[name]?.message as string}
                   InputLabelProps={{ sx: labelSx }}
                   InputProps={{ sx: valueSx }}
                   sx={{
@@ -687,6 +807,22 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                         },
                       },
                     }),
+                    ...(!!errors[name] && !isViewMode && {
+                      '& .MuiOutlinedInput-root': {
+                        '& fieldset': {
+                          borderColor: '#d32f2f',
+                          borderWidth: '1px',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: '#d32f2f',
+                          borderWidth: '1px',
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: '#d32f2f',
+                          borderWidth: '1px',
+                        },
+                      },
+                    }),
                   }}
                   required={required}
                   value={field.value || ''}
@@ -698,11 +834,17 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                     // re-validate this field to update resolver-based errors
                     trigger(name as any)
                   }}
+                  onBlur={() => {
+                    field.onBlur()
+                    trigger(name as any)
+                  }}
                 />
-                <FormError
-                  error={errors[name]?.message as string}
-                  touched={true}
-                />
+                {errors[name] && (
+                  <FormError
+                    error={errors[name]?.message as string}
+                    touched={true}
+                  />
+                )}
               </>
             )}
           />
@@ -736,6 +878,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                   {...field}
                   label={loading ? `Loading...` : label}
                   required={required}
+                  displayEmpty
                   sx={{
                     ...selectStyles,
                     ...valueSx,
@@ -753,18 +896,60 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                   IconComponent={KeyboardArrowDownIcon}
                   disabled={loading || isViewMode}
                   value={field.value || ''}
-                  onChange={field.onChange}
+                  onChange={(e) => {
+                    field.onChange(e)
+                    if (errors[name]) {
+                      clearErrors(name as any)
+                    }
+                    trigger(name as any)
+                  }}
+                  onBlur={() => {
+                    field.onBlur()
+                    trigger(name as any)
+                  }}
+                  renderValue={(selected) => {
+                    if (!selected || selected === '') {
+                      return <span style={{ color: '#9ca3af' }}>Select {label}</span>
+                    }
+                    const selectedOption = options.find(
+                      (opt) => opt.settingValue === selected
+                    )
+                    return selectedOption ? (
+                      <span>{selectedOption.displayName}</span>
+                    ) : (
+                      <span style={{ color: '#666' }}>{selected}</span>
+                    )
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 300,
+                      },
+                    },
+                  }}
                 >
+                  {!loading && options.length === 0 && (
+                    <MenuItem disabled value="">
+                      <em>No options available</em>
+                    </MenuItem>
+                  )}
+                  {loading && (
+                    <MenuItem disabled value="">
+                      <em>Loading options...</em>
+                    </MenuItem>
+                  )}
                   {options.map((option) => (
                     <MenuItem key={option.id} value={option.settingValue}>
                       {option.displayName}
                     </MenuItem>
                   ))}
                 </Select>
-                <FormError
-                  error={errors[name]?.message as string}
-                  touched={true}
-                />
+                {errors[name] && (
+                  <FormError
+                    error={errors[name]?.message as string}
+                    touched={true}
+                  />
+                )}
               </FormControl>
             )}
           />
@@ -798,6 +983,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                   {...field}
                   label={loading ? `Loading...` : label}
                   required={required}
+                  displayEmpty
                   sx={{
                     ...selectStyles,
                     ...valueSx,
@@ -818,18 +1004,58 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                   onChange={(e) => {
                     field.onChange(e)
                     handleProjectSelection(e.target.value as string)
+                    if (errors[name]) {
+                      clearErrors(name as any)
+                    }
+                    trigger(name as any)
+                  }}
+                  onBlur={() => {
+                    field.onBlur()
+                    trigger(name as any)
+                  }}
+                  renderValue={(selected) => {
+                    if (!selected || selected === '') {
+                      return <span style={{ color: '#9ca3af' }}>Select {label}</span>
+                    }
+                    const selectedOption = options.find(
+                      (opt) => opt.settingValue === selected
+                    )
+                    return selectedOption ? (
+                      <span>{selectedOption.displayName}</span>
+                    ) : (
+                      <span style={{ color: '#666' }}>{selected}</span>
+                    )
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      style: {
+                        maxHeight: 300,
+                      },
+                    },
                   }}
                 >
+                  {!loading && options.length === 0 && (
+                    <MenuItem disabled value="">
+                      <em>No options available</em>
+                    </MenuItem>
+                  )}
+                  {loading && (
+                    <MenuItem disabled value="">
+                      <em>Loading options...</em>
+                    </MenuItem>
+                  )}
                   {options.map((option) => (
                     <MenuItem key={option.id} value={option.settingValue}>
                       {option.displayName}
                     </MenuItem>
                   ))}
                 </Select>
-                <FormError
-                  error={errors[name]?.message as string}
-                  touched={true}
-                />
+                {errors[name] && (
+                  <FormError
+                    error={errors[name]?.message as string}
+                    touched={true}
+                  />
+                )}
               </FormControl>
             )}
           />
@@ -917,8 +1143,8 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
             <Grid container rowSpacing={4} columnSpacing={2}>
               {renderProjectSelectField(
                 'projectNameDropdown',
-                'CDL_CP_BPA_NAME',
-                'Project Name',
+                'CDL_OWNER_UNIT_MF_NAME',
+                'Management Firm Name',
                 projectOptions,
                 6,
                 true,
@@ -926,42 +1152,42 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderTextField(
                 'projectId',
-                'CDL_CP_PROP_NUMBER',
-                'Project ID*',
+                'CDL_OWNER_UNIT_MF_ID',
+                'Management Firm ID*',
                 '',
                 6,
-                !selectedProject,
+                !selectedProject || isEditMode,
                 true
               )}
               {renderTextField(
                 'developerIdInput',
-                'CDL_CP_BP_ID',
-                'Developer ID*',
+                'CDL_OWNER_UNIT_AR_ID',
+                'Asset Register ID*',
                 '',
                 6,
-                !selectedProject,
+                !selectedProject || isEditMode,
                 true
               )}
               {renderTextField(
                 'developerNameInput',
-                'CDL_CP_BP_NAME',
-                'Developer Name',
+                'CDL_OWNER_UNIT_AR_NAME',
+                'Asset Register Name',
                 '',
                 6,
-                !selectedProject,
+                !selectedProject || isEditMode,
                 true
               )}
-              {renderTextField('floor', 'CDL_CP_FLOOR', 'Floor', '', 3)}
+              {renderTextField('floor', 'CDL_OWNER_UNIT_FLOOR', 'Floor', '', 3)}
               {renderTextField(
                 'bedroomCount',
-                'CDL_CP_NOOF_BED',
+                'CDL_OWNER_UNIT_NOOF_BED',
                 'No. of Bedroom',
                 '',
                 3
               )}
               {renderTextField(
                 'unitNoQaqood',
-                'CDL_CP_UNIT_NUMBER',
+                'CDL_OWNER_UNIT_NUMBER',
                 'Unit no. Qaqood format',
                 '',
                 3,
@@ -970,7 +1196,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderApiSelectField(
                 'unitStatus',
-                'CDL_CP_UNIT_STATUS',
+                'CDL_OWNER_UNIT_STATUS',
                 'Unit Status',
                 unitStatuses?.length
                   ? unitStatuses
@@ -981,7 +1207,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderTextField(
                 'buildingName',
-                'CDL_CP_BUILDING_NAME',
+                'CDL_OWNER_UNIT_BUILDING_NAME',
                 'Building Name',
                 '',
                 6,
@@ -990,7 +1216,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderTextField(
                 'plotSize',
-                'CDL_CP_PLOT_SIZE',
+                'CDL_OWNER_UNIT_PLOT_SIZE',
                 'Plot Size*',
                 '',
                 6,
@@ -999,7 +1225,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderApiSelectField(
                 'propertyId',
-                'CDL_CP_PROP_NUMBER',
+                'CDL_OWNER_UNIT_PROP_NUMBER',
                 'Property ID',
                 propertyIds?.length
                   ? propertyIds
@@ -1020,7 +1246,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                       fullWidth
                       disabled={isViewMode}
                       label={getLabel(
-                        'CDL_CP_UNIT_IBAN',
+                        'CDL_OWNER_UNIT_IBAN',
                         currentLanguage,
                         'Unit IBAN'
                       )}
@@ -1032,26 +1258,25 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                             <Button
                               variant="contained"
                               sx={{
-                                color: '#2563EB',
-                                borderRadius: '24px',
-                                textTransform: 'none',
-                                background: 'var(--UIColors-Blue-100, #DBEAFE)',
-
-                                boxShadow: 'none',
-                                '&:hover': {
-                                  background: '#D0E3FF',
-                                  boxShadow: 'none',
-                                },
-                                minWidth: '120px',
+                                minWidth: '100px',
                                 height: '36px',
-
+                                gap: '6px',
+                                opacity: 1,
+                                paddingTop: '2px',
+                                paddingRight: '3px',
+                                paddingBottom: '2px',
+                                paddingLeft: '3px',
+                                borderRadius: '6px',
+                                backgroundColor: '#2563EB',
+                                color: '#FFFFFF',
+                                boxShadow: 'none',
                                 fontFamily: 'Outfit, sans-serif',
                                 fontWeight: 500,
                                 fontStyle: 'normal',
                                 fontSize: '14px',
-                                lineHeight: '24px',
-                                letterSpacing: '0.5px',
-                                verticalAlign: 'middle',
+                                lineHeight: '20px',
+                                letterSpacing: 0,
+                                px: 1,
                               }}
                               onClick={() => {}}
                             >
@@ -1070,7 +1295,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
 
               {renderTextField(
                 'registrationFees',
-                'CDL_CP_REG_FEE',
+                'CDL_OWNER_UNIT_REG_FEE',
                 'Unit Registration Fees',
                 '',
                 3,
@@ -1079,7 +1304,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderTextField(
                 'agentName',
-                'CDL_CP_AGENT_NAME',
+                'CDL_OWNER_UNIT_AGENT_NAME',
                 'Agent Name',
                 '',
                 3,
@@ -1088,7 +1313,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderTextField(
                 'agentNationalId',
-                'CDL_CP_AGENT_ID',
+                'CDL_OWNER_UNIT_AGENT_ID',
                 'Agent National ID',
                 '',
                 3,
@@ -1097,7 +1322,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderTextField(
                 'grossSalePrice',
-                'CDL_CP_GROSS_PRICE',
+                'CDL_OWNER_UNIT_GROSS_PRICE',
                 'Gross Sale Price',
                 '',
                 3,
@@ -1108,17 +1333,17 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               {[
                 {
                   name: 'VatApplicable',
-                  configId: 'CDL_CP_VAT_APPLICABLE',
+                  configId: 'CDL_OWNER_UNIT_VAT_APPLICABLE',
                   fallbackLabel: 'VAT Applicable',
                 },
                 {
                   name: 'SalesPurchaseAgreement',
-                  configId: 'CDL_CP_SPA',
+                  configId: 'CDL_OWNER_UNIT_SPA',
                   fallbackLabel: 'Sales Purchase Agreement',
                 },
                 {
                   name: 'ProjectPaymentPlan',
-                  configId: 'CDL_CP_PAYMENT_PLAN',
+                  configId: 'CDL_OWNER_UNIT_PAYMENT_PLAN',
                   fallbackLabel: 'Project Payment Plan',
                 },
               ].map(({ name, configId, fallbackLabel }) => (
@@ -1155,21 +1380,21 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
 
               {renderTextField(
                 'salePrice',
-                'CDL_CP_NET_PRICE',
+                'CDL_OWNER_UNIT_NET_PRICE',
                 'Sale Price',
                 '',
                 3
               )}
               {renderTextField(
                 'deedNo',
-                'CDL_CP_DEED_REF_NO',
+                'CDL_OWNER_UNIT_DEED_REF_NO',
                 'Deed No',
                 '',
                 3
               )}
               {renderTextField(
                 'contractNo',
-                'CDL_CP_CONTRACT_NO',
+                'CDL_OWNER_UNIT_CONTRACT_NO',
                 'Contract No',
                 '',
                 3
@@ -1182,7 +1407,7 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
                   render={({ field }) => (
                     <DatePicker
                       label={getLabel(
-                        'CDL_CP_AGREEMENT_DATE',
+                        'CDL_OWNER_UNIT_AGREEMENT_DATE',
                         currentLanguage,
                         'Agreement Date'
                       )}
@@ -1212,17 +1437,17 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               {[
                 {
                   name: 'ModificationFeeNeeded',
-                  configId: 'CDL_CP_FEE_REQ',
+                  configId: 'CDL_OWNER_UNIT_FEE_REQ',
                   fallbackLabel: 'Modification Fee Needed',
                 },
                 {
                   name: 'ReservationBookingForm',
-                  configId: 'CDL_CP_BOOKING',
+                  configId: 'CDL_OWNER_UNIT_BOOKING',
                   fallbackLabel: 'Reservation & Booking Form',
                 },
                 {
                   name: 'OqoodPaid',
-                  configId: 'CDL_CP_OQOOD_PAID',
+                  configId: 'CDL_OWNER_UNIT_OQOOD_PAID',
                   fallbackLabel: 'Oqood Paid',
                 },
               ].map(({ name, configId, fallbackLabel }) => (
@@ -1258,27 +1483,27 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               ))}
               {renderCheckboxField(
                 'worldCheck',
-                'CDL_CP_WORLD_STATUS',
+                'CDL_OWNER_UNIT_WORLD_STATUS',
                 'World Check',
                 6
               )}
               {renderTextField(
                 'paidInEscrow',
-                'CDL_CP_WITH_ESCROW',
+                'CDL_OWNER_UNIT_WITH_ESCROW',
                 'Amount Paid to Build Partner (Within Escrow)',
                 '',
                 6
               )}
               {renderTextField(
                 'paidOutEscrow',
-                'CDL_CP_OUTSIDE_ESCROW',
+                'CDL_OWNER_UNIT_OUTSIDE_ESCROW',
                 'Amount Paid to Build Partner (Outside Escrow)',
                 '',
                 6
               )}
               {renderTextField(
                 'totalPaid',
-                'CDL_CP_PARTNER_PAYMENT',
+                'CDL_OWNER_UNIT_PARTNER_PAYMENT',
                 'Total Capital Partner Payment',
                 '',
                 6,
@@ -1287,49 +1512,49 @@ const Step2 = forwardRef<Step2Ref, Step2Props>(
               )}
               {renderTextField(
                 'qaqoodAmount',
-                'CDL_CP_OQOOD_PAID',
+                'CDL_OWNER_UNIT_OQOOD_PAID',
                 'Qaqood Amount Paid',
                 '',
                 3
               )}
               {renderTextField(
                 'unitAreaSize',
-                'CDL_CP_UNIT_AREA',
+                'CDL_OWNER_UNIT_AREA',
                 'Unit Area Size',
                 '',
                 3
               )}
               {renderTextField(
                 'forfeitAmount',
-                'CDL_CP_FROFEIT_AMT',
+                'CDL_OWNER_UNIT_FROFEIT_AMT',
                 'Forfeit Amount',
                 '',
                 3
               )}
               {renderTextField(
                 'dldAmount',
-                'CDL_CP_DLD_FEE',
+                'CDL_OWNER_UNIT_DLD_FEE',
                 'Dld Amount',
                 '',
                 3
               )}
               {renderTextField(
                 'refundAmount',
-                'CDL_CP_REFUND_AMOUNT',
+                'CDL_OWNER_UNIT_REFUND_AMOUNT',
                 'Refund Amount',
                 '',
                 6
               )}
               {renderTextField(
                 'transferredAmount',
-                'CDL_CP_TRANS_AMT',
+                'CDL_OWNER_UNIT_TRANS_AMT',
                 'Transferred Amount',
                 '',
                 6
               )}
               {renderTextField(
                 'unitRemarks',
-                'CDL_CP_REMARKS',
+                'CDL_OWNER_UNIT_REMARKS',
                 'Remarks',
                 '',
                 12

@@ -78,7 +78,6 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
 
   const addFeeMutation = useSaveBuildPartnerIndividualFee()
 
-
   const { data: apiFeeData } = useBuildPartnerFeeById(
     mode === 'edit' && feeData?.id ? feeData.id : null
   )
@@ -97,13 +96,15 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
     getDisplayLabel,
   } = useFeeDropdownLabels()
 
-
-  const { data: buildPartnerLabels, getLabel } = useBuildPartnerLabelsWithCache()
+  const { data: buildPartnerLabels, getLabel } =
+    useBuildPartnerLabelsWithCache()
   const currentLanguage = useAppStore((state) => state.language) || 'EN'
   const getBuildPartnerLabelDynamic = useCallback(
     (configId: string): string => {
       const fallback = getBuildPartnerLabel(configId)
-      return buildPartnerLabels ? getLabel(configId, currentLanguage, fallback) : fallback
+      return buildPartnerLabels
+        ? getLabel(configId, currentLanguage, fallback)
+        : fallback
     },
     [buildPartnerLabels, currentLanguage, getLabel]
   )
@@ -127,15 +128,13 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
       currency: '',
       totalAmount: '',
     },
-    mode: 'onChange', 
+    mode: 'onChange',
   })
 
- 
   React.useEffect(() => {
     if (isOpen && mode === 'edit' && (apiFeeData || feeData)) {
       const dataToUse: any = apiFeeData || feeData
 
-      
       if (
         categoriesLoading ||
         frequenciesLoading ||
@@ -146,7 +145,6 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
       }
 
       try {
-        
         const feeTypeId =
           dataToUse.bpFeeCategoryDTO?.id?.toString() ||
           feeCategories
@@ -195,7 +193,6 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
                 ?.id?.toString() || dataToUse.debitAccount
             : '')
 
-       
         const feeCollectionDate =
           dataToUse.feeCollectionDate || dataToUse.feeToBeCollected || ''
         const feeToBeCollectedDate =
@@ -273,7 +270,6 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
     accountsLoading,
   ])
 
-
   const validateFeeField = (
     fieldName: string,
     value: any,
@@ -284,9 +280,15 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
       const requiredFields: Record<string, string> = {
         feeType: getBuildPartnerLabelDynamic('CDL_BP_FEES_TYPE_REQUIRED'),
         frequency: getBuildPartnerLabelDynamic('CDL_BP_FEES_FREQ_REQUIRED'),
-        debitAccount: getBuildPartnerLabelDynamic('CDL_BP_FEES_ACCOUNT_REQUIRED'),
-        feeToBeCollected: getBuildPartnerLabelDynamic('CDL_BP_FEES_COLLECTION_DATE_REQUIRED'),
-        debitAmount: getBuildPartnerLabelDynamic('CDL_BP_FEES_DEBIT_AMOUNT_REQUIRED'),
+        debitAccount: getBuildPartnerLabelDynamic(
+          'CDL_BP_FEES_ACCOUNT_REQUIRED'
+        ),
+        feeToBeCollected: getBuildPartnerLabelDynamic(
+          'CDL_BP_FEES_COLLECTION_DATE_REQUIRED'
+        ),
+        debitAmount: getBuildPartnerLabelDynamic(
+          'CDL_BP_FEES_DEBIT_AMOUNT_REQUIRED'
+        ),
         totalAmount: getBuildPartnerLabelDynamic('CDL_BP_FEES_TOTAL_REQUIRED'),
         vatPercentage: getBuildPartnerLabelDynamic('CDL_BP_FEES_VAT_REQUIRED'),
         currency: getBuildPartnerLabelDynamic('CDL_BP_FEES_CURRENCY_REQUIRED'),
@@ -298,28 +300,28 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
           return requiredFields[fieldName]
         }
       }
-      
+
       const feeForValidation = {
-        fees: [{
-          feeType: allValues.feeType,
-          frequency: allValues.frequency,
-          debitAmount: allValues.debitAmount,
-          feeToBeCollected: allValues.feeToBeCollected,
-          nextRecoveryDate: allValues.nextRecoveryDate,
-          feePercentage: allValues.feePercentage,
-          amount: allValues.totalAmount,
-          vatPercentage: allValues.vatPercentage,
-          currency: allValues.currency,
-        }]
+        fees: [
+          {
+            feeType: allValues.feeType,
+            frequency: allValues.frequency,
+            debitAmount: allValues.debitAmount,
+            feeToBeCollected: allValues.feeToBeCollected,
+            nextRecoveryDate: allValues.nextRecoveryDate,
+            feePercentage: allValues.feePercentage,
+            amount: allValues.totalAmount,
+            vatPercentage: allValues.vatPercentage,
+            currency: allValues.currency,
+          },
+        ],
       }
 
-    
       const result = DeveloperStep4Schema.safeParse(feeForValidation)
 
       if (result.success) {
         return true
       } else {
-      
         const fieldMapping: Record<string, string> = {
           feeType: 'feeType',
           frequency: 'frequency',
@@ -335,7 +337,6 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
         const schemaFieldName = fieldMapping[fieldName]
         if (!schemaFieldName) return true
 
-      
         const fieldError = result.error.issues.find(
           (issue) =>
             issue.path.includes('fees') &&
@@ -346,7 +347,7 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
         return fieldError ? fieldError.message : true
       }
     } catch (error) {
-      return true 
+      return true
     }
   }
 
@@ -354,28 +355,39 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
     try {
       setErrorMessage(null)
       setSuccessMessage(null)
-      
-      
+
       if (dropdownsLoading) {
         setErrorMessage(getBuildPartnerLabelDynamic('CDL_COMMON_SUBMIT_WAIT'))
         return
       }
-      
-     
+
       const isValid = await trigger()
-      
+
       if (!isValid) {
-        
         const errors = [] as string[]
-        if (!data.feeType) errors.push(getBuildPartnerLabelDynamic('CDL_BP_FEES_TYPE_REQUIRED'))
-        if (!data.frequency) errors.push(getBuildPartnerLabelDynamic('CDL_BP_FEES_FREQ_REQUIRED'))
-        if (!data.debitAccount) errors.push(getBuildPartnerLabelDynamic('CDL_BP_FEES_ACCOUNT_REQUIRED'))
-        if (!data.feeToBeCollected) errors.push(getBuildPartnerLabelDynamic('CDL_BP_FEES_COLLECTION_DATE_REQUIRED'))
-        if (!data.debitAmount) errors.push(getBuildPartnerLabelDynamic('CDL_BP_FEES_DEBIT_AMOUNT_REQUIRED'))
-        if (!data.totalAmount) errors.push(getBuildPartnerLabelDynamic('CDL_BP_FEES_TOTAL_REQUIRED'))
+        if (!data.feeType)
+          errors.push(getBuildPartnerLabelDynamic('CDL_BP_FEES_TYPE_REQUIRED'))
+        if (!data.frequency)
+          errors.push(getBuildPartnerLabelDynamic('CDL_BP_FEES_FREQ_REQUIRED'))
+        if (!data.debitAccount)
+          errors.push(
+            getBuildPartnerLabelDynamic('CDL_BP_FEES_ACCOUNT_REQUIRED')
+          )
+        if (!data.feeToBeCollected)
+          errors.push(
+            getBuildPartnerLabelDynamic('CDL_BP_FEES_COLLECTION_DATE_REQUIRED')
+          )
+        if (!data.debitAmount)
+          errors.push(
+            getBuildPartnerLabelDynamic('CDL_BP_FEES_DEBIT_AMOUNT_REQUIRED')
+          )
+        if (!data.totalAmount)
+          errors.push(getBuildPartnerLabelDynamic('CDL_BP_FEES_TOTAL_REQUIRED'))
 
         if (errors.length > 0) {
-          setErrorMessage(`${getBuildPartnerLabelDynamic('CDL_COMMON_REQUIRED_FIELDS_PREFIX')} ${errors.join(', ')}`)
+          setErrorMessage(
+            `${getBuildPartnerLabelDynamic('CDL_COMMON_REQUIRED_FIELDS_PREFIX')} ${errors.join(', ')}`
+          )
         }
         return
       }
@@ -409,19 +421,16 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
         bpFeeCurrencyDTO: {
           id: parseInt(data.currency) || 0,
         },
-        buildPartnerDTO: {
+        assetRegisterDTO: {
           id: buildPartnerId ? parseInt(buildPartnerId) : undefined,
         },
       }
 
-    
       if (isEditing && apiFeeData) {
         const apiData = apiFeeData as any
         feePayload.status = apiData.status !== undefined ? apiData.status : null
-        feePayload.enabled =
-          apiData.enabled !== undefined ? apiData.enabled : false
-        feePayload.deleted =
-          apiData.deleted !== undefined ? apiData.deleted : null
+        feePayload.enabled = true
+        feePayload.deleted = false
       }
 
       const validationResult = feeValidationSchema.safeParse(feePayload)
@@ -447,7 +456,6 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
       )
 
       if (onFeeAdded || onFeeUpdated) {
-        
         const feeTypeOption = feeCategories.find(
           (cat) => cat.id?.toString() === data.feeType
         )
@@ -474,7 +482,7 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
 
         const feeForForm = {
           ...(isEditing && feeData?.id && { id: feeData.id }),
-          
+
           FeeType: feeTypeLabel,
           Frequency: frequencyLabel,
           DebitAmount: data.debitAmount,
@@ -499,12 +507,12 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
           FeePercentage: data.feePercentage,
           VATPercentage: data.vatPercentage,
           Amount: data.totalAmount,
-     
+
           feeType: feeTypeLabel,
           frequency: frequencyLabel,
           debitAccount: accountLabel,
           currency: currencyLabel,
-          buildPartnerDTO: {
+          assetRegisterDTO: {
             id: buildPartnerId ? parseInt(buildPartnerId) : undefined,
           },
         }
@@ -617,7 +625,8 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
         control={control}
         defaultValue={defaultValue}
         rules={{
-          validate: (value, formValues) => validateFeeField(name, value, formValues)
+          validate: (value, formValues) =>
+            validateFeeField(name, value, formValues),
         }}
         render={({ field }) => (
           <>
@@ -631,7 +640,10 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
               InputProps={{ sx: valueSx }}
               sx={errors[name] ? errorFieldStyles : commonFieldStyles}
             />
-            <FormError error={(errors[name]?.message as string) || ''} touched={true} />
+            <FormError
+              error={(errors[name]?.message as string) || ''}
+              touched={true}
+            />
           </>
         )}
       />
@@ -652,22 +664,33 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
         name={name}
         control={control}
         rules={{
-          validate: (value, formValues) => validateFeeField(name, value, formValues)
+          validate: (value, formValues) =>
+            validateFeeField(name, value, formValues),
         }}
         defaultValue={''}
         render={({ field }) => (
           <FormControl fullWidth error={!!errors[name]} required={required}>
             <InputLabel sx={labelSx}>
-              {loading ? getBuildPartnerLabelDynamic('CDL_COMMON_LOADING') : label}
+              {loading
+                ? getBuildPartnerLabelDynamic('CDL_COMMON_LOADING')
+                : label}
             </InputLabel>
             <Select
               {...field}
               input={
                 <OutlinedInput
-                  label={loading ? getBuildPartnerLabelDynamic('CDL_COMMON_LOADING') : label}
+                  label={
+                    loading
+                      ? getBuildPartnerLabelDynamic('CDL_COMMON_LOADING')
+                      : label
+                  }
                 />
               }
-              label={loading ? getBuildPartnerLabelDynamic('CDL_COMMON_LOADING') : label}
+              label={
+                loading
+                  ? getBuildPartnerLabelDynamic('CDL_COMMON_LOADING')
+                  : label
+              }
               sx={{ ...selectStyles, ...valueSx }}
               IconComponent={KeyboardArrowDownIcon}
               disabled={loading}
@@ -686,7 +709,10 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
                 </MenuItem>
               ))}
             </Select>
-            <FormError error={(errors[name]?.message as string) || ''} touched={true} />
+            <FormError
+              error={(errors[name]?.message as string) || ''}
+              touched={true}
+            />
           </FormControl>
         )}
       />
@@ -704,7 +730,8 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
         name={name}
         control={control}
         rules={{
-          validate: (value, formValues) => validateFeeField(name, value, formValues)
+          validate: (value, formValues) =>
+            validateFeeField(name, value, formValues),
         }}
         defaultValue={null}
         render={({ field }) => (
@@ -731,7 +758,10 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
                 },
               }}
             />
-            <FormError error={(errors[name]?.message as string) || ''} touched={true} />
+            <FormError
+              error={(errors[name]?.message as string) || ''}
+              touched={true}
+            />
           </>
         )}
       />
@@ -757,6 +787,9 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
             backdropFilter: 'blur(15px)',
             border: '2px solid rgba(255, 255, 255, 0.3)',
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
           },
         }}
       >
@@ -772,20 +805,46 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
             lineHeight: '28px',
             letterSpacing: '0.15px',
             verticalAlign: 'middle',
+            flexShrink: 0,
+            borderBottom: '1px solid #E5E7EB',
+            backgroundColor: 'white',
+            zIndex: 11,
           }}
         >
-          {mode === 'edit' ? getBuildPartnerLabelDynamic('CDL_BP_FEES_EDIT') : getBuildPartnerLabelDynamic('CDL_BP_FEES_ADD')}
+          {mode === 'edit'
+            ? getBuildPartnerLabelDynamic('CDL_BP_FEES_EDIT')
+            : getBuildPartnerLabelDynamic('CDL_BP_FEES_ADD')}
           <IconButton onClick={handleClose}>
             <CancelOutlinedIcon />
           </IconButton>
         </DialogTitle>
 
-        <form noValidate onSubmit={handleSubmit(onSubmit)}>
-          <DialogContent dividers>
+        <form
+          noValidate
+          onSubmit={handleSubmit(onSubmit)}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            flex: 1,
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <DialogContent
+            dividers
+            sx={{
+              flex: 1,
+              overflowY: 'auto',
+              paddingBottom: '20px',
+              marginBottom: '80px', // Space for fixed buttons
+            }}
+          >
             {/* Show error if dropdowns fail to load */}
             {dropdownsError && (
               <Alert severity="error" sx={{ mb: 2 }}>
-                {getBuildPartnerLabelDynamic('CDL_COMMON_DROPDOWNS_LOAD_FAILED')}
+                {getBuildPartnerLabelDynamic(
+                  'CDL_COMMON_DROPDOWNS_LOAD_FAILED'
+                )}
               </Alert>
             )}
 
@@ -816,7 +875,7 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
               )}
               {renderDatePickerField(
                 'feeToBeCollected',
-                getBuildPartnerLabelDynamic('CDL_BP_FEES_TOTAL'),
+                getBuildPartnerLabelDynamic('CDL_BP_FEE_COLLECTION_DATE'),
                 6,
                 true
               )}
@@ -872,6 +931,10 @@ export const RightSlideFeeDetailsPanel: React.FC<RightSlidePanelProps> = ({
               left: 0,
               right: 0,
               padding: 2,
+              backgroundColor: 'white',
+              borderTop: '1px solid #E5E7EB',
+              boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.05)',
+              zIndex: 10,
             }}
           >
             <Grid container spacing={2}>

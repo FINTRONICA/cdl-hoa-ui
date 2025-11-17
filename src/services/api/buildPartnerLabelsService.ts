@@ -39,7 +39,7 @@ export class BuildPartnerLabelsService {
         throw new Error('Authentication token not found')
       }
       const labels = await apiClient.get<BuildPartnerLabelResponse[]>(
-        API_ENDPOINTS.APP_LANGUAGE_TRANSLATION.BUILD_PARTNER,
+        API_ENDPOINTS.APP_LANGUAGE_TRANSLATION.ASSET_REGISTER,
         {
           headers: {
             Authorization: `Bearer ${token}`

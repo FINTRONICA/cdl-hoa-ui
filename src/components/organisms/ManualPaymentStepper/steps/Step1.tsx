@@ -3,7 +3,8 @@ import dayjs from 'dayjs'
 import { useManualPaymentData } from '../ManualPaymentDataProvider'
 import { idService } from '../../../../services/api/developerIdService'
 import { useManualPaymentLabelsWithCache } from '../../../../hooks/useManualPaymentLabelsWithCache'
-import { VOUCHER_LABELS } from '../../../../constants/mappings/manualPaymentLabels'
+import { MANUAL_PAYMENT_LABELS } from '../../../../constants/mappings/manualPaymentLabels'
+import { useRealEstateAssets } from '@/hooks/useRealEstateAssets'
 // State for developer names
 
 import {
@@ -20,6 +21,8 @@ import {
   Select,
   TextField,
   Typography,
+  Autocomplete,
+  Paper,
 } from '@mui/material'
 import {
   KeyboardArrowDown as KeyboardArrowDownIcon,
@@ -50,7 +53,7 @@ const Step1 = ({
   refreshKey,
 }: Step1Props) => {
   // Form context
-  const { control, setValue, watch, trigger, formState: { errors } } = useFormContext()
+  const { control, setValue, watch, trigger } = useFormContext()
 
   // Get dynamic labels
   const { getLabel } = useManualPaymentLabelsWithCache('EN')
@@ -67,12 +70,11 @@ const Step1 = ({
     paymentTypes,
     paymentSubTypes,
     currencies,
-    // depositModes, // Removed - not used in new structure
-    // paymentModes, // Removed - not used in new structure
+    depositModes,
+    paymentModes,
     transferTypes,
     buildAssetAccountStatuses,
     boolYnOptions,
-    realEstateAssets,
     buildPartners,
     accountBalances,
   } = sharedData
@@ -90,101 +92,224 @@ const Step1 = ({
     string[]
   >([])
   const [additionalProjectAssets, setAdditionalProjectAssets] = useState<
-    { id: number; reaName: string; reaId: string }[]
+    { id: number; mfName: string; mfId: string }[]
   >([])
 
-  // Memoize developer names from build partners data + any additional names
+  // Build partners - fetch all at once (no pagination needed)
+  // Remove pagination logic since we're fetching 1000 items in one call
+  // Preserve exact order from API response - no sorting, no filtering
+  const [allBuildPartners, setAllBuildPartners] = useState<any[]>(
+    buildPartners.data || []
+  )
+
+  // Initialize with shared data - preserve API response order
+  useEffect(() => {
+    if (buildPartners.data && buildPartners.data.length > 0) {
+      // Set directly from API response to preserve exact order
+      setAllBuildPartners(buildPartners.data)
+    }
+  }, [buildPartners.data])
+
+  // Watch selected developer name to get build partner ID
+  const selectedDeveloperName = watch('developerName')
+  const selectedBuildPartner = useMemo(() => {
+    if (!selectedDeveloperName) return null
+    return allBuildPartners.find(
+      (bp: any) => bp.arName === selectedDeveloperName
+    )
+  }, [selectedDeveloperName, allBuildPartners])
+
+  // Get the build partner ID for API calls (numeric ID, not arDeveloperId)
+  // This ID (e.g., 3325) will be used in the API call: buildPartnerId.equals=3325
+  const selectedBuildPartnerId = useMemo(() => {
+    if (!selectedBuildPartner) return undefined
+
+    // Verify the build partner has a valid numeric ID
+    const id = selectedBuildPartner.id
+    if (!id || typeof id !== 'number') {
+      return undefined
+    }
+
+    // Verify the ID exists in the build partners list
+    // If not found, the selected build partner might be stale/invalid
+    const existsInList = allBuildPartners.some((bp: any) => bp.id === id)
+    if (!existsInList && allBuildPartners.length > 0) {
+      // Clear invalid selection if the build partner doesn't exist in the list
+      return undefined
+    }
+
+    return id
+  }, [selectedBuildPartner, allBuildPartners])
+
+  // Get arDeveloperId for display in the text field (e.g., "DEV-20251013-105916-YXUM1")
+  const selectedBuildPartnerDeveloperId = useMemo(() => {
+    return selectedBuildPartner?.arDeveloperId || ''
+  }, [selectedBuildPartner])
+
+  // Clear developer name selection if the build partner ID doesn't exist in the list
+  useEffect(() => {
+    if (
+      selectedDeveloperName &&
+      selectedBuildPartnerId === undefined &&
+      allBuildPartners.length > 0
+    ) {
+      // The selected build partner name doesn't match any valid build partner
+      // Clear the selection to prevent API calls with invalid IDs
+      const existsByName = allBuildPartners.some(
+        (bp: any) => bp.arName === selectedDeveloperName
+      )
+      if (!existsByName) {
+        setValue('developerName', '', {
+          shouldDirty: false,
+          shouldTouch: false,
+        })
+        setValue('developerId', '', { shouldDirty: false, shouldTouch: false })
+      }
+    }
+  }, [
+    selectedDeveloperName,
+    selectedBuildPartnerId,
+    allBuildPartners,
+    setValue,
+  ])
+
+  // Fetch filtered assets based on selected build partner
+  // API will only include buildPartnerId.equals filter when a build partner is selected
+  const filteredRealEstateAssets = useRealEstateAssets(
+    0,
+    100,
+    selectedBuildPartnerId
+  )
+
+  // Clear additional assets when build partner is deselected
+  // NOTE: No need to call refetch() here - useRealEstateAssets hook automatically
+  // refetches when buildPartnerId changes, so calling refetch() causes duplicate API calls
+  useEffect(() => {
+    if (!selectedBuildPartnerId) {
+      // Clear additional assets when build partner is deselected
+      setAdditionalProjectAssets([])
+    }
+  }, [selectedBuildPartnerId])
+
+  // Clear additional project assets when API response is empty (content: [])
+  useEffect(() => {
+    if (
+      selectedBuildPartnerId &&
+      !filteredRealEstateAssets.loading &&
+      Array.isArray(filteredRealEstateAssets.assets) &&
+      filteredRealEstateAssets.assets.length === 0 &&
+      !isEditMode
+    ) {
+      // Clear additional assets when API returns empty array (unless in edit mode)
+      setAdditionalProjectAssets([])
+    }
+  }, [
+    filteredRealEstateAssets.assets,
+    filteredRealEstateAssets.loading,
+    selectedBuildPartnerId,
+    isEditMode,
+  ])
+
+  // Memoize developer names from all build partners data + any additional names
   const developerNames = useMemo(() => {
     const baseNames =
-      buildPartners.data && buildPartners.data.length > 0
-        ? buildPartners.data
-            .map((bp: any) => bp.bpName)
+      allBuildPartners && allBuildPartners.length > 0
+        ? allBuildPartners
+            .map((bp: any) => bp.arName)
             .filter((name: string | null) => !!name)
         : []
 
     // Combine base names with additional names, removing duplicates
     const allNames = [...baseNames, ...additionalDeveloperNames]
     return [...new Set(allNames)].filter(Boolean)
-  }, [buildPartners.data, additionalDeveloperNames])
+  }, [allBuildPartners, additionalDeveloperNames])
 
-  // Memoize project assets from real estate assets data + any additional assets
+  // Memoize build partner options for Autocomplete
+  // Use exact API response fields - arName for display, id for value
+  // Preserve exact sequence as returned by API (no sorting, no filtering except invalid entries)
+  const buildPartnerOptions = useMemo(() => {
+    if (!allBuildPartners || allBuildPartners.length === 0) {
+      return []
+    }
+
+    const seen = new Set<number>() // Track by numeric ID to prevent duplicates
+    const options: Array<{ value: string; label: string; buildPartner: any }> =
+      []
+
+    // Iterate in exact order from API response
+    for (const bp of allBuildPartners) {
+      // Only filter out completely invalid entries (no id or no name)
+      if (!bp || !bp.id || !bp.arName) {
+        continue
+      }
+
+      // Prevent duplicates by ID (keep first occurrence, skip later ones)
+      if (seen.has(bp.id)) {
+        continue
+      }
+      seen.add(bp.id)
+
+      // Add option in exact API response order
+      options.push({
+        value: bp.id.toString(), // Use numeric ID as value
+        label: bp.arName, // Use arName directly from API response
+        buildPartner: bp, // Store full API response object
+      })
+    }
+
+    // Return options in exact same order as API response
+    return options
+  }, [allBuildPartners])
+
+  // Memoize project assets - only show assets when build partner is selected
+  // If no build partner is selected (assetRegisterDTO is null), return empty array
   const projectAssets = useMemo(() => {
-    const baseAssets =
-      realEstateAssets.data && realEstateAssets.data.length > 0
-        ? realEstateAssets.data
-        : []
+    // If no build partner is selected, return empty array (project dropdown should be disabled)
+    if (!selectedBuildPartner || !selectedBuildPartnerId) {
+      return []
+    }
+
+    // If a build partner is selected, use filtered assets from API
+    // Only include assets if API response has content (not empty)
+    const baseAssets = Array.isArray(filteredRealEstateAssets.assets)
+      ? filteredRealEstateAssets.assets
+      : []
+
+    // Only include additional assets if they're valid and baseAssets exist
+    // Or if we're in edit mode and need to preserve prepopulated assets
+    const shouldIncludeAdditional = baseAssets.length > 0 || isEditMode
 
     // Combine base assets with additional assets, removing duplicates by ID
-    const allAssets = [...baseAssets, ...additionalProjectAssets]
+    const allAssets = shouldIncludeAdditional
+      ? [...baseAssets, ...additionalProjectAssets]
+      : baseAssets
+
     const uniqueAssets = allAssets.reduce((acc: any[], asset: any) => {
-      if (!acc.find((a: any) => a.id === asset.id)) {
+      // Validate asset has required fields before adding
+      // Filter out invalid assets (null, undefined, missing id or name, or placeholder values)
+      if (
+        asset &&
+        asset.id &&
+        typeof asset.id === 'number' &&
+        asset.mfName &&
+        typeof asset.mfName === 'string' &&
+        asset.mfName.trim() !== '' &&
+        asset.mfName.toLowerCase() !== 'new project' && // Filter out placeholder "new project"
+        !acc.find((a: any) => a.id === asset.id)
+      ) {
         acc.push(asset)
       }
       return acc
     }, [])
 
     return uniqueAssets
-  }, [realEstateAssets.data, additionalProjectAssets])
-
-  // Create assetRegisterNames from projectAssets (for dropdown)
-  const assetRegisterNames = useMemo(() => {
-    return projectAssets.map((asset) => ({
-      id: asset.id,
-      displayName: asset.reaName,
-    }))
-  }, [projectAssets])
-
-  // State for voucher data and beneficiary details
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [VoucherData, setVoucherData] = useState<{ content?: Array<{ id: number; benVoucher?: string; bpName?: string; benVoucherName?: string; benVoucherSwiftCode?: string; benVoucherRoutingCode?: string; benVoucherAccountNumber?: string }> } | null>(null)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isVoucherLoading, setIsVoucherLoading] = useState<boolean>(false)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isDevelopersLoading, setIsDevelopersLoading] = useState<boolean>(false)
-
-  // State for sanitized data (for prepopulation)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [sanitizedData, setSanitizedData] = useState<{ voucherDTO?: { benVoucher?: string; benVoucherName?: string; benVoucherBankName?: string; benVoucherSwiftCode?: string; benVoucherRoutingCode?: string; benVoucherAccountNumber?: string } } | null>(null)
-
-  // Validation function for Step1 fields
-  const validateStep1Field = (fieldName: string, value: unknown): string | boolean => {
-    if (!value || value === '' || value === null || value === undefined) {
-      return `${fieldName} is required`
-    }
-    return true
-  }
-
-  // Handle voucher beneficiary details change
-  const handleVoucherBeneficiaryDetailsChange = (voucherId: string) => {
-    if (!voucherId || !VoucherData?.content) return
-
-    const selectedVoucher = VoucherData.content.find(
-      (v: { id?: number; benVoucher?: string }) => v.benVoucher === voucherId || v.id?.toString() === voucherId
-    )
-
-    if (selectedVoucher) {
-      setValue('voucherDTO.benVoucherName', selectedVoucher.benVoucherName || '', {
-        shouldDirty: true,
-        shouldTouch: true,
-      })
-      setValue('buildPartnerDTO.bpName', selectedVoucher.bpName || '', {
-        shouldDirty: true,
-        shouldTouch: true,
-      })
-      setValue('voucherDTO.benVoucherSwiftCode', selectedVoucher.benVoucherSwiftCode || '', {
-        shouldDirty: true,
-        shouldTouch: true,
-      })
-      setValue('voucherDTO.benVoucherRoutingCode', selectedVoucher.benVoucherRoutingCode || '', {
-        shouldDirty: true,
-        shouldTouch: true,
-      })
-      setValue('voucherDTO.benVoucherAccountNumber', selectedVoucher.benVoucherAccountNumber || '', {
-        shouldDirty: true,
-        shouldTouch: true,
-      })
-    }
-  }
+  }, [
+    selectedBuildPartner,
+    selectedBuildPartnerId,
+    filteredRealEstateAssets.assets,
+    additionalProjectAssets,
+    isEditMode,
+  ])
 
   // State to track if prepopulation has been attempted
   const [prepopulationAttempted, setPrepopulationAttempted] =
@@ -198,23 +323,17 @@ const Step1 = ({
           const savedData = await fundEgressService.getFundEgressById(savedId)
 
           // Map the saved data to form format - comprehensive field mapping
-          const formData: any = {
-            // Basic Payment Information (old field - kept for compatibility)
+          const formData = {
+            // Basic Payment Information
             tasReference: savedData.fePaymentRefNumber || '',
-            
-            // New fields - map from API response
-            vaucherReferenceNumber: savedData.fePaymentRefNumber || '',
-            assetRegisterName: savedData.realEstateAssestDTO?.id?.toString() || '',
-            managementFirmName: savedData.buildPartnerDTO?.bpName || '',
-            managementFirmAccountStatus: ((savedData.realEstateAssestDTO?.reaAccountStatusDTO as any)?.id?.toString()) || null,
 
-            // Developer Information (old fields - kept for compatibility)
-            developerName: savedData.buildPartnerDTO?.bpName || '',
-            developerId: savedData.buildPartnerDTO?.bpDeveloperId || '',
+            // Developer Information
+            developerName: savedData.assetRegisterDTO?.arName || '',
+            developerId: savedData.assetRegisterDTO?.id?.toString() || '',
 
-            // Project Information (old fields - kept for compatibility)
-            projectName: savedData.realEstateAssestDTO?.id?.toString() || '',
-            projectId: savedData.realEstateAssestDTO?.reaId || '',
+            // Project Information
+            projectName: savedData.managementFirmDTO?.id?.toString() || '',
+            projectId: (savedData.managementFirmDTO as any)?.mfId || '',
 
             // Narrations and Remarks
             narration1: savedData.feNarration1 || '',
@@ -231,19 +350,7 @@ const Step1 = ({
               savedData.voucherPaymentSubTypeDTO?.id?.toString() ||
               '',
 
-            // HOA Approval fields (new)
-            hoaApprovalNumber: savedData.feReraApprovedRefNo || '',
-            hoaApprovalDate: savedData.feReraApprovedDate && savedData.feReraApprovedDate !== ''
-              ? dayjs(savedData.feReraApprovedDate)
-              : null,
-            
-            // RT03 field (new)
-            RT03: (savedData as any)?.feRtZeroThree || '',
-            
-            // Routing sort code (new)
-            routinfSortcode: (savedData as any)?.feRoutingSortCode || '',
-            
-            // Regular approval ref (old field - kept for compatibility, maps to feReraApprovedRefNo)
+            // Regular approval ref (maps to feReraApprovedRefNo)
             paymentType1: savedData.feReraApprovedRefNo || '',
 
             // Payment Details (map to actual Step 1 field names)
@@ -261,38 +368,105 @@ const Step1 = ({
             // Financial Fields
             invoiceRef: savedData.feInvoiceRefNo || '',
             invoiceValue: savedData.feInvoiceValue?.toString() || '',
-            invoiceDate:
-              savedData.feInvoiceDate && savedData.feInvoiceDate !== ''
-                ? dayjs(savedData.feInvoiceDate)
-                : null,
-            paymentDate:
-              savedData.fePaymentDate && savedData.fePaymentDate !== ''
-                ? dayjs(savedData.fePaymentDate)
-                : null,
+            invoiceDate: (() => {
+              // More robust check: ensure it's a non-empty string
+              const invoiceDate = savedData.feInvoiceDate
+              if (
+                invoiceDate != null &&
+                typeof invoiceDate === 'string' &&
+                invoiceDate.trim() !== ''
+              ) {
+                try {
+                  const date = dayjs(invoiceDate.trim())
+                  if (date.isValid()) {
+                    return date
+                  } else {
+                    console.warn('feInvoiceDate is invalid:', invoiceDate)
+                  }
+                } catch (e) {
+                  console.warn('Failed to parse feInvoiceDate:', invoiceDate, e)
+                }
+              }
+              return null
+            })(),
+            paymentDate: (() => {
+              // Prioritize fePaymentExecutionDate if it exists and is valid
+              // More robust check: ensure it's a non-empty string
+              const executionDate = savedData.fePaymentExecutionDate
+              if (
+                executionDate != null &&
+                typeof executionDate === 'string' &&
+                executionDate.trim() !== ''
+              ) {
+                try {
+                  const date = dayjs(executionDate.trim())
+                  if (date.isValid()) {
+                    return date
+                  } else {
+                    console.warn(
+                      'fePaymentExecutionDate is invalid:',
+                      executionDate
+                    )
+                  }
+                } catch (e) {
+                  console.warn(
+                    'Failed to parse fePaymentExecutionDate:',
+                    executionDate,
+                    e
+                  )
+                }
+              }
+              // Fallback to fePaymentDate
+              const paymentDate = savedData.fePaymentDate
+              if (
+                paymentDate != null &&
+                typeof paymentDate === 'string' &&
+                paymentDate.trim() !== ''
+              ) {
+                try {
+                  const date = dayjs(paymentDate.trim())
+                  if (date.isValid()) {
+                    return date
+                  }
+                } catch (e) {
+                  console.warn('Failed to parse fePaymentDate:', paymentDate, e)
+                }
+              }
+              console.warn(
+                'No valid payment date found. fePaymentExecutionDate:',
+                savedData.fePaymentExecutionDate,
+                'fePaymentDate:',
+                savedData.fePaymentDate
+              )
+              return null
+            })(),
             paymentAmount: savedData.fePaymentAmount?.toString() || '',
             totalAmountPaid: savedData.feTotalAmountPaid?.toString() || '',
 
             // Account Balances (prepopulate the read-only balance fields)
             subConstructionAccount:
-              savedData.feCurBalInEscrowAcc !== undefined && savedData.feCurBalInEscrowAcc !== null
+              savedData.feCurBalInEscrowAcc !== undefined &&
+              savedData.feCurBalInEscrowAcc !== null
                 ? String(savedData.feCurBalInEscrowAcc)
                 : '',
             retentionAccount:
-              savedData.feSubConsAccBalance !== undefined && savedData.feSubConsAccBalance !== null
+              savedData.feSubConsAccBalance !== undefined &&
+              savedData.feSubConsAccBalance !== null
                 ? String(savedData.feSubConsAccBalance)
                 : '',
             retentionAccount1:
-              savedData.feCorporateAccBalance !== undefined && savedData.feCorporateAccBalance !== null
+              savedData.feCorporateAccBalance !== undefined &&
+              savedData.feCorporateAccBalance !== null
                 ? String(savedData.feCorporateAccBalance)
                 : '',
             retentionAccount2:
-              savedData.feCurBalInRetentionAcc !== undefined && savedData.feCurBalInRetentionAcc !== null
+              savedData.feCurBalInRetentionAcc !== undefined &&
+              savedData.feCurBalInRetentionAcc !== null
                 ? String(savedData.feCurBalInRetentionAcc)
                 : '',
 
             // Debit/Credit Amounts
-            debitCreditToEscrow:
-              savedData.feDebitFromEscrow?.toString() || '',
+            debitCreditToEscrow: savedData.feDebitFromEscrow?.toString() || '',
             debitFromRetention:
               savedData.feDebitFromRetention?.toString() || '',
 
@@ -309,15 +483,13 @@ const Step1 = ({
             amountPaid: savedData.feAmtPaidAgainstInv?.toString() || '',
             // Capital Limit Exceeded
             amountPaid1: savedData.feCapExcedded || '',
-            currentEligibleAmount:
-              savedData.feCurEligibleAmt?.toString() || '',
+            currentEligibleAmount: savedData.feCurEligibleAmt?.toString() || '',
             totalPayoutAmount: savedData.feTotalPayoutAmt?.toString() || '',
             amountInTransit: savedData.feAmountInTransit?.toString() || '',
             // Indicative Rate (UI field name is vatCapExceeded3)
             vatCapExceeded3: savedData.feIndicativeRate?.toString() || '',
             // UI fields for amounts below
-            uploadDocuments:
-              savedData.feAmountToBeReleased?.toString() || '',
+            uploadDocuments: savedData.feAmountToBeReleased?.toString() || '',
             uploadDocuments1: savedData.feBeneVatPaymentAmt?.toString() || '',
             // Corporate Certification Fees → vatCapExceeded4
             vatCapExceeded4: savedData.feCorpCertEngFee?.toString() || '',
@@ -342,7 +514,7 @@ const Step1 = ({
             transferToOtherUnit: savedData.feTransferToOtherUnit
               ? 'true'
               : 'false',
-            docVerified: savedData.feDocVerified ? 'true' : 'false',
+            feDocVerified: savedData.feDocVerified || false,
 
             // Forfeit Amount
             forFeitAmt: savedData.feForFeitAmt?.toString() || '',
@@ -358,28 +530,69 @@ const Step1 = ({
               savedData.feReraApprovedDate !== ''
                 ? dayjs(savedData.feReraApprovedDate)
                 : null, // Regular approval date
-            engineerFeePayment1:
-              savedData.feBeneDateOfPayment &&
-              savedData.feBeneDateOfPayment !== ''
-                ? dayjs(savedData.feBeneDateOfPayment)
-                : null, // Payment date
+            engineerFeePayment1: (() => {
+              // Prioritize fePaymentExecutionDate if it exists and is valid
+              const executionDate = savedData.fePaymentExecutionDate
+              if (
+                executionDate != null &&
+                typeof executionDate === 'string' &&
+                executionDate.trim() !== ''
+              ) {
+                try {
+                  const date = dayjs(executionDate.trim())
+                  if (date.isValid()) {
+                    return date
+                  }
+                } catch (e) {
+                  // Fall through to feBeneDateOfPayment
+                }
+              }
+              // Fallback to feBeneDateOfPayment (original field)
+              if (
+                savedData.feBeneDateOfPayment &&
+                savedData.feBeneDateOfPayment !== ''
+              ) {
+                try {
+                  const date = dayjs(savedData.feBeneDateOfPayment)
+                  if (date.isValid()) {
+                    return date
+                  }
+                } catch (e) {
+                  // Invalid date
+                }
+              }
+              return null
+            })(),
             // Bank Charges (numeric input field)
             engineerFeePayment2: savedData.fbbankCharges?.toString() || '',
+
+            // Payment execution date and account numbers
+            escrowAccount: savedData.escrowAccountNumber || '',
+            corporateAccount: savedData.constructionAccountNumber || '',
+            corporateAccount1: savedData.corporateAccountNumber || '',
+            corporateAccount2: savedData.retentionAccountNumber || '',
           }
 
           // Pre-populate Build Partner/Project Account Status
           try {
-            const accountStatusDTO = (savedData.realEstateAssestDTO as any)?.reaAccountStatusDTO
-            
-            if (accountStatusDTO && Array.isArray(buildAssetAccountStatuses.data) && buildAssetAccountStatuses.data.length > 0) {
+            const accountStatusDTO = (savedData.managementFirmDTO as any)
+              ?.mfAccountStatusDTO
+
+            if (
+              accountStatusDTO &&
+              Array.isArray(buildAssetAccountStatuses.data) &&
+              buildAssetAccountStatuses.data.length > 0
+            ) {
               // Try to match by ID first (most reliable)
               let matched = null
               if (accountStatusDTO.id) {
                 matched = buildAssetAccountStatuses.data.find(
-                  (opt: any) => opt?.id === accountStatusDTO.id || String(opt?.id) === String(accountStatusDTO.id)
+                  (opt: any) =>
+                    opt?.id === accountStatusDTO.id ||
+                    String(opt?.id) === String(accountStatusDTO.id)
                 )
               }
-              
+
               // If no ID match, try to match by label/value
               if (!matched) {
                 const statusLabel =
@@ -388,7 +601,7 @@ const Step1 = ({
                   accountStatusDTO?.name ||
                   accountStatusDTO?.configValue ||
                   ''
-                
+
                 if (statusLabel) {
                   matched = buildAssetAccountStatuses.data.find(
                     (opt: any) =>
@@ -399,7 +612,7 @@ const Step1 = ({
                   )
                 }
               }
-              
+
               if (matched?.id) {
                 setValue('projectStatus', String(matched.id), {
                   shouldDirty: true,
@@ -423,39 +636,20 @@ const Step1 = ({
             ])
           }
 
-            // Add project asset to additional assets if not in current list (by ID)
-          // Use new field (assetRegisterName) or old field (projectName)
-          const assetId = formData.assetRegisterName || formData.projectName
-          if (savedData.realEstateAssestDTO && assetId) {
-            const projectId = parseInt(String(assetId))
+          // Add project asset to additional assets if not in current list (by ID)
+          if (savedData.managementFirmDTO && formData.projectName) {
+            const projectId = parseInt(formData.projectName)
             const existingAsset = projectAssets.find(
               (asset: any) => asset.id === projectId
             )
 
             if (!existingAsset) {
               const newAsset = {
-                id: savedData.realEstateAssestDTO.id,
-                reaName: savedData.realEstateAssestDTO.reaName,
-                reaId: savedData.realEstateAssestDTO.reaId,
+                id: savedData.managementFirmDTO.id,
+                mfName: savedData.managementFirmDTO.mfName,
+                mfId: savedData.managementFirmDTO.mfId,
               }
               setAdditionalProjectAssets((prev) => [...prev, newAsset])
-            }
-          }
-          
-          // Prepopulate beneficiary fields if available from API
-          if ((savedData as any)?.voucherDTO) {
-            formData.voucherDTO = {
-              benVoucher: (savedData as any).voucherDTO.benVoucher || '',
-              benVoucherName: (savedData as any).voucherDTO.benVoucherName || '',
-              benVoucherSwiftCode: (savedData as any).voucherDTO.benVoucherSwiftCode || '',
-              benVoucherRoutingCode: (savedData as any).voucherDTO.benVoucherRoutingCode || '',
-              benVoucherAccountNumber: (savedData as any).voucherDTO.benVoucherAccountNumber || '',
-            }
-          }
-          
-          if ((savedData as any)?.buildPartnerDTO?.bpName) {
-            formData.buildPartnerDTO = {
-              bpName: (savedData as any).buildPartnerDTO.bpName || '',
             }
           }
 
@@ -469,12 +663,15 @@ const Step1 = ({
                 shouldValidate: false,
               })
 
-              // Handle payment reference ID for both old and new field names
-              if (key === 'tasReference' || key === 'vaucherReferenceNumber') {
-                setPaymentRefId(String(value || ''))
+              if (key === 'tasReference') {
+                setPaymentRefId(value)
               }
             }
           })
+
+          // Debug: Log payment date values
+          if (savedData.fePaymentExecutionDate || savedData.fePaymentDate) {
+          }
 
           // Mark prepopulation as attempted to prevent multiple attempts
           setPrepopulationAttempted(true)
@@ -492,11 +689,19 @@ const Step1 = ({
         }
       }
     }
-  }, [isEditMode, savedId, prepopulationAttempted, developerNames, projectAssets, onDataLoaded, setValue, trigger])
+  }, [
+    isEditMode,
+    savedId,
+    prepopulationAttempted,
+    developerNames,
+    projectAssets,
+    onDataLoaded,
+    setValue,
+    trigger,
+  ])
 
   // Handle data prepopulation when in edit mode
   useEffect(() => {
-
     // Run prepopulation when:
     // 1. We're in edit mode
     // 2. We have a saved ID
@@ -531,9 +736,12 @@ const Step1 = ({
     if (!isEditMode || !savedId) return
     // Reset and refetch on step re-entry
     setPrepopulationAttempted(false)
-    const t = setTimeout(() => {
-      prepopulateData()
-    }, sharedData.isInitialLoading ? 1000 : 0)
+    const t = setTimeout(
+      () => {
+        prepopulateData()
+      },
+      sharedData.isInitialLoading ? 1000 : 0
+    )
     return () => clearTimeout(t)
   }, [refreshKey])
 
@@ -553,15 +761,15 @@ const Step1 = ({
 
       // Update both state and form value
       setPaymentRefId(newId)
-      setValue('vaucherReferenceNumber', newId, {
+      setValue('tasReference', newId, {
         shouldDirty: true,
         shouldTouch: true,
         shouldValidate: true,
       })
       // Ensure validation errors are cleared immediately
-      await trigger('vaucherReferenceNumber' as any)
-    } catch {
-      // Error handling can be added here if needed
+      await trigger('tasReference' as any)
+    } catch (error) {
+      throw error
     } finally {
       setIsGeneratingId(false)
     }
@@ -570,39 +778,150 @@ const Step1 = ({
   // Watch for developer name changes and auto-populate developer ID
   useEffect(() => {
     const subscription = watch((value, { name }) => {
-      if (name === 'developerName' && value.developerName) {
-        const selectedPartner = buildPartners.data.find(
-          (bp: any) => bp.bpName === value.developerName
-        )
-        if (selectedPartner) {
-          setValue('developerId', selectedPartner.bpDeveloperId, {
+      if (name === 'developerName') {
+        if (value.developerName) {
+          const selectedPartner = allBuildPartners.find(
+            (bp: any) => bp.arName === value.developerName
+          )
+          if (selectedPartner) {
+            setValue('developerId', selectedPartner.id?.toString() || '', {
+              shouldDirty: true,
+              shouldTouch: true,
+              shouldValidate: true,
+            })
+            // Clear any existing validation error for developerId immediately
+            trigger('developerId' as any)
+
+            // Clear projectName, projectId, and projectStatus when developer changes
+            // to ensure only assets for the new build partner are shown
+            setValue('projectName', '', {
+              shouldDirty: true,
+              shouldTouch: false,
+              shouldValidate: false,
+            })
+            setValue('projectId', '', {
+              shouldDirty: true,
+              shouldTouch: false,
+              shouldValidate: false,
+            })
+            setValue('projectStatus', '', {
+              shouldDirty: true,
+              shouldTouch: false,
+              shouldValidate: false,
+            })
+          }
+        } else {
+          // When developer name is cleared, also clear developer ID and project fields
+          setValue('developerId', '', {
             shouldDirty: true,
-            shouldTouch: true,
-            shouldValidate: true,
+            shouldTouch: false,
+            shouldValidate: false,
           })
-          // Clear any existing validation error for developerId immediately
-          trigger('developerId' as any)
+          setValue('projectName', '', {
+            shouldDirty: true,
+            shouldTouch: false,
+            shouldValidate: false,
+          })
+          setValue('projectId', '', {
+            shouldDirty: true,
+            shouldTouch: false,
+            shouldValidate: false,
+          })
+          setValue('projectStatus', '', {
+            shouldDirty: true,
+            shouldTouch: false,
+            shouldValidate: false,
+          })
         }
       }
 
-      // Watch for project name changes and auto-populate project ID
-      if (name === 'projectName' && value.projectName) {
-        const selectedAsset = projectAssets.find(
-          (asset: any) => asset.id === parseInt(value.projectName)
-        )
-        if (selectedAsset) {
-          setValue('projectId', selectedAsset.reaId, {
+      // Watch for project name changes and auto-populate project ID and status
+      if (name === 'projectName') {
+        // Always update when projectName changes, even if empty
+        if (value.projectName) {
+          // Use the latest projectAssets from the current render
+          const currentProjectAssets = projectAssets
+
+          // Convert projectName to number for comparison
+          const projectNameId =
+            typeof value.projectName === 'string'
+              ? parseInt(value.projectName, 10)
+              : Number(value.projectName)
+
+          const selectedAsset = currentProjectAssets.find(
+            (asset: any) =>
+              asset.id === projectNameId ||
+              String(asset.id) === String(value.projectName)
+          )
+
+          if (selectedAsset) {
+            // Always update projectId, even if it already has a value
+            if (selectedAsset.mfId) {
+              setValue('projectId', selectedAsset.mfId, {
+                shouldDirty: true,
+                shouldTouch: true,
+                shouldValidate: true,
+              })
+              trigger('projectId' as any)
+            } else {
+              // Clear if no CIF available
+              setValue('projectId', '', {
+                shouldDirty: true,
+                shouldTouch: false,
+                shouldValidate: false,
+              })
+            }
+
+            // Always update projectStatus, even if it already has a value
+            if (selectedAsset.mfAccountStatusDTO?.id) {
+              setValue(
+                'projectStatus',
+                String(selectedAsset.mfAccountStatusDTO.id),
+                {
+                  shouldDirty: true,
+                  shouldTouch: true,
+                  shouldValidate: true,
+                }
+              )
+              trigger('projectStatus' as any)
+            } else {
+              // Clear if no status available
+              setValue('projectStatus', '', {
+                shouldDirty: true,
+                shouldTouch: false,
+                shouldValidate: false,
+              })
+            }
+          } else {
+            // Asset not found - clear dependent fields
+            setValue('projectId', '', {
+              shouldDirty: true,
+              shouldTouch: false,
+              shouldValidate: false,
+            })
+            setValue('projectStatus', '', {
+              shouldDirty: true,
+              shouldTouch: false,
+              shouldValidate: false,
+            })
+          }
+        } else {
+          // Project name cleared - clear dependent fields
+          setValue('projectId', '', {
             shouldDirty: true,
-            shouldTouch: true,
-            shouldValidate: true,
+            shouldTouch: false,
+            shouldValidate: false,
           })
-          // Clear any existing validation error for projectId immediately
-          trigger('projectId' as any)
+          setValue('projectStatus', '', {
+            shouldDirty: true,
+            shouldTouch: false,
+            shouldValidate: false,
+          })
         }
       }
     })
     return () => subscription.unsubscribe()
-  }, [watch, setValue, buildPartners, projectAssets])
+  }, [watch, setValue, allBuildPartners, projectAssets, trigger])
 
   // Re-attempt ID population when build partners data becomes available
   useEffect(() => {
@@ -613,13 +932,13 @@ const Step1 = ({
     if (
       currentDeveloperName &&
       !watch('developerId') &&
-      buildPartners.data.length > 0
+      allBuildPartners.length > 0
     ) {
-      const selectedPartner = buildPartners.data.find(
-        (bp: any) => bp.bpName === currentDeveloperName
+      const selectedPartner = allBuildPartners.find(
+        (bp: any) => bp.arName === currentDeveloperName
       )
       if (selectedPartner) {
-        setValue('developerId', selectedPartner.bpDeveloperId, {
+        setValue('developerId', selectedPartner.id?.toString() || '', {
           shouldDirty: true,
           shouldTouch: true,
           shouldValidate: true,
@@ -628,25 +947,53 @@ const Step1 = ({
       }
     }
 
-    // Try to populate project ID if we have a project ID value but no project ID field
-    if (currentProjectName && !watch('projectId') && projectAssets.length > 0) {
+    // Always update project ID and status when projectAssets change and projectName is selected
+    if (currentProjectName && projectAssets.length > 0) {
+      // Convert to number for comparison
+      const projectNameId =
+        typeof currentProjectName === 'string'
+          ? parseInt(currentProjectName, 10)
+          : Number(currentProjectName)
+
       const selectedAsset = projectAssets.find(
-        (asset: any) => asset.id === parseInt(currentProjectName)
+        (asset: any) =>
+          asset.id === projectNameId ||
+          String(asset.id) === String(currentProjectName)
       )
+
       if (selectedAsset) {
-        setValue('projectId', selectedAsset.reaId, {
-          shouldDirty: true,
-          shouldTouch: true,
-          shouldValidate: true,
-        })
-        trigger('projectId' as any)
+        // Always update projectId, even if it already has a value
+        const currentProjectId = watch('projectId')
+        if (selectedAsset.mfId && currentProjectId !== selectedAsset.mfId) {
+          setValue('projectId', selectedAsset.mfId, {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: true,
+          })
+          trigger('projectId' as any)
+        }
+
+        // Always update projectStatus, even if it already has a value
+        const currentProjectStatus = watch('projectStatus')
+        const expectedStatus = selectedAsset.mfAccountStatusDTO?.id
+          ? String(selectedAsset.mfAccountStatusDTO.id)
+          : ''
+
+        if (expectedStatus && currentProjectStatus !== expectedStatus) {
+          setValue('projectStatus', expectedStatus, {
+            shouldDirty: true,
+            shouldTouch: true,
+            shouldValidate: true,
+          })
+          trigger('projectStatus' as any)
+        }
       }
     }
-  }, [buildPartners.data, projectAssets, watch, setValue])
+  }, [projectAssets, watch, setValue, trigger])
 
   // Initialize payment reference ID from form value and keep in sync
   React.useEffect(() => {
-    const currentId = watch('vaucherReferenceNumber')
+    const currentId = watch('tasReference')
     if (currentId !== paymentRefId) {
       setPaymentRefId(currentId || '')
     }
@@ -654,9 +1001,9 @@ const Step1 = ({
 
   // Update form value when paymentRefId state changes (for generate button)
   React.useEffect(() => {
-    const currentFormValue = watch('vaucherReferenceNumber')
+    const currentFormValue = watch('tasReference')
     if (paymentRefId && paymentRefId !== currentFormValue) {
-      setValue('vaucherReferenceNumber', paymentRefId, {
+      setValue('tasReference', paymentRefId, {
         shouldDirty: true,
         shouldTouch: true,
         shouldValidate: false,
@@ -752,25 +1099,6 @@ const Step1 = ({
     },
   }
 
-  const errorFieldStyles = {
-    '& .MuiOutlinedInput-root': {
-      height: '46px',
-      borderRadius: '8px',
-      '& fieldset': {
-        borderColor: '#DC2626',
-        borderWidth: '2px',
-      },
-      '&:hover fieldset': {
-        borderColor: '#DC2626',
-        borderWidth: '2px',
-      },
-      '&.Mui-focused fieldset': {
-        borderColor: '#DC2626',
-        borderWidth: '2px',
-      },
-    },
-  }
-
   const labelSx = {
     color: '#374151',
     fontFamily:
@@ -856,16 +1184,260 @@ const Step1 = ({
                 if (maxLen && value.length > maxLen) {
                   field.onChange(value)
                   // Trigger schema validation immediately so Zod shows "Max 15 characters"
-                  // @ts-expect-error - Accessing internal form state for validation trigger
-                  if ((control as any)._formState) {
-                    trigger(name as any)
-                  }
+                  // @ts-ignore
+                  ;(control as any)._formState && control
+                  trigger(name as any)
                 } else {
                   field.onChange(value)
                 }
               }}
             />
           )}
+        />
+      </Grid>
+    )
+  }
+
+  const renderDeveloperNameField = () => {
+    const label = getLabel(
+      MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEVELOPER_NAME,
+      'EN',
+      MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_NAME
+    )
+
+    return (
+      <Grid key="developerName" size={{ xs: 12, md: 6 }}>
+        <Controller
+          name="developerName"
+          control={control}
+          defaultValue=""
+          render={({ field, fieldState: { error } }) => {
+            // Find option by matching - prioritize ID matching for accuracy
+            const currentDeveloperId = watch('developerId')
+            const currentDeveloperName = field.value
+
+            // Find the selected option - prioritize ID matching (most reliable)
+            const selectedOption =
+              buildPartnerOptions.find((opt) => {
+                // First priority: match by numeric ID if available
+                if (
+                  currentDeveloperId &&
+                  opt.value === currentDeveloperId.toString()
+                ) {
+                  return true
+                }
+                // Second priority: match by name if no ID match
+                if (currentDeveloperName) {
+                  return (
+                    opt.label === currentDeveloperName ||
+                    opt.buildPartner?.arName === currentDeveloperName
+                  )
+                }
+                return false
+              }) || null
+
+            // Debug: Log selection changes
+            if (selectedOption && process.env.NODE_ENV === 'development') {
+              console.log('🔍 Selected Option:', {
+                id: selectedOption.value,
+                name: selectedOption.label,
+                currentDeveloperId,
+                currentDeveloperName,
+              })
+            }
+
+            return (
+              <Autocomplete
+                key={`autocomplete-${currentDeveloperId || currentDeveloperName || 'empty'}`}
+                value={selectedOption}
+                onChange={(_event, newValue) => {
+                  if (newValue) {
+                    // Store arName in developerName field and numeric id in developerId field
+                    // Use exact fields from API response
+                    const arName =
+                      newValue.buildPartner?.arName || newValue.label || ''
+                    const partnerId =
+                      newValue.buildPartner?.id?.toString() ||
+                      newValue.value ||
+                      ''
+
+                    // Update both fields immediately
+                    field.onChange(arName) // Store name for display and matching
+                    // Store numeric ID (from API response) so mapper can use it directly
+                    setValue('developerId', partnerId, {
+                      shouldDirty: true,
+                      shouldTouch: false,
+                    })
+                    // Trigger validation to ensure form state is updated
+                    trigger('developerName' as any)
+                    trigger('developerId' as any)
+
+                    // Clear project fields when build partner changes to show fresh assets
+                    if (arName !== field.value) {
+                      setValue('projectName', '', {
+                        shouldDirty: true,
+                        shouldTouch: false,
+                      })
+                      setValue('projectId', '', {
+                        shouldDirty: true,
+                        shouldTouch: false,
+                      })
+                      setValue('projectStatus', '', {
+                        shouldDirty: true,
+                        shouldTouch: false,
+                      })
+                    }
+                  } else {
+                    // Clear both fields when selection is cleared
+                    field.onChange('')
+                    setValue('developerId', '', {
+                      shouldDirty: true,
+                      shouldTouch: false,
+                    })
+                    setValue('projectName', '', {
+                      shouldDirty: true,
+                      shouldTouch: false,
+                    })
+                    setValue('projectId', '', {
+                      shouldDirty: true,
+                      shouldTouch: false,
+                    })
+                    setValue('projectStatus', '', {
+                      shouldDirty: true,
+                      shouldTouch: false,
+                    })
+                  }
+                }}
+                options={buildPartnerOptions}
+                getOptionLabel={(option) => option.label || ''}
+                isOptionEqualToValue={(option, value) => {
+                  // Compare by value (numeric ID) first, then by label
+                  if (!option || !value) return false
+                  // Primary comparison: by value (numeric ID)
+                  if (
+                    option.value &&
+                    value.value &&
+                    option.value === value.value
+                  ) {
+                    return true
+                  }
+                  // Fallback: by label (name)
+                  if (
+                    option.label &&
+                    value.label &&
+                    option.label === value.label
+                  ) {
+                    return true
+                  }
+                  return false
+                }}
+                // Use renderOption to ensure unique keys
+                renderOption={(props, option) => (
+                  <li
+                    {...props}
+                    key={
+                      option.value || option.buildPartner?.id || option.label
+                    }
+                  >
+                    {option.label}
+                  </li>
+                )}
+                loading={
+                  buildPartners.loading || filteredRealEstateAssets.loading
+                }
+                disabled={isReadOnly}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label={label}
+                    error={!!error}
+                    helperText={error?.message}
+                    required={!isReadOnly}
+                    size="medium"
+                    InputLabelProps={{ sx: labelSx }}
+                    InputProps={{
+                      ...params.InputProps,
+                      sx: valueSx,
+                    }}
+                    sx={commonFieldStyles}
+                  />
+                )}
+                ListboxProps={
+                  {
+                    // Removed pagination scroll - fetching all 1000 items at once
+                  }
+                }
+                PaperComponent={({ children, ...props }: any) => (
+                  <Paper
+                    {...props}
+                    sx={{
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+                      border: '1px solid #E5E7EB',
+                      marginTop: '8px',
+                      maxHeight: '300px',
+                    }}
+                  >
+                    {children}
+                  </Paper>
+                )}
+                sx={{
+                  '& .MuiAutocomplete-inputRoot': {
+                    ...selectStyles,
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      border: '1px solid #9ca3af',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      border: '2px solid #2563eb',
+                    },
+                  },
+                }}
+              />
+            )
+          }}
+        />
+      </Grid>
+    )
+  }
+
+  const renderDeveloperIdField = () => {
+    const label = getLabel(
+      MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEVELOPER_ID,
+      'EN',
+      MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_ID
+    )
+
+    return (
+      <Grid key="developerId" size={{ xs: 12, md: 6 }}>
+        <Controller
+          name="developerId"
+          control={control}
+          defaultValue=""
+          render={({ field, fieldState: { error } }) => {
+            // Display arDeveloperId in the text field, but keep numeric id in form value
+            const displayValue =
+              selectedBuildPartnerDeveloperId || field.value || ''
+
+            return (
+              <TextField
+                {...field}
+                value={displayValue} // Display arDeveloperId
+                label={label}
+                fullWidth
+                error={!!error}
+                helperText={error?.message}
+                disabled={true} // Always disabled - auto-populated
+                required={true}
+                InputLabelProps={{ sx: labelSx }}
+                InputProps={{ sx: valueSx }}
+                sx={commonFieldStyles}
+              />
+            )
+          }}
         />
       </Grid>
     )
@@ -990,6 +1562,201 @@ const Step1 = ({
     )
   }
 
+  const renderProjectNameField = () => {
+    const label = getLabel(
+      MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROJECT_NAME,
+      'EN',
+      MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_NAME
+    )
+
+    return (
+      <Grid key="projectName" size={{ xs: 12, md: 6 }}>
+        <Controller
+          name="projectName"
+          control={control}
+          defaultValue=""
+          render={({ field, fieldState: { error } }) => (
+            <FormControl
+              fullWidth
+              error={!!error}
+              aria-invalid={!!error}
+              required={!isReadOnly}
+            >
+              <InputLabel sx={labelSx} required={!isReadOnly}>
+                {label}
+              </InputLabel>
+              <Select
+                {...field}
+                label={label}
+                onChange={(e) => {
+                  const newValue = e.target.value
+                  field.onChange(newValue) // Update the form field
+
+                  // Immediately update dependent fields
+                  if (newValue) {
+                    const projectNameId =
+                      typeof newValue === 'string'
+                        ? parseInt(newValue, 10)
+                        : Number(newValue)
+
+                    const selectedAsset = projectAssets.find(
+                      (asset: any) =>
+                        asset.id === projectNameId ||
+                        String(asset.id) === String(newValue)
+                    )
+
+                    if (selectedAsset) {
+                      // Update projectId immediately
+                      if (selectedAsset.mfId) {
+                        setValue('projectId', selectedAsset.mfId, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                          shouldValidate: true,
+                        })
+                        trigger('projectId' as any)
+                      } else {
+                        setValue('projectId', '', {
+                          shouldDirty: true,
+                          shouldTouch: false,
+                          shouldValidate: false,
+                        })
+                      }
+
+                      // Update projectStatus immediately
+                      if (selectedAsset.mfAccountStatusDTO?.id) {
+                        setValue(
+                          'projectStatus',
+                          String(selectedAsset.mfAccountStatusDTO.id),
+                          {
+                            shouldDirty: true,
+                            shouldTouch: true,
+                            shouldValidate: true,
+                          }
+                        )
+                        trigger('projectStatus' as any)
+                      } else {
+                        setValue('projectStatus', '', {
+                          shouldDirty: true,
+                          shouldTouch: false,
+                          shouldValidate: false,
+                        })
+                      }
+                    } else {
+                      // Clear dependent fields when asset not found
+                      setValue('projectId', '', {
+                        shouldDirty: true,
+                        shouldTouch: false,
+                        shouldValidate: false,
+                      })
+                      setValue('projectStatus', '', {
+                        shouldDirty: true,
+                        shouldTouch: false,
+                        shouldValidate: false,
+                      })
+                    }
+                  } else {
+                    // Clear dependent fields when project is cleared
+                    setValue('projectId', '', {
+                      shouldDirty: true,
+                      shouldTouch: false,
+                      shouldValidate: false,
+                    })
+                    setValue('projectStatus', '', {
+                      shouldDirty: true,
+                      shouldTouch: false,
+                      shouldValidate: false,
+                    })
+                  }
+                }}
+                sx={{
+                  ...selectStyles,
+                  ...valueSx,
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    border: '1px solid #9ca3af',
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    border: '2px solid #2563eb',
+                  },
+                }}
+                disabled={!selectedBuildPartnerId || isReadOnly}
+                IconComponent={KeyboardArrowDownIcon}
+                MenuProps={{
+                  PaperProps: {
+                    sx: {
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+                      border: '1px solid #E5E7EB',
+                      marginTop: '8px',
+                      minHeight: '120px',
+                      maxHeight: '300px',
+                      overflow: 'auto',
+                      '& .MuiMenuItem-root': {
+                        padding: '12px 16px',
+                        fontSize: '14px',
+                        fontFamily:
+                          'Outfit, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        color: '#374151',
+                        transition: 'all 0.2s ease-in-out',
+                        '&:hover': {
+                          backgroundColor: '#F3F4F6',
+                          color: '#111827',
+                        },
+                        '&.Mui-selected': {
+                          backgroundColor: '#EBF4FF',
+                          color: '#2563EB',
+                          fontWeight: 500,
+                          '&:hover': {
+                            backgroundColor: '#DBEAFE',
+                          },
+                        },
+                      },
+                    },
+                  },
+                }}
+              >
+                <MenuItem value="" disabled>
+                  -- Select --
+                </MenuItem>
+                {projectAssets.map((asset) => (
+                  <MenuItem
+                    key={asset.id}
+                    value={asset.id}
+                    sx={{
+                      fontSize: '14px',
+                      fontFamily:
+                        'Outfit, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      color: '#374151',
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': {
+                        backgroundColor: '#F3F4F6',
+                        color: '#111827',
+                      },
+                      '&.Mui-selected': {
+                        backgroundColor: '#EBF4FF',
+                        color: '#2563EB',
+                        fontWeight: 500,
+                        '&:hover': {
+                          backgroundColor: '#DBEAFE',
+                        },
+                      },
+                    }}
+                  >
+                    {asset.mfName}
+                  </MenuItem>
+                ))}
+              </Select>
+              <FormError error={error?.message || ''} touched={true} />
+            </FormControl>
+          )}
+        />
+      </Grid>
+    )
+  }
+
   const renderDatePickerField = (
     name: string,
     label: string,
@@ -1033,8 +1800,6 @@ const Step1 = ({
     )
   }
 
-  // Unused function - kept for potential future use
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const renderTextFieldWithButton = (
     name: string,
     label: string,
@@ -1054,6 +1819,7 @@ const Step1 = ({
             label={label}
             error={!!error}
             helperText={error?.message}
+            disabled={isReadOnly}
             required={isRequired && !isReadOnly}
             InputProps={{
               endAdornment: (
@@ -1113,6 +1879,7 @@ const Step1 = ({
               <Checkbox
                 {...field}
                 checked={!!field.value}
+                disabled={isReadOnly}
                 sx={{
                   color: '#CAD5E2',
                   '&.Mui-checked': {
@@ -1346,78 +2113,52 @@ const Step1 = ({
       >
         <CardContent>
           <Grid container rowSpacing={4} columnSpacing={2}>
-            {/* OLD FIELDS - HIDDEN */}
-            {/* {renderPaymentRefIdField(
+            {renderPaymentRefIdField(
               'tasReference',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.TAS_REFERENCE,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.TAS_REFERENCE,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.TAS_REFERENCE
-              ),
-              6,
-              true
-            )} */}
-            {/* {renderSelectField('developerName', ...)} */}
-            {/* {renderTextField('developerId', ...)} */}
-            {/* {renderSelectField('projectName', ...)} */}
-            {/* {renderTextField('projectId', ...)} */}
-            {/* {renderSelectField('projectStatus', ...)} */}
-            {/* {renderAccountBalanceField('subConstruction', 'corporateAccount', ...)} */}
-            {/* {renderAccountBalanceField('corporate', 'corporateAccount1', ...)} */}
-
-            {/* NEW FIELDS START */}
-            {renderPaymentRefIdField(
-              'vaucherReferenceNumber',
-              getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.VAUCHER_REFERENC_NUMBER,
-                'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.VAUCHER_REFERENC_NUMBER
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TAS_REFERENCE
               ),
               6,
               true
             )}
-            {renderSelectField(
-              'assetRegisterName',
-              getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.ASSET_REGISTER_NAME,
-                'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.ASSET_REGISTER_NAME
-              ),
-              assetRegisterNames,
-              6,
-              true
-            )}
+   
+            {renderDeveloperNameField()}
+            {renderDeveloperIdField()}
+            {renderProjectNameField()}
             {renderTextField(
-              'managementFirmName',
+              'projectId',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.MANAGEMENT_FIRM_NAME,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROJECT_ID,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.MANAGEMENT_FIRM_NAME
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_ID
               ),
               6,
               '',
-              true
+              true,
+              true // Disable - auto-populated from project name
             )}
             {renderSelectField(
-              'managementFirmAccountStatus',
+              'projectStatus',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.MANAGEMENT_FIRM_ACCOUNT_STATUS,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROJECT_STATUS,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.MANAGEMENT_FIRM_ACCOUNT_STATUS
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_STATUS
               ),
               buildAssetAccountStatuses.data,
               6,
-              true
+              true,
+              false,
+              true // Disable - auto-populated from project name
             )}
-
-            {/* FETCH DATA AUTOMATICALLY FROM API */}
             {renderAccountBalanceField(
               'escrow',
               'escrowAccount',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.ESCROW_ACCOUNT,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.ESCROW_ACCOUNT,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.ESCROW_ACCOUNT
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.ESCROW_ACCOUNT
               ),
               'subConstructionAccount',
               'Current Balance in Escrow Account*',
@@ -1425,19 +2166,45 @@ const Step1 = ({
               true
             )}
             {renderAccountBalanceField(
+              'subConstruction',
+              'corporateAccount',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.SUB_CONSTRUCTION_ACCOUNT,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .SUB_CONSTRUCTION_ACCOUNT
+              ),
+              'retentionAccount',
+              'Current Balance in Sub Construction Account*',
+              6,
+              true
+            )}
+            {renderAccountBalanceField(
+              'corporate',
+              'corporateAccount1',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.CORPORATE_ACCOUNT,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CORPORATE_ACCOUNT
+              ),
+              'retentionAccount1',
+              'Current Balance in Corporate Account*',
+              6,
+              true
+            )}
+            {renderAccountBalanceField(
               'retention',
               'corporateAccount2',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.RETENTION_ACCOUNT,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.RETENTION_ACCOUNT,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.RETENTION_ACCOUNT
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.RETENTION_ACCOUNT
               ),
               'retentionAccount2',
               'Current Balance in Retention Account*',
               6,
               true
             )}
-            {/* END OF FETCH DATA AUTOMATICALLY FROM API */}
 
             <Grid size={{ xs: 12 }}>
               <Typography
@@ -1454,9 +2221,9 @@ const Step1 = ({
                 }}
               >
                 {getLabel(
-                  VOUCHER_LABELS.SECTION_TITLES.EXPENSE_TYPE,
+                  MANUAL_PAYMENT_LABELS.SECTION_TITLES.EXPENSE_TYPE,
                   'EN',
-                  VOUCHER_LABELS.FALLBACKS.SECTION_TITLES.EXPENSE_TYPE
+                  MANUAL_PAYMENT_LABELS.FALLBACKS.SECTION_TITLES.EXPENSE_TYPE
                 )}
               </Typography>
             </Grid>
@@ -1464,9 +2231,9 @@ const Step1 = ({
             {renderSelectField(
               'paymentType',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.PAYMENT_TYPE,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_TYPE,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_TYPE
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_TYPE
               ),
               paymentTypes.data || [],
               6,
@@ -1475,32 +2242,32 @@ const Step1 = ({
             {renderSelectField(
               'paymentSubType',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.PAYMENT_SUB_TYPE,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_SUB_TYPE,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_SUB_TYPE
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_SUB_TYPE
               ),
               paymentSubTypes.data || [],
               6,
               false
             )}
             {renderTextField(
-              'hoaApprovalNumber',
+              'paymentType1',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.HOA_APPROVAL_NUMBER,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.REGULAR_APPROVAL_REF,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.HOA_APPROVAL_NUMBER
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.REGULAR_APPROVAL_REF
               ),
               6,
               '',
               true
             )}
             {renderDatePickerField(
-              'hoaApprovalDate',
+              'paymentSubType1',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.HOA_APPROVAL_DATE,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.REGULAR_APPROVAL_DATE,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
-                  .HOA_APPROVAL_DATE
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .REGULAR_APPROVAL_DATE
               ),
               6,
               true
@@ -1508,9 +2275,9 @@ const Step1 = ({
             {renderTextField(
               'invoiceRef',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.INVOICE_REF,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_REF,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_REF
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_REF
               ),
               3,
               '',
@@ -1519,9 +2286,9 @@ const Step1 = ({
             {renderSelectField(
               'invoiceCurrency',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.INVOICE_CURRENCY,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_CURRENCY,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_CURRENCY
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_CURRENCY
               ),
               currencies.data || [],
               3,
@@ -1530,9 +2297,9 @@ const Step1 = ({
             {renderTextField(
               'invoiceValue',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.INVOICE_VALUE,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_VALUE,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_VALUE
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_VALUE
               ),
               3,
               '',
@@ -1541,9 +2308,9 @@ const Step1 = ({
             {renderDatePickerField(
               'invoiceDate',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.INVOICE_DATE,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_DATE,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_DATE
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_DATE
               ),
               3
             )}
@@ -1563,92 +2330,62 @@ const Step1 = ({
                 }}
               >
                 {getLabel(
-                  VOUCHER_LABELS.SECTION_TITLES.AMOUNT_DETAILS,
+                  MANUAL_PAYMENT_LABELS.SECTION_TITLES.AMOUNT_DETAILS,
                   'EN',
-                  VOUCHER_LABELS.FALLBACKS.SECTION_TITLES.AMOUNT_DETAILS
+                  MANUAL_PAYMENT_LABELS.FALLBACKS.SECTION_TITLES.AMOUNT_DETAILS
                 )}
               </Typography>
             </Grid>
 
-            {renderCheckboxField(
-              'specialRate',
-              getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.SPECIAL_RATE,
-                'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.SPECIAL_RATE
-              ),
-              3
-            )}
-            {renderCheckboxField(
-              'corporateAmount',
-              getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.CORPORATE_AMOUNT,
-                'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.CORPORATE_AMOUNT
-              ),
-              3
-            )}
-
-            {/* RT03 */}
             {renderTextField(
-              'RT03',
+              'engineerApprovedAmount',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.RT03,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.ENGINEER_APPROVED_AMOUNT,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.RT03
-              ),
-              12,
-              '',
-              true
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .ENGINEER_APPROVED_AMOUNT
+              )
             )}
             {renderTextField(
               'totalEligibleAmount',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.TOTAL_ELIGIBLE_AMOUNT,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.TOTAL_ELIGIBLE_AMOUNT,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
                   .TOTAL_ELIGIBLE_AMOUNT
-              ),
-              6,
-              '',
-              true
+              )
             )}
-            {/* END OF Total Eligible Amount */}
-            {/* Amount Paid against Invoice Amount */}
             {renderTextField(
               'amountPaid',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.AMOUNT_PAID,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.AMOUNT_PAID,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.AMOUNT_PAID
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.AMOUNT_PAID
               )
             )}
-            {/* END OF Amount Paid against Invoice Amount */}
-
-            {renderCheckboxField(
-              'capExceeded',
+            {renderTextField(
+              'amountPaid1',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.CAP_EXCEEDED,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.CAP_EXCEEDED,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.CAP_EXCEEDED
-              ),
-              3
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CAP_EXCEEDED
+              )
             )}
             {renderTextField(
               'totalAmountPaid',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.TOTAL_AMOUNT_PAID,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.TOTAL_AMOUNT_PAID,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.TOTAL_AMOUNT_PAID
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TOTAL_AMOUNT_PAID
               ),
-              6
+              3
             )}
             {renderSelectField(
-              'paymentCurrency',
+              'totalAmountPaid1',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.PAYMENT_CURRENCY,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_CURRENCY,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_CURRENCY
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_CURRENCY
               ),
               currencies.data,
               3
@@ -1656,18 +2393,18 @@ const Step1 = ({
             {renderTextField(
               'debitCreditToEscrow',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.DEBIT_CREDIT_ESCROW,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEBIT_CREDIT_ESCROW,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.DEBIT_CREDIT_ESCROW
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEBIT_CREDIT_ESCROW
               ),
               3
             )}
             {renderTextField(
               'currentEligibleAmount',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.CURRENT_ELIGIBLE_AMOUNT,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.CURRENT_ELIGIBLE_AMOUNT,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
                   .CURRENT_ELIGIBLE_AMOUNT
               ),
               3
@@ -1675,31 +2412,363 @@ const Step1 = ({
             {renderTextField(
               'debitFromRetention',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.DEBIT_FROM_RETENTION,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEBIT_FROM_RETENTION,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.DEBIT_FROM_RETENTION
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEBIT_FROM_RETENTION
               ),
               3
             )}
             {renderTextField(
               'totalPayoutAmount',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.TOTAL_PAYOUT_AMOUNT,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.TOTAL_PAYOUT_AMOUNT,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.TOTAL_PAYOUT_AMOUNT
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TOTAL_PAYOUT_AMOUNT
               ),
               3
             )}
             {renderTextField(
               'amountInTransit',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.AMOUNT_IN_TRANSIT,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.AMOUNT_IN_TRANSIT,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.AMOUNT_IN_TRANSIT
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.AMOUNT_IN_TRANSIT
               ),
               3
             )}
-            {/* END NEW FIELD END */}
+            {renderTextField(
+              'vatCapExceeded',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.VAT_CAP_EXCEEDED,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.VAT_CAP_EXCEEDED
+              ),
+              3
+            )}
+            {renderCheckboxField(
+              'specialRate',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.SPECIAL_RATE,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.SPECIAL_RATE
+              ),
+              3
+            )}
+            {renderCheckboxField(
+              'corporateAmount',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.CORPORATE_AMOUNT,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CORPORATE_AMOUNT
+              ),
+              3
+            )}
+            {renderTextField(
+              'delRefNo',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEAL_REF_NO,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEAL_REF_NO
+              ),
+              3,
+              '',
+              true
+            )}
+            {renderTextField(
+              'ppcNo',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PPC_NUMBER,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PPC_NUMBER
+              ),
+              3
+            )}
+            {renderTextFieldWithButton(
+              'vatCapExceeded3',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.INDICATIVE_RATE,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INDICATIVE_RATE
+              ),
+              'Get Exchange Rate',
+              6,
+              true
+            )}
+            {renderTextField(
+              'vatCapExceeded4',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.CORPORATE_CERTIFICATION_FEES,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .CORPORATE_CERTIFICATION_FEES
+              )
+            )}
+
+            <Grid size={{ xs: 12 }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  color: '#1E2939',
+                  fontFamily: 'Outfit, sans-serif',
+                  fontWeight: 500,
+                  fontStyle: 'normal',
+                  fontSize: '18px',
+                  lineHeight: '28px',
+                  letterSpacing: '0.15px',
+                  verticalAlign: 'middle',
+                }}
+              >
+                {getLabel(
+                  MANUAL_PAYMENT_LABELS.SECTION_TITLES.NARRATION,
+                  'EN',
+                  MANUAL_PAYMENT_LABELS.FALLBACKS.SECTION_TITLES.NARRATION
+                )}
+              </Typography>
+            </Grid>
+
+            {renderTextField(
+              'narration1',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.NARRATION_1,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.NARRATION_1
+              )
+            )}
+            {renderTextField(
+              'narration2',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.NARRATION_2,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.NARRATION_2
+              )
+            )}
+            {renderTextField(
+              'remarks',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.REMARKS,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.REMARKS
+              ),
+              12
+            )}
+
+            <Grid size={{ xs: 12 }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  color: '#1E2939',
+                  fontFamily: 'Outfit, sans-serif',
+                  fontWeight: 500,
+                  fontStyle: 'normal',
+                  fontSize: '18px',
+                  lineHeight: '28px',
+                  letterSpacing: '0.15px',
+                  verticalAlign: 'middle',
+                }}
+              >
+                {getLabel(
+                  MANUAL_PAYMENT_LABELS.PAYMENT_TYPES.OTHERS,
+                  'EN',
+                  'Others'
+                )}
+              </Typography>
+            </Grid>
+            {/* 
+            {renderTextField(
+              'unitNo',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.UNIT_NO,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.UNIT_NO
+              )
+            )}
+            {renderTextField(
+              'towerName',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.TOWER_NAME,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TOWER_NAME
+              )
+            )}
+            {renderTextField(
+              'unitStatus',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.UNIT_STATUS,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.UNIT_STATUS
+              )
+            )}
+            {renderTextField(
+              'amountReceived',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.AMOUNT_RECEIVED,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.AMOUNT_RECEIVED
+              )
+            )}
+            {renderCheckboxField(
+              'Forfeit',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.FORFEIT,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.FORFEIT
+              ),
+              4
+            )}
+            {renderCheckboxField(
+              'Refundtounitholder',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.REFUND_TO_UNIT_HOLDER,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .REFUND_TO_UNIT_HOLDER
+              ),
+              4
+            )}
+            {renderCheckboxField(
+              'Transfertootherunit',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.TRANSFER_TO_OTHER_UNIT,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .TRANSFER_TO_OTHER_UNIT
+              ),
+              4
+            )}
+            {renderTextField(
+              'forfeitAmount',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.FORFEIT_AMOUNT,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.FORFEIT_AMOUNT
+              ),
+              4
+            )}
+            {renderTextField(
+              'regulatorApprovalRef',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.REGULATOR_APPROVAL_REF,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .REGULATOR_APPROVAL_REF
+              ),
+              4,
+              '',
+              false
+            )} */}
+            {renderDatePickerField(
+              'paymentDate',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.REGULATOR_APPROVAL_DATE,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .REGULATOR_APPROVAL_DATE
+              ),
+              4,
+              false
+            )}
+
+            {renderSelectField(
+              'bankCharges',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.CHARGE_MODE,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CHARGE_MODE
+              ),
+              depositModes.data,
+              6,
+              true
+            )}
+            {renderSelectField(
+              'paymentMode',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_MODE,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_MODE
+              ),
+              paymentModes.data,
+              6,
+              false
+            )}
+            {renderSelectField(
+              'engineerFeePayment',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.TRANSACTION_TYPE,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TRANSACTION_TYPE
+              ),
+              transferTypes.data,
+              6,
+              false
+            )}
+            {renderTextField(
+              'uploadDocuments',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.AMOUNT_TO_BE_RELEASED,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .AMOUNT_TO_BE_RELEASED
+              )
+            )}
+            {renderDatePickerField(
+              'engineerFeePayment1',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_DATE,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_DATE
+              )
+            )}
+            {renderTextField(
+              'uploadDocuments1',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.VAT_PAYMENT_AMOUNT,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.VAT_PAYMENT_AMOUNT
+              )
+            )}
+            {renderCheckboxField(
+              'EngineerFeePaymentNeeded',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.ENGINEER_FEE_PAYMENT_NEEDED,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .ENGINEER_FEE_PAYMENT_NEEDED
+              )
+            )}
+            {renderTextField(
+              'EngineerFeesPayment',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.ENGINEER_FEES_PAYMENT,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                  .ENGINEER_FEES_PAYMENT
+              )
+            )}
+            {renderTextField(
+              'engineerFeePayment2',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.BANK_CHARGES,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.BANK_CHARGES
+              )
+            )}
+            {renderSelectField(
+              'uploadDocuments2',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_FROM_CBS,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_FROM_CBS
+              ),
+              boolYnOptions.data || [],
+              6,
+              true
+            )}
+            {renderCheckboxField(
+              'feDocVerified',
+              'Please review the Surety Bond details and documents before submitting the payment. *',
+              12
+            )}
+
             {/* BUDGET DETAILS START */}
             <Grid size={{ xs: 12 }}>
               <Typography
@@ -1722,9 +2791,9 @@ const Step1 = ({
             {renderSelectField(
               'budgetYear',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.BUDGET_YEAR,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.BUDGET_YEAR,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.BUDGET_YEAR
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.BUDGET_YEAR
               ),
               boolYnOptions.data || [],
               6,
@@ -1733,9 +2802,9 @@ const Step1 = ({
             {renderSelectField(
               'budgetCategory',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.BUDGET_CATEGORY,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.BUDGET_CATEGORY,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.BUDGET_CATEGORY
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.BUDGET_CATEGORY
               ),
               boolYnOptions.data || [],
               6,
@@ -1744,9 +2813,9 @@ const Step1 = ({
             {renderSelectField(
               'budgetSubCategory',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.BUDGET_SUB_CATEGORY,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.BUDGET_SUB_CATEGORY,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.BUDGET_SUB_CATEGORY
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.BUDGET_SUB_CATEGORY
               ),
               boolYnOptions.data || [],
               6,
@@ -1755,9 +2824,9 @@ const Step1 = ({
             {renderSelectField(
               'budgetServiceName',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.BUDGET_SERVICE_NAME,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.BUDGET_SERVICE_NAME,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.BUDGET_SERVICE_NAME
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.BUDGET_SERVICE_NAME
               ),
               boolYnOptions.data || [],
               6,
@@ -1765,35 +2834,330 @@ const Step1 = ({
             )}
             {/* BUDGER DROP DOWN FIELDS END */}
 
-            {/* CHECKBOX FIELDS START */}
-            {renderCheckboxField(
+           
+            {/* AUTO POPULATE BUDGET DETAILS START */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Controller
+                name="categoryCode"
+                control={control}
+                // defaultValue={
+                //   sanitizedData?.assetRegisterDTO?.arMasterName || ''
+                // }
+                // rules={{
+                //   validate: (value: any) =>
+                //     validateStep1Field('assetRegisterDTO.arMasterName', value),
+                // }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value || ''}
+                    fullWidth
+                    disabled={true}
+                    label={getLabel(
+                      MANUAL_PAYMENT_LABELS.FORM_FIELDS.CATEGORY_CODE,
+                      'language',
+                      MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CATEGORY_CODE
+                    )}
+                    // error={!!errors.assetRegisterDTO?.arMasterName}
+                    // helperText={
+                    //   errors.assetRegisterDTO?.arMasterName?.message ||
+                    //   'Auto-filled when Management Firm is selected'
+                    // }
+                    // InputLabelProps={{
+                    //   sx: labelSx,
+                    //   shrink: !!field.value,
+                    // }}
+                    // InputProps={{ sx: valueSx }}
+                    // sx={
+                    //   errors.assetRegisterDTO?.arMasterName
+                    //     ? errorFieldStyles
+                    //     : commonFieldStyles
+                    // }
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Controller
+                name="subCategoryCode"
+                control={control}
+                // defaultValue={
+                //   sanitizedData?.assetRegisterDTO?.arMasterName || ''
+                // }
+                // rules={{
+                //   validate: (value: any) =>
+                //     validateStep1Field('assetRegisterDTO.arMasterName', value),
+                // }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value || ''}
+                    fullWidth
+                    disabled={true}
+                    label={getLabel(
+                      MANUAL_PAYMENT_LABELS.FORM_FIELDS.SUB_CATEGORY_CODE,
+                      'language',
+                      MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                        .SUB_CATEGORY_CODE
+                    )}
+                    // error={!!errors.assetRegisterDTO?.arMasterName}
+                    // helperText={
+                    //   errors.assetRegisterDTO?.arMasterName?.message ||
+                    //   'Auto-filled when Management Firm is selected'
+                    // }
+                    // InputLabelProps={{
+                    //   sx: labelSx,
+                    //   shrink: !!field.value,
+                    // }}
+                    // InputProps={{ sx: valueSx }}
+                    // sx={
+                    //   errors.assetRegisterDTO?.arMasterName
+                    //     ? errorFieldStyles
+                    //     : commonFieldStyles
+                    // }
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Controller
+                name="serviceCode"
+                control={control}
+                // defaultValue={
+                //   sanitizedData?.assetRegisterDTO?.arMasterName || ''
+                // }
+                // rules={{
+                //   validate: (value: any) =>
+                //     validateStep1Field('assetRegisterDTO.arMasterName', value),
+                // }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value || ''}
+                    fullWidth
+                    disabled={true}
+                    label={getLabel(
+                      MANUAL_PAYMENT_LABELS.FORM_FIELDS.SERVICE_CODE,
+                      'language',
+                      MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.SERVICE_CODE
+                    )}
+                    // error={!!errors.assetRegisterDTO?.arMasterName}
+                    // helperText={
+                    //   errors.assetRegisterDTO?.arMasterName?.message ||
+                    //   'Auto-filled when Management Firm is selected'
+                    // }
+                    // InputLabelProps={{
+                    //   sx: labelSx,
+                    //   shrink: !!field.value,
+                    // }}
+                    // InputProps={{ sx: valueSx }}
+                    // sx={
+                    //   errors.assetRegisterDTO?.arMasterName
+                    //     ? errorFieldStyles
+                    //     : commonFieldStyles
+                    // }
+                  />
+                )}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Controller
+                name="provisionalBudgetCode"
+                control={control}
+                // defaultValue={
+                //   sanitizedData?.assetRegisterDTO?.arMasterName || ''
+                // }
+                // rules={{
+                //   validate: (value: any) =>
+                //     validateStep1Field('assetRegisterDTO.arMasterName', value),
+                // }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value || ''}
+                    fullWidth
+                    disabled={true}
+                    label={getLabel(
+                      MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROVISIONAL_BUDGET_CODE,
+                      'language',
+                      MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                        .PROVISIONAL_BUDGET_CODE
+                    )}
+                    // error={!!errors.assetRegisterDTO?.arMasterName}
+                    // helperText={
+                    //   errors.assetRegisterDTO?.arMasterName?.message ||
+                    //   'Auto-filled when Management Firm is selected'
+                    // }
+                    // InputLabelProps={{
+                    //   sx: labelSx,
+                    //   shrink: !!field.value,
+                    // }}
+                    // InputProps={{ sx: valueSx }}
+                    // sx={
+                    //   errors.assetRegisterDTO?.arMasterName
+                    //     ? errorFieldStyles
+                    //     : commonFieldStyles
+                    // }
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Controller
+                name="availableBudget"
+                control={control}
+                // defaultValue={
+                //   sanitizedData?.assetRegisterDTO?.arMasterName || ''
+                // }
+                // rules={{
+                //   validate: (value: any) =>
+                //     validateStep1Field('assetRegisterDTO.arMasterName', value),
+                // }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value || ''}
+                    fullWidth
+                    disabled={true}
+                    label={getLabel(
+                      MANUAL_PAYMENT_LABELS.FORM_FIELDS.AVAILABLE_BUDGET_AMOUNT,
+                      'language',
+                      MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                        .AVAILABLE_BUDGET_AMOUNT
+                    )}
+                    // error={!!errors.assetRegisterDTO?.arMasterName}
+                    // helperText={
+                    //   errors.assetRegisterDTO?.arMasterName?.message ||
+                    //   'Auto-filled when Management Firm is selected'
+                    // }
+                    // InputLabelProps={{
+                    //   sx: labelSx,
+                    //   shrink: !!field.value,
+                    // }}
+                    // InputProps={{ sx: valueSx }}
+                    // sx={
+                    //   errors.assetRegisterDTO?.arMasterName
+                    //     ? errorFieldStyles
+                    //     : commonFieldStyles
+                    // }
+                  />
+                )}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Controller
+                name="utilizedBudget"
+                control={control}
+                // defaultValue={
+                //   sanitizedData?.assetRegisterDTO?.arMasterName || ''
+                // }
+                // rules={{
+                //   validate: (value: any) =>
+                //     validateStep1Field('assetRegisterDTO.arMasterName', value),
+                // }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value || ''}
+                    fullWidth
+                    disabled={true}
+                    label={getLabel(
+                      MANUAL_PAYMENT_LABELS.FORM_FIELDS.UTILIZED_BUDGET_AMOUNT,
+                      'language',
+                      MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                        .UTILIZED_BUDGET_AMOUNT
+                    )}
+                    // error={!!errors.assetRegisterDTO?.arMasterName}
+                    // helperText={
+                    //   errors.assetRegisterDTO?.arMasterName?.message ||
+                    //   'Auto-filled when Management Firm is selected'
+                    // }
+                    // InputLabelProps={{
+                    //   sx: labelSx,
+                    //   shrink: !!field.value,
+                    // }}
+                    // InputProps={{ sx: valueSx }}
+                    // sx={
+                    //   errors.assetRegisterDTO?.arMasterName
+                    //     ? errorFieldStyles
+                    //     : commonFieldStyles
+                    // }
+                  />
+                )}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Controller
+                name="invoiceBudget"
+                control={control}
+                // defaultValue={
+                //   sanitizedData?.assetRegisterDTO?.arMasterName || ''
+                // }
+                // rules={{
+                //   validate: (value: any) =>
+                //     validateStep1Field('assetRegisterDTO.arMasterName', value),
+                // }}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value || ''}
+                    fullWidth
+                    disabled={true}
+                    label={getLabel(
+                      MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_BUDGET_AMOUNT,
+                      'language',
+                      MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
+                        .INVOICE_BUDGET_AMOUNT
+                    )}
+                    // error={!!errors.assetRegisterDTO?.arMasterName}
+                    // helperText={
+                    //   errors.assetRegisterDTO?.arMasterName?.message ||
+                    //   'Auto-filled when Management Firm is selected'
+                    // }
+                    // InputLabelProps={{
+                    //   sx: labelSx,
+                    //   shrink: !!field.value,
+                    // }}
+                    // InputProps={{ sx: valueSx }}
+                    // sx={
+                    //   errors.assetRegisterDTO?.arMasterName
+                    //     ? errorFieldStyles
+                    //     : commonFieldStyles
+                    // }
+                  />
+                )}
+              />
+            </Grid>
+             {/* CHECKBOX FIELDS START */}
+             {renderCheckboxField(
               'provisionalBudget',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.PROVISIONAL_BUDGET,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROVISIONAL_BUDGET,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PROVISIONAL_BUDGET
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROVISIONAL_BUDGET
               ),
-              6
+              3
             )}
             {renderCheckboxField(
               'HOAExemption',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.HOA_EXEMPTION,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.HOA_EXEMPTION,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.HOA_EXEMPTION
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.HOA_EXEMPTION
               ),
-              6
+              3
             )}
             {/* CHECKBOX FIELDS END */}
-            {/* AUTO POPULATE BUDGET DETAILS START */}
-
-            {renderAccountBalanceField(
+            {/* {renderAccountBalanceField(
               'categoryCode',
               'categoryCode',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.CATEGORY_CODE,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.CATEGORY_CODE,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.CATEGORY_CODE
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CATEGORY_CODE
               ),
               'categoryName',
               'Current Balance in Category Name*',
@@ -1805,357 +3169,90 @@ const Step1 = ({
               'subCategoryCode',
               'subCategoryCode',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.SUB_CATEGORY_CODE,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.SUB_CATEGORY_CODE,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.SUB_CATEGORY_CODE
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.SUB_CATEGORY_CODE
               ),
               'subCategoryName',
               'Current Balance in Sub Category Name*',
               6,
               true
-            )}
-            {renderAccountBalanceField(
+            )} */}
+            {/* {renderAccountBalanceField(
               'serviceCode',
               'serviceCode',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.SERVICE_CODE,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.SERVICE_CODE,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.SERVICE_CODE
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.SERVICE_CODE
               ),
               'serviceName',
               'Current Balance in Service Name*',
               6,
               true
-            )}
-            {renderAccountBalanceField(
+            )} */}
+            {/* {renderAccountBalanceField(
               'provisionalBudgetCode',
               'provisionalBudgetCode',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.PROVISIONAL_BUDGET_CODE,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROVISIONAL_BUDGET_CODE,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
                   .PROVISIONAL_BUDGET_CODE
               ),
               'provisionalBudgetName',
               'Current Balance in Provisional Budget Name*',
               6,
               true
-            )}
-            {renderAccountBalanceField(
+            )} */}
+
+            {/* {renderAccountBalanceField(
               'availableBudget',
               'availableBudgetAmount',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.AVAILABLE_BUDGET_AMOUNT,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.AVAILABLE_BUDGET_AMOUNT,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
                   .AVAILABLE_BUDGET_AMOUNT
               ),
               'availableBudgetAmount',
               'Current Balance in Available Budget Amount*',
               6,
               true
-            )}
+            )} */}
 
-            {renderAccountBalanceField(
+            {/* {renderAccountBalanceField(
               'utilizedBudget',
               'utilizedBudgetAmount',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.UTILIZED_BUDGET_AMOUNT,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.UTILIZED_BUDGET_AMOUNT,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
                   .UTILIZED_BUDGET_AMOUNT
               ),
               'utilizedBudgetAmount',
               'Current Balance in Utilized Budget Amount*',
               6,
               true
-            )}
+            )} */}
 
-            {renderAccountBalanceField(
+            {/* {renderAccountBalanceField(
               'invoiceBudget',
               'invoiceBudgetAmount',
               getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.INVOICE_BUDGET_AMOUNT,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_BUDGET_AMOUNT,
                 'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
                   .INVOICE_BUDGET_AMOUNT
               ),
               'invoiceBudgetAmount',
               'Current Balance in Invoice Budget Amount*',
               6,
               true
-            )}
+            )} */}
             {/* AUTO POPULATE BUDGET DETAILS END */}
 
             {/* BUDGET DETAILS END */}
-
-            {/* BENEFICIARY DETAILS START */}
-            <Grid size={{ xs: 12 }}>
-              <Typography
-                variant="h6"
-                sx={{
-                  color: '#1E2939',
-                  fontFamily: 'Outfit, sans-serif',
-                  fontWeight: 500,
-                  fontStyle: 'normal',
-                  fontSize: '18px',
-                  lineHeight: '28px',
-                  letterSpacing: '0.15px',
-                  verticalAlign: 'middle',
-                }}
-              >
-                Beneficiary Details
-              </Typography>
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 6 }}>
-              {/* <Controller
-                name="voucherDTO.benVoucher"
-                control={control}
-                defaultValue={sanitizedData?.voucherDTO?.benVoucher || ''}
-                rules={{
-                  validate: (value: unknown) =>
-                    validateStep1Field('voucherDTO.benVoucher', value),
-                }}
-                render={({ field }) => (
-                  <FormControl
-                    fullWidth
-                    error={!!(errors as any)?.voucherDTO?.benVoucher}
-                    required={true}
-                    sx={
-                      (errors as any)?.voucherDTO?.benVoucher
-                        ? errorFieldStyles
-                        : commonFieldStyles
-                    }
-                  >
-                    <InputLabel sx={labelSx}>
-                      {getLabel(
-                        VOUCHER_LABELS.FORM_FIELDS.BEN_VOUCHER_ACCOUNT,
-                        'EN',
-                        VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.BEN_VOUCHER_ACCOUNT
-                      )}
-                    </InputLabel>
-                    <Select
-                      {...field}
-                      disabled={isReadOnly || isVoucherLoading}
-                      label={getLabel(
-                        VOUCHER_LABELS.FORM_FIELDS.BEN_VOUCHER_ACCOUNT,
-                        'EN',
-                        VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.BEN_VOUCHER_ACCOUNT
-                      )}
-                      sx={{
-                        ...selectStyles,
-                        ...valueSx,
-                        '& .MuiOutlinedInput-notchedOutline': {
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                        },
-                        '&:hover .MuiOutlinedInput-notchedOutline': {
-                          border: '1px solid #9ca3af',
-                        },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          border: '2px solid #2563eb',
-                        },
-                      }}
-                      IconComponent={KeyboardArrowDownIcon}
-                      onChange={(e) => {
-                        field.onChange(e)
-                        handleVoucherBeneficiaryDetailsChange(
-                          e.target.value as string
-                        )
-                      }}
-                      MenuProps={{
-                        PaperProps: {
-                          sx: {
-                            maxHeight: 300,
-                          },
-                        },
-                      }}
-                    >
-                      {isDevelopersLoading ? (
-                        <MenuItem disabled>Loading...</MenuItem>
-                      ) : VoucherData?.content && VoucherData.content.length > 0 ? (
-                        VoucherData.content.map((voucher: { id?: number; benVoucher?: string; bpName?: string }) => (
-                          <MenuItem
-                            key={voucher.id || voucher.benVoucher}
-                            value={voucher.benVoucher || ''}
-                          >
-                            {voucher.benVoucher || 'No CIF'} - {voucher.bpName || 'No Name'}
-                          </MenuItem>
-                        ))
-                      ) : (
-                        <MenuItem disabled>No beneficiary accounts available</MenuItem>
-                      )}
-                    </Select>
-                    {(errors as any)?.voucherDTO?.benVoucher && (
-                      <Typography
-                        variant="caption"
-                        color="error"
-                        sx={{ mt: 0.5, ml: 1.75 }}
-                      >
-                        {(errors as any).voucherDTO.benVoucher.message}
-                      </Typography>
-                    )}
-                  </FormControl>
-                )}
-              /> */}
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Controller
-                name="voucherDTO.benVoucherName"
-                control={control}
-                defaultValue={sanitizedData?.voucherDTO?.benVoucherName || ''}
-                rules={{
-                  validate: (value: unknown) =>
-                    validateStep1Field('voucherDTO.benVoucherName', value),
-                }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    disabled={true}
-                    label={getLabel(
-                      VOUCHER_LABELS.FORM_FIELDS.BEN_VOUCHER_NAME,
-                      'EN',
-                      VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.BEN_VOUCHER_NAME
-                    )}
-                    required={true}
-                    InputLabelProps={{ sx: labelSx }}
-                    InputProps={{ sx: valueSx }}
-                    sx={commonFieldStyles}
-                    helperText="Auto-filled when Beneficiary Account is selected"
-                  />
-                )}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Controller
-                name="buildPartnerDTO.bpName"
-                control={control}
-                defaultValue={
-                  sanitizedData?.voucherDTO?.benVoucherBankName || ''
-                }
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    disabled={true}
-                    label={getLabel(
-                      VOUCHER_LABELS.FORM_FIELDS.BEN_VOUCHER_BANK_NAME,
-                      'EN',
-                      VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.BEN_VOUCHER_BANK_NAME
-                    )}
-                    required={true}
-                    InputLabelProps={{ sx: labelSx }}
-                    InputProps={{ sx: valueSx }}
-                    sx={commonFieldStyles}
-                    helperText="Auto-filled when Beneficiary Account is selected"
-                  />
-                )}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Controller
-                name="voucherDTO.benVoucherSwiftCode"
-                control={control}
-                defaultValue={
-                  sanitizedData?.voucherDTO?.benVoucherSwiftCode || ''
-                }
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    disabled={true}
-                    label={getLabel(
-                      VOUCHER_LABELS.FORM_FIELDS.BEN_VOUCHER_SWIFT_CODE,
-                      'EN',
-                      VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.BEN_VOUCHER_SWIFT_CODE
-                    )}
-                    required={true}
-                    InputLabelProps={{ sx: labelSx }}
-                    InputProps={{ sx: valueSx }}
-                    sx={commonFieldStyles}
-                    helperText="Auto-filled when Beneficiary Swift Code is selected"
-                  />
-                )}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Controller
-                name="voucherDTO.benVoucherRoutingCode"
-                control={control}
-                defaultValue={
-                  sanitizedData?.voucherDTO?.benVoucherRoutingCode || ''
-                }
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    disabled={true}
-                    label={getLabel(
-                      VOUCHER_LABELS.FORM_FIELDS.BEN_VOUCHER_ROUTING_CODE,
-                      'EN',
-                      VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.BEN_VOUCHER_ROUTING_CODE
-                    )}
-                    required={true}
-                    InputLabelProps={{ sx: labelSx }}
-                    InputProps={{ sx: valueSx }}
-                    sx={commonFieldStyles}
-                    helperText="Auto-filled when Beneficiary Routing Code is selected"
-                  />
-                )}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Controller
-                name="voucherDTO.benVoucherAccountNumber"
-                control={control}
-                defaultValue={
-                  sanitizedData?.voucherDTO?.benVoucherAccountNumber || ''
-                }
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    disabled={true}
-                    label={getLabel(
-                      VOUCHER_LABELS.FORM_FIELDS.BEN_VOUCHER_ACCOUNT_NUMBER,
-                      'EN',
-                      VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.BEN_VOUCHER_ACCOUNT_NUMBER
-                    )}
-                    required={true}
-                    InputLabelProps={{ sx: labelSx }}
-                    InputProps={{ sx: valueSx }}
-                    sx={commonFieldStyles}
-                    helperText="Auto-filled when Beneficiary Account Number/IBAN is selected"
-                  />
-                )}
-              />
-            </Grid>
-            {renderSelectField(
-              'engineerFeePayment',
-              getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.TRANSACTION_TYPE,
-                'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.TRANSACTION_TYPE
-              ),
-              transferTypes.data,
-              6,
-              false
-            )}
-            {renderTextField(
-              'routinfSortcode',
-              getLabel(
-                VOUCHER_LABELS.FORM_FIELDS.ROUTINF_SORTCODE,
-                'EN',
-                VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.ROUTINF_SORTCODE
-              ),
-              6,
-              '',
-              true
-            )}
-
-            {/* BENEFICIARY DETAILS END */}
           </Grid>
         </CardContent>
       </Card>

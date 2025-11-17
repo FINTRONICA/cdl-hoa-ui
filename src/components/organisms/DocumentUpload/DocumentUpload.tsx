@@ -15,15 +15,12 @@ import {
   Alert,
   Snackbar,
   LinearProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
 } from '@mui/material'
 import { TablePagination } from '../../molecules/TablePagination/TablePagination'
 import { FileUploadOutlined as FileUploadOutlinedIcon } from '@mui/icons-material'
 import { Eye, Pencil, Trash2 } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
+import { useDeleteConfirmation } from '../../../store/confirmationDialogStore'
 
 import {
   BaseDocument,
@@ -60,6 +57,7 @@ const DocumentUpload = <
   formFieldName = 'documents',
 }: DocumentUploadProps<T, ApiResponse>) => {
   const { setValue, watch } = useFormContext()
+  const confirmDelete = useDeleteConfirmation()
 
   // State management
   const [uploadedDocuments, setUploadedDocuments] = useState<T[]>([])
@@ -73,17 +71,6 @@ const DocumentUpload = <
   const [totalDocuments, setTotalDocuments] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(20)
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false)
-  const [confirmDialog, setConfirmDialog] = useState<{
-    open: boolean
-    title: string
-    message: string
-    onConfirm: () => void
-  }>({
-    open: false,
-    title: '',
-    message: '',
-    onConfirm: () => {},
-  })
 
   const [uploadPopup, setUploadPopup] = useState<{
     open: boolean
@@ -162,28 +149,40 @@ const DocumentUpload = <
   }, [uploadedDocuments, setValue, formFieldName])
 
   const handleUploadClick = async () => {
-    if (config.documentTypeOptions && config.documentTypeOptions.length > 0) {
-      setUploadPopup({
-        open: true,
-        loading: false,
-        documentTypes: config.documentTypeOptions,
-      })
-      return
-    }
-
-    setUploadPopup({ open: true, loading: true, documentTypes: [] })
+    setUploadPopup((prev) => ({
+      ...prev,
+      open: true,
+      loading: true,
+    }))
 
     try {
       const settingKey = config.documentTypeSettingKey || 'INVESTOR_ID_TYPE'
+      console.log('[DocumentUpload] Fetching document types with key:', settingKey)
       const documentTypes =
         await applicationSettingService.getDropdownOptionsByKey(settingKey)
-      setUploadPopup({ open: true, loading: false, documentTypes })
+      console.log('[DocumentUpload] Document types fetched:', documentTypes)
+      
+      if (documentTypes.length === 0) {
+        console.warn('[DocumentUpload] No document types found, using fallback')
+        setUploadPopup((prev) => ({
+          ...prev,
+          documentTypes: [{ id: 0, value: 'CP_OTHER', label: 'Other' }],
+          loading: false,
+        }))
+      } else {
+        setUploadPopup((prev) => ({
+          ...prev,
+          documentTypes,
+          loading: false,
+        }))
+      }
     } catch (error) {
-      setUploadPopup({
-        open: true,
+      console.error('[DocumentUpload] Error fetching document types:', error)
+      setUploadPopup((prev) => ({
+        ...prev,
+        documentTypes: [{ id: 0, value: 'CP_OTHER', label: 'Other' }],
         loading: false,
-        documentTypes: [{ id: 0, value: 'OTHER', label: 'Other' }],
-      })
+      }))
     }
   }
 
@@ -321,7 +320,7 @@ const DocumentUpload = <
 
     try {
       const response = await apiClient.downloadFile(
-        API_ENDPOINTS.REAL_ESTATE_DOCUMENT.DOWNLOAD(doc.id),
+        API_ENDPOINTS.MANAGEMENT_FIRMS_DOCUMENT.DOWNLOAD(doc.id),
         {
           headers: {
             Accept: '*/*',
@@ -364,17 +363,25 @@ const DocumentUpload = <
     document: T
   ) => {
     if (action.requiresConfirmation) {
-      setConfirmDialog({
-        open: true,
-        title: `Confirm ${action.label}`,
-        message:
-          action.confirmationMessage ||
-          `Are you sure you want to ${action.label.toLowerCase()} this document?`,
+      // Get document name for display
+      const documentName =
+        (document as any).name ||
+        (document as any).fileName ||
+        (document as any).documentName ||
+        'document'
+
+      // Use global delete confirmation dialog (same as build partner main page)
+      confirmDelete({
+        itemName: documentName,
+        itemId: (document as any).id?.toString(),
+        ...(action.confirmationMessage && {
+          message: action.confirmationMessage,
+        }),
         onConfirm: async () => {
           try {
             // If it's a delete action, call the DELETE API
             if (action.key === 'delete' && document.id) {
-              const deleteUrl = API_ENDPOINTS.REAL_ESTATE_DOCUMENT.DELETE(
+              const deleteUrl = API_ENDPOINTS.MANAGEMENT_FIRMS_DOCUMENT.DELETE(
                 document.id
               )
               await apiClient.delete(deleteUrl)
@@ -389,9 +396,6 @@ const DocumentUpload = <
                 (doc) => doc.id !== document.id
               )
               setValue(formFieldName, updatedDocuments)
-
-              // Show success message
-              setUploadSuccess('Document deleted successfully')
 
               // Call the original action handler if it exists
               if (action.onClick) {
@@ -412,39 +416,14 @@ const DocumentUpload = <
           } catch (error) {
             const errorMessage = `Failed to ${action.label.toLowerCase()} document. Please try again.`
             setUploadError(errorMessage)
-          } finally {
-            setConfirmDialog((prev) => ({ ...prev, open: false }))
+            throw error // Re-throw to keep dialog open on error
           }
         },
       })
     } else {
       try {
-        // If it's a delete action, call the DELETE API
-        if (action.key === 'delete' && document.id) {
-          const deleteUrl = API_ENDPOINTS.REAL_ESTATE_DOCUMENT.DELETE(
-            document.id
-          )
-          await apiClient.delete(deleteUrl)
-
-          // Remove the document from the local state
-          setUploadedDocuments((prev) =>
-            prev.filter((doc) => doc.id !== document.id)
-          )
-
-          // Update form value
-          const updatedDocuments = uploadedDocuments.filter(
-            (doc) => doc.id !== document.id
-          )
-          setValue(formFieldName, updatedDocuments)
-
-          // Show success message
-          setUploadSuccess('Document deleted successfully')
-
-          // Call the original action handler if it exists
-          if (action.onClick) {
-            await action.onClick(document)
-          }
-        } else if (action.key === 'download') {
+        // For actions without confirmation
+        if (action.key === 'download') {
           // Handle download action
           await handleDownload(document)
 
@@ -530,7 +509,7 @@ const DocumentUpload = <
                 variant="outlined"
                 startIcon={<FileUploadOutlinedIcon />}
                 onClick={handleUploadClick}
-                disabled={isUploading}
+                disabled={!!isUploading}
                 sx={{
                   textTransform: 'none',
                   fontFamily: 'Outfit, sans-serif',
@@ -629,6 +608,9 @@ const DocumentUpload = <
                               })
                               .map((action) => {
                                 const isDisabled =
+                                  (config.isReadOnly &&
+                                    (action.key === 'delete' ||
+                                      action.key === 'edit')) ||
                                   doc.status === 'uploading' ||
                                   (action.disabled?.(doc) ?? false)
 
@@ -729,34 +711,6 @@ const DocumentUpload = <
             />
           )}
         </Box>
-
-        {/* Confirmation Dialog */}
-        <Dialog
-          open={confirmDialog.open}
-          onClose={() => setConfirmDialog((prev) => ({ ...prev, open: false }))}
-        >
-          <DialogTitle>{confirmDialog.title}</DialogTitle>
-          <DialogContent>
-            <Typography>{confirmDialog.message}</Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button
-              onClick={() =>
-                setConfirmDialog((prev) => ({ ...prev, open: false }))
-              }
-              sx={{ fontFamily: 'Outfit' }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={confirmDialog.onConfirm}
-              color="primary"
-              sx={{ fontFamily: 'Outfit' }}
-            >
-              Confirm
-            </Button>
-          </DialogActions>
-        </Dialog>
 
         {/* Success/Error Notifications */}
         <Snackbar

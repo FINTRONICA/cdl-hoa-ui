@@ -92,7 +92,6 @@ export const Autocomplete: React.FC<AutocompleteProps> = ({
       try {
         if (onSearch) {
           const searchResults = await onSearch(query)
-          console.log('Autocomplete search results:', searchResults)
           setFilteredOptions(searchResults)
         } else {
           // Local filtering if no search function provided

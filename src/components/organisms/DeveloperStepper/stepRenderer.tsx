@@ -2,8 +2,8 @@ import { useCallback, useEffect } from 'react'
 import {
   Step1,
   Step2,
-  Step3,
-  Step4,
+  // Step3,
+  // Step4,
   Step5,
   DocumentUploadStep,
   LazyStepWrapper,
@@ -68,32 +68,32 @@ export const useStepContentRenderer = ({
             </LazyStepWrapper>
           )
         },
-        3: () => {
-          const watchedFees = methods.watch('fees')
-          return (
-            <LazyStepWrapper>
-              <Step3
-                fees={watchedFees}
-                onFeesChange={(fees) => {
-                  methods.setValue('fees', fees)
-                }}
-                buildPartnerId={developerId || ''}
-                isReadOnly={isReadOnly}
-              />
-            </LazyStepWrapper>
-          )
-        },
-        4: () => (
-          <LazyStepWrapper>
-            <Step4
-              beneficiaries={methods.watch('beneficiaries')}
-              onBeneficiariesChange={handleBeneficiariesChange}
-              buildPartnerId={developerId || ''}
-              isReadOnly={isReadOnly}
-            />
-          </LazyStepWrapper>
-        ),
-        5: () => (
+        // 3: () => {
+        //   const watchedFees = methods.watch('fees')
+        //   return (
+        //     <LazyStepWrapper>
+        //       <Step3
+        //         fees={watchedFees}
+        //         onFeesChange={(fees) => {
+        //           methods.setValue('fees', fees)
+        //         }}
+        //         buildPartnerId={developerId || ''}
+        //         isReadOnly={isReadOnly}
+        //       />
+        //     </LazyStepWrapper>
+        //   )
+        // },
+        // 4: () => (
+        //   <LazyStepWrapper>
+        //     <Step4
+        //       beneficiaries={methods.watch('beneficiaries')}
+        //       onBeneficiariesChange={handleBeneficiariesChange}
+        //       buildPartnerId={developerId || ''}
+        //       isReadOnly={isReadOnly}
+        //     />
+        //   </LazyStepWrapper>
+        // ),
+        3: () => (
           <LazyStepWrapper>
             <Step5
               developerId={developerId}

@@ -46,7 +46,7 @@ export class CapitalPartnerLabelsService {
         throw new Error('Authentication token not found')
       }
       
-      const labels = await apiClient.get<CapitalPartnerLabelResponse[]>(API_ENDPOINTS.APP_LANGUAGE_TRANSLATION.CAPITAL_PARTNER, {
+      const labels = await apiClient.get<CapitalPartnerLabelResponse[]>(API_ENDPOINTS.APP_LANGUAGE_TRANSLATION.OWNER_REGISTRY, {
         headers: { Authorization: `Bearer ${token}` }
       })
   

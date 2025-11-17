@@ -16,11 +16,15 @@ import {
   FormControlLabel,
   Switch,
   Typography,
+  Alert,
+  Snackbar,
+  OutlinedInput,
 } from '@mui/material'
 import {
   KeyboardArrowDown as KeyboardArrowDownIcon,
   Edit as EditIcon,
 } from '@mui/icons-material'
+import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined'
 
 // imports for API integration
 import {
@@ -117,6 +121,8 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
   const createUser = useCreateAuthAdminUser()
   const updateUser = useUpdateAuthAdminUser()
   const [isEditMode, setIsEditMode] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   // Get current user info to check if we're editing our own permissions
   const { userId: currentUserId } = useAuthStore()
@@ -204,7 +210,7 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
 
       mutation.mutate(payload, {
         onSuccess: () => {
-          alert(
+          setSuccessMessage(
             `Role ${roleName} ${checked ? 'assigned' : 'unassigned'} successfully`
           )
 
@@ -259,7 +265,7 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
 
       mutation.mutate(payload, {
         onSuccess: () => {
-          alert(
+          setSuccessMessage(
             `Group ${groupId} ${checked ? 'assigned' : 'unassigned'} successfully`
           )
 
@@ -334,37 +340,39 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
   }, [mode, userData])
 
   const commonFieldStyles = {
-    height: '46px',
     '& .MuiOutlinedInput-root': {
       height: '46px',
       borderRadius: '8px',
-      backgroundColor: '#FFFFFF',
       '& fieldset': {
-        borderColor: '#D1D5DB',
+        borderColor: '#CAD5E2',
         borderWidth: '1px',
-        borderStyle: 'solid',
       },
       '&:hover fieldset': {
-        borderColor: '#9CA3AF',
-        borderWidth: '1px',
+        borderColor: '#CAD5E2',
       },
       '&.Mui-focused fieldset': {
         borderColor: '#2563EB',
-        borderWidth: '2px',
-      },
-      '&.Mui-disabled': {
-        backgroundColor: '#F9FAFB',
-        '& fieldset': {
-          borderColor: '#E5E7EB',
-        },
       },
     },
-    '& .MuiInputLabel-root': {
-      color: '#6B7280',
-      '&.Mui-focused': {
-        color: '#2563EB',
-      },
-    },
+  }
+
+  const labelSx = {
+    color: '#6A7282',
+    fontFamily: 'Outfit',
+    fontWeight: 400,
+    fontStyle: 'normal',
+    fontSize: '12px',
+    letterSpacing: 0,
+  }
+
+  const valueSx = {
+    color: '#1E2939',
+    fontFamily: 'Outfit',
+    fontWeight: 400,
+    fontStyle: 'normal',
+    fontSize: '14px',
+    letterSpacing: 0,
+    wordBreak: 'break-word',
   }
 
   const selectStyles = {
@@ -372,52 +380,20 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
     '& .MuiOutlinedInput-root': {
       height: '46px',
       borderRadius: '8px',
-      backgroundColor: '#FFFFFF',
       '& fieldset': {
-        borderColor: '#D1D5DB',
+        borderColor: '#CAD5E2',
         borderWidth: '1px',
-        borderStyle: 'solid',
       },
       '&:hover fieldset': {
-        borderColor: '#9CA3AF',
-        borderWidth: '1px',
+        borderColor: '#CAD5E2',
       },
       '&.Mui-focused fieldset': {
         borderColor: '#2563EB',
-        borderWidth: '2px',
-      },
-      '&.Mui-disabled': {
-        backgroundColor: '#F9FAFB',
-        '& fieldset': {
-          borderColor: '#E5E7EB',
-        },
-        '& .MuiSelect-select': {
-          backgroundColor: '#F9FAFB',
-        },
-      },
-      '& .MuiSelect-select': {
-        backgroundColor: '#FFFFFF',
-        padding: '12px 14px',
-        display: 'flex',
-        alignItems: 'center',
-        minHeight: 'unset',
-        height: '22px',
-      },
-    },
-    '& .MuiInputLabel-root': {
-      color: '#6B7280',
-      '&.Mui-focused': {
-        color: '#2563EB',
-      },
-      '&.Mui-disabled': {
-        color: '#9CA3AF',
       },
     },
     '& .MuiSelect-icon': {
-      color: '#6B7280',
-      '&.Mui-disabled': {
-        color: '#D1D5DB',
-      },
+      color: '#475569',
+      fontSize: '20px',
     },
   }
 
@@ -483,17 +459,12 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
       onClose={onClose}
       PaperProps={{
         sx: {
-          width: '600px',
-          height: 'calc(100vh - 48px)',
-          maxHeight: 'calc(100vh - 48px)',
-          borderRadius: '12px',
-          background: '#FFFFFFE5',
-          boxShadow: '-8px 0px 8px 0px #62748E14',
-          backdropFilter: 'blur(10px)',
-          padding: '24px',
-          marginTop: '24px',
-          marginBottom: '12px',
-          overflow: 'hidden',
+          width: 460,
+          borderRadius: 3,
+          backgroundColor: 'white',
+          backdropFilter: 'blur(15px)',
+          border: '2px solid rgba(255, 255, 255, 0.3)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
         },
       }}
     >
@@ -502,11 +473,16 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          height: '36px',
-          padding: 0,
+          fontFamily: 'Outfit, sans-serif',
+          fontWeight: 500,
+          fontStyle: 'normal',
+          fontSize: '20px',
+          lineHeight: '28px',
+          letterSpacing: '0.15px',
+          verticalAlign: 'middle',
         }}
       >
-        <span className="font-sans font-medium text-lg leading-7 tracking-0 text-[#1E2939]">
+        <span>
           {mode === 'edit'
             ? isEditMode
               ? getUserLabelDynamic('CDL_EDIT_USER')
@@ -536,7 +512,7 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
             </Button>
           )}
           <IconButton onClick={onClose}>
-            <img src="/close.svg" alt="close" />
+            <CancelOutlinedIcon />
           </IconButton>
         </Box>
       </DialogTitle>
@@ -547,6 +523,8 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
           padding: 0,
           paddingTop: '16px',
           paddingBottom: '100px', // Add space for bottom buttons
+          paddingLeft: '24px',
+          paddingRight: '24px',
           overflowY: 'auto',
           height: 'calc(100vh - 200px)', // Adjust height to prevent overlap
         }}
@@ -560,6 +538,8 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
               value={formData.firstName}
               onChange={(e) => handleInputChange('firstName', e.target.value)}
               disabled={mode === 'edit' && !isEditMode}
+              InputLabelProps={{ sx: labelSx }}
+              InputProps={{ sx: valueSx }}
               sx={commonFieldStyles}
             />
           </Grid>
@@ -570,6 +550,8 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
               value={formData.lastName}
               onChange={(e) => handleInputChange('lastName', e.target.value)}
               disabled={mode === 'edit' && !isEditMode}
+              InputLabelProps={{ sx: labelSx }}
+              InputProps={{ sx: valueSx }}
               sx={commonFieldStyles}
             />
           </Grid>
@@ -581,31 +563,26 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
               value={formData.emailId}
               onChange={(e) => handleInputChange('emailId', e.target.value)}
               disabled={mode === 'edit' && !isEditMode}
+              InputLabelProps={{ sx: labelSx }}
+              InputProps={{ sx: valueSx }}
               sx={commonFieldStyles}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             <FormControl fullWidth>
-              <InputLabel>{getUserLabelDynamic('CDL_STATUS')}</InputLabel>
+              <InputLabel sx={labelSx}>
+                {getUserLabelDynamic('CDL_STATUS')}
+              </InputLabel>
               <MuiSelect
                 value={formData.status}
                 onChange={(e) => handleInputChange('status', e.target.value)}
-                label="Status"
+                label={getUserLabelDynamic('CDL_STATUS')}
                 disabled={mode === 'edit' && !isEditMode}
                 IconComponent={KeyboardArrowDownIcon}
-                sx={{
-                  ...selectStyles,
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    border: '1px solid #9ca3af',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    border: '2px solid #2563eb',
-                  },
-                }}
+                input={
+                  <OutlinedInput label={getUserLabelDynamic('CDL_STATUS')} />
+                }
+                sx={{ ...selectStyles, ...valueSx }}
               >
                 {statusOptions.map((option) => (
                   <MenuItem key={option.value} value={option.value}>
@@ -622,6 +599,8 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
               value={formData.username}
               onChange={(e) => handleInputChange('username', e.target.value)}
               disabled={mode === 'edit' && !isEditMode}
+              InputLabelProps={{ sx: labelSx }}
+              InputProps={{ sx: valueSx }}
               sx={commonFieldStyles}
             />
           </Grid>
@@ -722,8 +701,8 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
                   ) : allAvailableGroups && allAvailableGroups.length > 0 ? (
                     <Box
                       sx={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
+                        display: 'flex',
+                        flexDirection: 'column',
                         gap: 1,
                       }}
                     >
@@ -815,41 +794,114 @@ export const RightSlideUserPanel: React.FC<RightSlideUserPanelProps> = ({
 
       <Box
         sx={{
+          backgroundColor: '#FFFFFF',
           position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
-          p: 3,
-          display: 'flex',
-          gap: 2,
-          backgroundColor: '#FFFFFFE5',
-          borderTop: '1px solid #E2E8F0',
+          padding: 2,
         }}
       >
-        {mode === 'edit' && isEditMode && (
-          <Button
-            fullWidth
-            variant="outlined"
-            onClick={handleCancel}
-            sx={{
-              borderColor: '#2563EB',
-              color: '#2563EB',
-            }}
-          >
-            {getUserLabelDynamic('CDL_CANCEL')}
-          </Button>
-        )}
-        <Button
-          fullWidth
-          variant="contained"
-          color="primary"
-          onClick={mode === 'edit' ? handleSaveUser : handleAddUser}
-        >
-          {mode === 'edit'
-            ? getUserLabelDynamic('CDL_SAVE')
-            : getUserLabelDynamic('CDL_ADD_NEW_USER')}
-        </Button>
+        <Grid container spacing={2}>
+          {mode === 'edit' && isEditMode && (
+            <Grid size={{ xs: 6 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={handleCancel}
+                sx={{
+                  fontFamily: 'Outfit, sans-serif',
+                  fontWeight: 500,
+                  fontStyle: 'normal',
+                  fontSize: '14px',
+                  lineHeight: '20px',
+                  letterSpacing: '0.01em',
+                  borderRadius: '8px',
+                  borderColor: '#CAD5E2',
+                  backgroundColor: '#FFFFFF',
+                  color: '#475569',
+                  textTransform: 'none',
+                  height: '44px',
+                  '&:hover': {
+                    borderColor: '#CAD5E2',
+                    backgroundColor: '#F8FAFC',
+                  },
+                }}
+              >
+                {getUserLabelDynamic('CDL_CANCEL')}
+              </Button>
+            </Grid>
+          )}
+          <Grid size={{ xs: mode === 'edit' && isEditMode ? 6 : 12 }}>
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={mode === 'edit' ? handleSaveUser : handleAddUser}
+              disabled={
+                createUser.isPending || updateUser.isPending || labelsLoading
+              }
+              sx={{
+                fontFamily: 'Outfit, sans-serif',
+                fontWeight: 500,
+                fontStyle: 'normal',
+                fontSize: '14px',
+                lineHeight: '20px',
+                letterSpacing: '0.01em',
+                borderRadius: '8px',
+                backgroundColor: '#2563EB !important',
+                color: '#FFFFFF',
+                textTransform: 'none',
+                height: '44px',
+                boxShadow: 'none',
+                border: 'none',
+                '&:hover': {
+                  backgroundColor: '#1D4ED8 !important',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                },
+                '&:disabled': {
+                  backgroundColor: '#94A3B8 !important',
+                  color: '#FFFFFF',
+                },
+              }}
+            >
+              {mode === 'edit'
+                ? getUserLabelDynamic('CDL_SAVE')
+                : getUserLabelDynamic('CDL_ADD_NEW_USER')}
+            </Button>
+          </Grid>
+        </Grid>
       </Box>
+
+      {/* Error and Success Notifications */}
+      <Snackbar
+        open={!!errorMessage}
+        autoHideDuration={6000}
+        onClose={() => setErrorMessage(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setErrorMessage(null)}
+          severity="error"
+          sx={{ width: '100%' }}
+        >
+          {errorMessage}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={!!successMessage}
+        autoHideDuration={3000}
+        onClose={() => setSuccessMessage(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSuccessMessage(null)}
+          severity="success"
+          sx={{ width: '100%' }}
+        >
+          {successMessage}
+        </Alert>
+      </Snackbar>
     </Drawer>
   )
 }

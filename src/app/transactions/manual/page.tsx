@@ -13,9 +13,8 @@ import { useManualPaymentLabelsWithCache } from '@/hooks/useManualPaymentLabelsW
 import { useDeleteConfirmation } from '@/store/confirmationDialogStore'
 import { PageActionButtons } from '../../../components/molecules/PageActionButtons'
 import LeftSlidePanel from '@/components/organisms/LeftSlidePanel/LeftSlidePanel'
-import { VOUCHER_LABELS } from '@/constants/mappings/manualPaymentLabels'
+import { MANUAL_PAYMENT_LABELS } from '@/constants/mappings/manualPaymentLabels'
 import { GlobalLoading, GlobalError } from '@/components/atoms'
-
 
 interface ManualPaymentData extends Record<string, unknown> {
   id: number
@@ -43,7 +42,6 @@ interface ManualPaymentData extends Record<string, unknown> {
   remark: string
 }
 
-
 const transformFundEgressToManualPayment = (
   fundEgress: FundEgressData
 ): ManualPaymentData => {
@@ -52,7 +50,6 @@ const transformFundEgressToManualPayment = (
       return 'INITIATED'
     }
 
-  
     return taskStatusDTO.code || 'INITIATED'
   }
 
@@ -60,18 +57,18 @@ const transformFundEgressToManualPayment = (
     id: fundEgress.id || 0,
     date: new Date(fundEgress.fePaymentDate).toLocaleDateString('en-GB'),
     takermsPaymentRefNo: fundEgress.fePaymentRefNumber || '',
-    developerName: fundEgress.buildPartnerDTO?.bpName || 'N/A',
-    projectName: fundEgress.realEstateAssestDTO?.reaName || 'N/A',
+    developerName: fundEgress.assetRegisterDTO?.arName || 'N/A',
+    projectName: fundEgress.managementFirmDTO?.mfName || 'N/A',
     paymentType:
       fundEgress.expenseTypeDTO?.languageTranslationId?.configValue ||
-      'Manual Payment',
+      'Voucher Payment',
     paymentSubType:
       fundEgress.expenseSubTypeDTO?.languageTranslationId?.configValue || 'N/A',
-    invoiceNumber: fundEgress.feInvoiceNumber || '',
+    invoiceNumber: fundEgress.feInvoiceRefNo || '',
     corporatePayment: fundEgress.feCorporatePayment ? 'Yes' : 'No',
     beneficiaryName:
       fundEgress.realEstateAssestBeneficiaryDTO?.name ||
-      fundEgress.buildPartnerDTO?.bpName ||
+      fundEgress.assetRegisterDTO?.arName ||
       'N/A',
     responsePaymentRefNo: fundEgress.fePaymentRefNumber || 'N/A',
     timestamp: new Date(fundEgress.fePaymentDate).toLocaleString('en-GB'),
@@ -92,128 +89,126 @@ const transformFundEgressToManualPayment = (
   }
 }
 
-
 const createExpandedContentLabels = (
   getLabel: (configId: string, language?: string, fallback?: string) => string
 ) => ({
   sections: {
     paymentInfo: getLabel(
-      VOUCHER_LABELS.EXPANDED_SECTIONS.PAYMENT_INFO,
+      MANUAL_PAYMENT_LABELS.EXPANDED_SECTIONS.PAYMENT_INFO,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_INFO
+      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_INFO
     ),
     paymentStatus: getLabel(
-      VOUCHER_LABELS.EXPANDED_SECTIONS.PAYMENT_STATUS,
+      MANUAL_PAYMENT_LABELS.EXPANDED_SECTIONS.PAYMENT_STATUS,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_STATUS
+      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_STATUS
     ),
     paymentDocuments: getLabel(
-      VOUCHER_LABELS.EXPANDED_SECTIONS.PAYMENT_DOCUMENTS,
+      MANUAL_PAYMENT_LABELS.EXPANDED_SECTIONS.PAYMENT_DOCUMENTS,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_DOCUMENTS
+      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_SECTIONS.PAYMENT_DOCUMENTS
     ),
   },
   fields: {
     date: getLabel(
-      VOUCHER_LABELS.EXPANDED_FIELDS.DATE,
+      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.DATE,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.DATE
+      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.DATE
     ),
     tasEmsRef: getLabel(
-      VOUCHER_LABELS.EXPANDED_FIELDS.EMS_REF,
+      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.EMS_REF,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.EMS_REF
+      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.EMS_REF
     ),
     developerName: getLabel(
-      VOUCHER_LABELS.EXPANDED_FIELDS.DEVELOPER_NAME,
+      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.DEVELOPER_NAME,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.DEVELOPER_NAME
+      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.DEVELOPER_NAME
     ),
     projectName: getLabel(
-      VOUCHER_LABELS.EXPANDED_FIELDS.PROJECT_NAME,
+      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.PROJECT_NAME,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.PROJECT_NAME
+      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.PROJECT_NAME
     ),
     paymentType: getLabel(
-      VOUCHER_LABELS.EXPANDED_FIELDS.PAYMENT_TYPE,
+      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.PAYMENT_TYPE,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.PAYMENT_TYPE
+      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.PAYMENT_TYPE
     ),
     paymentSubType: getLabel(
-      VOUCHER_LABELS.EXPANDED_FIELDS.PAYMENT_SUB_TYPE,
+      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.PAYMENT_SUB_TYPE,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.PAYMENT_SUB_TYPE
+      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.PAYMENT_SUB_TYPE
     ),
     invoiceNumber: getLabel(
-      VOUCHER_LABELS.EXPANDED_FIELDS.INVOICE_NUMBER,
+      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.INVOICE_NUMBER,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.INVOICE_NUMBER
+      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.INVOICE_NUMBER
     ),
     corporatePayment: getLabel(
-      VOUCHER_LABELS.EXPANDED_FIELDS.CORPORATE_PAYMENT,
+      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.CORPORATE_PAYMENT,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.CORPORATE_PAYMENT
+      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.CORPORATE_PAYMENT
     ),
     beneficiaryName: getLabel(
-      VOUCHER_LABELS.EXPANDED_FIELDS.BENEFICIARY_NAME,
+      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.BENEFICIARY_NAME,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.BENEFICIARY_NAME
+      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.BENEFICIARY_NAME
     ),
     responseRef: getLabel(
-      VOUCHER_LABELS.EXPANDED_FIELDS.EMS_REF,
+      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.EMS_REF,
       'EN',
       'Response Reference'
     ),
     timestamp: getLabel(
-      VOUCHER_LABELS.EXPANDED_FIELDS.DATE,
+      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.DATE,
       'EN',
       'Timestamp'
     ),
     phFinacleStatus: getLabel(
-      VOUCHER_LABELS.EXPANDED_FIELDS.STATUS,
+      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.STATUS,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.STATUS
+      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.STATUS
     ),
     errorDescription: getLabel(
-      VOUCHER_LABELS.EXPANDED_FIELDS.ERROR_DESCRIPTION,
+      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.ERROR_DESCRIPTION,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.ERROR_DESCRIPTION
+      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.ERROR_DESCRIPTION
     ),
     discardedTransaction: getLabel(
-      VOUCHER_LABELS.EXPANDED_FIELDS.DISCARDED_TRANSACTION,
+      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.DISCARDED_TRANSACTION,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.DISCARDED_TRANSACTION
+      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.DISCARDED_TRANSACTION
     ),
     approvalStatus: getLabel(
-      VOUCHER_LABELS.EXPANDED_FIELDS.APPROVAL_STATUS,
+      MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS.APPROVAL_STATUS,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.EXPANDED_FIELDS.APPROVAL_STATUS
+      MANUAL_PAYMENT_LABELS.FALLBACKS.EXPANDED_FIELDS.APPROVAL_STATUS
     ),
   },
   documents: {
     invoice: getLabel(
-      VOUCHER_LABELS.DOCUMENTS.INVOICE,
+      MANUAL_PAYMENT_LABELS.DOCUMENTS.INVOICE,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.DOCUMENTS.INVOICE
+      MANUAL_PAYMENT_LABELS.FALLBACKS.DOCUMENTS.INVOICE
     ),
     constructionProgress: getLabel(
-      VOUCHER_LABELS.DOCUMENTS.CONSTRUCTION_PROGRESS,
+      MANUAL_PAYMENT_LABELS.DOCUMENTS.CONSTRUCTION_PROGRESS,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.DOCUMENTS.CONSTRUCTION_PROGRESS
+      MANUAL_PAYMENT_LABELS.FALLBACKS.DOCUMENTS.CONSTRUCTION_PROGRESS
     ),
     approval: getLabel(
-      VOUCHER_LABELS.DOCUMENTS.APPROVAL,
+      MANUAL_PAYMENT_LABELS.DOCUMENTS.APPROVAL,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.DOCUMENTS.APPROVAL
+      MANUAL_PAYMENT_LABELS.FALLBACKS.DOCUMENTS.APPROVAL
     ),
     history: getLabel(
-      VOUCHER_LABELS.DOCUMENTS.HISTORY,
+      MANUAL_PAYMENT_LABELS.DOCUMENTS.HISTORY,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.DOCUMENTS.HISTORY
+      MANUAL_PAYMENT_LABELS.FALLBACKS.DOCUMENTS.HISTORY
     ),
   },
 })
-
 
 const createTableColumns = (
   getLabel: (configId: string, language?: string, fallback?: string) => string
@@ -221,9 +216,9 @@ const createTableColumns = (
   {
     key: 'date',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.DATE,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.DATE,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.DATE
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.DATE
     ),
     type: 'text' as const,
     width: 'w-32',
@@ -232,42 +227,42 @@ const createTableColumns = (
   {
     key: 'takermsPaymentRefNo',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.EMS_REF,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.EMS_REF,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.EMS_REF
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.EMS_REF
     ),
     type: 'text' as const,
     width: 'w-48',
     sortable: true,
   },
-  // {
-  //   key: 'developerName',
-  //   label: getLabel(
-  //     VOUCHER_LABELS.TABLE_COLUMNS.DEVELOPER_NAME,
-  //     'EN',
-  //     VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.DEVELOPER_NAME
-  //   ),
-  //   type: 'text' as const,
-  //   width: 'w-48',
-  //   sortable: true,
-  // },
-  // {
-  //   key: 'projectName',
-  //   label: getLabel(
-  //     VOUCHER_LABELS.TABLE_COLUMNS.PROJECT_NAME,
-  //     'EN',
-  //     VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.PROJECT_NAME
-  //   ),
-  //   type: 'text' as const,
-  //   width: 'w-48',
-  //   sortable: true,
-  // },
+  {
+    key: 'developerName',
+    label: getLabel(
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.DEVELOPER_NAME,
+      'EN',
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.DEVELOPER_NAME
+    ),
+    type: 'text' as const,
+    width: 'w-48',
+    sortable: true,
+  },
+  {
+    key: 'projectName',
+    label: getLabel(
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.PROJECT_NAME,
+      'EN',
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.PROJECT_NAME
+    ),
+    type: 'text' as const,
+    width: 'w-48',
+    sortable: true,
+  },
   {
     key: 'paymentType',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.PAYMENT_TYPE,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.PAYMENT_TYPE,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.PAYMENT_TYPE
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.PAYMENT_TYPE
     ),
     type: 'text' as const,
     width: 'w-48',
@@ -276,9 +271,9 @@ const createTableColumns = (
   {
     key: 'paymentSubType',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.PAYMENT_SUB_TYPE,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.PAYMENT_SUB_TYPE,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.PAYMENT_SUB_TYPE
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.PAYMENT_SUB_TYPE
     ),
     type: 'text' as const,
     width: 'w-48',
@@ -287,9 +282,9 @@ const createTableColumns = (
   {
     key: 'invoiceNumber',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.INVOICE_NUMBER,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.INVOICE_NUMBER,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.INVOICE_NUMBER
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.INVOICE_NUMBER
     ),
     type: 'text' as const,
     width: 'w-40',
@@ -298,9 +293,9 @@ const createTableColumns = (
   {
     key: 'corporatePayment',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.CORPORATE_PAYMENT,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.CORPORATE_PAYMENT,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.CORPORATE_PAYMENT
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.CORPORATE_PAYMENT
     ),
     type: 'text' as const,
     width: 'w-32',
@@ -309,9 +304,9 @@ const createTableColumns = (
   {
     key: 'beneficiaryName',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.BENEFICIARY_NAME,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.BENEFICIARY_NAME,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.BENEFICIARY_NAME
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.BENEFICIARY_NAME
     ),
     type: 'text' as const,
     width: 'w-48',
@@ -320,9 +315,9 @@ const createTableColumns = (
   {
     key: 'phFinacleStatus',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.STATUS,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.STATUS,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.STATUS
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.STATUS
     ),
     type: 'text' as const,
     width: 'w-36',
@@ -331,9 +326,9 @@ const createTableColumns = (
   {
     key: 'errorDescription',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.ERROR_DESCRIPTION,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.ERROR_DESCRIPTION,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.ERROR_DESCRIPTION
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.ERROR_DESCRIPTION
     ),
     type: 'text' as const,
     width: 'w-36',
@@ -342,9 +337,9 @@ const createTableColumns = (
   {
     key: 'discardedTransaction',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.DISCARDED_TRANSACTION,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.DISCARDED_TRANSACTION,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.DISCARDED_TRANSACTION
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.DISCARDED_TRANSACTION
     ),
     type: 'text' as const,
     width: 'w-40',
@@ -353,9 +348,9 @@ const createTableColumns = (
   {
     key: 'approvalStatus',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.APPROVAL_STATUS,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.APPROVAL_STATUS,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.APPROVAL_STATUS
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.APPROVAL_STATUS
     ),
     type: 'status' as const,
     width: 'w-40',
@@ -364,9 +359,9 @@ const createTableColumns = (
   {
     key: 'actions',
     label: getLabel(
-      VOUCHER_LABELS.TABLE_COLUMNS.ACTIONS,
+      MANUAL_PAYMENT_LABELS.TABLE_COLUMNS.ACTIONS,
       'EN',
-      VOUCHER_LABELS.FALLBACKS.TABLE_COLUMNS.ACTIONS
+      MANUAL_PAYMENT_LABELS.FALLBACKS.TABLE_COLUMNS.ACTIONS
     ),
     type: 'actions' as const,
     width: 'w-20',
@@ -383,7 +378,6 @@ const ManualPaymentPage: React.FC = () => {
   const { getLabel } = useManualPaymentLabelsWithCache('EN')
   const confirmDelete = useDeleteConfirmation()
 
- 
   const tableColumns = useMemo(() => createTableColumns(getLabel), [getLabel])
   const statusOptions = [
     'PENDING',
@@ -399,11 +393,10 @@ const ManualPaymentPage: React.FC = () => {
   )
 
   const manualPaymentTitle = getLabel(
-    VOUCHER_LABELS.PAGE_TITLE,
+    MANUAL_PAYMENT_LABELS.PAGE_TITLE,
     'EN',
-    VOUCHER_LABELS.FALLBACKS.PAGE_TITLE
+    MANUAL_PAYMENT_LABELS.FALLBACKS.PAGE_TITLE
   )
-
 
   const [currentApiPage, setCurrentApiPage] = useState(1)
   const [currentApiSize, setCurrentApiSize] = useState(20)
@@ -422,7 +415,7 @@ const ManualPaymentPage: React.FC = () => {
   useEffect(() => {
     if (fundEgressData && fundEgressData.length > 0) {
       const transformed = fundEgressData
-        .filter((item) => item.feIsManualPayment) 
+        .filter((item) => item.feIsManualPayment)
         .map(transformFundEgressToManualPayment)
       setTransformedData(transformed)
     } else {
@@ -430,7 +423,6 @@ const ManualPaymentPage: React.FC = () => {
     }
   }, [fundEgressData])
 
-  
   const {
     search,
     paginated,
@@ -471,7 +463,6 @@ const ManualPaymentPage: React.FC = () => {
     initialRowsPerPage: currentApiSize,
   })
 
-  
   const handlePageChange = (newPage: number) => {
     const hasActiveSearch = Object.values(search).some((value) => value.trim())
 
@@ -483,7 +474,6 @@ const ManualPaymentPage: React.FC = () => {
     }
   }
 
-  
   const handleRowsPerPageChange = (newRowsPerPage: number) => {
     setCurrentApiSize(newRowsPerPage)
     setCurrentApiPage(1)
@@ -491,18 +481,15 @@ const ManualPaymentPage: React.FC = () => {
     localHandleRowsPerPageChange(newRowsPerPage)
   }
 
-  
   const apiTotal = apiPagination.totalElements
   const apiTotalPages = apiPagination.totalPages
 
-  
   const hasActiveSearch = Object.values(search).some((value) => value.trim())
 
   const effectiveTotalRows = hasActiveSearch ? localTotalRows : apiTotal
   const effectiveTotalPages = hasActiveSearch ? localTotalPages : apiTotalPages
   const effectivePage = hasActiveSearch ? localPage : currentApiPage
 
-  
   const effectiveStartItem = hasActiveSearch
     ? startItem
     : (currentApiPage - 1) * currentApiSize + 1
@@ -510,10 +497,8 @@ const ManualPaymentPage: React.FC = () => {
     ? endItem
     : Math.min(currentApiPage * currentApiSize, apiTotal)
 
- 
   const handleViewPayment = useCallback(
     (row: ManualPaymentData) => {
-      
       router.push(`/transactions/manual/new/${row.id}?step=0&mode=view`)
     },
     [router]
@@ -521,7 +506,6 @@ const ManualPaymentPage: React.FC = () => {
 
   const handleEditPayment = useCallback(
     (row: ManualPaymentData) => {
-      
       router.push(`/transactions/manual/new/${row.id}?step=0&mode=edit`)
     },
     [router]
@@ -541,7 +525,7 @@ const ManualPaymentPage: React.FC = () => {
             setIsDeleting(true)
             await deleteFundEgress(row.id.toString())
           } catch (error) {
-            throw error 
+            throw error
           } finally {
             setIsDeleting(false)
           }
@@ -551,12 +535,11 @@ const ManualPaymentPage: React.FC = () => {
     [deleteFundEgress, isDeleting, confirmDelete]
   )
 
- 
   const renderExpandedContent = useCallback(
     (row: ManualPaymentData) => (
       <div className="grid grid-cols-3 gap-8">
         <div className="space-y-4">
-          <h4 className="text-sm font-semibold text-gray-900 mb-4">
+          <h4 className="mb-4 text-sm font-semibold text-gray-900">
             {expandedLabels.sections.paymentInfo}
           </h4>
           <div className="grid grid-cols-1 gap-3 text-sm">
@@ -564,7 +547,7 @@ const ManualPaymentPage: React.FC = () => {
               <span className="text-gray-600">
                 {expandedLabels.fields.date}:
               </span>
-              <span className="ml-2 text-gray-800 font-medium">
+              <span className="ml-2 font-medium text-gray-800">
                 {row.date as string}
               </span>
             </div>
@@ -572,7 +555,7 @@ const ManualPaymentPage: React.FC = () => {
               <span className="text-gray-600">
                 {expandedLabels.fields.tasEmsRef}:
               </span>
-              <span className="ml-2 text-gray-800 font-medium">
+              <span className="ml-2 font-medium text-gray-800">
                 {row.takermsPaymentRefNo as string}
               </span>
             </div>
@@ -580,7 +563,7 @@ const ManualPaymentPage: React.FC = () => {
               <span className="text-gray-600">
                 {expandedLabels.fields.developerName}:
               </span>
-              <span className="ml-2 text-gray-800 font-medium">
+              <span className="ml-2 font-medium text-gray-800">
                 {row.developerName as string}
               </span>
             </div>
@@ -588,7 +571,7 @@ const ManualPaymentPage: React.FC = () => {
               <span className="text-gray-600">
                 {expandedLabels.fields.projectName}:
               </span>
-              <span className="ml-2 text-gray-800 font-medium">
+              <span className="ml-2 font-medium text-gray-800">
                 {row.projectName as string}
               </span>
             </div>
@@ -596,7 +579,7 @@ const ManualPaymentPage: React.FC = () => {
               <span className="text-gray-600">
                 {expandedLabels.fields.paymentType}:
               </span>
-              <span className="ml-2 text-gray-800 font-medium">
+              <span className="ml-2 font-medium text-gray-800">
                 {row.paymentType as string}
               </span>
             </div>
@@ -604,7 +587,7 @@ const ManualPaymentPage: React.FC = () => {
               <span className="text-gray-600">
                 {expandedLabels.fields.paymentSubType}:
               </span>
-              <span className="ml-2 text-gray-800 font-medium">
+              <span className="ml-2 font-medium text-gray-800">
                 {row.paymentSubType as string}
               </span>
             </div>
@@ -612,14 +595,14 @@ const ManualPaymentPage: React.FC = () => {
               <span className="text-gray-600">
                 {expandedLabels.fields.invoiceNumber}:
               </span>
-              <span className="ml-2 text-gray-800 font-medium">
+              <span className="ml-2 font-medium text-gray-800">
                 {row.invoiceNumber as string}
               </span>
             </div>
           </div>
         </div>
         <div className="space-y-4">
-          <h4 className="text-sm font-semibold text-gray-900 mb-4">
+          <h4 className="mb-4 text-sm font-semibold text-gray-900">
             {expandedLabels.sections.paymentStatus}
           </h4>
           <div className="grid grid-cols-1 gap-3 text-sm">
@@ -627,7 +610,7 @@ const ManualPaymentPage: React.FC = () => {
               <span className="text-gray-600">
                 {expandedLabels.fields.corporatePayment}:
               </span>
-              <span className="ml-2 text-gray-800 font-medium">
+              <span className="ml-2 font-medium text-gray-800">
                 {row.corporatePayment as string}
               </span>
             </div>
@@ -635,7 +618,7 @@ const ManualPaymentPage: React.FC = () => {
               <span className="text-gray-600">
                 {expandedLabels.fields.beneficiaryName}:
               </span>
-              <span className="ml-2 text-gray-800 font-medium">
+              <span className="ml-2 font-medium text-gray-800">
                 {row.beneficiaryName as string}
               </span>
             </div>
@@ -643,7 +626,7 @@ const ManualPaymentPage: React.FC = () => {
               <span className="text-gray-600">
                 {expandedLabels.fields.responseRef}:
               </span>
-              <span className="ml-2 text-gray-800 font-medium">
+              <span className="ml-2 font-medium text-gray-800">
                 {row.responsePaymentRefNo as string}
               </span>
             </div>
@@ -651,7 +634,7 @@ const ManualPaymentPage: React.FC = () => {
               <span className="text-gray-600">
                 {expandedLabels.fields.timestamp}:
               </span>
-              <span className="ml-2 text-gray-800 font-medium">
+              <span className="ml-2 font-medium text-gray-800">
                 {row.timestamp as string}
               </span>
             </div>
@@ -659,7 +642,7 @@ const ManualPaymentPage: React.FC = () => {
               <span className="text-gray-600">
                 {expandedLabels.fields.phFinacleStatus}:
               </span>
-              <span className="ml-2 text-gray-800 font-medium">
+              <span className="ml-2 font-medium text-gray-800">
                 {row.phFinacleStatus as string}
               </span>
             </div>
@@ -667,7 +650,7 @@ const ManualPaymentPage: React.FC = () => {
               <span className="text-gray-600">
                 {expandedLabels.fields.errorDescription}:
               </span>
-              <span className="ml-2 text-gray-800 font-medium">
+              <span className="ml-2 font-medium text-gray-800">
                 {row.errorDescription as string}
               </span>
             </div>
@@ -675,7 +658,7 @@ const ManualPaymentPage: React.FC = () => {
               <span className="text-gray-600">
                 {expandedLabels.fields.discardedTransaction}:
               </span>
-              <span className="ml-2 text-gray-800 font-medium">
+              <span className="ml-2 font-medium text-gray-800">
                 {row.discardedTransaction as string}
               </span>
             </div>
@@ -683,27 +666,27 @@ const ManualPaymentPage: React.FC = () => {
               <span className="text-gray-600">
                 {expandedLabels.fields.approvalStatus}:
               </span>
-              <span className="ml-2 text-gray-800 font-medium">
+              <span className="ml-2 font-medium text-gray-800">
                 {row.approvalStatus as string}
               </span>
             </div>
           </div>
         </div>
         <div className="space-y-4">
-          <h4 className="text-sm font-semibold text-gray-900 mb-4">
+          <h4 className="mb-4 text-sm font-semibold text-gray-900">
             {expandedLabels.sections.paymentDocuments}
           </h4>
           <div className="space-y-3">
-            <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
+            <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
               {expandedLabels.documents.invoice}
             </button>
-            <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
+            <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
               {expandedLabels.documents.constructionProgress}
             </button>
-            <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
+            <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
               {expandedLabels.documents.approval}
             </button>
-            <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
+            <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
               {expandedLabels.documents.history}
             </button>
           </div>
@@ -728,48 +711,45 @@ const ManualPaymentPage: React.FC = () => {
             <GlobalLoading fullHeight />
           ) : (
             <>
-              
               <div className="sticky top-0 z-10 bg-[#FFFFFFBF] border-b border-gray-200 rounded-t-2xl">
-                
                 <PageActionButtons
                   entityType="manualPayment"
                   showButtons={{ addNew: true }}
                 />
               </div>
 
-             
-              <div className="flex-1 flex flex-col min-h-0">
+              <div className="flex flex-col flex-1 min-h-0">
                 <div className="flex-1 overflow-auto">
-              <PermissionAwareDataTable<ManualPaymentData>
-                data={paginated}
-                columns={tableColumns}
-                searchState={search}
-                onSearchChange={handleSearchChange}
-                paginationState={{
-                  page: effectivePage,
-                  rowsPerPage: rowsPerPage,
-                  totalRows: effectiveTotalRows,
-                  totalPages: effectiveTotalPages,
-                  startItem: effectiveStartItem,
-                  endItem: effectiveEndItem,
-                }}
-                onPageChange={handlePageChange}
-                onRowsPerPageChange={handleRowsPerPageChange}
-                selectedRows={selectedRows}
-                onRowSelectionChange={handleRowSelectionChange}
-                expandedRows={expandedRows}
-                onRowExpansionChange={handleRowExpansionChange}
-                renderExpandedContent={renderExpandedContent}
-                statusOptions={statusOptions}
-                onRowView={handleViewPayment}
-                onRowEdit={handleEditPayment}
-                onRowDelete={handleDeletePayment}
-                deletePermissions={['manual_payment_delete']}
-                viewPermissions={['manual_payment_view']}
-                editPermissions={['manual_payment_update']}
-                onSort={handleSort}
-                sortConfig={sortConfig}
-              />
+                  <PermissionAwareDataTable<ManualPaymentData>
+                    data={paginated}
+                    columns={tableColumns}
+                    searchState={search}
+                    onSearchChange={handleSearchChange}
+                    paginationState={{
+                      page: effectivePage,
+                      rowsPerPage: rowsPerPage,
+                      totalRows: effectiveTotalRows,
+                      totalPages: effectiveTotalPages,
+                      startItem: effectiveStartItem,
+                      endItem: effectiveEndItem,
+                    }}
+                    onPageChange={handlePageChange}
+                    onRowsPerPageChange={handleRowsPerPageChange}
+                    selectedRows={selectedRows}
+                    onRowSelectionChange={handleRowSelectionChange}
+                    expandedRows={expandedRows}
+                    onRowExpansionChange={handleRowExpansionChange}
+                    renderExpandedContent={renderExpandedContent}
+                    statusOptions={statusOptions}
+                    onRowView={handleViewPayment}
+                    onRowEdit={handleEditPayment}
+                    onRowDelete={handleDeletePayment}
+                    deletePermissions={['manual_payment_delete']}
+                    viewPermissions={['manual_payment_view']}
+                    editPermissions={['manual_payment_update']}
+                    onSort={handleSort}
+                    sortConfig={sortConfig}
+                  />
                 </div>
               </div>
             </>

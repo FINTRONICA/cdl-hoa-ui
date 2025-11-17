@@ -17,8 +17,8 @@ export interface CapitalPartnerUnitRequest {
   noofBedroom?: string
   isModified?: boolean
   partnerUnitDTO?: string
-  capitalPartnerUnitTypeDTO?: any
-  realEstateAssestDTO?: any
+  ownerRegistryUnitTypeDTO?: any
+  managementFirmDTO?: any
   unitStatusDTO?: {
     id: number
     enabled?: boolean
@@ -31,18 +31,18 @@ export interface CapitalPartnerUnitRequest {
     id: number
     enabled?: boolean
   }
-  capitalPartnerUnitBookingDTO?: {
-    cpubAmountPaid?: number
-    cpubAreaSize?: number
-    cpubForFeitAmount?: number
-    cpubDldAmount?: number
-    cpubRefundAmount?: number
-    cpubRemarks?: string
-    cpubTransferredAmount?: number
-    capitalPartnerUnitDTOS?: string[]
+  ownerRegistryUnitBookingDTO?: {
+    ownubAmountPaid?: number
+    ownubAreaSize?: number
+    ownubForFeitAmount?: number
+    ownubDldAmount?: number
+    ownubRefundAmount?: number
+    ownubRemarks?: string
+    ownubTransferredAmount?: number
+    ownerRegistryUnitDTOS?: string[]
     deleted?: boolean
   }
-  childCapitalPartnerUnitDTO?: string[]
+  childownerRegistryUnitDTO?: string[]
   deleted?: boolean
 }
 
@@ -63,13 +63,13 @@ export interface CapitalPartnerUnitResponse {
   noofBedroom: string
   isModified: boolean
   partnerUnitDTO: string
-  capitalPartnerUnitTypeDTO: any
-  realEstateAssestDTO: any
+  ownerRegistryUnitTypeDTO: any
+  managementFirmDTO: any
   unitStatusDTO: any
   propertyIdDTO: any
   paymentPlanTypeDTO: any
-  capitalPartnerUnitBookingDTO: any
-  childCapitalPartnerUnitDTO: string[]
+  ownerRegistryUnitBookingDTO: any
+  childownerRegistryUnitDTO: string[]
   deleted: boolean
 }
 
@@ -79,7 +79,7 @@ class CapitalPartnerUnitService {
     id: number
   ): Promise<CapitalPartnerUnitResponse> {
     const url = buildApiUrl(
-      API_ENDPOINTS.CAPITAL_PARTNER_UNIT.GET_BY_ID(id.toString())
+      API_ENDPOINTS.OWNER_REGISTRY_UNIT.GET_BY_ID(id.toString())
     )
     const data = await apiClient.get<CapitalPartnerUnitResponse>(url)
     return data
@@ -90,7 +90,7 @@ class CapitalPartnerUnitService {
     payload: Partial<CapitalPartnerUnitRequest>
   ): Promise<CapitalPartnerUnitResponse> {
     const url = buildApiUrl(
-      API_ENDPOINTS.CAPITAL_PARTNER_UNIT.UPDATE(id.toString())
+      API_ENDPOINTS.OWNER_REGISTRY_UNIT.UPDATE(id.toString())
     )
     const response = await apiClient.put(url, payload)
     return response as CapitalPartnerUnitResponse
@@ -98,7 +98,7 @@ class CapitalPartnerUnitService {
 
   async deleteCapitalPartnerUnit(id: number): Promise<void> {
     const url = buildApiUrl(
-      API_ENDPOINTS.CAPITAL_PARTNER_UNIT.DELETE(id.toString())
+      API_ENDPOINTS.OWNER_REGISTRY_UNIT.DELETE(id.toString())
     )
     await apiClient.delete(url)
   }
@@ -106,7 +106,7 @@ class CapitalPartnerUnitService {
   async createCapitalPartnerUnit(
     payload: any
   ): Promise<CapitalPartnerUnitResponse> {
-    const url = buildApiUrl(API_ENDPOINTS.CAPITAL_PARTNER_UNIT.SAVE)
+    const url = buildApiUrl(API_ENDPOINTS.OWNER_REGISTRY_UNIT.SAVE)
     const response = await apiClient.post(url, payload)
     return response as CapitalPartnerUnitResponse
   }

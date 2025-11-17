@@ -6,10 +6,7 @@ import { useAuthStore } from '@/store/authStore'
 import { toast } from 'react-hot-toast'
 import { JWTParser } from '@/utils/jwtParser'
 import { getAuthCookies, clearAuthCookies } from '@/utils/cookieUtils'
-import { useMemo, useState } from 'react'
-import { SidebarLabelsService } from '@/services/api/sidebarLabelsService'
-import BuildPartnerLabelsService from '@/services/api/buildPartnerLabelsService'
-import { BuildPartnerAssetLabelsService } from '@/services/api/buildPartnerAssetLabelsService'
+import { useState, useMemo } from 'react'
 import { serviceNavigation } from '@/utils/navigation'
 
 // Query keys for authentication (only for mutations now)
@@ -123,73 +120,14 @@ export function useLoginWithValidation() {
   }
 }
 
-// Utility function for parallel API execution
-const executeApisInParallel = async (
-  apiConfigs: Array<{
-    name: string
-    queryKey: unknown[]
-    fetcher: () => Promise<unknown>
-    storageKey: string
-  }>,
-  queryClient: unknown,
-  onProgress: (completed: number, total: number) => void
-) => {
-  
-  
-  // Track timing for performance monitoring (commented out to avoid unused variable)
-  // const startTime = performance.now()
-  
-  // Create all promises immediately - this ensures TRUE parallelism
-  const apiPromises = apiConfigs.map((config, index) => {
-    const apiStartTime = performance.now()
-    
-    return config.fetcher()
-      .then(data => {
-        const apiEndTime = performance.now()
-        const apiDuration = apiEndTime - apiStartTime
-        
-        // Store in localStorage and React Query cache
-        localStorage.setItem(config.storageKey, JSON.stringify(data))
-        if (typeof (queryClient as any).setQueryData === 'function') {
-          (queryClient as any).setQueryData(config.queryKey, data)
-        }
-        
-        onProgress(index + 1, apiConfigs.length)
-        
-        return { 
-          success: true, 
-          name: config.name, 
-          data, 
-          duration: apiDuration 
-        }
-      })
-      .catch(error => {
-        const apiEndTime = performance.now()
-        const apiDuration = apiEndTime - apiStartTime
-        
-        onProgress(index + 1, apiConfigs.length)
-        
-        return { 
-          success: false, 
-          name: config.name, 
-          error, 
-          duration: apiDuration 
-        }
-      })
-  })
-
-  const results = await Promise.all(apiPromises)
-
-  return results
-}
-
-
 export function useLoginWithLoader() {
   const queryClient = useQueryClient()
   const { setAuth } = useAuthStore()
-  const [isLoadingApis, setIsLoadingApis] = useState(false)
-  const [apiProgress, setApiProgress] = useState({ completed: 0, total: 0 })
-  const [loadingStatus, setLoadingStatus] = useState<string>('idle')
+  // These state variables are kept for API compatibility with login page
+  // Labels are now loaded by ComplianceProvider to avoid duplicate API calls
+  const [isLoadingApis] = useState(false)
+  const [apiProgress] = useState({ completed: 0, total: 0 })
+  const [loadingStatus] = useState<string>('idle')
   const [pendingRedirect, setPendingRedirect] = useState<string | null>(null)
   const [userFacingError, setUserFacingError] = useState<string | null>(null)
 
@@ -237,84 +175,13 @@ export function useLoginWithLoader() {
           queryClient.invalidateQueries({ queryKey: authQueryKeys.user() })
           queryClient.setQueryData(authQueryKeys.user(), userData)
           
-     
-          setIsLoadingApis(true)
-          setLoadingStatus('Fetching application data...')
+          // Labels will be loaded by ComplianceProvider when authentication state changes
+          // No need to load them here to avoid duplicate API calls
           
-          try {
-            
-            const apiConfigs = [
-              {
-                name: 'Sidebar Labels',
-                queryKey: ['sidebarLabels'],
-                fetcher: async () => {
-                  const rawLabels = await SidebarLabelsService.fetchLabels()
-                  return SidebarLabelsService.processLabels(rawLabels)
-                },
-                storageKey: 'sidebarLabels'
-              },
-              {
-                name: 'Developer Labels', 
-                queryKey: ['developerLabels'],
-                fetcher: async () => {
-                  const developerLabels = await BuildPartnerLabelsService.fetchLabels()
-                  const processedLabels = BuildPartnerLabelsService.processLabels(developerLabels)
-                 
-                  return processedLabels
-                },
-                storageKey: 'developerLabels'
-              },
-              {
-                name: 'Build Partner Asset Labels',
-                queryKey: ['buildPartnerAssetLabels'],
-                fetcher: async () => {
-                  const assetLabels = await BuildPartnerAssetLabelsService.fetchLabels()
-                  const processedLabels = BuildPartnerAssetLabelsService.processLabels(assetLabels)
-          
-                  return processedLabels
-                },
-                storageKey: 'buildPartnerAssetLabels'
-              }       
-            ]
-
-            setApiProgress({ completed: 0, total: apiConfigs.length })
-
-           
-            const results = await executeApisInParallel(
-              apiConfigs,
-              queryClient,
-              (completed, total) => {
-                setApiProgress({ completed, total })
-                setLoadingStatus(`Loading data... ${completed}/${total}`)
-              }
-            )
-
-     
-            const successful = results.filter(r => r.success).length
-            const failed = results.filter(r => !r.success).length
-            
-            if (failed > 0) {
-              
-              setLoadingStatus(`${successful}/${successful + failed} APIs loaded successfully`)
-            } else {
-              setLoadingStatus('All data loaded successfully!')
-            }
-            
-          } catch (error) {
-            
-            setLoadingStatus('Error loading data')
-          } finally {
-          
-            setTimeout(() => {
-              setIsLoadingApis(false)
-              setLoadingStatus('idle')
-              
-          
-              if (pendingRedirect) {
-                serviceNavigation.navigateTo(pendingRedirect)
-                setPendingRedirect(null)
-              }
-            }, 500)
+          // Handle redirect if needed
+          if (pendingRedirect) {
+            serviceNavigation.navigateTo(pendingRedirect)
+            setPendingRedirect(null)
           }
           
        
@@ -330,7 +197,6 @@ export function useLoginWithLoader() {
       toast.success('Login successful!')
     },
     onError: (error: unknown) => {
-      setIsLoadingApis(false)
       const errorData = error as { response?: { data?: { message?: string } }; message?: string }
       const message = errorData?.response?.data?.message || errorData?.message || 'Login failed'
       setUserFacingError(message)
@@ -349,7 +215,6 @@ export function useLoginWithLoader() {
       const result = await loginMutation.mutateAsync(credentials)
       return result
     } catch (error: unknown) {
-
       setPendingRedirect(null)
       
      
@@ -408,16 +273,20 @@ export function useLogout() {
  
       
 
+      if (typeof window !== 'undefined') {
       localStorage.clear()
       sessionStorage.clear()
+      }
       toast.success('Logged out successfully')
     },
-    onError: (error: unknown) => {
+    onError: (_error: unknown) => {
       
       logout()
       queryClient.clear()
+      if (typeof window !== 'undefined') {
       localStorage.clear()
       sessionStorage.clear()
+      }
       // Clear cookies even on error to ensure clean logout
       clearAuthCookies()
     },
@@ -490,7 +359,9 @@ export function useRefreshToken() {
 
   return useMutation({
     mutationFn: async () => {
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+      const token = typeof window !== 'undefined' 
+        ? (localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token'))
+        : null
       if (!token) {
         throw new Error('No token to refresh')
       }
@@ -505,8 +376,10 @@ export function useRefreshToken() {
     },
     onSuccess: (newToken) => {
  
+      if (typeof window !== 'undefined') {
       localStorage.setItem('auth_token', newToken)
       sessionStorage.setItem('auth_token', newToken)
+      }
 
       queryClient.invalidateQueries({ queryKey: authQueryKeys.user() })
     },
@@ -515,8 +388,10 @@ export function useRefreshToken() {
        
         logout()
      
+        if (typeof window !== 'undefined') {
         localStorage.clear()
         sessionStorage.clear()
+        }
     
         serviceNavigation.goToLogin()
       }

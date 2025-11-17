@@ -3,9 +3,10 @@ import { Suspense } from 'react'
 import ManualPaymentStepperWrapper from '@/components/organisms/ManualPaymentStepper'
 import { DashboardLayout } from '@/components/templates/DashboardLayout'
 import { useManualPaymentLabelsWithCache } from '@/hooks/useManualPaymentLabelsWithCache'
-import { VOUCHER_LABELS } from '@/constants/mappings/manualPaymentLabels'
+import { MANUAL_PAYMENT_LABELS } from '@/constants/mappings/manualPaymentLabels'
 import { useSearchParams, useParams } from 'next/navigation'
 import { fundEgressService } from '@/services/api/fundEgressService'
+import { buildPartnerService } from '@/services/api/buildPartnerService'
 import { useState, useEffect } from 'react'
 import { GlobalLoading, GlobalError } from '@/components/atoms'
 
@@ -33,6 +34,51 @@ function ManualPaymentWithIdContent() {
           const data = await fundEgressService.getFundEgressById(
             params.id as string
           )
+          
+          // If assetRegisterDTO is missing or only has id without arName, fetch full build partner details
+          let buildPartnerId: number | null = null
+          
+          // Check if assetRegisterDTO exists and has an ID
+          if (data?.assetRegisterDTO?.id) {
+            buildPartnerId = data.assetRegisterDTO.id
+          } 
+          // Fallback: try to get build partner ID from managementFirmDTO (if it exists in the actual response)
+          else if ((data?.managementFirmDTO as any)?.assetRegisterDTO?.id) {
+            buildPartnerId = (data.managementFirmDTO as any).assetRegisterDTO.id
+            // Initialize assetRegisterDTO if it doesn't exist
+            if (!data.assetRegisterDTO) {
+              data.assetRegisterDTO = { id: buildPartnerId } as any
+            }
+          }
+          
+          // If we have an ID but no arName, fetch full build partner details
+          if (buildPartnerId && (!data?.assetRegisterDTO?.arName || data.assetRegisterDTO.arName === '')) {
+            try {
+              const assetRegister = await buildPartnerService.getBuildPartner(
+                buildPartnerId.toString()
+              )
+              // Merge the full build partner data into assetRegisterDTO
+              data.assetRegisterDTO = {
+                ...(data.assetRegisterDTO || {}),
+                id: buildPartnerId,
+                arName: assetRegister.arName || '',
+                arDeveloperId: assetRegister.arDeveloperId || '',
+                arCifrera: assetRegister.arCifrera || '',
+                arMasterName: assetRegister.arMasterName || '',
+              } as any
+            } catch (partnerErr) {
+              console.warn('Failed to fetch build partner details for header:', partnerErr)
+              // Continue even if partner fetch fails - will show N/A
+            }
+          } else if (!data?.assetRegisterDTO && data?.id) {
+            // Log warning if assetRegisterDTO is completely missing
+            console.warn('assetRegisterDTO is null or missing in payment data:', {
+              paymentId: data.id,
+              hasRealEstateAsset: !!data.managementFirmDTO,
+              realEstateAssetPartnerId: (data.managementFirmDTO as any)?.assetRegisterDTO?.id
+            })
+          }
+          
           setPaymentData(data)
         } catch (error) {
           setError(error instanceof Error ? error.message : 'Failed to load payment data')
@@ -48,13 +94,13 @@ function ManualPaymentWithIdContent() {
   }, [params.id])
 
   const pageTitle = getLabel(
-    VOUCHER_LABELS.PAGE_TITLE,
+    MANUAL_PAYMENT_LABELS.PAGE_TITLE,
     'EN',
-    VOUCHER_LABELS.FALLBACKS.PAGE_TITLE
+    MANUAL_PAYMENT_LABELS.FALLBACKS.PAGE_TITLE
   )
   const pageSubtitle = isViewMode
-    ? 'View Manual Payment details (Read-only mode)'
-    : 'Register your Voucher  details step by step, non-mandatory fields and steps are easy to skip.'
+    ? 'View Voucher Payment details (Read-only mode)'
+    : 'Register your Voucher Payment details step by step, non-mandatory fields and steps are easy to skip.'
 
   // Show loading state while fetching payment data
   if (loading && params.id) {
@@ -88,13 +134,13 @@ function ManualPaymentWithIdContent() {
       <div className="px-3">
         {/* Manual Payment Summary for Both View and Edit Mode */}
         {params.id && (
-          <div className="flex gap-7 items-start px-7 py-2 mb-4  ">
+          <div className="flex items-start py-2 mb-4 gap-7 px-7 ">
             <div className="flex flex-col min-w-[200px] gap-1">
               <label className="font-sans font-normal text-[12px] leading-[1] tracking-normal text-[#4A5565]">
                 {getLabel(
-                  VOUCHER_LABELS.FORM_FIELDS.TAS_REFERENCE,
+                  MANUAL_PAYMENT_LABELS.FORM_FIELDS.TAS_REFERENCE,
                   'EN',
-                  VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.TAS_REFERENCE
+                  MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TAS_REFERENCE
                 )}
                 *
               </label>
@@ -107,15 +153,15 @@ function ManualPaymentWithIdContent() {
             <div className="flex flex-col min-w-[200px] gap-1">
               <label className="font-sans font-normal text-[12px] leading-[1] tracking-normal text-[#4A5565]">
                 {getLabel(
-                  VOUCHER_LABELS.FORM_FIELDS.DEVELOPER_NAME,
+                  MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEVELOPER_NAME,
                   'EN',
-                  VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_NAME
+                  MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_NAME
                 )}
               </label>
               <span className="font-outfit font-normal text-[16px] leading-[1] tracking-normal align-middle text-[#1E2939]">
                 {loading
                   ? 'Loading...'
-                  : paymentData?.buildPartnerDTO?.bpName || 'N/A'}
+                  : paymentData?.assetRegisterDTO?.arName || 'N/A'}
               </span>
             </div>
           </div>

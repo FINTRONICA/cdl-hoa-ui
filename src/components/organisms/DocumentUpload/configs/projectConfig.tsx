@@ -22,7 +22,7 @@ export const projectDocumentService: DocumentService<
     // Use BUILD_PARTNER_ASSET module for project documents
     return buildPartnerService.getBuildPartnerDocuments(
       projectId,
-      'BUILD_PARTNER_ASSET',
+      'MANAGEMENT_FIRMS',
       page,
       size
     )
@@ -37,7 +37,7 @@ export const projectDocumentService: DocumentService<
     return buildPartnerService.uploadBuildPartnerDocument(
       file,
       projectId,
-      'BUILD_PARTNER_ASSET',
+      'MANAGEMENT_FIRMS',
       documentType
     )
   },
@@ -221,10 +221,10 @@ export const createProjectDocumentConfig = (
 
   const config: DocumentUploadConfig<DocumentItem, ApiDocumentResponse> = {
     entityId: projectId,
-    entityType: 'PROJECT',
+    entityType: 'MANAGEMENT_FIRMS',
     documentService: projectDocumentService,
     mapApiToDocument: mapApiToProjectDocumentItem,
-    documentTypeSettingKey: 'PROJECT_DOC_TYPE', // Setting key for project document types (can be different from INVESTOR_ID_TYPE)
+    documentTypeSettingKey: 'INVESTOR_ID_TYPE', // Setting key for project document types (can be different from INVESTOR_ID_TYPE)
     title: options?.title || 'Project Documents',
     description:
       options?.description ||

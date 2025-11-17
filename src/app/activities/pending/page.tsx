@@ -21,14 +21,14 @@ interface WorkflowRequestData
   extends AwaitingActionsUIData,
     Record<string, unknown> {
   payloadJson?: {
-    bpName?: string
-    bpCifrera?: string
-    bpLicenseNo?: string
+    arName?: string
+    arCifrera?: string
+    arLicenseNo?: string
     [key: string]: unknown
   }
   payloadName?: string
-  bpCifrera?: string
-  bpLicenseNo?: string
+  arCifrera?: string
+  arLicenseNo?: string
   taskStatusName?: string
 }
 
@@ -90,9 +90,9 @@ const PendingActivitiesPage: React.FC = () => {
 
     return workflowResponse.content.map((item) => {
       const payloadJson = item.payloadJson as Record<string, unknown>
-      const payloadName = (payloadJson?.bpName as string) || '-'
-      const bpCifrera = (payloadJson?.bpCifrera as string) || '-'
-      const bpLicenseNo = (payloadJson?.bpLicenseNo as string) || '-'
+      const payloadName = (payloadJson?.arName as string) || '-'
+      const arCifrera = (payloadJson?.arCifrera as string) || '-'
+      const arLicenseNo = (payloadJson?.arLicenseNo as string) || '-'
       const taskStatusName =
         ((payloadJson?.taskStatusDTO as Record<string, unknown>)
           ?.name as string) || '-'
@@ -101,8 +101,8 @@ const PendingActivitiesPage: React.FC = () => {
         ...item,
         payloadJson: item.payloadJson,
         payloadName,
-        bpCifrera,
-        bpLicenseNo,
+        arCifrera,
+        arLicenseNo,
         taskStatusName,
         createdAt: formatDateOnly(item.createdAt), // Pre-format the date
       } as WorkflowRequestData
@@ -148,7 +148,7 @@ const PendingActivitiesPage: React.FC = () => {
         // Navigate to the appropriate path
         router.push(navigationPath)
       } catch (error) {
-        console.log(error)
+        console.error(error)
       }
     },
     [activeTab, router]
@@ -220,7 +220,7 @@ const PendingActivitiesPage: React.FC = () => {
       'createdAt',
       'taskStatus',
       'payloadName',
-      'bpCifrera',
+      'arCifrera',
       'taskStatusName',
     ],
     initialRowsPerPage: 20,
@@ -292,7 +292,7 @@ const PendingActivitiesPage: React.FC = () => {
     },
 
     {
-      key: 'bpCifrera',
+      key: 'arCifrera',
       label: getWorkflowRequestLabelDynamic('BP_CIFRERA'),
       type: 'text' as const,
       width: 'w-30',

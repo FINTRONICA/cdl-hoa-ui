@@ -3,12 +3,12 @@
 import { usePathname } from 'next/navigation'
 import { useMemo, memo } from 'react'
 import { Sidebar } from './organisms/Sidebar'
-import { useAppInitialization } from '@/hooks/useAppInitialization'
 import { useAuthStore } from '@/store/authStore'
 
 const AUTHENTICATED_ROUTES = [
   '/dashboard',
   '/activities',
+  
   '/entities',
   '/transactions',
   '/transactions',
@@ -19,9 +19,10 @@ const AUTHENTICATED_ROUTES = [
   '/capital-partner',
   '/build-partner-assets',
   '/build-partner',
+  '/budget-master',
+  '/budget-management-firm',
+  '/budget',
   '/help',
-  '/budget/management-firm-budget',
-  '/budget/master-budget',
 ]
 
 interface LayoutContentProps {
@@ -31,12 +32,6 @@ interface LayoutContentProps {
 const LayoutContentComponent = ({ children }: LayoutContentProps) => {
   const pathname = usePathname()
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
-
-  useAppInitialization({
-    enableLabelLoading: true,
-    enableRetryOnFailure: true,
-    retryCount: 3,
-  })
 
   const shouldShowSidebar = useMemo(() => {
     // Never show sidebar on login page
@@ -68,6 +63,19 @@ const LayoutContentComponent = ({ children }: LayoutContentProps) => {
           pathname?.startsWith('/build-partner/') ||
           pathname?.startsWith('/build-partner-assets/') ||
           pathname?.startsWith('/capital-partner/')
+        )
+      }
+    
+      if (route === '/budget-master') {
+        return (
+          pathname === '/budget/budget-master' ||
+          pathname?.startsWith('/budget/budget-master/')
+        )
+      }
+      if (route === '/budget-management-firm') {
+        return (
+          pathname === '/budget/budget-management-firm' ||
+          pathname?.startsWith('/budget/budget-management-firm/')
         )
       }
       if (route === '/transactions') {
@@ -103,9 +111,9 @@ const LayoutContentComponent = ({ children }: LayoutContentProps) => {
       if (route === '/admin') {
         return (
           pathname === '/admin/bank-management' ||
-          pathname === '/admin/user-management' ||
-          pathname === '/admin/role-management' ||
-          pathname === '/admin/fee-types' ||
+          pathname === '/admin/stakeholder' ||
+          pathname === '/admin/entitlement' ||
+          pathname === '/admin/access-grant' ||
           pathname === '/admin/security' ||
           pathname?.startsWith('/admin/')
         )
@@ -131,13 +139,7 @@ const LayoutContentComponent = ({ children }: LayoutContentProps) => {
       if (route === '/help') {
         return pathname === '/help'
       }
-      if (route === '/budget/management-firm-budget') {
-        return pathname?.startsWith('/budget/management-firm-budget')
-      }
-      if (route === '/budget/master-budget') {
-        return pathname?.startsWith('/budget/master-budget')
-      }
-        return pathname?.startsWith(route)
+      return pathname?.startsWith(route)
     })
 
     return isValidRoute

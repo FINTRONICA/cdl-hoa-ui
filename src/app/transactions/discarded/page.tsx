@@ -171,14 +171,14 @@ const DiscardedTransactionPage: React.FC = () => {
   const tableColumns = [
     {
       key: 'developerName',
-      label: getTransactionLabelDynamic('CDL_TRANS_BP_NAME'),
+      label: getTransactionLabelDynamic('CDL_TRANS_AR_NAME'),
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
     },
     {
       key: 'projectName',
-      label: getTransactionLabelDynamic('CDL_TRANS_BPA_NAME'),
+      label: getTransactionLabelDynamic('CDL_TRANS_MF_NAME'),
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
@@ -246,75 +246,75 @@ const DiscardedTransactionPage: React.FC = () => {
   const renderExpandedContent = (row: TransactionData) => (
     <div className="grid grid-cols-2 gap-8">
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-4">
+        <h4 className="mb-4 text-sm font-semibold text-gray-900">
           Transaction Information
         </h4>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <span className="text-gray-600">Developer Name:</span>
-            <span className="ml-2 text-gray-800 font-medium">
+            <span className="ml-2 font-medium text-gray-800">
               {row.developerName}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Project Name:</span>
-            <span className="ml-2 text-gray-800 font-medium">
+            <span className="ml-2 font-medium text-gray-800">
               {row.projectName}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Project Regulator ID:</span>
-            <span className="ml-2 text-gray-800 font-medium">
+            <span className="ml-2 font-medium text-gray-800">
               {row.projectRegulatorId}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Transaction Reference:</span>
-            <span className="ml-2 text-gray-800 font-medium">
+            <span className="ml-2 font-medium text-gray-800">
               {row.tranReference}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Transaction Description:</span>
-            <span className="ml-2 text-gray-800 font-medium">
+            <span className="ml-2 font-medium text-gray-800">
               {row.tranDesc}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Transaction Amount:</span>
-            <span className="ml-2 text-gray-800 font-medium">
+            <span className="ml-2 font-medium text-gray-800">
               {formatNumber(row.tranAmount)}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Transaction Date:</span>
-            <span className="ml-2 text-gray-800 font-medium">
+            <span className="ml-2 font-medium text-gray-800">
               {row.tranDate}
             </span>
           </div>
           <div>
             <span className="text-gray-600">Narration:</span>
-            <span className="ml-2 text-gray-800 font-medium">
+            <span className="ml-2 font-medium text-gray-800">
               {row.narration}
             </span>
           </div>
         </div>
       </div>
       <div className="space-y-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-4">
+        <h4 className="mb-4 text-sm font-semibold text-gray-900">
           Transaction Actions
         </h4>
         <div className="space-y-3">
-          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
+          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
             View Transaction Details
           </button>
-          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
+          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
             Download Transaction Report
           </button>
-          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
+          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
             Reallocate Transaction
           </button>
-          <button className="w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 shadow-sm">
+          <button className="w-full p-3 text-sm text-left text-gray-700 transition-colors bg-white border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50">
             Export Transaction Data
           </button>
         </div>

@@ -43,7 +43,8 @@ export interface UseDeleteRealEstateAssetReturn {
 
 export function useRealEstateAssets(
   page: number = 0,
-  size: number = 20
+  size: number = 20,
+  buildPartnerId?: number
 ): UseRealEstateAssetsReturn {
   const [assets, setAssets] = useState<RealEstateAsset[]>([])
   const [loading, setLoading] = useState<boolean>(true)
@@ -56,7 +57,8 @@ export function useRealEstateAssets(
 
       const result = await realEstateAssetService.getRealEstateAssets(
         page,
-        size
+        size,
+        buildPartnerId
       )
       setAssets(result)
     } catch (err) {
@@ -67,7 +69,7 @@ export function useRealEstateAssets(
     } finally {
       setLoading(false)
     }
-  }, [page, size])
+  }, [page, size, buildPartnerId])
 
   useEffect(() => {
     fetchAssets()
@@ -75,14 +77,14 @@ export function useRealEstateAssets(
 
   const findAssetByName = useCallback(
     (name: string): RealEstateAsset | undefined => {
-      return assets.find((asset) => asset.reaName === name)
+      return assets.find((asset) => asset.mfName === name)
     },
     [assets]
   )
 
   const findAssetById = useCallback(
     (id: string): RealEstateAsset | undefined => {
-      return assets.find((asset) => asset.reaId === id)
+      return assets.find((asset) => asset.mfId === id)
     },
     [assets]
   )
@@ -118,16 +120,16 @@ export function useRealEstateAssetStats(): UseRealEstateAssetStatsReturn {
       const stats = {
         total: assets.length,
         approved: assets.filter(
-          (asset) => asset.reaStatusDTO?.settingValue === 'APPROVED'
+          (asset) => asset.mfStatusDTO?.settingValue === 'APPROVED'
         ).length,
         rejected: assets.filter(
-          (asset) => asset.reaStatusDTO?.settingValue === 'REJECTED'
+          (asset) => asset.mfStatusDTO?.settingValue === 'REJECTED'
         ).length,
         incomplete: assets.filter(
-          (asset) => asset.reaStatusDTO?.settingValue === 'INCOMPLETE'
+          (asset) => asset.mfStatusDTO?.settingValue === 'INCOMPLETE'
         ).length,
         inReview: assets.filter(
-          (asset) => asset.reaStatusDTO?.settingValue === 'IN_REVIEW'
+          (asset) => asset.mfStatusDTO?.settingValue === 'IN_REVIEW'
         ).length,
       }
 

@@ -124,11 +124,13 @@ export function useLocalStorageListener<T = unknown>(
   useEffect(() => {
     let oldValue: T | null = null
     
-    try {
-      const item = localStorage.getItem(key)
-      oldValue = item ? JSON.parse(item) : null
-    } catch (error) {
-      throw error
+    if (typeof window !== 'undefined') {
+      try {
+        const item = localStorage.getItem(key)
+        oldValue = item ? JSON.parse(item) : null
+      } catch (error) {
+        throw error
+      }
     }
 
     const handleStorageChange = (e: StorageEvent | CustomEvent) => {

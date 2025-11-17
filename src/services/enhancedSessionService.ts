@@ -15,6 +15,7 @@ export class EnhancedSessionService {
   private static isRedirecting = false; // Prevent multiple simultaneous redirects
 
   static startSession(): void {
+    if (typeof window === 'undefined') return;
     const now = Date.now();
     const timeoutMs = this.TIMEOUT_MINUTES * 60 * 1000;
 
@@ -30,6 +31,7 @@ export class EnhancedSessionService {
   }
 
   static updateActivity(): void {
+    if (typeof window === 'undefined') return;
     const now = Date.now();
     localStorage.setItem('last_activity', now.toString());
     
@@ -125,6 +127,7 @@ export class EnhancedSessionService {
   }
 
   static checkSessionTimeout(): boolean {
+    if (typeof window === 'undefined') return true;
     const lastActivity = localStorage.getItem('last_activity');
     const sessionTimeout = localStorage.getItem('session_timeout');
 
@@ -140,6 +143,7 @@ export class EnhancedSessionService {
   }
 
   static shouldShowWarning(): boolean {
+    if (typeof window === 'undefined') return false;
     const lastActivity = localStorage.getItem('last_activity');
     if (!lastActivity) return false;
 
@@ -209,8 +213,10 @@ export class EnhancedSessionService {
     this.savePendingFormData();
     
     // Clear all data
+    if (typeof window !== 'undefined') {
     localStorage.clear();
     sessionStorage.clear();
+    }
     
     // Clear cookies
     if (typeof document !== 'undefined') {
@@ -226,16 +232,13 @@ export class EnhancedSessionService {
   }
 
   private static savePendingFormData(): void {
+    if (typeof window === 'undefined') return;
     try {
       // Save any form data that might be in localStorage
       const formKeys = Object.keys(localStorage).filter(key => 
         key.startsWith('form_') || key.includes('draft')
       );
       
-      if (formKeys.length > 0) {
-        console.log('Saving pending form data before session expiry:', formKeys);
-        // You could send this to a server endpoint for recovery
-      }
     } catch (error) {
       console.error('Failed to save pending form data:', error);
     }

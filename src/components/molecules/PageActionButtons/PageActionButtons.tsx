@@ -1,5 +1,3 @@
-'use client'
-
 import React, { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PermissionButton } from '@/components/atoms/PermissionButton'
@@ -12,8 +10,6 @@ export type EntityType =
   | 'investor'
   | 'developer'
   | 'manualPayment'
-  | 'budgetManagement'
-  | 'masterBudget'
   | 'feeRepush'
   | 'userManagement'
   | 'roleManagement'
@@ -26,6 +22,8 @@ export type EntityType =
   | 'suretyBond'
   | 'developerBeneficiary'
   | 'pendingPayment'
+  | 'budgetManagementFirm'
+  | 'budgetMaster'
 
 interface ActionButton {
   label: string
@@ -94,21 +92,21 @@ const PageActionButtonsComponent: React.FC<PageActionButtonsProps> = ({
   // Entity-specific configurations with permissions
   const entityConfig = {
     project: {
-      label: 'Add New Build Partner Assest',
+      label: 'Add New Management Firm ',
       route: '/build-partner-assets/new',
       permissions: ['bpa_create'], // Only users with bpa_create permission
       downloadPermission: ['data_export'], // Unified download permission
       uploadPermission: ['bulk_upload'], // Unified upload permission
     },
     investor: {
-      label: 'Add New Capital Partner',
+      label: 'Add New Owner Registry',
       route: '/capital-partner/new',
       permissions: ['cp_create'], // Only users with cp_create permission
       downloadPermission: ['data_export'], // Unified download permission
       uploadPermission: ['bulk_upload'], // Unified upload permission
     },
     developer: {
-      label: 'Add New Build Partner',
+      label: 'Add New Asset Register',
       route: '/build-partner/new',
       permissions: ['bp_create'], // Only users with bp_create permission
       downloadPermission: ['data_export'], // Unified download permission
@@ -121,20 +119,6 @@ const PageActionButtonsComponent: React.FC<PageActionButtonsProps> = ({
       downloadPermission: ['data_export'], // Unified download permission
       uploadPermission: ['bulk_upload'], // Unified upload permission
     },
-    budgetManagement: {
-      label: 'Add New Budget',
-      route: '/budget/management-firm-budget/new',
-      permissions: ['budget_create'],
-      downloadPermission: ['data_export'],
-      uploadPermission: ['bulk_upload'],
-    },
-    masterBudget: {
-      label: 'Add New Master Budget',
-      route: '/budget/master-budget/new',
-      permissions: ['master_budget_create'],
-      downloadPermission: ['data_export'],
-      uploadPermission: ['bulk_upload'],
-    },
     feeRepush: {
       label: 'Add New',
       route: '/fee-reconciliation/new',
@@ -144,21 +128,21 @@ const PageActionButtonsComponent: React.FC<PageActionButtonsProps> = ({
     },
     userManagement: {
       label: 'Add New User',
-      route: '/admin/user-management/new',
+      route: '/admin/stakeholder/new',
       permissions: ['user_create'], // Only users with user_create permission
       downloadPermission: ['data_export'], // Unified download permission
       uploadPermission: ['bulk_upload'], // Unified upload permission
     },
     roleManagement: {
-      label: 'Add New Role',
-      route: '/admin/role-management/new',
+      label: 'Add New Entitlement',
+      route: '/admin/entitlement/new',
       permissions: ['role_create'], // Only users with role_create permission
       downloadPermission: ['data_export'], // Unified download permission
       uploadPermission: ['bulk_upload'], // Unified upload permission
     },
     groupManagement: {
       label: 'Add New Group',
-      route: '/admin/fee-types/new',
+      route: '/admin/access-grant/new',
       permissions: ['group_create'], // Only users with group_create permission
       downloadPermission: ['data_export'], // Unified download permission
       uploadPermission: ['bulk_upload'], // Unified upload permission
@@ -219,34 +203,41 @@ const PageActionButtonsComponent: React.FC<PageActionButtonsProps> = ({
       downloadPermission: ['data_export'], // Unified download permission
       uploadPermission: ['bulk_upload'], // Unified upload permission
     },
+    budgetManagementFirm: {
+      label: 'Add New Management Firm Budget',
+      route: '/budget/budget-management-firm/new',
+      permissions: ['*', 'budget_management_firm_create'], // Wildcard for testing, specific permission for production
+      downloadPermission: ['data_export'], // Unified download permission
+      uploadPermission: ['bulk_upload'], // Unified upload permission
+    },
+    budgetMaster: {
+      label: 'Add New Master Budget',
+      route: '/budget/budget-master/new',
+      permissions: ['budget_master_create'], // Only users with budget_master_create permission
+      downloadPermission: ['data_export'], // Unified download permission
+      uploadPermission: ['bulk_upload'], // Unified upload permission
+    },
   }
 
   const config = entityConfig[entityType]
-
-  // Safety check: if config is undefined, provide defaults
-  if (!config) {
-    console.warn(`EntityType "${entityType}" not found in entityConfig. Using default permissions.`)
-  }
 
   // Use centralized permissions from entityConfig, but allow override via props
   const effectiveDownloadPermission =
     downloadPermission.length > 0 && !downloadPermission.includes('*')
       ? downloadPermission
-      : config?.downloadPermission || ['*']
+      : config.downloadPermission
 
   const effectiveUploadPermission =
     uploadPermission.length > 0 && !uploadPermission.includes('*')
       ? uploadPermission
-      : config?.uploadPermission || ['*']
+      : config.uploadPermission
   const handleAddNew = useCallback(() => {
     if (onAddNew) {
       onAddNew()
-    } else if (config?.route) {
-      router.push(config.route)
     } else {
-      console.warn(`No route configured for entityType "${entityType}" and no onAddNew handler provided.`)
+      router.push(config.route)
     }
-  }, [onAddNew, router, config?.route, entityType])
+  }, [onAddNew, router, config.route])
 
   const handleDownloadTemplate = useCallback(() => {
     if (onDownloadTemplate) {
@@ -271,8 +262,6 @@ const PageActionButtonsComponent: React.FC<PageActionButtonsProps> = ({
       uploadedAt: string
       [key: string]: unknown
     }) => {
-      // Handle upload success - can be customized per entity if needed
-      console.log('Upload successful:', response)
     },
     []
   )
@@ -396,7 +385,7 @@ const PageActionButtonsComponent: React.FC<PageActionButtonsProps> = ({
               {button.label}
             </button>
           ))
-        : showButtons.addNew && config && (
+        : showButtons.addNew && (
             <PermissionButton
               requiredPermissions={config.permissions}
               onClick={handleAddNew}

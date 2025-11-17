@@ -5,13 +5,14 @@ import { createBuildPartnerDocumentConfig } from './configs/buildPartnerConfig'
 import { createProjectDocumentConfig } from './configs/projectConfig'
 import { createInvestorDocumentConfig } from './configs/investorConfig'
 import { createPaymentDocumentConfig } from './configs/paymentConfig'
-import { DocumentItem } from '../DeveloperStepper/developerTypes'
+import { createSuretyBondDocumentConfig } from './configs/suretyBondConfig'
 import { createBudgetDocumentConfig } from './configs/budgetConfig'
+import { DocumentItem } from '../DeveloperStepper/developerTypes'
 
 export type DocumentUploadType =
-  | 'BUILD_PARTNER'
-  | 'BUILD_PARTNER_ASSET'
-  | 'CAPITAL_PARTNER'
+  | 'ASSET_REGISTER'
+  | 'MANAGEMENT_FIRMS'
+  | 'OWNER_REGISTRY'
   | 'INVESTOR'
   | 'PROJECT'
   | 'NAV_MENU'
@@ -24,6 +25,8 @@ export type DocumentUploadType =
   | 'STAKEHOLDER'
   | 'ROLES'
   | 'PERMISSIONS'
+  | 'SURETY_BOND'
+  | 'BUILD_PARTNER_ASSET'
   | 'BUDGET'
 
 interface DocumentUploadFactoryProps {
@@ -33,8 +36,6 @@ interface DocumentUploadFactoryProps {
   isReadOnly?: boolean
   onDocumentsChange?: (documents: DocumentItem[]) => void
   formFieldName?: string
-  title?: string
-  description?: string
 }
 
 const DocumentUploadFactory: React.FC<DocumentUploadFactoryProps> = ({
@@ -44,8 +45,6 @@ const DocumentUploadFactory: React.FC<DocumentUploadFactoryProps> = ({
   isReadOnly = false,
   onDocumentsChange,
   formFieldName = 'documents',
-  title,
-  description,
 }) => {
   const { setValue, watch } = useFormContext()
 
@@ -66,26 +65,24 @@ const DocumentUploadFactory: React.FC<DocumentUploadFactoryProps> = ({
       isReadOnly,
       onDelete: handleDelete,
       ...(onDocumentsChange && { onDocumentsChange }),
-      ...(title && { title }),
-      ...(description && { description }),
     }
 
     switch (type) {
-      case 'BUILD_PARTNER':
+      case 'ASSET_REGISTER':
         return createBuildPartnerDocumentConfig(entityId, baseOptions)
 
-      case 'BUILD_PARTNER_ASSET':
-        return createBuildPartnerDocumentConfig(entityId, {
+      case 'MANAGEMENT_FIRMS':
+        return createProjectDocumentConfig(entityId, {
           ...baseOptions,
-          title: 'Build Partner Asset Documents',
-          description: 'Upload build partner asset-related documents.',
+          title: 'Management Firm Documents',
+          description: 'Upload management firm-related documents.',
         })
 
-      case 'CAPITAL_PARTNER':
-        return createBuildPartnerDocumentConfig(entityId, {
+      case 'OWNER_REGISTRY':
+        return createInvestorDocumentConfig(entityId, {
           ...baseOptions,
-          title: 'Capital Partner Documents',
-          description: 'Upload capital partner-related documents.',
+          title: 'Owner Registry Documents',
+          description: 'Upload owner registry-related documents.',
         })
 
       case 'INVESTOR':
@@ -106,14 +103,17 @@ const DocumentUploadFactory: React.FC<DocumentUploadFactoryProps> = ({
       case 'PAYMENTS':
         return createPaymentDocumentConfig(entityId, {
           ...baseOptions,
-          title: baseOptions.title || 'Payment Documents',
+          title: 'Payment Documents',
           description:
-            baseOptions.description ||
             'This step is optional. You can upload payment-related documents or skip to continue.',
         })
 
-      case 'BUDGET':
-        return createBudgetDocumentConfig(entityId, baseOptions)
+      case 'SURETY_BOND':
+        return createSuretyBondDocumentConfig(entityId, {
+          ...baseOptions,
+          title: 'Surety Bond Documents',
+          description: 'Upload surety bond-related documents.',
+        })
 
       case 'TRANSACTIONS':
         return createBuildPartnerDocumentConfig(entityId, {
@@ -177,6 +177,20 @@ const DocumentUploadFactory: React.FC<DocumentUploadFactoryProps> = ({
           title: 'Build Partner Assest Documents',
           description:
             'This step is optional. You can upload project-related documents or skip to continue.',
+        })
+
+      case 'BUILD_PARTNER_ASSET':
+        return createBuildPartnerDocumentConfig(entityId, {
+          ...baseOptions,
+          title: 'Build Partner Asset Documents',
+          description: 'Upload build partner asset-related documents.',
+        })
+
+      case 'BUDGET':
+        return createBudgetDocumentConfig(entityId, {
+          ...baseOptions,
+          title: 'Budget Documents',
+          description: 'Upload budget-related documents.',
         })
 
       default:

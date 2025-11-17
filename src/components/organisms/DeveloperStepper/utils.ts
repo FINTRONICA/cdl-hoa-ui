@@ -54,14 +54,14 @@ export const processContactData = (contactStepData: any): ContactData[] => {
   
   const mapContactItem = (contact: any): ContactData => ({
     ...contact,
-    name: `${contact.bpcFirstName || ''} ${contact.bpcLastName || ''}`.trim() || 'N/A',
-    address: `${contact.bpcContactAddressLine1 || ''} ${contact.bpcContactAddressLine2 || ''}`.trim() || 'N/A',
-    email: contact.bpcContactEmail || 'N/A',
-    pobox: contact.bpcContactPoBox || 'N/A',
-    countrycode: contact.bpcCountryMobCode || 'N/A',
-    mobileno: contact.bpcContactMobNo || 'N/A',
-    telephoneno: contact.bpcContactTelNo || 'N/A',
-    fax: contact.bpcContactFaxNo || 'N/A',
+    name: `${contact.arcFirstName || ''} ${contact.arcLastName || ''}`.trim() || 'N/A',
+    address: `${contact.arcContactAddressLine1 || ''} ${contact.arcContactAddressLine2 || ''}`.trim() || 'N/A',
+    email: contact.arcContactEmail || 'N/A',
+    pobox: contact.arcContactPoBox || contact.arcContactPoBoxNo || 'N/A',
+    countrycode: contact.arcCountryMobCode || 'N/A',
+    mobileno: contact.arcContactMobNo || 'N/A',
+    telephoneno: contact.arcContactTelNo || 'N/A',
+    fax: contact.arcContactFaxNo || 'N/A',
     ...(typeof contact.isActive === 'string' && {
       isActive: contact.isActive === 'true',
     }),
@@ -120,7 +120,7 @@ export const processBeneficiaryData = (beneficiaryStepData: any): BeneficiaryDat
     swiftCode: beneficiary.bpbSwiftCode || '',
     routingCode: beneficiary.bpbRoutingCode || '',
     account: beneficiary.bpbAccountNumber || '',
-    buildPartnerDTO: beneficiary.buildPartnerDTO,
+    assetRegisterDTO: beneficiary.assetRegisterDTO,
     ...(typeof beneficiary.enabled === 'boolean' && {
       enabled: beneficiary.enabled,
     }),
@@ -131,9 +131,8 @@ export const processBeneficiaryData = (beneficiaryStepData: any): BeneficiaryDat
 
 
 export const processStepData = (activeStep: number, stepStatus: any): any => {
-  console.log("🔄 UTILS - Processing step data for step", activeStep, "stepStatus:", stepStatus)
+
   const currentStepData = stepStatus.stepData[`step${activeStep + 1}`]
-  console.log("🔄 UTILS - Current step data:", currentStepData)
   if (!currentStepData) return {}
 
   let processedData: any = {}

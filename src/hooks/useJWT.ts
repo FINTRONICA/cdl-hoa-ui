@@ -7,6 +7,7 @@ import { JWTParser } from '@/utils/jwtParser';
  */
 export function useJWT() {
   const token = useMemo(() => {
+    if (typeof window === 'undefined') return null;
     return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
   }, []);
 

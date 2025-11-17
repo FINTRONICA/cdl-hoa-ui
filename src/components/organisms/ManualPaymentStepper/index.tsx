@@ -38,7 +38,7 @@ import { useCreateDeveloperWorkflowRequest } from '@/hooks/workflow'
 
 // const steps = ['Details', 'Documents', 'Review'] // Removed as we now use dynamic steps
 import { useManualPaymentLabelsWithCache } from '@/hooks/useManualPaymentLabelsWithCache'
-import { VOUCHER_LABELS } from '@/constants/mappings/manualPaymentLabels'
+import { MANUAL_PAYMENT_LABELS } from '@/constants/mappings/manualPaymentLabels'
 
 interface ManualPaymentStepperWrapperProps {
   isReadOnly?: boolean
@@ -62,19 +62,19 @@ function ManualPaymentStepperContent({
   const steps = useMemo(
     () => [
       getLabel(
-        VOUCHER_LABELS.STEPS.DETAILS,
+        MANUAL_PAYMENT_LABELS.STEPS.DETAILS,
         'EN',
-        VOUCHER_LABELS.FALLBACKS.STEPS.DETAILS
+        MANUAL_PAYMENT_LABELS.FALLBACKS.STEPS.DETAILS
       ),
       getLabel(
-        VOUCHER_LABELS.STEPS.DOCUMENTS,
+        MANUAL_PAYMENT_LABELS.STEPS.DOCUMENTS,
         'EN',
-        VOUCHER_LABELS.FALLBACKS.STEPS.DOCUMENTS
+        MANUAL_PAYMENT_LABELS.FALLBACKS.STEPS.DOCUMENTS
       ),
       getLabel(
-        VOUCHER_LABELS.STEPS.REVIEW,
+        MANUAL_PAYMENT_LABELS.STEPS.REVIEW,
         'EN',
-        VOUCHER_LABELS.FALLBACKS.STEPS.REVIEW
+        MANUAL_PAYMENT_LABELS.FALLBACKS.STEPS.REVIEW
       ),
     ],
     [getLabel]
@@ -120,7 +120,6 @@ function ManualPaymentStepperContent({
     // Cast is safe here: Step 1 schema validates only a subset of ProjectData fields present on this step
     resolver: zodResolver(manualPaymentStep1Schema) as unknown as any,
     defaultValues: {
-      // OLD FIELDS - Keep for compatibility but will be ignored by schema
       sectionId: '',
       developerId: '',
       developerName: '',
@@ -154,66 +153,6 @@ function ManualPaymentStepperContent({
       relationshipManager: '',
       assistantRelationshipManager: '',
       teamLeaderName: '',
-
-      // NEW FIELDS - Add defaults for new structure
-      vaucherReferenceNumber: '',
-      assetRegisterName: '',
-      managementFirmName: '',
-      managementFirmAccountStatus: null,
-      escrowAccount: '',
-      subConstructionAccount: '',
-      retentionAccount: '',
-      paymentSubType: null,
-      hoaApprovalNumber: '',
-      hoaApprovalDate: null,
-      invoiceRef: '',
-      invoiceCurrency: '',
-      invoiceValue: '',
-      invoiceDate: null,
-      specialRate: false,
-      corporateAmount: false,
-      RT03: '',
-      totalEligibleAmount: '',
-      amountPaid: '',
-      capExceeded: false,
-      totalAmountPaid: '',
-      paymentCurrency: '',
-      debitCreditToEscrow: '',
-      currentEligibleAmount: '',
-      debitFromRetention: '',
-      totalPayoutAmount: '',
-      amountInTransit: '',
-      budgetYear: '',
-      budgetCategory: '',
-      budgetSubCategory: '',
-      budgetServiceName: '',
-      provisionalBudget: false,
-      HOAExemption: false,
-      categoryCode: '',
-      categoryName: '',
-      subCategoryCode: '',
-      subCategoryName: '',
-      serviceCode: '',
-      serviceName: '',
-      provisionalBudgetCode: '',
-      provisionalBudgetName: '',
-      availableBudgetAmount: '',
-      utilizedBudgetAmount: '',
-      invoiceBudgetAmount: '',
-      voucherDTO: {
-        benVoucher: '',
-        benVoucherName: '',
-        benVoucherSwiftCode: '',
-        benVoucherRoutingCode: '',
-        benVoucherAccountNumber: '',
-      },
-      buildPartnerDTO: {
-        bpName: '',
-      },
-      engineerFeePayment: '',
-      routinfSortcode: '',
-      narration1: '',
-      narration2: '',
 
       accounts: [
         {
@@ -535,7 +474,7 @@ function ManualPaymentStepperContent({
 
         return (
           <DocumentUploadFactory
-            type="BUILD_PARTNER"
+            type="PAYMENTS"
             entityId={savedId}
             isOptional={true}
             onDocumentsChange={(documents: DocumentItem[]) => {
@@ -803,10 +742,22 @@ function ManualPaymentStepperContent({
                         }}
                       >
                         {createProjectWorkflowRequest.isPending
-                          ? 'Saving...'
+                          ? getLabel(
+                              MANUAL_PAYMENT_LABELS.BUTTONS.SAVING,
+                              'EN',
+                              MANUAL_PAYMENT_LABELS.FALLBACKS.BUTTONS.SAVING
+                            )
                           : isEditMode
-                            ? 'Update Payment'
-                            : 'Save & Continue'}
+                            ? getLabel(
+                                MANUAL_PAYMENT_LABELS.BUTTONS.SAVE_NEXT,
+                                'EN',
+                                MANUAL_PAYMENT_LABELS.FALLBACKS.BUTTONS.SAVE_NEXT
+                              )
+                            : getLabel(
+                                MANUAL_PAYMENT_LABELS.BUTTONS.SAVE_CONTINUE,
+                                'EN',
+                                MANUAL_PAYMENT_LABELS.FALLBACKS.BUTTONS.SAVE_CONTINUE
+                              )}
                       </Button>
                     ) : (
                       <Button

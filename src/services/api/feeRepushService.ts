@@ -5,61 +5,63 @@ import type { PaginatedResponse } from '@/types'
 // Fee Repush (Real Estate Asset Fee History) types - Updated to match actual API response
 export interface FeeRepushRecord {
   id: number
-  reafhAmount: number | null
-  reafhTotalAmount: number | null
-  reafhVatPercentage: number | null
-  reafhTransactionDate: string | null
-  reafhSuccess: boolean | null
-  reafhStatus: boolean | null
-  reahfRemark: string | null
-  reafhFeeResponse: string | null
-  reafhResponseStatus: string | null
-  reafhSpecialField1: string | null
-  reafhSpecialField2: string | null
-  reafhSpecialField3: string | null
-  reafhSpecialField4: string | null
-  reafhSpecialField5: string | null
-  reafhFeeRequestBody: string | null
-  realEstateAssestFeeDTO: any | null
-  realEstateAssestDTO: {
+  mffhAmount: number | null
+  mffhTotalAmount: number | null
+  mffhVatPercentage: number | null
+  mffhTransactionDate: string | null
+  mffhSuccess: boolean | null
+  mffhStatus: boolean | null
+  //  reahfRemark: string | null
+  // mffhRemark: string | null
+  mffhRemark: string | null
+  mffhFeeResponse: string | null
+  mffhResponseStatus: string | null
+  mffhSpecialField1: string | null
+  mffhSpecialField2: string | null
+  mffhSpecialField3: string | null
+  mffhSpecialField4: string | null
+  mffhSpecialField5: string | null
+  mffhFeeRequestBody: string | null
+  managementFirmFeeDTO: any | null
+  managementFirmDTO: {
     id?: number
-    reaId?: string
-    reaCif?: string
-    reaName?: string
-    reaNameLocal?: string
-    reaLocation?: string
-    reaReraNumber?: string
-    reaStartDate?: string
-    reaCompletionDate?: string
-    reaPercentComplete?: string
-    reaConstructionCost?: number
-    reaAccStatusDate?: string
-    reaRegistrationDate?: string
-    reaNoOfUnits?: number
-    reaRemarks?: string
-    reaSpecialApproval?: string
-    reaManagedBy?: string
-    reaBackupUser?: string
-    reaRetentionPercent?: string
-    reaAdditionalRetentionPercent?: string
-    reaTotalRetentionPercent?: string
-    reaRetentionEffectiveDate?: string
-    reaManagementExpenses?: string
-    reaMarketingExpenses?: string
-    reaAccoutStatusDate?: string
-    reaTeamLeadName?: string
-    reaRelationshipManagerName?: string
-    reaAssestRelshipManagerName?: string
-    reaRealEstateBrokerExp?: number
-    reaAdvertisementExp?: number
-    reaLandOwnerName?: string
-    buildPartnerDTO?: any
-    reaStatusDTO?: any
-    reaTypeDTO?: any
-    reaAccountStatusDTO?: any
-    reaConstructionCostCurrencyDTO?: any
+    mfId?: string
+    mfId?: string
+    mfName?: string
+    mfNameLocal?: string
+    mfLocation?: string
+    mfReraNumber?: string
+    mfStartDate?: string
+    mfCompletionDate?: string
+    mfPercentComplete?: string
+    mfConstructionCost?: number
+    mfAccStatusDate?: string
+    mfRegistrationDate?: string
+    mfNoOfUnits?: number
+    mfRemarks?: string
+    mfSpecialApproval?: string
+    mfManagedBy?: string
+    mfBackupUser?: string
+    mfRetentionPercent?: string
+    mfAdditionalRetentionPercent?: string
+    mfTotalRetentionPercent?: string
+    mfRetentionEffectiveDate?: string
+    mfManagementExpenses?: string
+    mfMarketingExpenses?: string
+    mfAccoutStatusDate?: string
+    mfTeamLeadName?: string
+    mfRelationshipManagerName?: string
+    mfAssestRelshipManagerName?: string
+    mfRealEstateBrokerExp?: number
+    mfAdvertisementExp?: number
+    mfLandOwnerName?: string
+    assetRegisterDTO?: any
+    mfStatusDTO?: any
+    mfTypeDTO?: any
+    mfAccountStatusDTO?: any
+    mfConstructionCostCurrencyDTO?: any
     status?: any
-    reaBlockPaymentTypeDTO?: any
+    mfBlockPaymentTypeDTO?: any
     deleted?: boolean
     taskStatusDTO?: any
   } | null
@@ -192,19 +194,19 @@ export const mapFeeRepushToUIData = (
 
   // Determine status based on API response fields
   const getStatus = (): string => {
-    if (apiData.reafhResponseStatus) {
-      return apiData.reafhResponseStatus
+    if (apiData.mffhResponseStatus) {
+      return apiData.mffhResponseStatus
     }
-    if (apiData.reafhSuccess === true) {
+    if (apiData.mffhSuccess === true) {
       return 'SUCCESS'
     }
-    if (apiData.reafhSuccess === false) {
+    if (apiData.mffhSuccess === false) {
       return 'FAILED'
     }
-    if (apiData.reafhStatus === true) {
+    if (apiData.mffhStatus === true) {
       return 'ACTIVE'
     }
-    if (apiData.reafhStatus === false) {
+    if (apiData.mffhStatus === false) {
       return 'INACTIVE'
     }
     return 'UNKNOWN'
@@ -219,35 +221,35 @@ export const mapFeeRepushToUIData = (
 
   return {
     id: String(apiData.id),
-    projectName: apiData.realEstateAssestDTO?.reaName || '—',
+    projectName: apiData.managementFirmDTO?.mfName || '—',
     feeType: 'Fee Processing', // Default since feeType not in API response
-    amount: apiData.reafhAmount ? formatAmount(apiData.reafhAmount) : '—',
-    transactionDate: formatDate(apiData.reafhTransactionDate),
+    amount: apiData.mffhAmount ? formatAmount(apiData.mffhAmount) : '—',
+    transactionDate: formatDate(apiData.mffhTransactionDate),
     approvalStatus: getStatus(),
     paymentType: getPaymentType(),
     paymentRefNo: '—', // Not available in current API response
     tasRefNo: '—', // Not available in current API response
-    narration: apiData.reahfRemark || '—',
-    description: apiData.reafhFeeResponse || '—',
-    remark: apiData.reahfRemark || '—',
+    narration: apiData.mffhRemark || '—',
+    description: apiData.mffhFeeResponse || '—',
+    remark: apiData.mffhRemark || '—',
     failureReason:
-      apiData.reafhSuccess === false
-        ? apiData.reahfRemark || 'Payment Failed'
+      apiData.mffhSuccess === false
+        ? apiData.mffhRemark || 'Payment Failed'
         : '—',
     retryCount: '0', // Not available in current API response
-    createdDate: formatDateTime(apiData.reafhTransactionDate), // Using transaction date as created date
-    updatedDate: formatDateTime(apiData.reafhTransactionDate), // Using transaction date as updated date
+    createdDate: formatDateTime(apiData.mffhTransactionDate), // Using transaction date as created date
+    updatedDate: formatDateTime(apiData.mffhTransactionDate), // Using transaction date as updated date
     createdBy: '—', // Not available in current API response
     updatedBy: '—', // Not available in current API response
     currency: 'AED', // Default currency
-    totalAmount: apiData.reafhTotalAmount
-      ? formatAmount(apiData.reafhTotalAmount)
+    totalAmount: apiData.mffhTotalAmount
+      ? formatAmount(apiData.mffhTotalAmount)
       : '—',
     isActive:
-      apiData.reafhStatus !== null ? (apiData.reafhStatus ? 'Yes' : 'No') : '—',
+      apiData.mffhStatus !== null ? (apiData.mffhStatus ? 'Yes' : 'No') : '—',
     feaHistoryId: String(apiData.id),
-    specialField1: apiData.reafhSpecialField1 || '—',
-    specialField2: apiData.reafhSpecialField2 || '—',
+    specialField1: apiData.mffhSpecialField1 || '—',
+    specialField2: apiData.mffhSpecialField2 || '—',
   }
 }
 
@@ -256,7 +258,7 @@ export class FeeRepushService {
     data: Partial<FeeRepushRecord>
   ): Promise<FeeRepushRecord> {
     try {
-      const url = buildApiUrl(API_ENDPOINTS.REAL_ESTATE_ASSET_FEE_HISTORY.SAVE)
+      const url = buildApiUrl(API_ENDPOINTS.MANAGEMENT_FIRMS_FEE_HISTORY.SAVE)
       const result = await apiClient.post<FeeRepushRecord>(url, data)
       return result
     } catch (error) {
@@ -270,7 +272,7 @@ export class FeeRepushService {
   ): Promise<FeeRepushRecord> {
     try {
       const url = buildApiUrl(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_FEE_HISTORY.UPDATE(id)
+        API_ENDPOINTS.MANAGEMENT_FIRMS_FEE_HISTORY.UPDATE(id)
       )
       const result = await apiClient.put<FeeRepushRecord>(url, updates)
       return result
@@ -282,7 +284,7 @@ export class FeeRepushService {
   async deleteFeeRepush(id: string): Promise<void> {
     try {
       const url = buildApiUrl(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_FEE_HISTORY.DELETE(id)
+        API_ENDPOINTS.MANAGEMENT_FIRMS_FEE_HISTORY.DELETE(id)
       )
       await apiClient.delete(url)
     } catch (error) {
@@ -299,30 +301,30 @@ export class FeeRepushService {
     if (filters) {
       // Map filters to actual API field names
       if (filters.projectName) {
-        // Since project name is nested in realEstateAssestDTO.reaName, we might need a different approach
+        // Since project name is nested in managementFirmDTO.mfName, we might need a different approach
         // For now, we'll skip project name filtering until we know the correct API parameter
       }
       if (filters.minAmount !== undefined)
-        apiFilters['reafhAmount.greaterThanOrEqual'] = String(filters.minAmount)
+        apiFilters['mffhAmount.greaterThanOrEqual'] = String(filters.minAmount)
       if (filters.maxAmount !== undefined)
-        apiFilters['reafhAmount.lessThanOrEqual'] = String(filters.maxAmount)
+        apiFilters['mffhAmount.lessThanOrEqual'] = String(filters.maxAmount)
       if (filters.fromDate)
-        apiFilters['reafhTransactionDate.greaterThanOrEqual'] = filters.fromDate
+        apiFilters['mffhTransactionDate.greaterThanOrEqual'] = filters.fromDate
       if (filters.toDate)
-        apiFilters['reafhTransactionDate.lessThanOrEqual'] = filters.toDate
+        apiFilters['mffhTransactionDate.lessThanOrEqual'] = filters.toDate
       if (filters.isActive !== undefined)
-        apiFilters['reafhStatus.equals'] = String(filters.isActive)
+        apiFilters['mffhStatus.equals'] = String(filters.isActive)
 
       // Add success/failure status filtering
       if (filters.approvalStatus) {
         if (filters.approvalStatus.toLowerCase() === 'success') {
-          apiFilters['reafhSuccess.equals'] = 'true'
+          apiFilters['mffhSuccess.equals'] = 'true'
         } else if (filters.approvalStatus.toLowerCase() === 'failed') {
-          apiFilters['reafhSuccess.equals'] = 'false'
+          apiFilters['mffhSuccess.equals'] = 'false'
         } else if (filters.approvalStatus.toLowerCase() === 'active') {
-          apiFilters['reafhStatus.equals'] = 'true'
+          apiFilters['mffhStatus.equals'] = 'true'
         } else if (filters.approvalStatus.toLowerCase() === 'inactive') {
-          apiFilters['reafhStatus.equals'] = 'false'
+          apiFilters['mffhStatus.equals'] = 'false'
         }
       }
     }
@@ -332,7 +334,7 @@ export class FeeRepushService {
     apiFilters['size'] = String(size)
 
     const queryString = new URLSearchParams(apiFilters).toString()
-    const url = `${buildApiUrl(API_ENDPOINTS.REAL_ESTATE_ASSET_FEE_HISTORY.GET_ALL)}?${queryString}`
+    const url = `${buildApiUrl(API_ENDPOINTS.MANAGEMENT_FIRMS_FEE_HISTORY.GET_ALL)}?${queryString}`
 
 
     try {
@@ -361,7 +363,7 @@ export class FeeRepushService {
   async getFeeRepushRecord(id: string): Promise<FeeRepushRecord> {
     try {
       const result = await apiClient.get<FeeRepushRecord>(
-        buildApiUrl(API_ENDPOINTS.REAL_ESTATE_ASSET_FEE_HISTORY.GET_BY_ID(id))
+        buildApiUrl(API_ENDPOINTS.MANAGEMENT_FIRMS_FEE_HISTORY.GET_BY_ID(id))
       )
       return result
     } catch (error) {
@@ -399,9 +401,9 @@ export class FeeRepushService {
     try {
       // Update the record to mark as pending retry
       const updatedRecord = await this.updateFeeRepush(id, {
-        reafhResponseStatus: 'PENDING_RETRY',
-        reafhSuccess: null, // Reset success status
-        reahfRemark: 'Payment retry initiated',
+        mffhResponseStatus: 'PENDING_RETRY',
+        mffhSuccess: null, // Reset success status
+        mffhRemark: 'Payment retry initiated',
       })
 
 
@@ -418,7 +420,7 @@ export class FeeRepushService {
   // - Force repush: await feeRepushService.feeRepush('123', { forceRepush: true })
   async feeRepush(id: string, request?: FeeRepushRequest): Promise<FeeRepushResponse> {
     try {
-      const url = buildApiUrl(API_ENDPOINTS.REAL_ESTATE_ASSET_FEE_HISTORY.FEE_REPUSH(id))
+      const url = buildApiUrl(API_ENDPOINTS.MANAGEMENT_FIRMS_FEE_HISTORY.FEE_REPUSH(id))
       const requestBody: FeeRepushRequest = {
         remarks: request?.remarks || 'Fee repush initiated via dedicated endpoint',
         forceRepush: request?.forceRepush || false,

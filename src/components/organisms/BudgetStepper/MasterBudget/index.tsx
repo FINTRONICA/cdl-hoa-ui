@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Box,
   Button,
@@ -8,27 +8,28 @@ import {
   StepLabel,
   Stepper,
   Typography,
+  Alert,
+  Snackbar,
 } from '@mui/material'
 import { FormProvider, useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'react-hot-toast'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 
-import Step1 from './steps/Step1'
+import Step1Component, { type Step1Ref } from './steps/Step1'
 import Step2 from './steps/Step2'
-import { MasterBudgetDataProvider, useMasterBudgetData } from './steps/BudgetDataProvider'
-import { useBudgetLabels } from '@/hooks/budget/useBudgetLabels'
+
 import { MASTER_BUDGET_LABELS } from '@/constants/mappings/budgetLabels'
 import DocumentUploadFactory from '@/components/organisms/DocumentUpload/DocumentUploadFactory'
-import { GlobalLoading } from '@/components/atoms'
-import { masterBudgetService } from '@/services/api/budget/masterBudgetService'
+import { useBudgetLabelsWithCache } from '@/hooks/budget/useBudgetLabelsWithCache'
+import { budgetCategoryService } from '@/services/api/budgetApi/budgetCategoryService'
+
 import {
   budgetMasterStep1Schema,
   type BudgetMasterStep1FormValues,
-} from '@/lib/validation/budgetSchemas'
+} from '@/lib/budgetSchemas';
 
 interface MasterBudgetStepperWrapperProps {
-  isReadOnly?: boolean
+  isReadOnly?: boolean;
 }
 
 const defaultValues: BudgetMasterStep1FormValues = {
@@ -50,7 +51,7 @@ const defaultValues: BudgetMasterStep1FormValues = {
 const mapFormToPayload = (values: BudgetMasterStep1FormValues) => ({
   chargeTypeId: Number(values.chargeTypeId),
   chargeType: values.chargeType,
-  groupName: values.groupName,
+  serviceChargeGroupName: values.groupName, // Map groupName to serviceChargeGroupName for API
   categoryCode: values.categoryCode,
   categoryName: values.categoryName,
   categorySubCode: values.categorySubCode,
@@ -60,20 +61,24 @@ const mapFormToPayload = (values: BudgetMasterStep1FormValues) => ({
   serviceCode: values.serviceCode,
   serviceName: values.serviceName,
   provisionalBudgetCode: values.provisionalBudgetCode,
+  enabled: true,
+  deleted: false,
 })
 
 function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperWrapperProps) {
   const router = useRouter()
   const params = useParams()
   const searchParams = useSearchParams()
-  const { isInitialLoading } = useMasterBudgetData()
-  const { getLabel } = useBudgetLabels('EN')
+  const { getLabel } = useBudgetLabelsWithCache('EN')
 
   const [activeStep, setActiveStep] = useState(0)
   const [savedId, setSavedId] = useState<string | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const step1Ref = React.useRef<Step1Ref>(null)
 
   const methods = useForm<BudgetMasterStep1FormValues>({
     defaultValues,
@@ -125,30 +130,114 @@ function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperW
      }
   }, [searchParams, steps])
 
-  const navigateToStep = useCallback(
-    (stepIndex: number, targetId?: string | null) => {
-      const id = targetId ?? savedId
-      const query = `?step=${stepIndex}`
-      if (id) {
-        router.push(`/budget/master-budget/new/${id}${query}`)
-      } else {
-        router.push(`/budget/master-budget/new${query}`)
+  const updateURL = useCallback(
+    (step: number, id?: string | null) => {
+      if (id && step >= 0) {
+        // For edit mode, use /budget/budget-master/{id}?editing=true
+        const queryParam = isReadOnly ? '?mode=view' : '?editing=true'
+        router.push(`/budget/budget-master/${id}${queryParam}`)
+      } else if (step === 0) {
+        // For new mode, use /budget/budget-master/new
+        router.push('/budget/budget-master/new')
       }
     },
-    [router, savedId]
+    [router, isReadOnly]
   )
 
-  const handleNext = () => {
-    const nextStep = Math.min(activeStep + 1, steps.length - 1)
+  const handleAsyncStep = async (stepRef: {
+    handleSaveAndNext: () => Promise<void>
+  }) => {
+    try {
+      console.log('[Index] handleAsyncStep called')
+      setIsSaving(true)
+      await stepRef.handleSaveAndNext()
+      console.log('[Index] handleSaveAndNext completed successfully')
+      return true
+    } catch (error) {
+      console.error('[Index] handleAsyncStep error:', error)
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to save data'
+      setErrorMessage(errorMessage)
+      return false
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const navigateToNextStep = (targetId?: string) => {
+    const nextStep = activeStep + 1
+    if (nextStep < steps.length) {
     setActiveStep(nextStep)
-    navigateToStep(nextStep)
-    toast.success(`Moved to ${steps[nextStep]} step.`)
+      updateURL(nextStep, targetId || savedId)
+    }
+  }
+
+  const handleStep1SaveAndNext = (data: { id: string }) => {
+    console.log('[Index] handleStep1SaveAndNext called with data:', data)
+    if (data && data.id) {
+      setSavedId(data.id)
+      setIsEditMode(true)
+      setSuccessMessage('Master budget saved successfully. Proceed to document upload.')
+      // Navigation is handled by navigateToNextStep() in handleNext
+    }
+  }
+
+  const handleNext = async (e?: React.MouseEvent<HTMLButtonElement>) => {
+    // Prevent form submission
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    
+    console.log('[Index] handleNext called', { 
+      activeStep, 
+      isReadOnly, 
+      hasStep1Ref: !!step1Ref.current,
+      step1RefCurrent: step1Ref.current,
+      hasHandleSaveAndNext: !!(step1Ref.current?.handleSaveAndNext)
+    })
+    
+    if (isReadOnly) {
+      navigateToNextStep()
+      return
+    }
+
+    if (activeStep === 0) {
+      if (!step1Ref.current) {
+        console.error('[Index] step1Ref.current is null! Cannot save.')
+        setErrorMessage('Form is not ready. Please wait a moment and try again.')
+        return
+      }
+      
+      if (!step1Ref.current.handleSaveAndNext) {
+        console.error('[Index] step1Ref.current.handleSaveAndNext is not available!')
+        setErrorMessage('Save function is not available. Please refresh the page.')
+        return
+      }
+      
+      console.log('[Index] Calling handleAsyncStep for step 0')
+      const success = await handleAsyncStep(step1Ref.current)
+      console.log('[Index] handleAsyncStep result:', success)
+      if (success) {
+        navigateToNextStep()
+      }
+      return
+    }
+
+    if (activeStep === 1) {
+      navigateToNextStep()
+      return
+    }
+
+    navigateToNextStep()
   }
 
   const handleBack = () => {
-    const prevStep = Math.max(activeStep - 1, 0)
+    const prevStep = activeStep - 1
+    if (prevStep >= 0) {
     setActiveStep(prevStep)
-    navigateToStep(prevStep)
+      updateURL(prevStep, savedId)
+    }
   }
 
   const handleReset = () => {
@@ -156,112 +245,86 @@ function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperW
     setSavedId(null)
     setIsEditMode(false)
     methods.reset(defaultValues)
-    router.push('/budget/master-budget')
+    router.push('/budget/budget-master')
   }
 
-  const handleSaveAndNext = async () => {
-    try {
-      setIsSaving(true)
-      const values = methods.getValues()
-      const payload = mapFormToPayload(values)
-      const response = await masterBudgetService.createBudget(payload)
-
-      setSavedId(response.id)
-      setIsEditMode(true)
-      setActiveStep(1)
-      navigateToStep(1, response.id)
-
-      toast.success('Master budget saved successfully. Proceed to document upload.')
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to save master budget details'
-      )
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  const handleUpdate = async () => {
-    if (!savedId) {
-      toast.error('No saved master budget found to update.')
-      return
-    }
-
-    try {
-      setIsSaving(true)
-      const values = methods.getValues()
-      const payload = mapFormToPayload(values)
-      await masterBudgetService.updateBudget(savedId, payload)
-
-      setActiveStep(1)
-      navigateToStep(1)
-      toast.success('Master budget updated successfully.')
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to update master budget details'
-      )
-    } finally {
-      setIsSaving(false)
-    }
-  }
 
   const handleEdit = () => {
     if (!savedId) {
-      toast.error('No master budget ID found to edit.')
+      setErrorMessage('No master budget ID found to edit.')
       return
     }
 
     setActiveStep(0)
-    navigateToStep(0)
-    toast.success('Returned to master budget details.')
+    updateURL(0, savedId)
+    setSuccessMessage('Returned to master budget details.')
   }
 
   const handleEditDocuments = () => {
     if (!savedId) {
-      toast.error('No master budget ID found to manage documents.')
+      setErrorMessage('No master budget ID found to manage documents.')
       return
     }
 
     setActiveStep(1)
-    navigateToStep(1)
+    updateURL(1, savedId)
   }
 
-  const onSubmit = async () => {
-    if (!savedId) {
-      toast.error('Please save the master budget details before submitting.')
-      return
-    }
+  const onSubmit = () => {
+    // Empty handler - actual submission handled by handleSubmit
+  }
 
+  const handleSubmit = async () => {
     try {
+      setErrorMessage(null)
+      setSuccessMessage(null)
       setIsSubmitting(true)
+
+      if (!savedId) {
+        setErrorMessage('Please save the master budget details before submitting.')
+        setIsSubmitting(false)
+        return
+      }
+
       const values = methods.getValues()
       const payload = mapFormToPayload(values)
-      await masterBudgetService.updateBudget(savedId, payload)
+      // Include id in payload for update
+      const updatePayload = {
+        ...payload,
+        id: Number(savedId),
+      }
+      await budgetCategoryService.updateBudgetCategory(Number(savedId), updatePayload as any)
 
-      toast.success('Master budget submitted successfully!')
-      router.push('/budget/master-budget')
+      setSuccessMessage('Master budget submitted successfully!')
+      
+      // Navigate after a short delay to show success message
+      setTimeout(() => {
+        router.push('/budget/budget-master')
+      }, 1500)
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to submit master budget.'
-      )
+      const errorData = error as {
+        response?: { data?: { message?: string } }
+        message?: string
+      }
+      const errorMsg =
+        errorData?.response?.data?.message ||
+        errorData?.message ||
+        'Failed to submit master budget. Please try again.'
+      setErrorMessage(errorMsg)
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const onError = (errors: Record<string, unknown>) => {
-    const messages = Object.values(errors)
-    if (messages.length > 0) {
-      toast.error('Please resolve the highlighted errors before continuing.')
-    }
-  }
 
   const getStepContent = (step: number) => {
     switch (step) {
       case 0:
         return (
-          <Step1
+          <Step1Component
+            ref={step1Ref}
             key={`${savedId ?? 'new'}-${activeStep}`}
+            onSaveAndNext={handleStep1SaveAndNext}
             savedId={savedId}
             isEditMode={isEditMode}
             isReadOnly={isReadOnly}
@@ -299,21 +362,12 @@ function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperW
             onDocumentsChange={(documents) => {
               methods.setValue('documents', documents)
             }}
-            title={getLabel(
-              MASTER_BUDGET_LABELS.DOCUMENTS.TITLE,
-              'EN',
-              MASTER_BUDGET_LABELS.FALLBACKS.DOCUMENTS.TITLE
-            )}
-            description={getLabel(
-              MASTER_BUDGET_LABELS.DOCUMENTS.DESCRIPTION,
-              'EN',
-              MASTER_BUDGET_LABELS.FALLBACKS.DOCUMENTS.DESCRIPTION
-            )}
           />
         )
       case 2:
         return (
           <Step2
+            key={`step2-${savedId || 'new'}-${activeStep}`}
             onEdit={handleEdit}
             onEditDocuments={handleEditDocuments}
             isReadOnly={isReadOnly}
@@ -324,31 +378,10 @@ function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperW
     }
   }
 
-  const primaryButtonLabel = useMemo(() => {
-    if (activeStep === 0) {
-      return isSaving
-        ? 'Saving...'
-        : isEditMode
-          ? 'Update & Continue'
-          : 'Save & Continue'
-    }
-
-    if (activeStep === steps.length - 1) {
-      return isSubmitting ? 'Submitting...' : 'Submit Master Budget'
-    }
-
-    return 'Continue'
-  }, [activeStep, isEditMode, isSaving, isSubmitting, steps.length])
-
-  const isPrimaryDisabled = useMemo(() => {
-    if (activeStep === 0) return isSaving
-    if (activeStep === steps.length - 1) return isSubmitting
-    return false
-  }, [activeStep, isSaving, isSubmitting, steps.length])
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={methods.handleSubmit(onSubmit, onError)}>
+      <form onSubmit={methods.handleSubmit(onSubmit)}>
         <Box
           sx={{
             width: '100%',
@@ -363,7 +396,20 @@ function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperW
             {steps.map((label) => (
               <Step key={label}>
                 <StepLabel>
-                  <Typography variant="caption" sx={{ textTransform: 'uppercase' }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontFamily: 'Outfit, sans-serif',
+                      fontWeight: 400,
+                      fontStyle: 'normal',
+                      fontSize: '12px',
+                      lineHeight: '100%',
+                      letterSpacing: '0.36px',
+                      textAlign: 'center',
+                      verticalAlign: 'middle',
+                      textTransform: 'uppercase',
+                    }}
+                  >
                     {label}
                   </Typography>
                 </StepLabel>
@@ -371,59 +417,141 @@ function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperW
             ))}
           </Stepper>
 
-          <Box sx={{ my: 4, backgroundColor: '#FFFFFFBF', position: 'relative' }}>
-            {isInitialLoading ? (
-              <GlobalLoading fullHeight className="min-h-[320px]" />
-            ) : (
-              getStepContent(activeStep)
-            )}
+          <Box
+            key={`step-${activeStep}-${savedId}`}
+            sx={{ my: 4, backgroundColor: '#FFFFFFBF', boxShadow: 'none' }}
+          >
+            {getStepContent(activeStep)}
 
-            {!isReadOnly && (
               <Box
                 display="flex"
                 justifyContent="space-between"
-                alignItems="center"
-                sx={{ mt: 3, mx: 6, mb: 2, p: 2, backgroundColor: '#FFFFFFBF' }}
+              sx={{ backgroundColor: '#FFFFFFBF', mt: 3, mx: 6, mb: 2 }}
+            >
+              <Button
+                type="button"
+                onClick={handleReset}
+                sx={{
+                  fontFamily: 'Outfit, sans-serif',
+                  fontWeight: 500,
+                  fontStyle: 'normal',
+                  fontSize: '14px',
+                  lineHeight: '20px',
+                  letterSpacing: 0,
+                }}
               >
-                <Button variant="outlined" onClick={handleReset} disabled={isSaving || isSubmitting}>
-                  Cancel
-                </Button>
-
-                <Box display="flex" gap={2}>
-                  {activeStep > 0 && (
-                    <Button variant="outlined" onClick={handleBack}>
-                      Back
-                    </Button>
-                  )}
-
+                Cancel
+              </Button>
+              <Box>
+                {activeStep !== 0 && (
                   <Button
-                    variant="contained"
-                    disabled={isPrimaryDisabled}
-                    onClick={() => {
-                      if (activeStep === 0) {
-                        methods.handleSubmit(async () => {
-                          if (isEditMode) {
-                            await handleUpdate()
-                          } else {
-                            await handleSaveAndNext()
-                          }
-                        }, onError)()
-                        return
-                      }
-
-                      if (activeStep === steps.length - 1) {
-                        methods.handleSubmit(onSubmit, onError)()
-                        return
-                      }
-
-                      handleNext()
+                    type="button"
+                    onClick={handleBack}
+                    sx={{
+                      width: '114px',
+                      height: '36px',
+                      gap: '6px',
+                      opacity: 1,
+                      paddingTop: '2px',
+                      paddingRight: '3px',
+                      paddingBottom: '2px',
+                      paddingLeft: '3px',
+                      borderRadius: '6px',
+                      backgroundColor: '#DBEAFE',
+                      color: '#155DFC',
+                      border: 'none',
+                      mr: 2,
+                      fontFamily: 'Outfit, sans-serif',
+                      fontWeight: 500,
+                      fontStyle: 'normal',
+                      fontSize: '14px',
+                      lineHeight: '20px',
+                      letterSpacing: 0,
                     }}
+                    variant="outlined"
                   >
-                    {primaryButtonLabel}
+                    Back
                   </Button>
-                </Box>
+                )}
+                <Button
+                  type="button"
+                  onClick={
+                    activeStep === steps.length - 1
+                      ? isReadOnly
+                        ? () => router.push('/budget/budget-master')
+                        : handleSubmit
+                      : handleNext
+                  }
+                  variant="contained"
+                  disabled={
+                    isSaving ||
+                    (activeStep === steps.length - 1 && isSubmitting)
+                  }
+                  sx={{
+                    width: '114px',
+                    height: '36px',
+                    gap: '6px',
+                    opacity: 1,
+                    paddingTop: '2px',
+                    paddingRight: '3px',
+                    paddingBottom: '2px',
+                    paddingLeft: '3px',
+                    borderRadius: '6px',
+                    backgroundColor: '#2563EB',
+                    color: '#FFFFFF',
+                    boxShadow: 'none',
+                    fontFamily: 'Outfit, sans-serif',
+                    fontWeight: 500,
+                    fontStyle: 'normal',
+                    fontSize: '14px',
+                    lineHeight: '20px',
+                    letterSpacing: 0,
+                  }}
+                >
+                  {isSaving || isSubmitting
+                    ? activeStep === steps.length - 1
+                      ? 'Submitting...'
+                      : 'Saving...'
+                    : activeStep === steps.length - 1
+                      ? isReadOnly
+                        ? 'Close'
+                        : 'Submit'
+                      : isReadOnly
+                        ? 'Next'
+                        : 'Save and Next'}
+                </Button>
               </Box>
-            )}
+            </Box>
+
+            {/* Error and Success Notifications */}
+            <Snackbar
+              open={!!errorMessage}
+              autoHideDuration={6000}
+              onClose={() => setErrorMessage(null)}
+              anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+              <Alert
+                onClose={() => setErrorMessage(null)}
+                severity="error"
+                sx={{ width: '100%' }}
+              >
+                {errorMessage}
+              </Alert>
+            </Snackbar>
+            <Snackbar
+              open={!!successMessage}
+              autoHideDuration={3000}
+              onClose={() => setSuccessMessage(null)}
+              anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+              <Alert
+                onClose={() => setSuccessMessage(null)}
+                severity="success"
+                sx={{ width: '100%' }}
+              >
+                {successMessage}
+              </Alert>
+            </Snackbar>
           </Box>
         </Box>
       </form>
@@ -434,10 +562,6 @@ function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperW
 export default function MasterBudgetStepperWrapper({
   isReadOnly = false,
 }: MasterBudgetStepperWrapperProps = {}) {
-  return (
-    <MasterBudgetDataProvider>
-      <MasterBudgetStepperContent isReadOnly={isReadOnly} />
-    </MasterBudgetDataProvider>
-  )
+  return <MasterBudgetStepperContent isReadOnly={isReadOnly} />
 }
 

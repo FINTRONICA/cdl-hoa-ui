@@ -490,19 +490,19 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
       dynamicDetails.push({
         gridSize: 4,
         label: 'CIFRERA',
-        value: detailsJson?.bpCifrera || '-',
+        value: detailsJson?.arCifrera || '-',
       })
 
       dynamicDetails.push({
         gridSize: 4,
         label: 'License No',
-        value: detailsJson?.bpLicenseNo || '-',
+        value: detailsJson?.arLicenseNo || '-',
       })
 
       dynamicDetails.push({
         gridSize: 4,
         label: 'Local Name',
-        value: detailsJson?.bpNameLocal || '-',
+        value: detailsJson?.arNameLocal || '-',
       })
 
       dynamicDetails.push({
@@ -532,13 +532,13 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
       dynamicDetails.push({
         gridSize: 4,
         label: 'Build Partner Name',
-        value: truncateWords(detailsJson?.bpName, 15) || '-',
+        value: truncateWords(detailsJson?.arName, 15) || '-',
       })
 
       dynamicDetails.push({
         gridSize: 4,
         label: 'Developer ID',
-        value: detailsJson?.bpDeveloperId || '-',
+        value: detailsJson?.arDeveloperId || '-',
       })
       dynamicDetails.push({
         gridSize: 4,
@@ -1264,7 +1264,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
             >
               {
                 String()
-                // (activeTab === 'buildPartner' && (currentWorkflowData?.payloadJson?.bpName || currentLogEntry?.detailsJson?.bpName)) ||
+                // (activeTab === 'buildPartner' && (currentWorkflowData?.payloadJson?.arName || currentLogEntry?.detailsJson?.arName)) ||
                 // (activeTab === 'capitalPartner' && ((currentWorkflowData?.payloadJson as any)?.cpName || (currentLogEntry?.detailsJson as any)?.cpName)) ||
                 // (activeTab === 'payments' && ((currentWorkflowData?.payloadJson as any)?.recipientName || (currentLogEntry?.detailsJson as any)?.recipientName)) ||
                 // (activeTab === 'suretyBond' && ((currentWorkflowData?.payloadJson as any)?.bondName || (currentLogEntry?.detailsJson as any)?.bondName)) ||

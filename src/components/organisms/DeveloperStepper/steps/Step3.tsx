@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { Box, Card, CardContent, Button } from '@mui/material'
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined'
 import { FeeData } from '../developerTypes'
@@ -42,12 +42,15 @@ const Step3: React.FC<Step3Props> = ({
   const deleteMutation = useDeleteBuildPartnerFee()
 
   // Dynamic label support
-  const { data: buildPartnerLabels, getLabel } = useBuildPartnerLabelsWithCache()
+  const { data: buildPartnerLabels, getLabel } =
+    useBuildPartnerLabelsWithCache()
   const currentLanguage = useAppStore((state) => state.language) || 'EN'
   const getBuildPartnerLabelDynamic = useCallback(
     (configId: string): string => {
       const fallback = getBuildPartnerLabel(configId)
-      return buildPartnerLabels ? getLabel(configId, currentLanguage, fallback) : fallback
+      return buildPartnerLabels
+        ? getLabel(configId, currentLanguage, fallback)
+        : fallback
     },
     [buildPartnerLabels, currentLanguage, getLabel]
   )
@@ -182,12 +185,12 @@ const Step3: React.FC<Step3Props> = ({
       key: 'debitAccount',
       label: getBuildPartnerLabelDynamic('CDL_BP_FEES_ACCOUNT'),
       type: 'text' as const,
-      width: 'w-24',
+      width: 'w-40',
       sortable: true,
     },
     {
       key: 'feeToBeCollected',
-      label: getBuildPartnerLabelDynamic('CDL_BP_FEES_TOTAL'),
+      label: getBuildPartnerLabelDynamic('CDL_BP_FEE_COLLECTION_DATE'),
       type: 'text' as const,
       width: 'w-30',
       sortable: true,
@@ -203,35 +206,35 @@ const Step3: React.FC<Step3Props> = ({
       key: 'feePercentage',
       label: getBuildPartnerLabelDynamic('CDL_BP_FEES_RATE'),
       type: 'text' as const,
-      width: 'w-24',
+      width: 'w-28',
       sortable: true,
     },
     {
       key: 'debitAmount',
       label: getBuildPartnerLabelDynamic('CDL_BP_FEES_AMOUNT'),
       type: 'text' as const,
-      width: 'w-24',
+      width: 'w-28',
       sortable: true,
     },
     {
       key: 'vatPercentage',
       label: getBuildPartnerLabelDynamic('CDL_BP_FEES_VAT'),
       type: 'text' as const,
-      width: 'w-24',
+      width: 'w-28',
       sortable: true,
     },
     {
       key: 'currency',
       label: getBuildPartnerLabelDynamic('CDL_BP_FEES_CURRENCY'),
       type: 'text' as const,
-      width: 'w-20',
+      width: 'w-28',
       sortable: true,
     },
     {
       key: 'amount',
       label: getBuildPartnerLabelDynamic('CDL_BP_FEES_TOTAL_AMOUNT'),
       type: 'text' as const,
-      width: 'w-24',
+      width: 'w-28',
       sortable: true,
     },
     {
@@ -277,6 +280,48 @@ const Step3: React.FC<Step3Props> = ({
     ],
     initialRowsPerPage: 20,
   })
+
+  // Filter fee details based on search state when buildPartnerId exists (client-side filtering)
+  const filteredFeeDetails = useMemo(() => {
+    if (!buildPartnerId) return feeDetails
+
+    // Check if there are any search values
+    const hasSearchValues = Object.values(search).some(
+      (val) => val.trim() !== ''
+    )
+    if (!hasSearchValues) return feeDetails
+
+    // Filter fee details based on search state (same logic as useTableState)
+    return feeDetails.filter((fee) => {
+      return [
+        'feeType',
+        'frequency',
+        'debitAccount',
+        'feeToBeCollected',
+        'nextRecoveryDate',
+        'feePercentage',
+        'debitAmount',
+        'amount',
+        'vatPercentage',
+        'currency',
+      ].every((field) => {
+        const searchVal = search[field]?.trim() || ''
+        if (!searchVal) return true
+
+        // Handle amount field - it might be stored as 'amount' or 'totalAmount'
+        let value: string | undefined
+        if (field === 'amount') {
+          value = String((fee as any).amount ?? (fee as any).totalAmount ?? '')
+        } else {
+          value = String((fee as any)[field] ?? '')
+        }
+
+        const searchLower = searchVal.toLowerCase()
+        const valueLower = value.toLowerCase()
+        return valueLower.includes(searchLower)
+      })
+    })
+  }, [feeDetails, search, buildPartnerId])
 
   // Use API pagination state when buildPartnerId exists, otherwise use local state
   // Note: useTableState uses 1-based pages (1, 2, 3...), API uses 0-based (0, 1, 2...)
@@ -346,7 +391,7 @@ const Step3: React.FC<Step3Props> = ({
           )}
         </Box>
         <ExpandableDataTable<FeeData | FeeUIData>
-          data={buildPartnerId ? feeDetails : paginated}
+          data={buildPartnerId ? filteredFeeDetails : paginated}
           columns={tableColumns}
           searchState={search}
           onSearchChange={handleSearchChange}

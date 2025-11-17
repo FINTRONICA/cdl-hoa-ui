@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/apiClient'
-import { API_ENDPOINTS } from '@/constants/apiEndpoints'
+import { buildApiUrl, API_ENDPOINTS } from '@/constants/apiEndpoints'
 import type { PaginatedResponse } from '@/types'
 
 // Task Status DTO interface
@@ -15,29 +15,29 @@ export interface TaskStatusDTO {
 }
 
 // Real Estate Asset types matching the actual API response structure
-export interface BuildPartnerDTO {
+export interface assetRegisterDTO {
   id: number
-  bpDeveloperId: string
-  bpCifrera: string
-  bpDeveloperRegNo: string
-  bpName: string
-  bpMasterName: string
-  bpNameLocal?: string
-  bpOnboardingDate?: string
-  bpContactAddress?: string
-  bpContactTel?: string
-  bpPoBox?: string
-  bpMobile?: string
-  bpFax?: string
-  bpEmail?: string
-  bpLicenseNo?: string
-  bpLicenseExpDate?: string
-  bpWorldCheckFlag?: string
-  bpWorldCheckRemarks?: string
-  bpMigratedData?: string
-  bpremark?: string
-  bpRegulatorDTO?: any
-  bpActiveStatusDTO?: any
+  arDeveloperId: string
+  arCifrera: string
+  arDeveloperRegNo: string
+  arName: string
+  arMasterName: string
+  arNameLocal?: string
+  arOnboardingDate?: string
+  arContactAddress?: string
+  arContactTel?: string
+  arPoBox?: string
+  arMobile?: string
+  arFax?: string
+  arEmail?: string
+  arLicenseNo?: string
+  arLicenseExpDate?: string
+  arWorldCheckFlag?: string
+  arWorldCheckRemarks?: string
+  arMigratedData?: string
+  arremark?: string
+  arRegulatorDTO?: any
+  arActiveStatusDTO?: any
 }
 
 export interface StatusDTO {
@@ -59,41 +59,41 @@ export interface StatusDTO {
 
 export interface RealEstateAsset {
   id: number
-  reaId: string
-  reaCif: string
-  reaName: string
-  reaNameLocal: string
-  reaLocation: string
-  reaReraNumber: string
-  reaStartDate: string
-  reaCompletionDate: string
-  reaPercentComplete: string
-  reaConstructionCost: number
-  reaAccStatusDate: string
-  reaRegistrationDate: string
-  reaNoOfUnits: number
-  reaRemarks?: string
-  reaSpecialApproval?: string
-  reaManagedBy: string
-  reaBackupUser: string
-  reaRetentionPercent: string
-  reaAdditionalRetentionPercent: string
-  reaTotalRetentionPercent: string
-  reaRetentionEffectiveDate: string
-  reaManagementExpenses: string
-  reaMarketingExpenses: string
-  reaAccoutStatusDate: string
-  reaTeamLeadName: string
-  reaRelationshipManagerName: string
-  reaAssestRelshipManagerName: string
-  reaRealEstateBrokerExp: number
-  reaAdvertisementExp: number
-  reaLandOwnerName: string
-  buildPartnerDTO: BuildPartnerDTO
-  reaStatusDTO: StatusDTO
-  reaTypeDTO: StatusDTO
-  reaAccountStatusDTO: StatusDTO
-  reaConstructionCostCurrencyDTO: StatusDTO
+  mfId: string
+  mfId: string
+  mfName: string
+  mfNameLocal: string
+  mfLocation: string
+  mfReraNumber: string
+  mfStartDate: string
+  mfCompletionDate: string
+  mfPercentComplete: string
+  mfConstructionCost: number
+  mfAccStatusDate: string
+  mfRegistrationDate: string
+  mfNoOfUnits: number
+  mfRemarks?: string
+  mfSpecialApproval?: string
+  mfManagedBy: string
+  mfBackupUser: string
+  mfRetentionPercent: string
+  mfAdditionalRetentionPercent: string
+  mfTotalRetentionPercent: string
+  mfRetentionEffectiveDate: string
+  mfManagementExpenses: string
+  mfMarketingExpenses: string
+  mfAccoutStatusDate: string
+  mfTeamLeadName: string
+  mfRelationshipManagerName: string
+  mfAssestRelshipManagerName: string
+  mfRealEstateBrokerExp: number
+  mfAdvertisementExp: number
+  mfLandOwnerName: string
+  assetRegisterDTO: assetRegisterDTO
+  mfStatusDTO: StatusDTO
+  mfTypeDTO: StatusDTO
+  mfAccountStatusDTO: StatusDTO
+  mfConstructionCostCurrencyDTO: StatusDTO
   status: string
   taskStatusDTO: TaskStatusDTO | null
 }
@@ -105,8 +105,12 @@ export interface ProjectData extends Record<string, unknown> {
   developerId: string
   developerCif: string
   developerName: string
+  managementFirmId?: string
+  managementFirmCif?: string
+  managementFirmName?: string
   projectStatus: string
   approvalStatus: string
+  status?: string
   location: string
   reraNumber: string
   startDate: string
@@ -119,52 +123,52 @@ export interface ProjectData extends Record<string, unknown> {
 }
 
 export interface CreateRealEstateAssetRequest {
-  reaId?: string
-  reaCif?: string
-  reaName: string
-  reaLocation: string
-  reaReraNumber: string
-  reaAccoutStatusDate?: string
-  reaRegistrationDate?: string
-  reaStartDate: string
-  reaCompletionDate: string
-  reaPercentComplete?: string
-  reaConstructionCost: number
-  reaAccStatusDate?: string
-  reaNoOfUnits: number
-  reaRemarks?: string
-  reaSpecialApproval?: string
-  reaManagedBy: string
-  reaBackupUser: string
-  reaRetentionPercent?: string
-  reaAdditionalRetentionPercent?: string
-  reaTotalRetentionPercent?: string
-  reaRetentionEffectiveDate?: string
-  reaManagementExpenses?: string
-  reaMarketingExpenses?: string
-  reaTeamLeadName: string
-  reaRelationshipManagerName: string
-  reaAssestRelshipManagerName: string
-  reaRealEstateBrokerExp?: number
-  reaAdvertisementExp?: number
-  reaLandOwnerName: string
-  buildPartnerDTO: {
+  mfId?: string
+  mfId?: string
+  mfName: string
+  mfLocation: string
+  mfReraNumber: string
+  mfAccoutStatusDate?: string
+  mfRegistrationDate?: string
+  mfStartDate: string
+  mfCompletionDate: string
+  mfPercentComplete?: string
+  mfConstructionCost: number
+  mfAccStatusDate?: string
+  mfNoOfUnits: number
+  mfRemarks?: string
+  mfSpecialApproval?: string
+  mfManagedBy: string
+  mfBackupUser: string
+  mfRetentionPercent?: string
+  mfAdditionalRetentionPercent?: string
+  mfTotalRetentionPercent?: string
+  mfRetentionEffectiveDate?: string
+  mfManagementExpenses?: string
+  mfMarketingExpenses?: string
+  mfTeamLeadName: string
+  mfRelationshipManagerName: string
+  mfAssestRelshipManagerName: string
+  mfRealEstateBrokerExp?: number
+  mfAdvertisementExp?: number
+  mfLandOwnerName: string
+  assetRegisterDTO: {
     id: number
   }
-  reaStatusDTO: {
+  mfStatusDTO: {
     id: number
   }
-  reaTypeDTO: {
+  mfTypeDTO: {
     id: number
   }
-  reaAccountStatusDTO: {
+  mfAccountStatusDTO: {
     id: number
   }
-  reaConstructionCostCurrencyDTO: {
+  mfConstructionCostCurrencyDTO: {
     id: number
   }
   status?: string
-  reaBlockPaymentTypeDTO?: any
+  mfBlockPaymentTypeDTO?: any
 }
 
 export interface UpdateRealEstateAssetRequest
@@ -220,15 +224,33 @@ export class RealEstateAssetService {
       ),
     })
 
-    return apiClient.get<PaginatedResponse<RealEstateAsset>>(
-      `${API_ENDPOINTS.REAL_ESTATE_ASSET.GET_ALL}&${params.toString()}`
-    )
+    const baseUrl = buildApiUrl(API_ENDPOINTS.MANAGEMENT_FIRMS.GET_ALL)
+    const url = `${baseUrl}&${params.toString()}`
+    
+    const result = await apiClient.get<PaginatedResponse<RealEstateAsset> | RealEstateAsset[]>(url)
+    
+    // Handle both array response and paginated response
+    if (Array.isArray(result)) {
+      // Direct array response - wrap it in paginated format
+      return {
+        content: result,
+        page: {
+          size: result.length,
+          number: page,
+          totalElements: result.length,
+          totalPages: 1,
+        },
+      }
+    }
+    
+    // Paginated response
+    return result as PaginatedResponse<RealEstateAsset>
   }
 
   // Get single project by ID
   async getProject(id: number): Promise<RealEstateAsset> {
     return apiClient.get<RealEstateAsset>(
-      API_ENDPOINTS.REAL_ESTATE_ASSET.GET_BY_ID(id.toString())
+      API_ENDPOINTS.MANAGEMENT_FIRMS.GET_BY_ID(id.toString())
     )
   }
 
@@ -238,7 +260,7 @@ export class RealEstateAssetService {
   ): Promise<RealEstateAsset> {
     try {
       const response = await apiClient.post<RealEstateAsset>(
-        API_ENDPOINTS.REAL_ESTATE_ASSET.SAVE,
+        API_ENDPOINTS.MANAGEMENT_FIRMS.SAVE,
         data
       )
 
@@ -254,7 +276,7 @@ export class RealEstateAssetService {
     data: UpdateRealEstateAssetRequest
   ): Promise<RealEstateAsset> {
     return apiClient.put<RealEstateAsset>(
-      API_ENDPOINTS.REAL_ESTATE_ASSET.UPDATE(id.toString()),
+      API_ENDPOINTS.MANAGEMENT_FIRMS.UPDATE(id.toString()),
       data
     )
   }
@@ -263,7 +285,7 @@ export class RealEstateAssetService {
   async updateProjectDetails(projectId: string, data: any): Promise<any> {
     try {
       const response = await apiClient.put(
-        API_ENDPOINTS.REAL_ESTATE_ASSET.UPDATE(projectId),
+        API_ENDPOINTS.MANAGEMENT_FIRMS.UPDATE(projectId),
         data
       )
 
@@ -285,7 +307,7 @@ export class RealEstateAssetService {
       for (const account of accounts) {
         if (account.id) {
           const response = await apiClient.put(
-            API_ENDPOINTS.REAL_ESTATE_BANK_ACCOUNT.UPDATE(account.id),
+            API_ENDPOINTS.MANAGEMENT_FIRMS_BANK_ACCOUNT.UPDATE(account.id),
             account
           )
           results.push(response)
@@ -305,7 +327,7 @@ export class RealEstateAssetService {
       for (const fee of fees) {
         if (fee.id) {
           const response = await apiClient.put(
-            `${API_ENDPOINTS.REAL_ESTATE_ASSET_FEE.UPDATE(fee.id)}`,
+            `${API_ENDPOINTS.MANAGEMENT_FIRMS_FEE.UPDATE(fee.id)}`,
             fee
           )
           results.push(response)
@@ -328,7 +350,7 @@ export class RealEstateAssetService {
       for (const beneficiary of beneficiaries) {
         if (beneficiary.id) {
           const response = await apiClient.put(
-            `${API_ENDPOINTS.REAL_ESTATE_ASSET_BENEFICIARY.UPDATE(beneficiary.id)}`,
+            `${API_ENDPOINTS.MANAGEMENT_FIRMS_BENEFICIARY.UPDATE(beneficiary.id)}`,
             beneficiary
           )
           results.push(response)
@@ -351,7 +373,7 @@ export class RealEstateAssetService {
       for (const plan of paymentPlans) {
         if (plan.id) {
           const response = await apiClient.put(
-            `${API_ENDPOINTS.REAL_ESTATE_ASSET_PAYMENT_PLAN.UPDATE(plan.id)}`,
+            `${API_ENDPOINTS.MANAGEMENT_FIRMS_PAYMENT_PLAN.UPDATE(plan.id)}`,
             plan
           )
           results.push(response)
@@ -372,7 +394,7 @@ export class RealEstateAssetService {
     try {
       if (financialData.id) {
         const response = await apiClient.put(
-          `${API_ENDPOINTS.REAL_ESTATE_ASSET_FINANCIAL_SUMMARY.UPDATE(financialData.id)}`,
+          `${API_ENDPOINTS.MANAGEMENT_FIRMS_FINANCIAL_SUMMARY.UPDATE(financialData.id)}`,
           financialData
         )
 
@@ -406,14 +428,14 @@ export class RealEstateAssetService {
       // Transform closure data to API payload keys
       const transformedData = {
         id: closureId,
-        // Accept either UI keys (totalIncomeFund/totalPayment) or API keys (reacTotalIncomeFund/reacTotalPayment)
-        reacTotalIncomeFund: parseValue(
-          closureData.reacTotalIncomeFund ?? closureData.totalIncomeFund ?? 0
+        // Accept either UI keys (totalIncomeFund/totalPayment) or API keys (mfcTotalIncomeFund/mfcTotalPayment)
+        mfcTotalIncomeFund: parseValue(
+          closureData.mfcTotalIncomeFund ?? closureData.totalIncomeFund ?? 0
         ),
-        reacTotalPayment: parseValue(
-          closureData.reacTotalPayment ?? closureData.totalPayment ?? 0
+        mfcTotalPayment: parseValue(
+          closureData.mfcTotalPayment ?? closureData.totalPayment ?? 0
         ),
-        realEstateAssestDTO: {
+        managementFirmDTO: {
           id: projectId,
         },
         deleted: false,
@@ -421,7 +443,7 @@ export class RealEstateAssetService {
       }
 
       const response = await apiClient.put(
-        `${API_ENDPOINTS.REAL_ESTATE_ASSET_CLOSURE.UPDATE(closureId.toString())}`,
+        `${API_ENDPOINTS.MANAGEMENT_FIRMS_CLOSURE.UPDATE(closureId.toString())}`,
         transformedData
       )
 
@@ -435,7 +457,7 @@ export class RealEstateAssetService {
   async deleteProject(id: number): Promise<void> {
     try {
       await apiClient.delete<string>(
-        API_ENDPOINTS.REAL_ESTATE_ASSET.SOFT_DELETE(id.toString())
+        API_ENDPOINTS.MANAGEMENT_FIRMS.SOFT_DELETE(id.toString())
       )
     } catch (error) {
       throw error
@@ -445,9 +467,9 @@ export class RealEstateAssetService {
   // Save project fee
   async saveProjectFee(feeData: any): Promise<any> {
     try {
-      // const url = API_ENDPOINTS.REAL_ESTATE_ASSET_FEE.SAVE
+      // const url = API_ENDPOINTS.MANAGEMENT_FIRMS_FEE.SAVE
       const response = await apiClient.post(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_FEE.SAVE,
+        API_ENDPOINTS.MANAGEMENT_FIRMS_FEE.SAVE,
         feeData
       )
 
@@ -461,7 +483,7 @@ export class RealEstateAssetService {
   async updateProjectFee(id: string, feeData: any): Promise<any> {
     try {
       const response = await apiClient.put(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_FEE.UPDATE(id),
+        API_ENDPOINTS.MANAGEMENT_FIRMS_FEE.UPDATE(id),
         feeData
       )
 
@@ -484,7 +506,7 @@ export class RealEstateAssetService {
       )
 
       const response = await apiClient.post(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_FINANCIAL_SUMMARY.SAVE,
+        API_ENDPOINTS.MANAGEMENT_FIRMS_FINANCIAL_SUMMARY.SAVE,
         transformedData
       )
       return response
@@ -513,245 +535,245 @@ export class RealEstateAssetService {
 
     return {
       // Estimated fields
-      reafsEstRevenue: data.estimate?.revenue || '',
-      reafsEstConstructionCost: parseValue(data.estimate?.constructionCost),
-      reafsEstProjectMgmtExpense: parseValue(
+      mffsEstRevenue: data.estimate?.revenue || '',
+      mffsEstConstructionCost: parseValue(data.estimate?.constructionCost),
+      mffsEstProjectMgmtExpense: parseValue(
         data.estimate?.projectManagementExpense
       ),
-      reafsEstLandCost: parseValue(data.estimate?.landCost),
-      reafsEstMarketingExpense: parseValue(data.estimate?.marketingExpense),
-      reafsEstimatedDate: formatDate(data.estimate?.date),
-      reafsEstExceptionalCapVal: data.estimate?.exceptionalCapVal || '',
+      mffsEstLandCost: parseValue(data.estimate?.landCost),
+      mffsEstMarketingExpense: parseValue(data.estimate?.marketingExpense),
+      mffsEstimatedDate: formatDate(data.estimate?.date),
+      mffsEstExceptionalCapVal: data.estimate?.exceptionalCapVal || '',
 
       // Actual fields
-      reafsActualSoldValue: parseValue(data.actual?.soldValue),
-      reafsActualConstructionCost: parseValue(data.actual?.constructionCost),
-      reafsActualInfraCost: parseValue(data.actual?.infraCost),
-      reafsActualLandCost: parseValue(data.actual?.landCost),
-      reafsActualMarketingExp: parseValue(data.actual?.marketingExpense),
-      reafsActualProjectMgmtExpense: parseValue(
+      mffsActualSoldValue: parseValue(data.actual?.soldValue),
+      mffsActualConstructionCost: parseValue(data.actual?.constructionCost),
+      mffsActualInfraCost: parseValue(data.actual?.infraCost),
+      mffsActualLandCost: parseValue(data.actual?.landCost),
+      mffsActualMarketingExp: parseValue(data.actual?.marketingExpense),
+      mffsActualProjectMgmtExpense: parseValue(
         data.actual?.projectManagementExpense
       ),
-      reafsActualDate: formatDate(data.actual?.date),
-      reafsActualexceptCapVal: data.actual?.exceptCapVal || '',
+      mffsActualDate: formatDate(data.actual?.date),
+      mffsActualexceptCapVal: data.actual?.exceptCapVal || '',
 
       // Current Cash Received fields (breakdown section 0)
-      reafsCurrentCashReceived: parseValue(data.breakdown?.[0]?.total),
-      reafsCurCashRecvdOutEscrow: parseValue(data.breakdown?.[0]?.outOfEscrow),
-      reafsCurCashRecvdWithinEscrow: parseValue(
+      mffsCurrentCashReceived: parseValue(data.breakdown?.[0]?.total),
+      mffsCurCashRecvdOutEscrow: parseValue(data.breakdown?.[0]?.outOfEscrow),
+      mffsCurCashRecvdWithinEscrow: parseValue(
         data.breakdown?.[0]?.withinEscrow
       ),
-      reafsCurCashRecvdTotal: parseValue(data.breakdown?.[0]?.total),
-      reafsCurCashexceptCapVal: data.breakdown?.[0]?.exceptionalCapValue || '',
+      mffsCurCashRecvdTotal: parseValue(data.breakdown?.[0]?.total),
+      mffsCurCashexceptCapVal: data.breakdown?.[0]?.exceptionalCapValue || '',
 
       // Current Land Cost fields (breakdown section 1)
-      reafsCurrentLandCost: parseValue(data.breakdown?.[1]?.total),
-      reafsCurLandCostOut: parseValue(data.breakdown?.[1]?.outOfEscrow),
-      reafsCurLandCostWithin: parseValue(data.breakdown?.[1]?.withinEscrow),
-      reafsCurLandTotal: parseValue(data.breakdown?.[1]?.total),
-      reafsCurLandexceptCapVal: data.breakdown?.[1]?.exceptionalCapValue || '',
+      mffsCurrentLandCost: parseValue(data.breakdown?.[1]?.total),
+      mffsCurLandCostOut: parseValue(data.breakdown?.[1]?.outOfEscrow),
+      mffsCurLandCostWithin: parseValue(data.breakdown?.[1]?.withinEscrow),
+      mffsCurLandTotal: parseValue(data.breakdown?.[1]?.total),
+      mffsCurLandexceptCapVal: data.breakdown?.[1]?.exceptionalCapValue || '',
 
       // Current Construction Cost fields (breakdown section 2)
-      reafsCurrentConstructionCost: parseValue(data.breakdown?.[2]?.total),
-      reafsCurConsCostWithin: parseValue(data.breakdown?.[2]?.withinEscrow),
-      reafsCurConsCostOut: parseValue(data.breakdown?.[2]?.outOfEscrow),
-      reafsCurConsCostTotal: parseValue(data.breakdown?.[2]?.total),
-      reafsCurConsExcepCapVal: data.breakdown?.[2]?.exceptionalCapValue || '',
+      mffsCurrentConstructionCost: parseValue(data.breakdown?.[2]?.total),
+      mffsCurConsCostWithin: parseValue(data.breakdown?.[2]?.withinEscrow),
+      mffsCurConsCostOut: parseValue(data.breakdown?.[2]?.outOfEscrow),
+      mffsCurConsCostTotal: parseValue(data.breakdown?.[2]?.total),
+      mffsCurConsExcepCapVal: data.breakdown?.[2]?.exceptionalCapValue || '',
 
       // Current Marketing Expense fields (breakdown section 3)
-      reafsCurrentMarketingExp: parseValue(data.breakdown?.[3]?.total),
-      reafsCurrentMktgExpWithin: parseValue(data.breakdown?.[3]?.withinEscrow),
-      reafsCurrentMktgExpOut: parseValue(data.breakdown?.[3]?.outOfEscrow),
-      reafsCurrentMktgExpTotal: parseValue(data.breakdown?.[3]?.total),
-      reafsCurrentmktgExcepCapVal:
+      mffsCurrentMarketingExp: parseValue(data.breakdown?.[3]?.total),
+      mffsCurrentMktgExpWithin: parseValue(data.breakdown?.[3]?.withinEscrow),
+      mffsCurrentMktgExpOut: parseValue(data.breakdown?.[3]?.outOfEscrow),
+      mffsCurrentMktgExpTotal: parseValue(data.breakdown?.[3]?.total),
+      mffsCurrentmktgExcepCapVal:
         data.breakdown?.[3]?.exceptionalCapValue || '',
 
       // Current Project Management Expense fields (breakdown section 4)
-      reafsCurrentProjectMgmtExp: parseValue(data.breakdown?.[4]?.total),
-      reafsCurProjMgmtExpWithin: parseValue(data.breakdown?.[4]?.withinEscrow),
-      reafsCurProjMgmtExpOut: parseValue(data.breakdown?.[4]?.outOfEscrow),
-      reafsCurProjMgmtExpTotal: parseValue(data.breakdown?.[4]?.total),
-      reafsCurProjExcepCapVal: data.breakdown?.[4]?.exceptionalCapValue || '',
+      mffsCurrentProjectMgmtExp: parseValue(data.breakdown?.[4]?.total),
+      mffsCurProjMgmtExpWithin: parseValue(data.breakdown?.[4]?.withinEscrow),
+      mffsCurProjMgmtExpOut: parseValue(data.breakdown?.[4]?.outOfEscrow),
+      mffsCurProjMgmtExpTotal: parseValue(data.breakdown?.[4]?.total),
+      mffsCurProjExcepCapVal: data.breakdown?.[4]?.exceptionalCapValue || '',
 
       // Current Mortgage fields (breakdown section 5)
-      reafsCurrentMortgage: parseValue(data.breakdown?.[5]?.total),
-      reafsCurrentMortgageWithin: parseValue(data.breakdown?.[5]?.withinEscrow),
+      mffsCurrentMortgage: parseValue(data.breakdown?.[5]?.total),
+      mffsCurrentMortgageWithin: parseValue(data.breakdown?.[5]?.withinEscrow),
       currentMortgageOut: parseValue(data.breakdown?.[5]?.outOfEscrow),
-      reafsCurrentMortgageTotal: parseValue(data.breakdown?.[5]?.total),
-      reafsCurMortgageExceptCapVal:
+      mffsCurrentMortgageTotal: parseValue(data.breakdown?.[5]?.total),
+      mffsCurMortgageExceptCapVal:
         data.breakdown?.[5]?.exceptionalCapValue || '',
 
       // Current VAT Payment fields (breakdown section 6)
-      reafsCurrentVatPayment: parseValue(data.breakdown?.[6]?.total),
-      reafsCurrentVatPaymentWithin: parseValue(
+      mffsCurrentVatPayment: parseValue(data.breakdown?.[6]?.total),
+      mffsCurrentVatPaymentWithin: parseValue(
         data.breakdown?.[6]?.withinEscrow
       ),
-      reafsCurrentVatPaymentOut: parseValue(data.breakdown?.[6]?.outOfEscrow),
-      reafsCurrentVatPaymentTotal: parseValue(data.breakdown?.[6]?.total),
-      reafsCurVatExceptCapVal: data.breakdown?.[6]?.exceptionalCapValue || '',
+      mffsCurrentVatPaymentOut: parseValue(data.breakdown?.[6]?.outOfEscrow),
+      mffsCurrentVatPaymentTotal: parseValue(data.breakdown?.[6]?.total),
+      mffsCurVatExceptCapVal: data.breakdown?.[6]?.exceptionalCapValue || '',
 
       // Current Oqood fields (breakdown section 7)
-      reafsCurrentOqood: parseValue(data.breakdown?.[7]?.total),
-      reafsCurrentOqoodWithin: parseValue(data.breakdown?.[7]?.withinEscrow),
-      reafsCurrentOqoodOut: parseValue(data.breakdown?.[7]?.outOfEscrow),
-      reafsCurrentOqoodTotal: parseValue(data.breakdown?.[7]?.total),
-      reafsCurOqoodExceptCapVal: data.breakdown?.[7]?.exceptionalCapValue || '',
+      mffsCurrentOqood: parseValue(data.breakdown?.[7]?.total),
+      mffsCurrentOqoodWithin: parseValue(data.breakdown?.[7]?.withinEscrow),
+      mffsCurrentOqoodOut: parseValue(data.breakdown?.[7]?.outOfEscrow),
+      mffsCurrentOqoodTotal: parseValue(data.breakdown?.[7]?.total),
+      mffsCurOqoodExceptCapVal: data.breakdown?.[7]?.exceptionalCapValue || '',
 
       // Current Refund fields (breakdown section 8)
-      reafsCurrentRefund: parseValue(data.breakdown?.[8]?.total),
-      reafsCurrentRefundWithin: parseValue(data.breakdown?.[8]?.withinEscrow),
-      reafsCurrentRefundOut: parseValue(data.breakdown?.[8]?.outOfEscrow),
-      reafsCurrentRefundTotal: parseValue(data.breakdown?.[8]?.total),
-      reafsCurRefundExceptCapVal:
+      mffsCurrentRefund: parseValue(data.breakdown?.[8]?.total),
+      mffsCurrentRefundWithin: parseValue(data.breakdown?.[8]?.withinEscrow),
+      mffsCurrentRefundOut: parseValue(data.breakdown?.[8]?.outOfEscrow),
+      mffsCurrentRefundTotal: parseValue(data.breakdown?.[8]?.total),
+      mffsCurRefundExceptCapVal:
         data.breakdown?.[8]?.exceptionalCapValue || '',
 
       // Current Balance in Retention Account fields (breakdown section 9)
-      reafsCurrentBalInRetenAcc: parseValue(data.breakdown?.[9]?.total),
-      reafsCurBalInRetenAccWithin: parseValue(
+      mffsCurrentBalInRetenAcc: parseValue(data.breakdown?.[9]?.total),
+      mffsCurBalInRetenAccWithin: parseValue(
         data.breakdown?.[9]?.withinEscrow
       ),
-      reafsCurBalInRetenAccOut: parseValue(data.breakdown?.[9]?.outOfEscrow),
-      reafsCurBalInRetenAccTotal: parseValue(data.breakdown?.[9]?.total),
-      reafsCurBalInRetenExceptCapVal:
+      mffsCurBalInRetenAccOut: parseValue(data.breakdown?.[9]?.outOfEscrow),
+      mffsCurBalInRetenAccTotal: parseValue(data.breakdown?.[9]?.total),
+      mffsCurBalInRetenExceptCapVal:
         data.breakdown?.[9]?.exceptionalCapValue || '',
 
       // Current Balance in Trust Account fields (breakdown section 10)
-      reafsCurrentBalInTrustAcc: parseValue(data.breakdown?.[10]?.total),
-      reafsCurBalInTrustAccWithin: parseValue(
+      mffsCurrentBalInTrustAcc: parseValue(data.breakdown?.[10]?.total),
+      mffsCurBalInTrustAccWithin: parseValue(
         data.breakdown?.[10]?.withinEscrow
       ),
-      reafsCurBalInTrustAccOut: parseValue(data.breakdown?.[10]?.outOfEscrow),
-      reafsCurBalInTrustAccTotal: parseValue(data.breakdown?.[10]?.total),
-      reafsCurBalInExceptCapVal:
+      mffsCurBalInTrustAccOut: parseValue(data.breakdown?.[10]?.outOfEscrow),
+      mffsCurBalInTrustAccTotal: parseValue(data.breakdown?.[10]?.total),
+      mffsCurBalInExceptCapVal:
         data.breakdown?.[10]?.exceptionalCapValue || '',
 
       // Current Technical Fee fields (breakdown section 12)
-      reafsCurrentTechnicalFee: parseValue(data.breakdown?.[12]?.total),
-      reafsCurTechnFeeWithin: parseValue(data.breakdown?.[12]?.withinEscrow),
-      reafsCurTechnFeeOut: parseValue(data.breakdown?.[12]?.outOfEscrow),
-      reafsCurTechnFeeTotal: parseValue(data.breakdown?.[12]?.total),
-      reafsCurTechFeeExceptCapVal:
+      mffsCurrentTechnicalFee: parseValue(data.breakdown?.[12]?.total),
+      mffsCurTechnFeeWithin: parseValue(data.breakdown?.[12]?.withinEscrow),
+      mffsCurTechnFeeOut: parseValue(data.breakdown?.[12]?.outOfEscrow),
+      mffsCurTechnFeeTotal: parseValue(data.breakdown?.[12]?.total),
+      mffsCurTechFeeExceptCapVal:
         data.breakdown?.[12]?.exceptionalCapValue || '',
 
       // Current Unidentified Fund fields (breakdown section 13)
-      reafsCurrentUnIdentifiedFund: parseValue(data.breakdown?.[13]?.total),
-      reafsCurUnIdeFundWithin: parseValue(data.breakdown?.[13]?.withinEscrow),
-      reafsCurUnIdeFundOut: parseValue(data.breakdown?.[13]?.outOfEscrow),
-      reafsCurUnIdeFundTotal: parseValue(data.breakdown?.[13]?.total),
-      reafsCurUnIdeExceptCapVal:
+      mffsCurrentUnIdentifiedFund: parseValue(data.breakdown?.[13]?.total),
+      mffsCurUnIdeFundWithin: parseValue(data.breakdown?.[13]?.withinEscrow),
+      mffsCurUnIdeFundOut: parseValue(data.breakdown?.[13]?.outOfEscrow),
+      mffsCurUnIdeFundTotal: parseValue(data.breakdown?.[13]?.total),
+      mffsCurUnIdeExceptCapVal:
         data.breakdown?.[13]?.exceptionalCapValue || '',
 
       // Current Loan Installment fields (breakdown section 14)
-      reafsCurrentLoanInstal: parseValue(data.breakdown?.[14]?.total),
-      reafsCurLoanInstalWithin: parseValue(data.breakdown?.[14]?.withinEscrow),
-      reafsCurLoanInstalOut: parseValue(data.breakdown?.[14]?.outOfEscrow),
-      reafsCurLoanInstalTotal: parseValue(data.breakdown?.[14]?.total),
-      reafsCurLoanExceptCapVal: data.breakdown?.[14]?.exceptionalCapValue || '',
+      mffsCurrentLoanInstal: parseValue(data.breakdown?.[14]?.total),
+      mffsCurLoanInstalWithin: parseValue(data.breakdown?.[14]?.withinEscrow),
+      mffsCurLoanInstalOut: parseValue(data.breakdown?.[14]?.outOfEscrow),
+      mffsCurLoanInstalTotal: parseValue(data.breakdown?.[14]?.total),
+      mffsCurLoanExceptCapVal: data.breakdown?.[14]?.exceptionalCapValue || '',
 
       // Current Infrastructure Cost fields (breakdown section 15)
-      reafsCurrentInfraCost: parseValue(data.breakdown?.[15]?.total),
-      reafsCurInfraCostWithin: parseValue(data.breakdown?.[15]?.withinEscrow),
-      reafsCurInfraCostOut: parseValue(data.breakdown?.[15]?.outOfEscrow),
-      reafsCurInfraCostTotal: parseValue(data.breakdown?.[15]?.total),
-      reafsCurInfraExceptCapVal:
+      mffsCurrentInfraCost: parseValue(data.breakdown?.[15]?.total),
+      mffsCurInfraCostWithin: parseValue(data.breakdown?.[15]?.withinEscrow),
+      mffsCurInfraCostOut: parseValue(data.breakdown?.[15]?.outOfEscrow),
+      mffsCurInfraCostTotal: parseValue(data.breakdown?.[15]?.total),
+      mffsCurInfraExceptCapVal:
         data.breakdown?.[15]?.exceptionalCapValue || '',
 
       // Current Others Cost fields (breakdown section 16)
-      reafsCurrentOthersCost: parseValue(data.breakdown?.[16]?.total),
-      reafsCurOthersCostWithin: parseValue(data.breakdown?.[16]?.withinEscrow),
-      reafsCurOthersCostOut: parseValue(data.breakdown?.[16]?.outOfEscrow),
-      reafsCurOthersCostTotal: parseValue(data.breakdown?.[16]?.total),
-      reafsCurOthersExceptCapVal:
+      mffsCurrentOthersCost: parseValue(data.breakdown?.[16]?.total),
+      mffsCurOthersCostWithin: parseValue(data.breakdown?.[16]?.withinEscrow),
+      mffsCurOthersCostOut: parseValue(data.breakdown?.[16]?.outOfEscrow),
+      mffsCurOthersCostTotal: parseValue(data.breakdown?.[16]?.total),
+      mffsCurOthersExceptCapVal:
         data.breakdown?.[16]?.exceptionalCapValue || '',
 
       // Current Transferred Cost fields (breakdown section 17)
-      reafsCurrentTransferredCost: parseValue(data.breakdown?.[17]?.total),
-      reafsCurTransferCostWithin: parseValue(
+      mffsCurrentTransferredCost: parseValue(data.breakdown?.[17]?.total),
+      mffsCurTransferCostWithin: parseValue(
         data.breakdown?.[17]?.withinEscrow
       ),
-      reafsCurTransferCostOut: parseValue(data.breakdown?.[17]?.outOfEscrow),
-      reafsCurTransferCostTotal: parseValue(data.breakdown?.[17]?.total),
-      reafsCurTransferExceptCapVal:
+      mffsCurTransferCostOut: parseValue(data.breakdown?.[17]?.outOfEscrow),
+      mffsCurTransferCostTotal: parseValue(data.breakdown?.[17]?.total),
+      mffsCurTransferExceptCapVal:
         data.breakdown?.[17]?.exceptionalCapValue || '',
 
       // Current Forfeited Cost fields (breakdown section 18)
-      reafsCurrentForfeitedCost: parseValue(data.breakdown?.[18]?.total),
-      reafsCurForfeitCostWithin: parseValue(data.breakdown?.[18]?.withinEscrow),
-      reafsCurForfeitCostOut: parseValue(data.breakdown?.[18]?.outOfEscrow),
-      reafsCurForfeitCostTotal: parseValue(data.breakdown?.[18]?.total),
-      reafsCurForfeitExceptCapVal:
+      mffsCurrentForfeitedCost: parseValue(data.breakdown?.[18]?.total),
+      mffsCurForfeitCostWithin: parseValue(data.breakdown?.[18]?.withinEscrow),
+      mffsCurForfeitCostOut: parseValue(data.breakdown?.[18]?.outOfEscrow),
+      mffsCurForfeitCostTotal: parseValue(data.breakdown?.[18]?.total),
+      mffsCurForfeitExceptCapVal:
         data.breakdown?.[18]?.exceptionalCapValue || '',
 
       // Current Developer Equity Cost fields (breakdown section 19)
-      reafsCurrentDeveloperEquitycost: parseValue(data.breakdown?.[19]?.total),
-      reafsCurDeveEqtycostWithin: parseValue(
+      mffsCurrentDeveloperEquitycost: parseValue(data.breakdown?.[19]?.total),
+      mffsCurDeveEqtycostWithin: parseValue(
         data.breakdown?.[19]?.withinEscrow
       ),
-      reafsCurDeveEqtycostOut: parseValue(data.breakdown?.[19]?.outOfEscrow),
-      reafsCurDeveEqtycostTotal: parseValue(data.breakdown?.[19]?.total),
-      reafsCurDeveExceptCapVal: data.breakdown?.[19]?.exceptionalCapValue || '',
+      mffsCurDeveEqtycostOut: parseValue(data.breakdown?.[19]?.outOfEscrow),
+      mffsCurDeveEqtycostTotal: parseValue(data.breakdown?.[19]?.total),
+      mffsCurDeveExceptCapVal: data.breakdown?.[19]?.exceptionalCapValue || '',
 
       // Current Amount Fund fields (breakdown section 20)
-      reafsCurrentAmantFund: parseValue(data.breakdown?.[20]?.total),
-      reafsCurAmntFundWithin: parseValue(data.breakdown?.[20]?.withinEscrow),
-      reafsCurAmntFundOut: parseValue(data.breakdown?.[20]?.outOfEscrow),
-      reafsCurAmntFundTotal: parseValue(data.breakdown?.[20]?.total),
-      reafsCurAmntExceptCapVal: data.breakdown?.[20]?.exceptionalCapValue || '',
+      mffsCurrentAmantFund: parseValue(data.breakdown?.[20]?.total),
+      mffsCurAmntFundWithin: parseValue(data.breakdown?.[20]?.withinEscrow),
+      mffsCurAmntFundOut: parseValue(data.breakdown?.[20]?.outOfEscrow),
+      mffsCurAmntFundTotal: parseValue(data.breakdown?.[20]?.total),
+      mffsCurAmntExceptCapVal: data.breakdown?.[20]?.exceptionalCapValue || '',
 
       // Current Other Withdrawals fields (breakdown section 21)
-      reafsCurrentOtherWithdrawls: parseValue(data.breakdown?.[21]?.total),
-      reafsCurOtherWithdWithin: parseValue(data.breakdown?.[21]?.withinEscrow),
-      reafsCurOtherWithdOut: parseValue(data.breakdown?.[21]?.outOfEscrow),
-      reafsCurOtherWithdTotal: parseValue(data.breakdown?.[21]?.total),
-      reafsCurOtherExceptCapVal:
+      mffsCurrentOtherWithdrawls: parseValue(data.breakdown?.[21]?.total),
+      mffsCurOtherWithdWithin: parseValue(data.breakdown?.[21]?.withinEscrow),
+      mffsCurOtherWithdOut: parseValue(data.breakdown?.[21]?.outOfEscrow),
+      mffsCurOtherWithdTotal: parseValue(data.breakdown?.[21]?.total),
+      mffsCurOtherExceptCapVal:
         data.breakdown?.[21]?.exceptionalCapValue || '',
 
       // Current Oqood Other Fee Payment fields (breakdown section 22)
-      reafsCurrentOqoodOtherFeePay: parseValue(data.breakdown?.[22]?.total),
-      reafsCurOqoodOthFeeWithin: parseValue(data.breakdown?.[22]?.withinEscrow),
-      reafsCurOqoodOthFeeOut: parseValue(data.breakdown?.[22]?.outOfEscrow),
-      reafsCurOqoodOthFeeTotal: parseValue(data.breakdown?.[22]?.total),
+      mffsCurrentOqoodOtherFeePay: parseValue(data.breakdown?.[22]?.total),
+      mffsCurOqoodOthFeeWithin: parseValue(data.breakdown?.[22]?.withinEscrow),
+      mffsCurOqoodOthFeeOut: parseValue(data.breakdown?.[22]?.outOfEscrow),
+      mffsCurOqoodOthFeeTotal: parseValue(data.breakdown?.[22]?.total),
 
       // Current VAT Deposit fields (breakdown section 23)
-      reafsCurrentVatDeposit: parseValue(data.breakdown?.[23]?.total),
-      reafsCurVatDepositWithin: parseValue(data.breakdown?.[23]?.withinEscrow),
-      reafsCurVatDepositOut: parseValue(data.breakdown?.[23]?.outOfEscrow),
-      reafsCurVatDepositTotal: parseValue(data.breakdown?.[23]?.total),
-      reafsCurVatDepositCapVal: data.breakdown?.[23]?.exceptionalCapValue || '',
+      mffsCurrentVatDeposit: parseValue(data.breakdown?.[23]?.total),
+      mffsCurVatDepositWithin: parseValue(data.breakdown?.[23]?.withinEscrow),
+      mffsCurVatDepositOut: parseValue(data.breakdown?.[23]?.outOfEscrow),
+      mffsCurVatDepositTotal: parseValue(data.breakdown?.[23]?.total),
+      mffsCurVatDepositCapVal: data.breakdown?.[23]?.exceptionalCapValue || '',
 
       // Current Balance Construction fields (breakdown section 24)
-      reafsCurBalConstructionTotal: parseValue(data.breakdown?.[24]?.total),
-      reafsCurBalConstructionWithin: parseValue(
+      mffsCurBalConstructionTotal: parseValue(data.breakdown?.[24]?.total),
+      mffsCurBalConstructionWithin: parseValue(
         data.breakdown?.[24]?.withinEscrow
       ),
-      reafsCurBalConstructionOut: parseValue(data.breakdown?.[24]?.outOfEscrow),
-      reafsCurBalExcepCapVal: data.breakdown?.[24]?.exceptionalCapValue || '',
+      mffsCurBalConstructionOut: parseValue(data.breakdown?.[24]?.outOfEscrow),
+      mffsCurBalExcepCapVal: data.breakdown?.[24]?.exceptionalCapValue || '',
 
       // Additional fields - now from data.additional instead of breakdown array
-      reafsCreditInterest: parseValue(data.additional?.creditInterestRetention),
-      reafsPaymentForRetentionAcc: parseValue(data.additional?.paymentsRetentionAccount),
-      reafsDeveloperReimburse: parseValue(data.additional?.reimbursementsDeveloper),
-      reafsUnitRegFees: parseValue(data.additional?.unitRegistrationFees),
-      reafsCreditInterestProfit: parseValue(data.additional?.creditInterestEscrow),
-      reafsVatCappedCost: parseValue(data.additional?.vatCapped),
-      reafsExceptionalCapVal: '',
+      mffsCreditInterest: parseValue(data.additional?.creditInterestRetention),
+      mffsPaymentForRetentionAcc: parseValue(data.additional?.paymentsRetentionAccount),
+      mffsDeveloperReimburse: parseValue(data.additional?.reimbursementsDeveloper),
+      mffsUnitRegFees: parseValue(data.additional?.unitRegistrationFees),
+      mffsCreditInterestProfit: parseValue(data.additional?.creditInterestEscrow),
+      mffsVatCappedCost: parseValue(data.additional?.vatCapped),
+      mffsExceptionalCapVal: '',
 
       // Current Balance in Sub Construction Account fields (breakdown section 11)
-      reafsCurrentBalInSubsConsAcc: parseValue(data.breakdown?.[11]?.total),
-      reafsCurBalInRSubsConsWithin: parseValue(
+      mffsCurrentBalInSubsConsAcc: parseValue(data.breakdown?.[11]?.total),
+      mffsCurBalInRSubsConsWithin: parseValue(
         data.breakdown?.[11]?.withinEscrow
       ),
-      reafsCurBalInSubsConsOut: parseValue(data.breakdown?.[11]?.outOfEscrow),
-      reafsCurBalInSubsConsTotal: parseValue(data.breakdown?.[11]?.total),
-      reafsCurBalInSubsConsCapVal:
+      mffsCurBalInSubsConsOut: parseValue(data.breakdown?.[11]?.outOfEscrow),
+      mffsCurBalInSubsConsTotal: parseValue(data.breakdown?.[11]?.total),
+      mffsCurBalInSubsConsCapVal:
         data.breakdown?.[11]?.exceptionalCapValue || '',
 
       // Other fields
-      reafsOtherFeesAnPaymentExcepVal:
+      mffsOtherFeesAnPaymentExcepVal:
         data.breakdown?.[32]?.exceptionalCapValue || '',
 
       // Project reference
-      realEstateAssestDTO: {
+      managementFirmDTO: {
         id: parseInt(projectId),
       },
 
@@ -764,7 +786,7 @@ export class RealEstateAssetService {
   async saveProjectBeneficiary(beneficiaryData: any): Promise<any> {
     try {
       const response = await apiClient.post(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_BENEFICIARY.SAVE,
+        API_ENDPOINTS.MANAGEMENT_FIRMS_BENEFICIARY.SAVE,
         beneficiaryData
       )
 
@@ -780,7 +802,7 @@ export class RealEstateAssetService {
   ): Promise<any> {
     try {
       const response = await apiClient.put(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_BENEFICIARY.UPDATE(id),
+        API_ENDPOINTS.MANAGEMENT_FIRMS_BENEFICIARY.UPDATE(id),
         beneficiaryData
       )
 
@@ -794,24 +816,8 @@ export class RealEstateAssetService {
   private transformFinancialData(frontendData: any, projectId?: number): any {
     const { estimate, actual, breakdown, additional } = frontendData
     
-    // Console log the incoming frontend data
-    console.log('🔍 Frontend Financial Data Received:', {
-      estimate,
-      actual,
-      breakdown,
-      additional
-    })
+   
     
-    // Detailed logging for additional fields
-    console.log('🔍 Additional Fields Debug:', {
-      'additional object': additional,
-      'creditInterestRetention': additional?.creditInterestRetention,
-      'paymentsRetentionAccount': additional?.paymentsRetentionAccount,
-      'reimbursementsDeveloper': additional?.reimbursementsDeveloper,
-      'unitRegistrationFees': additional?.unitRegistrationFees,
-      'creditInterestEscrow': additional?.creditInterestEscrow,
-      'vatCapped': additional?.vatCapped
-    })
 
     // Helper function to parse string values to numbers
     const parseValue = (value: string | number): number | null => {
@@ -857,184 +863,191 @@ export class RealEstateAssetService {
         // Map to specific backend field names based on index
         switch (index) {
           case 0: // Cash Received from the Unit Holder
-            result.reafsCurrentCashReceived = total
-            result.reafsCurCashRecvdOutEscrow = outOfEscrow
-            result.reafsCurCashRecvdWithinEscrow = withinEscrow
-            result.reafsCurCashRecvdTotal = total
-            result.reafsCurCashexceptCapVal = exceptionalCapValue
+            result.mffsCurrentCashReceived = total
+            result.mffsCurCashRecvdOutEscrow = outOfEscrow
+            result.mffsCurCashRecvdWithinEscrow = withinEscrow
+            result.mffsCurCashRecvdTotal = total
+            result.mffsCurCashexceptCapVal = exceptionalCapValue
             break
           case 1: // Land Cost
-            result.reafsCurrentLandCost = total
-            result.reafsCurLandCostOut = outOfEscrow
-            result.reafsCurLandCostWithin = withinEscrow
-            result.reafsCurLandTotal = total
-            result.reafsCurLandexceptCapVal = exceptionalCapValue
+            result.mffsCurrentLandCost = total
+            result.mffsCurLandCostOut = outOfEscrow
+            result.mffsCurLandCostWithin = withinEscrow
+            result.mffsCurLandTotal = total
+            result.mffsCurLandexceptCapVal = exceptionalCapValue
             break
           case 2: // Construction Cost
-            result.reafsCurrentConstructionCost = total
-            result.reafsCurConsCostWithin = withinEscrow
-            result.reafsCurConsCostOut = outOfEscrow
-            result.reafsCurConsCostTotal = total
-            result.reafsCurConsExcepCapVal = exceptionalCapValue
+            result.mffsCurrentConstructionCost = total
+            result.mffsCurConsCostWithin = withinEscrow
+            result.mffsCurConsCostOut = outOfEscrow
+            result.mffsCurConsCostTotal = total
+            result.mffsCurConsExcepCapVal = exceptionalCapValue
             break
           case 3: // Marketing Expense
-            result.reafsCurrentMarketingExp = total
-            result.reafsCurrentMktgExpWithin = withinEscrow
-            result.reafsCurrentMktgExpOut = outOfEscrow
-            result.reafsCurrentMktgExpTotal = total
-            result.reafsCurrentmktgExcepCapVal = exceptionalCapValue
+            result.mffsCurrentMarketingExp = total
+            result.mffsCurrentMktgExpWithin = withinEscrow
+            result.mffsCurrentMktgExpOut = outOfEscrow
+            result.mffsCurrentMktgExpTotal = total
+            result.mffsCurrentmktgExcepCapVal = exceptionalCapValue
             break
           case 4: // Project Management Expense
-            result.reafsCurrentProjectMgmtExp = total
-            result.reafsCurProjMgmtExpWithin = withinEscrow
-            result.reafsCurProjMgmtExpOut = outOfEscrow
-            result.reafsCurProjMgmtExpTotal = total
-            result.reafsCurProjExcepCapVal = exceptionalCapValue
+            result.mffsCurrentProjectMgmtExp = total
+            result.mffsCurProjMgmtExpWithin = withinEscrow
+            result.mffsCurProjMgmtExpOut = outOfEscrow
+            result.mffsCurProjMgmtExpTotal = total
+            result.mffsCurProjExcepCapVal = exceptionalCapValue
             break
           case 5: // Mortgage
-            result.reafsCurrentMortgage = total
-            result.reafsCurrentMortgageWithin = withinEscrow
+            result.mffsCurrentMortgage = total
+            result.mffsCurrentMortgageWithin = withinEscrow
             result.currentMortgageOut = outOfEscrow
-            result.reafsCurrentMortgageTotal = total
-            result.reafsCurMortgageExceptCapVal = exceptionalCapValue
+            result.mffsCurrentMortgageTotal = total
+            result.mffsCurMortgageExceptCapVal = exceptionalCapValue
             break
           case 6: // VAT Payment
-            result.reafsCurrentVatPayment = total
-            result.reafsCurrentVatPaymentWithin = withinEscrow
-            result.reafsCurrentVatPaymentOut = outOfEscrow
-            result.reafsCurrentVatPaymentTotal = total
-            result.reafsCurVatExceptCapVal = exceptionalCapValue
+            result.mffsCurrentVatPayment = total
+            result.mffsCurrentVatPaymentWithin = withinEscrow
+            result.mffsCurrentVatPaymentOut = outOfEscrow
+            result.mffsCurrentVatPaymentTotal = total
+            result.mffsCurVatExceptCapVal = exceptionalCapValue
             break
           case 7: // Deposit
-            result.reafsCurrentOqood = total
-            result.reafsCurrentOqoodWithin = withinEscrow
-            result.reafsCurrentOqoodOut = outOfEscrow
-            result.reafsCurrentOqoodTotal = total
-            result.reafsCurOqoodExceptCapVal = exceptionalCapValue
+            result.mffsCurrentOqood = total
+            result.mffsCurrentOqoodWithin = withinEscrow
+            result.mffsCurrentOqoodOut = outOfEscrow
+            result.mffsCurrentOqoodTotal = total
+            result.mffsCurOqoodExceptCapVal = exceptionalCapValue
             break
           case 8: // Refund
-            result.reafsCurrentRefund = total
-            result.reafsCurrentRefundWithin = withinEscrow
-            result.reafsCurrentRefundOut = outOfEscrow
-            result.reafsCurrentRefundTotal = total
-            result.reafsCurRefundExceptCapVal = exceptionalCapValue
+            result.mffsCurrentRefund = total
+            result.mffsCurrentRefundWithin = withinEscrow
+            result.mffsCurrentRefundOut = outOfEscrow
+            result.mffsCurrentRefundTotal = total
+            result.mffsCurRefundExceptCapVal = exceptionalCapValue
             break
           case 9: // Balance in Retention A/C
-            result.reafsCurrentBalInRetenAcc = total
-            result.reafsCurBalInRetenAccWithin = withinEscrow
-            result.reafsCurBalInRetenAccOut = outOfEscrow
-            result.reafsCurBalInRetenAccTotal = total
-            result.reafsCurBalInRetenExceptCapVal = exceptionalCapValue
+            result.mffsCurrentBalInRetenAcc = total
+            result.mffsCurBalInRetenAccWithin = withinEscrow
+            result.mffsCurBalInRetenAccOut = outOfEscrow
+            result.mffsCurBalInRetenAccTotal = total
+            result.mffsCurBalInRetenExceptCapVal = exceptionalCapValue
             break
           case 10: // Balance in Trust A/C
-            result.reafsCurrentBalInTrustAcc = total
-            result.reafsCurBalInTrustAccWithin = withinEscrow
-            result.reafsCurBalInTrustAccOut = outOfEscrow
-            result.reafsCurBalInTrustAccTotal = total
-            result.reafsCurBalInExceptCapVal = exceptionalCapValue
+            result.mffsCurrentBalInTrustAcc = total
+            result.mffsCurBalInTrustAccWithin = withinEscrow
+            result.mffsCurBalInTrustAccOut = outOfEscrow
+            result.mffsCurBalInTrustAccTotal = total
+            result.mffsCurBalInExceptCapVal = exceptionalCapValue
             break
           case 11: // Balance in Sub Construction A/C
-            result.reafsCurrentBalInSubsConsAcc = total
-            result.reafsCurBalInRSubsConsWithin = withinEscrow
-            result.reafsCurBalInSubsConsOut = outOfEscrow
-            result.reafsCurBalInSubsConsTotal = total
-            result.reafsCurBalInSubsConsCapVal = exceptionalCapValue
+            result.mffsCurrentBalInSubsConsAcc = total
+            result.mffsCurBalInRSubsConsWithin = withinEscrow
+            result.mffsCurBalInSubsConsOut = outOfEscrow
+            result.mffsCurBalInSubsConsTotal = total
+            result.mffsCurBalInSubsConsCapVal = exceptionalCapValue
             break
           case 12: // Technical Fees
-            result.reafsCurrentTechnicalFee = total
-            result.reafsCurTechnFeeWithin = withinEscrow
-            result.reafsCurTechnFeeOut = outOfEscrow
-            result.reafsCurTechnFeeTotal = total
-            result.reafsCurTechFeeExceptCapVal = exceptionalCapValue
+            result.mffsCurrentTechnicalFee = total
+            result.mffsCurTechnFeeWithin = withinEscrow
+            result.mffsCurTechnFeeOut = outOfEscrow
+            result.mffsCurTechnFeeTotal = total
+            result.mffsCurTechFeeExceptCapVal = exceptionalCapValue
             break
           case 13: // Unidentified Funds
-            result.reafsCurrentUnIdentifiedFund = total
-            result.reafsCurUnIdeFundWithin = withinEscrow
-            result.reafsCurUnIdeFundOut = outOfEscrow
-            result.reafsCurUnIdeFundTotal = total
-            result.reafsCurUnIdeExceptCapVal = exceptionalCapValue
+            result.mffsCurrentUnIdentifiedFund = total
+            result.mffsCurUnIdeFundWithin = withinEscrow
+            result.mffsCurUnIdeFundOut = outOfEscrow
+            result.mffsCurUnIdeFundTotal = total
+            result.mffsCurUnIdeExceptCapVal = exceptionalCapValue
             break
           case 14: // Loan/Installments
-            result.reafsCurrentLoanInstal = total
-            result.reafsCurLoanInstalWithin = withinEscrow
-            result.reafsCurLoanInstalOut = outOfEscrow
-            result.reafsCurLoanInstalTotal = total
-            result.reafsCurLoanExceptCapVal = exceptionalCapValue
+            result.mffsCurrentLoanInstal = total
+            result.mffsCurLoanInstalWithin = withinEscrow
+            result.mffsCurLoanInstalOut = outOfEscrow
+            result.mffsCurLoanInstalTotal = total
+            result.mffsCurLoanExceptCapVal = exceptionalCapValue
             break
           case 15: // Infrastructure Cost
-            result.reafsCurrentInfraCost = total
-            result.reafsCurInfraCostWithin = withinEscrow
-            result.reafsCurInfraCostOut = outOfEscrow
-            result.reafsCurInfraCostTotal = total
-            result.reafsCurInfraExceptCapVal = exceptionalCapValue
+            result.mffsCurrentInfraCost = total
+            result.mffsCurInfraCostWithin = withinEscrow
+            result.mffsCurInfraCostOut = outOfEscrow
+            result.mffsCurInfraCostTotal = total
+            result.mffsCurInfraExceptCapVal = exceptionalCapValue
             break
           case 16: // Others
-            result.reafsCurrentOthersCost = total
-            result.reafsCurOthersCostWithin = withinEscrow
-            result.reafsCurOthersCostOut = outOfEscrow
-            result.reafsCurOthersCostTotal = total
-            result.reafsCurOthersExceptCapVal = exceptionalCapValue
+            result.mffsCurrentOthersCost = total
+            result.mffsCurOthersCostWithin = withinEscrow
+            result.mffsCurOthersCostOut = outOfEscrow
+            result.mffsCurOthersCostTotal = total
+            result.mffsCurOthersExceptCapVal = exceptionalCapValue
             break
-          case 17: // Transferred
-            result.reafsCurrentTransferredCost = total
-            result.reafsCurTransferCostWithin = withinEscrow
-            result.reafsCurTransferCostOut = outOfEscrow
-            result.reafsCurTransferCostTotal = total
-            result.reafsCurTransferExceptCapVal = exceptionalCapValue
-            break
-          case 18: // Developer's Equity
-            result.reafsCurrentDeveloperEquitycost = total
-            result.reafsCurDeveEqtycostWithin = withinEscrow
-            result.reafsCurDeveEqtycostOut = outOfEscrow
-            result.reafsCurDeveEqtycostTotal = total
-            result.reafsCurDeveExceptCapVal = exceptionalCapValue
-            break
-          case 19: // Manager Funds
-            result.reafsCurrentAmantFund = total
-            result.reafsCurAmntFundWithin = withinEscrow
-            result.reafsCurAmntFundOut = outOfEscrow
-            result.reafsCurAmntFundTotal = total
-            result.reafsCurAmntExceptCapVal = exceptionalCapValue
-            break
-          case 20: // Others Withdrawals
-            result.reafsCurrentOtherWithdrawls = total
-            result.reafsCurOtherWithdWithin = withinEscrow
-            result.reafsCurOtherWithdOut = outOfEscrow
-            result.reafsCurOtherWithdTotal = total
-            result.reafsCurOtherExceptCapVal = exceptionalCapValue
-            break
-          case 21: // Deposit/Other Fees and Payments
-            result.reafsCurrentOqoodOtherFeePay = total
-            result.reafsCurOqoodOthFeeWithin = withinEscrow
-            result.reafsCurOqoodOthFeeOut = outOfEscrow
-            result.reafsCurOqoodOthFeeTotal = total
-            result.reafsOtherFeesAnPaymentExcepVal = exceptionalCapValue
-            break
-          case 22: // VAT Deposit
-            result.reafsCurrentVatDeposit = total
-            result.reafsCurVatDepositWithin = withinEscrow
-            result.reafsCurVatDepositOut = outOfEscrow
-            result.reafsCurVatDepositTotal = total
-            result.reafsCurVatDepositCapVal = exceptionalCapValue
-            break
-          case 23: // Credit Transfer/Profit Earned for Retention A/C
-            result.reafsCreditInterest = total
-            break
-          case 24: // Payments for Retention Account
-            result.reafsPaymentForRetentionAcc = total
-            break
-          case 25: // Re-imbursements (Developer)
-            result.reafsDeveloperReimburse = total
-            break
-          case 26: // Unit Registration Fee
-            result.reafsUnitRegFees = total
-            break
-          case 27: // Credit Interest/Profit Earned for ESCROW A/C
-            result.reafsCreditInterestProfit = total
-            break
-          case 28: // VAT Support
-            result.reafsVatCappedCost = total
-            break
+        case 17: // Transferred
+          result.mffsCurrentTransferredCost = total
+          result.mffsCurTransferCostWithin = withinEscrow
+          result.mffsCurTransferCostOut = outOfEscrow
+          result.mffsCurTransferCostTotal = total
+          result.mffsCurTransferExceptCapVal = exceptionalCapValue
+          break
+        case 18: // Forfeited Amount
+          result.mffsCurrentForfeitedCost = total
+          result.mffsCurForfeitCostWithin = withinEscrow
+          result.mffsCurForfeitCostOut = outOfEscrow
+          result.mffsCurForfeitCostTotal = total
+          result.mffsCurForfeitExceptCapVal = exceptionalCapValue
+          break
+        case 19: // Developer's Equity
+          result.mffsCurrentDeveloperEquitycost = total
+          result.mffsCurDeveEqtycostWithin = withinEscrow
+          result.mffsCurDeveEqtycostOut = outOfEscrow
+          result.mffsCurDeveEqtycostTotal = total
+          result.mffsCurDeveExceptCapVal = exceptionalCapValue
+          break
+        case 20: // Amanat Fund Allocation
+          result.mffsCurrentAmantFund = total
+          result.mffsCurAmntFundWithin = withinEscrow
+          result.mffsCurAmntFundOut = outOfEscrow
+          result.mffsCurAmntFundTotal = total
+          result.mffsCurAmntExceptCapVal = exceptionalCapValue
+          break
+        case 21: // Other Withdrawals
+          result.mffsCurrentOtherWithdrawls = total
+          result.mffsCurOtherWithdWithin = withinEscrow
+          result.mffsCurOtherWithdOut = outOfEscrow
+          result.mffsCurOtherWithdTotal = total
+          result.mffsCurOtherExceptCapVal = exceptionalCapValue
+          break
+        case 22: // Oqood and Other Payments
+          result.mffsCurrentOqoodOtherFeePay = total
+          result.mffsCurOqoodOthFeeWithin = withinEscrow
+          result.mffsCurOqoodOthFeeOut = outOfEscrow
+          result.mffsCurOqoodOthFeeTotal = total
+          result.mffsOtherFeesAnPaymentExcepVal = exceptionalCapValue
+          break
+        case 23: // VAT Deposit
+          result.mffsCurrentVatDeposit = total
+          result.mffsCurVatDepositWithin = withinEscrow
+          result.mffsCurVatDepositOut = outOfEscrow
+          result.mffsCurVatDepositTotal = total
+          result.mffsCurVatDepositCapVal = exceptionalCapValue
+          break
+        case 24: // Credit Transfer/Profit Earned for Retention A/C
+          result.mffsCreditInterest = total
+          break
+        case 25: // Payments for Retention Account
+          result.mffsPaymentForRetentionAcc = total
+          break
+        case 26: // Re-imbursements (Developer)
+          result.mffsDeveloperReimburse = total
+          break
+        case 27: // Unit Registration Fee
+          result.mffsUnitRegFees = total
+          break
+        case 28: // Credit Interest/Profit Earned for ESCROW A/C
+          result.mffsCreditInterestProfit = total
+          break
+        case 29: // VAT Support
+          result.mffsVatCappedCost = total
+          break
         }
       })
 
@@ -1044,41 +1057,41 @@ export class RealEstateAssetService {
     // Build the complete payload
     const payload = {
       // Estimate fields
-      reafsEstRevenue: estimate?.revenue || '',
-      reafsEstConstructionCost: parseValue(estimate?.constructionCost),
-      reafsEstProjectMgmtExpense: parseValue(
+      mffsEstRevenue: estimate?.revenue || '',
+      mffsEstConstructionCost: parseValue(estimate?.constructionCost),
+      mffsEstProjectMgmtExpense: parseValue(
         estimate?.projectManagementExpense
       ),
-      reafsEstLandCost: parseValue(estimate?.landCost),
-      reafsEstMarketingExpense: parseValue(estimate?.marketingExpense),
-      reafsEstimatedDate: formatDate(estimate?.date),
-      reafsEstExceptionalCapVal: estimate?.exceptionalCapValue || '',
+      mffsEstLandCost: parseValue(estimate?.landCost),
+      mffsEstMarketingExpense: parseValue(estimate?.marketingExpense),
+      mffsEstimatedDate: formatDate(estimate?.date),
+      mffsEstExceptionalCapVal: estimate?.exceptionalCapValue || '',
 
       // Actual fields
-      reafsActualSoldValue: parseValue(actual?.soldValue),
-      reafsActualConstructionCost: parseValue(actual?.constructionCost),
-      reafsActualInfraCost: parseValue(actual?.infraCost),
-      reafsActualLandCost: parseValue(actual?.landCost),
-      reafsActualMarketingExp: parseValue(actual?.marketingExpense),
-      reafsActualProjectMgmtExpense: parseValue(
+      mffsActualSoldValue: parseValue(actual?.soldValue),
+      mffsActualConstructionCost: parseValue(actual?.constructionCost),
+      mffsActualInfraCost: parseValue(actual?.infraCost),
+      mffsActualLandCost: parseValue(actual?.landCost),
+      mffsActualMarketingExp: parseValue(actual?.marketingExpense),
+      mffsActualProjectMgmtExpense: parseValue(
         actual?.projectManagementExpense
       ),
-      reafsActualDate: formatDate(actual?.date),
-      reafsActualexceptCapVal: actual?.exceptionalCapValue || '',
+      mffsActualDate: formatDate(actual?.date),
+      mffsActualexceptCapVal: actual?.exceptionalCapValue || '',
 
       // Breakdown fields
       ...transformBreakdown(breakdown),
 
       // Additional fields - mapped to correct backend keys
-      reafsCreditInterest: parseValue(additional?.creditInterestRetention),
-      reafsPaymentForRetentionAcc: parseValue(additional?.paymentsRetentionAccount),
-      reafsDeveloperReimburse: parseValue(additional?.reimbursementsDeveloper),
-      reafsUnitRegFees: parseValue(additional?.unitRegistrationFees),
-      reafsVatCappedCost: parseValue(additional?.vatCapped),
-      reafsCreditInterestProfit: parseValue(additional?.creditInterestEscrow),
+      mffsCreditInterest: parseValue(additional?.creditInterestRetention),
+      mffsPaymentForRetentionAcc: parseValue(additional?.paymentsRetentionAccount),
+      mffsDeveloperReimburse: parseValue(additional?.reimbursementsDeveloper),
+      mffsUnitRegFees: parseValue(additional?.unitRegistrationFees),
+      mffsVatCappedCost: parseValue(additional?.vatCapped),
+      mffsCreditInterestProfit: parseValue(additional?.creditInterestEscrow),
 
       // Project reference
-      realEstateAssestDTO: {
+      managementFirmDTO: {
         id: projectId || 0,
       },
 
@@ -1087,18 +1100,17 @@ export class RealEstateAssetService {
       enabled: true,
     }
 
-    // Console log the final payload being sent to backend
-    console.log('📤 Backend Payload Being Sent:', payload)
+   
     
     return payload
   }
 
   // Save financial summary (first time)
   async saveFinancialSummary(data: any, projectId?: number): Promise<any> {
-    console.log('💾 Saving Financial Summary with data:', data)
+   
     const transformedData = this.transformFinancialData(data, projectId)
     return apiClient.post(
-      API_ENDPOINTS.REAL_ESTATE_ASSET_FINANCIAL_SUMMARY.SAVE,
+      API_ENDPOINTS.MANAGEMENT_FIRMS_FINANCIAL_SUMMARY.SAVE,
       transformedData
     )
   }
@@ -1109,7 +1121,7 @@ export class RealEstateAssetService {
     data: any,
     projectId?: number
   ): Promise<any> {
-    console.log('🔄 Updating Financial Summary with data:', data)
+   
     const transformedData = this.transformFinancialData(data, projectId)
 
     // Add the id field for PUT request
@@ -1118,10 +1130,10 @@ export class RealEstateAssetService {
       ...transformedData,
     }
 
-    console.log('📤 Update Payload with ID:', payloadWithId)
+  
 
     const response = await apiClient.put(
-      API_ENDPOINTS.REAL_ESTATE_ASSET_FINANCIAL_SUMMARY.UPDATE(id.toString()),
+      API_ENDPOINTS.MANAGEMENT_FIRMS_FINANCIAL_SUMMARY.UPDATE(id.toString()),
       payloadWithId
     )
 
@@ -1159,16 +1171,16 @@ export class RealEstateAssetService {
 
       // Transform the data to match API payload format
       const transformedData = {
-        reappInstallmentNumber: finalInstallmentNumber,
-        reappInstallmentPercentage: installmentPercentage,
-        reappProjectCompletionPercentage: projectCompletionPercentage,
-        realEstateAssestDTO: {
+        mfppInstallmentNumber: finalInstallmentNumber,
+        mfppInstallmentPercentage: installmentPercentage,
+        mfppProjectCompletionPercentage: projectCompletionPercentage,
+        managementFirmDTO: {
           id: projectId || paymentPlanData.projectId,
         },
       }
 
       const response = await apiClient.post(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_PAYMENT_PLAN.SAVE,
+        API_ENDPOINTS.MANAGEMENT_FIRMS_PAYMENT_PLAN.SAVE,
         transformedData
       )
       return response
@@ -1202,16 +1214,18 @@ export class RealEstateAssetService {
       // Transform the data to match API payload format
       const transformedData = {
         id: id,
-        reappInstallmentNumber: paymentPlanData.installmentNumber,
-        reappInstallmentPercentage: installmentPercentage,
-        reappProjectCompletionPercentage: projectCompletionPercentage,
-        realEstateAssestDTO: {
+        mfppInstallmentNumber: paymentPlanData.installmentNumber,
+        mfppInstallmentPercentage: installmentPercentage,
+        mfppProjectCompletionPercentage: projectCompletionPercentage,
+        deleted: false,
+        enabled: true,
+        managementFirmDTO: {
           id: paymentPlanData.projectId || id,
         },
       }
 
       const response = await apiClient.put(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_PAYMENT_PLAN.UPDATE(id.toString()),
+        API_ENDPOINTS.MANAGEMENT_FIRMS_PAYMENT_PLAN.UPDATE(id.toString()),
         transformedData
       )
 
@@ -1225,7 +1239,7 @@ export class RealEstateAssetService {
   async getPaymentPlansByProjectId(projectId: number): Promise<any[]> {
     try {
       const endpoint =
-        API_ENDPOINTS.REAL_ESTATE_ASSET_PAYMENT_PLAN.GET_BY_PROJECT_ID(
+        API_ENDPOINTS.MANAGEMENT_FIRMS_PAYMENT_PLAN.GET_BY_PROJECT_ID(
           projectId.toString()
         )
 
@@ -1239,7 +1253,7 @@ export class RealEstateAssetService {
   // Delete payment plan by ID (soft delete)
   async deletePaymentPlan(id: number): Promise<void> {
     try {
-      const endpoint = API_ENDPOINTS.REAL_ESTATE_ASSET_PAYMENT_PLAN.SOFT_DELETE(
+      const endpoint = API_ENDPOINTS.MANAGEMENT_FIRMS_PAYMENT_PLAN.SOFT_DELETE(
         id.toString()
       )
       await apiClient.delete(endpoint)
@@ -1263,19 +1277,19 @@ export class RealEstateAssetService {
 
       // Transform the data to match API payload format
       const transformedData = {
-        reacTotalIncomeFund: parseValue(
+        mfcTotalIncomeFund: parseValue(
           closureData.totalIncomeFund || closureData.projectEstimatedCost || 0
         ),
-        reacTotalPayment: parseValue(
+        mfcTotalPayment: parseValue(
           closureData.totalPayment || closureData.actualCost || 0
         ),
-        realEstateAssestDTO: {
+        managementFirmDTO: {
           id: projectId || closureData.projectId,
         },
       }
 
       const response = await apiClient.post(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_CLOSURE.SAVE,
+        API_ENDPOINTS.MANAGEMENT_FIRMS_CLOSURE.SAVE,
         transformedData
       )
       return response
@@ -1286,9 +1300,10 @@ export class RealEstateAssetService {
 
   // Get project closure for review
   async getProjectClosure(projectId: string): Promise<any> {
+  
     try {
       const response = await apiClient.get(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_CLOSURE.GET_BY_PROJECT_ID(projectId)
+        API_ENDPOINTS.MANAGEMENT_FIRMS_CLOSURE.GET_BY_PROJECT_ID(projectId)
       )
       return response
     } catch (error) {
@@ -1315,9 +1330,9 @@ export class RealEstateAssetService {
 
       projects.forEach((project) => {
         const status =
-          project.reaStatusDTO?.languageTranslationId?.configValue?.toLowerCase()
+          project.mfStatusDTO?.languageTranslationId?.configValue?.toLowerCase()
         const accountStatus =
-          project.reaAccountStatusDTO?.languageTranslationId?.configValue?.toLowerCase()
+          project.mfAccountStatusDTO?.languageTranslationId?.configValue?.toLowerCase()
 
         if (status?.includes('active')) stats.active++
         if (status?.includes('closed')) stats.closed++
@@ -1340,7 +1355,7 @@ export class RealEstateAssetService {
   async getProjectDetails(projectId: string): Promise<any> {
     try {
       const response = await apiClient.get(
-        API_ENDPOINTS.REAL_ESTATE_ASSET.GET_BY_ID(projectId)
+        API_ENDPOINTS.MANAGEMENT_FIRMS.GET_BY_ID(projectId)
       )
       return response
     } catch (error) {
@@ -1352,7 +1367,7 @@ export class RealEstateAssetService {
   async getProjectAccounts(projectId: string): Promise<any[]> {
     try {
       const response = await apiClient.get(
-        API_ENDPOINTS.REAL_ESTATE_BANK_ACCOUNT.GET_BY_PROJECT_ID(projectId)
+        API_ENDPOINTS.MANAGEMENT_FIRMS_BANK_ACCOUNT.GET_BY_PROJECT_ID(projectId)
       )
 
       // Handle different response formats
@@ -1378,12 +1393,12 @@ export class RealEstateAssetService {
     try {
       // Use proper URLSearchParams for multiple filters
       const params = new URLSearchParams({
-        'realEstateAssestId.equals': projectId,
+        'managementFirmId.equals': projectId,
         'deleted.equals': 'false',
         'enabled.equals': 'true',
       })
 
-      const url = `${API_ENDPOINTS.REAL_ESTATE_ASSET_FEE.GET_ALL}?${params.toString()}`
+      const url = `${API_ENDPOINTS.MANAGEMENT_FIRMS_FEE.GET_ALL}?${params.toString()}`
       const response = await apiClient.get(url)
 
       // Handle different response formats
@@ -1409,12 +1424,12 @@ export class RealEstateAssetService {
     try {
       // Use proper URLSearchParams for multiple filters
       const params = new URLSearchParams({
-        'realEstateAssestId.equals': projectId,
+        'managementFirmId.equals': projectId,
         'deleted.equals': 'false',
         'enabled.equals': 'true',
       })
 
-      const url = `${API_ENDPOINTS.REAL_ESTATE_ASSET_BENEFICIARY.GET_ALL}?${params.toString()}`
+      const url = `${API_ENDPOINTS.MANAGEMENT_FIRMS_BENEFICIARY.GET_ALL}?${params.toString()}`
       const response = await apiClient.get(url)
 
       // Handle different response formats
@@ -1439,7 +1454,7 @@ export class RealEstateAssetService {
   async softDeleteProjectBeneficiary(id: string): Promise<void> {
     try {
       await apiClient.delete(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_BENEFICIARY.SOFT_DELETE(id)
+        API_ENDPOINTS.MANAGEMENT_FIRMS_BENEFICIARY.SOFT_DELETE(id)
       )
     } catch (error) {
       throw error
@@ -1450,7 +1465,7 @@ export class RealEstateAssetService {
   async softDeleteProjectFee(id: string): Promise<void> {
     try {
       await apiClient.delete(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_FEE.SOFT_DELETE(id)
+        API_ENDPOINTS.MANAGEMENT_FIRMS_FEE.SOFT_DELETE(id)
       )
     } catch (error) {
       throw error
@@ -1461,7 +1476,7 @@ export class RealEstateAssetService {
   async getProjectPaymentPlans(projectId: string): Promise<any[]> {
     try {
       const response = await apiClient.get(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_PAYMENT_PLAN.GET_BY_PROJECT_ID(
+        API_ENDPOINTS.MANAGEMENT_FIRMS_PAYMENT_PLAN.GET_BY_PROJECT_ID(
           projectId
         )
       )
@@ -1488,7 +1503,7 @@ export class RealEstateAssetService {
   async getProjectFinancialSummary(projectId: string): Promise<any> {
     try {
       const response = await apiClient.get(
-        API_ENDPOINTS.REAL_ESTATE_ASSET_FINANCIAL_SUMMARY.GET_BY_PROJECT_ID(
+        API_ENDPOINTS.MANAGEMENT_FIRMS_FINANCIAL_SUMMARY.GET_BY_PROJECT_ID(
           projectId
         )
       )
@@ -1500,14 +1515,16 @@ export class RealEstateAssetService {
 
   // Get project documents for review
   async getProjectDocuments(projectId: string): Promise<any[]> {
+   
     try {
       const params = new URLSearchParams({
-        'module.equals': 'BUILD_PARTNER',
+        'module.equals': 'MANAGEMENT_FIRMS',
         'recordId.equals': projectId,
       })
       const response = await apiClient.get(
-        `${API_ENDPOINTS.REAL_ESTATE_DOCUMENT.GET_ALL}?${params.toString()}`
+        `${API_ENDPOINTS.MANAGEMENT_FIRMS_DOCUMENT.GET_ALL}?${params.toString()}`
       )
+
 
       // Handle different response formats
       if (Array.isArray(response)) {
@@ -1638,27 +1655,33 @@ export function mapRealEstateAssetToProjectData(
 
   const result: ProjectData = {
     id: asset.id,
-    name: asset.reaName,
-    developerId: asset.buildPartnerDTO.bpDeveloperId,
-    developerCif: asset.buildPartnerDTO.bpCifrera,
-    developerName: asset.buildPartnerDTO.bpName,
+    name: asset.mfName || '-',
+    developerId: asset.assetRegisterDTO?.arDeveloperId || '-',
+    developerCif: asset.assetRegisterDTO?.arCifrera || '-',
+    developerName: asset.assetRegisterDTO?.arName || '-',
+    managementFirmId: asset.mfId || '-',
+    managementFirmCif: asset.mfId || '-',
+    managementFirmName: asset.mfName || '-',
     projectStatus:
-      asset.reaAccountStatusDTO?.languageTranslationId?.configValue || 'N/A',
+      asset.mfStatusDTO?.languageTranslationId?.configValue ||
+      asset.mfAccountStatusDTO?.languageTranslationId?.configValue ||
+      'N/A',
     approvalStatus: mapApiStatus(asset.taskStatusDTO),
-    location: asset.reaLocation,
-    reraNumber: asset.reaReraNumber,
-    startDate: asset.reaStartDate,
-    completionDate: asset.reaCompletionDate,
-    percentComplete: asset.reaPercentComplete,
-    constructionCost: asset.reaConstructionCost,
+    status: asset.status || mapApiStatus(asset.taskStatusDTO),
+    location: asset.mfLocation || '-',
+    reraNumber: asset.mfReraNumber || '-',
+    startDate: asset.mfStartDate || '',
+    completionDate: asset.mfCompletionDate || '',
+    percentComplete: asset.mfPercentComplete || '',
+    constructionCost: asset.mfConstructionCost ?? 0,
     currency:
-      asset.reaConstructionCostCurrencyDTO?.languageTranslationId
-        ?.configValue || 'N/A',
-    totalUnits: asset.reaNoOfUnits,
+      asset.mfConstructionCostCurrencyDTO?.languageTranslationId?.configValue ||
+      'N/A',
+    totalUnits: asset.mfNoOfUnits ?? 0,
   }
 
-  if (asset.reaRemarks) {
-    result.remarks = asset.reaRemarks
+  if (asset.mfRemarks) {
+    result.remarks = asset.mfRemarks
   }
 
   return result

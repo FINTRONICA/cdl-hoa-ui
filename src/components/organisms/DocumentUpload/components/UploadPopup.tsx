@@ -377,26 +377,32 @@ export const UploadPopup: React.FC<UploadPopupProps> = ({
             }}
             variant="outlined"
           >
-            {documentTypes.map((docType) => (
-              <MenuItem
-                key={docType.id}
-                value={docType.id.toString()}
-                sx={{
-                  fontFamily: 'Outfit',
-                  fontSize: '14px',
-                  color: '#374151',
-                  '&:hover': {
-                    backgroundColor: '#F3F4F6',
-                  },
-                  '&.Mui-selected': {
-                    backgroundColor: '#EFF6FF',
-                    color: '#2563EB',
-                  },
-                }}
-              >
-                {docType.label}
+            {documentTypes.length > 0 ? (
+              documentTypes.map((docType) => (
+                <MenuItem
+                  key={docType.id}
+                  value={docType.value}
+                  sx={{
+                    fontFamily: 'Outfit',
+                    fontSize: '14px',
+                    color: '#374151',
+                    '&:hover': {
+                      backgroundColor: '#F3F4F6',
+                    },
+                    '&.Mui-selected': {
+                      backgroundColor: '#EFF6FF',
+                      color: '#2563EB',
+                    },
+                  }}
+                >
+                  {docType.label}
+                </MenuItem>
+              ))
+            ) : (
+              <MenuItem disabled value="">
+                No document types available
               </MenuItem>
-            ))}
+            )}
           </Select>
         </FormControl>
 

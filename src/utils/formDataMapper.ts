@@ -1,31 +1,16 @@
 import { FundEgressRequest } from '@/services/api/fundEgressService';
-import { ApplicationSetting } from '@/services/api/applicationSettingService';
+import { PaymentExpenseType, PaymentExpenseSubType, Currency, DepositMode, PaymentMode, TransferType, BuildAssetAccountStatus } from '@/services/api/applicationSettingService';
 import { RealEstateAsset } from '@/services/api/realEstateAssetService';
-
-// Type aliases for compatibility
-type PaymentExpenseType = ApplicationSetting;
-type PaymentExpenseSubType = ApplicationSetting;
-type Currency = ApplicationSetting;
-type DepositMode = ApplicationSetting;
-type PaymentMode = ApplicationSetting;
-type TransferType = ApplicationSetting;
-type BuildAssetAccountStatus = ApplicationSetting;
 
 // Form data interface (based on our current form fields)
 export interface FormData {
-  // Basic fields (old - kept for backward compatibility)
+  // Basic fields
   tasReference?: string
   developerName?: string
   developerId?: string
   projectName?: string
   projectId?: string
   projectStatus?: string
-  
-  // New fields
-  vaucherReferenceNumber?: string
-  assetRegisterName?: string
-  managementFirmName?: string
-  managementFirmAccountStatus?: string | number
   
   // Account balances
   escrowAccount?: string
@@ -77,47 +62,7 @@ export interface FormData {
   Transfertootherunit?: boolean
   EngineerFeePaymentNeeded?: boolean
   'reviewNote*'?: boolean
-  
-  // HOA Approval fields
-  hoaApprovalNumber?: string
-  hoaApprovalDate?: string | Date | any
-  
-  // RT03 field
-  RT03?: string
-  
-  // Budget fields
-  budgetYear?: string | number
-  budgetCategory?: string | number
-  budgetSubCategory?: string | number
-  budgetServiceName?: string | number
-  provisionalBudget?: boolean
-  HOAExemption?: boolean
-  categoryCode?: string
-  categoryName?: string
-  subCategoryCode?: string
-  subCategoryName?: string
-  serviceCode?: string
-  serviceName?: string
-  provisionalBudgetCode?: string
-  provisionalBudgetName?: string
-  availableBudgetAmount?: string
-  utilizedBudgetAmount?: string
-  invoiceBudgetAmount?: string
-  
-  // Beneficiary fields (nested objects)
-  voucherDTO?: {
-    benVoucher?: string | number
-    benVoucherName?: string
-    benVoucherSwiftCode?: string
-    benVoucherRoutingCode?: string
-    benVoucherAccountNumber?: string
-  }
-  buildPartnerDTO?: {
-    bpName?: string
-  }
-  
-  // Routing sort code
-  routinfSortcode?: string
+  feDocVerified?: boolean
   
   // Other fields
   delRefNo?: string
@@ -167,12 +112,32 @@ function createDefaultDTO(id: number = 0) {
 
 // Helper function to find real estate asset by name
 function findRealEstateAssetByName(assets: RealEstateAsset[], name: string): RealEstateAsset | undefined {
-  return assets.find(asset => asset.reaName === name);
+  return assets.find(asset => asset.mfName === name);
 }
 
-// Helper function to find build partner by name
-function findBuildPartnerByName(partners: any[], name: string): any | undefined {
-  return partners.find(partner => partner.bpName === name);
+// Helper function to find build partner by name or developerId
+function findBuildPartner(partners: any[], developerName?: string, developerId?: string): any | undefined {
+  if (!partners || partners.length === 0) return undefined;
+  
+  // First try to match by developerId if available (more reliable)
+  if (developerId) {
+    const partnerById = partners.find(partner => 
+      partner.arDeveloperId === developerId || 
+      partner.id?.toString() === developerId.toString()
+    );
+    if (partnerById) return partnerById;
+  }
+  
+  // Then try to match by name
+  if (developerName) {
+    const partnerByName = partners.find(partner => 
+      partner.arName === developerName ||
+      partner.arName?.trim() === developerName.trim()
+    );
+    if (partnerByName) return partnerByName;
+  }
+  
+  return undefined;
 }
 
 /**
@@ -208,15 +173,39 @@ export function mapFormDataToFundEgress(
     buildPartners
   } = options;
 
-  // Find selected real estate asset - use assetRegisterName (new) or projectName (old)
-  const assetId = formData.assetRegisterName ? String(formData.assetRegisterName) : formData.projectName
-  const selectedAsset = assetId
-    ? realEstateAssets.find((asset) => asset.id === parseInt(assetId))
+  // Find selected real estate asset - projectName contains the project ID (fallback to direct id)
+  const selectedAsset = formData.projectName
+    ? realEstateAssets.find((asset) => asset.id === parseInt(formData.projectName as string))
     : undefined;
   
-  // Find selected build partner - use managementFirmName (new) or developerName (old)
-  const partnerName = formData.managementFirmName || formData.developerName
-  const selectedPartner = partnerName ? findBuildPartnerByName(buildPartners, partnerName) : undefined;
+  // Find selected build partner - try by ID first, then by name
+  let selectedPartner = findBuildPartner(
+    buildPartners,
+    formData.developerName,
+    formData.developerId
+  );
+  
+  // Fallback: if partner not found but we have a selected asset, try to get partner from asset
+  if (!selectedPartner && selectedAsset && (selectedAsset as any).assetRegisterDTO) {
+    const assetPartner = (selectedAsset as any).assetRegisterDTO;
+    // Try to find the partner in buildPartners array using the asset's partner info
+    if (assetPartner.id) {
+      selectedPartner = buildPartners.find(p => p.id === assetPartner.id);
+    } else if (assetPartner.arDeveloperId) {
+      selectedPartner = buildPartners.find(p => p.arDeveloperId === assetPartner.arDeveloperId);
+    }
+  }
+  
+  // Debug logging for partner finding
+  if (!selectedPartner && (formData.developerName || formData.developerId)) {
+    console.warn('⚠️ Build partner not found:', {
+      developerName: formData.developerName,
+      developerId: formData.developerId,
+      buildPartnersCount: buildPartners?.length || 0,
+      availablePartnerIds: buildPartners?.slice(0, 5).map(p => ({ id: p.id, arDeveloperId: p.arDeveloperId, arName: p.arName })) || [],
+      selectedAssetPartner: selectedAsset ? (selectedAsset as any).assetRegisterDTO : null
+    });
+  }
 
   // Helper to parse numbers from formatted strings like "AED 1,234.56"
   const parseAmount = (value?: string) => {
@@ -258,8 +247,8 @@ export function mapFormDataToFundEgress(
     status: 'INITIATED',
     enabled: true,
 
-    // Basic fields - pass null for missing fields (support both old and new field names)
-    fePaymentRefNumber: formData.vaucherReferenceNumber || formData.tasReference || null,
+    // Basic fields - pass null for missing fields
+    fePaymentRefNumber: formData.tasReference || null,
     feInvoiceRefNo: formData.invoiceRef || null,
     feInvoiceValue: parseFloat(formData.invoiceValue || '0'),
     feInvoiceDate: formData.invoiceDate || null,
@@ -346,12 +335,20 @@ export function mapFormDataToFundEgress(
     feUnitRegistrationFee: null,
     feResponseObject: null,
     feSplitPayment: false,
-    feRtZeroThree: formData.RT03 || null,
+    feRtZeroThree: null,
     feEngineerRefNo: null,
     feEngineerApprovalDate: null,
-    // HOA Approval details - use new fields if available, fallback to old fields
-    feReraApprovedRefNo: formData.hoaApprovalNumber || formData.paymentType1 || null,
-    feReraApprovedDate: formData.hoaApprovalDate ? toIsoDate(formData.hoaApprovalDate) : toIsoDate(formData.paymentSubType1),
+    // Regular approval details from Step 1 fields
+    feReraApprovedRefNo: formData.paymentType1 || null,
+    feReraApprovedDate: toIsoDate(formData.paymentSubType1),
+    
+    // Payment execution date and account numbers
+    fePaymentExecutionDate: toIsoDate(formData.paymentDate),
+    escrowAccountNumber: formData.escrowAccount || null,
+    constructionAccountNumber: formData.corporateAccount || null,
+    corporateAccountNumber: formData.corporateAccount1 || null,
+    retentionAccountNumber: formData.corporateAccount2 || null,
+    
     feUniqueRefNo: null,
     fePaymentResponseObj: null,
     fePaymentStatus: 'PENDING',
@@ -370,7 +367,7 @@ export function mapFormDataToFundEgress(
     feErrorResponseObject: null,
     fePropertyRegistrationFee: null,
     feBalanceAmount: null,
-    feDocVerified: false,
+    feDocVerified: formData.feDocVerified || false,
     fePaymentBodyObj: null,
     feTreasuryRate: null,
     feBenefFromProject: false,
@@ -391,26 +388,25 @@ export function mapFormDataToFundEgress(
     paymentModeDTO: formData.paymentMode ? { id: parseInt(formData.paymentMode) } : null,
     transactionTypeDTO: formData.engineerFeePayment ? { id: parseInt(formData.engineerFeePayment) } : null,
 
-    // Real estate asset - use assetRegisterName (new) or projectName (old) directly (id) if available
-    realEstateAssestDTO: formData.assetRegisterName
-      ? { id: parseInt(String(formData.assetRegisterName)) }
-      : formData.projectName
+    // Real estate asset - use projectName directly (id) if available
+    managementFirmDTO: formData.projectName
       ? { id: parseInt(formData.projectName) }
       : selectedAsset
       ? { id: selectedAsset.id }
       : null,
 
-    // Build partner - use managementFirmName (new) or developerName (old) if available
-    buildPartnerDTO: (() => {
-      if (formData.managementFirmName) {
-        const partnerByName = buildPartners.find((p: any) => p.bpName === formData.managementFirmName)
-        return partnerByName ? { id: partnerByName.id, bpName: partnerByName.bpName } : null
-      }
-      return selectedPartner ? { id: selectedPartner.id } : null
-    })(),
+    // Build partner - try to use ID from formData if partner not found but developerId is numeric
+    // Also try to get ID from selected asset's assetRegisterDTO as fallback
+    assetRegisterDTO: selectedPartner 
+      ? { id: selectedPartner.id } 
+      : (selectedAsset && (selectedAsset as any).assetRegisterDTO?.id)
+        ? { id: (selectedAsset as any).assetRegisterDTO.id }
+        : (formData.developerId && !isNaN(parseInt(formData.developerId)))
+          ? { id: parseInt(formData.developerId) }
+          : null,
 
     // Capital partner unit - pass null if not found
-    capitalPartnerUnitDTO: formData.unitNo ? {
+    ownerRegistryUnitDTO: formData.unitNo ? {
       id: 0,
       unitRefId: formData.unitNo,
       altUnitRefId: null,
@@ -426,8 +422,8 @@ export function mapFormDataToFundEgress(
       noofBedroom: null,
       isModified: false,
       partnerUnitDTO: null,
-      capitalPartnerUnitTypeDTO: null,
-      realEstateAssestDTO: selectedAsset!,
+      ownerRegistryUnitTypeDTO: null,
+      managementFirmDTO: selectedAsset!,
       unitStatusDTO: formData.unitStatus ? {
         id: 0,
         settingKey: 'UNIT_STATUS',
@@ -457,7 +453,7 @@ export function mapFormDataToFundEgress(
     payoutToBeMadeFromCbsDTO: formData.uploadDocuments2
       ? { id: parseInt(formData.uploadDocuments2) }
       : null,
-    transferCapitalPartnerUnitDTO: null,
+    transferownerRegistryUnitDTO: null,
     realEstateAssestBeneficiaryDTO: null,
     suretyBondDTO: null,
     taskStatusDTO: null,
@@ -465,31 +461,35 @@ export function mapFormDataToFundEgress(
   };
 
   // Log the request for debugging
-  console.log('🔍 FormDataMapper: Generated API payload:', {
-    requestKeys: Object.keys(request),
-    requestSize: JSON.stringify(request).length,
-    hasRequiredFields: {
-      fePaymentDate: !!request.fePaymentDate,
-      fePaymentAmount: !!request.fePaymentAmount,
-      feIsManualPayment: request.feIsManualPayment,
-      status: !!request.status,
-      enabled: request.enabled
-    },
-    dtoFields: {
-      expenseTypeDTO: !!request.expenseTypeDTO,
-      expenseSubTypeDTO: !!request.expenseSubTypeDTO,
-      invoiceCurrencyDTO: !!request.invoiceCurrencyDTO,
-      paymentCurrencyDTO: !!request.paymentCurrencyDTO,
-      chargedCodeDTO: !!request.chargedCodeDTO,
-      paymentModeDTO: !!request.paymentModeDTO,
-      transactionTypeDTO: !!request.transactionTypeDTO,
-      realEstateAssestDTO: !!request.realEstateAssestDTO,
-      buildPartnerDTO: !!request.buildPartnerDTO,
-      capitalPartnerUnitDTO: !!request.capitalPartnerUnitDTO
-    }
-  });
+
 
   return request;
+}
+
+/**
+ * Map form data to FundEgressRequest for TAS payments
+ * Same as mapFormDataToFundEgress but sets feIsTasPayment: true
+ */
+export function mapFormDataToFundEgressForTas(
+  formData: FormData,
+  options: {
+    paymentTypes: PaymentExpenseType[]
+    paymentSubTypes: PaymentExpenseSubType[]
+    currencies: Currency[]
+    depositModes: DepositMode[]
+    paymentModes: PaymentMode[]
+    transferTypes: TransferType[]
+    buildAssetAccountStatuses: BuildAssetAccountStatus[]
+    realEstateAssets: RealEstateAsset[]
+    buildPartners: any[]
+    balances?: Record<string, any>
+  }
+): FundEgressRequest {
+  // Use the same mapping logic as manual payment but set feIsTasPayment: true
+  const request = mapFormDataToFundEgress(formData, options)
+  request.feIsTasPayment = true
+  request.feIsManualPayment = false
+  return request
 }
 
 /**
@@ -521,15 +521,39 @@ export function mapFormDataToFundEgressSimplified(
     buildPartners
   } = options;
 
-  // Find selected real estate asset - use assetRegisterName (new) or projectName (old)
-  const assetId = formData.assetRegisterName ? String(formData.assetRegisterName) : formData.projectName
-  const selectedAsset = assetId
-    ? realEstateAssets.find((asset) => asset.id === parseInt(assetId))
+  // Find selected real estate asset - projectName contains the project ID (fallback to direct id)
+  const selectedAsset = formData.projectName
+    ? realEstateAssets.find((asset) => asset.id === parseInt(formData.projectName as string))
     : undefined;
   
-  // Find selected build partner - use managementFirmName (new) or developerName (old)
-  const partnerName = formData.managementFirmName || formData.developerName
-  const selectedPartner = partnerName ? buildPartners.find(partner => partner.bpName === partnerName) : undefined;
+  // Find selected build partner - try by ID first, then by name
+  let selectedPartner = findBuildPartner(
+    buildPartners,
+    formData.developerName,
+    formData.developerId
+  );
+  
+  // Fallback: if partner not found but we have a selected asset, try to get partner from asset
+  if (!selectedPartner && selectedAsset && (selectedAsset as any).assetRegisterDTO) {
+    const assetPartner = (selectedAsset as any).assetRegisterDTO;
+    // Try to find the partner in buildPartners array using the asset's partner info
+    if (assetPartner.id) {
+      selectedPartner = buildPartners.find(p => p.id === assetPartner.id);
+    } else if (assetPartner.arDeveloperId) {
+      selectedPartner = buildPartners.find(p => p.arDeveloperId === assetPartner.arDeveloperId);
+    }
+  }
+  
+  // Debug logging for partner finding
+  if (!selectedPartner && (formData.developerName || formData.developerId)) {
+    console.warn('⚠️ Build partner not found (Simplified):', {
+      developerName: formData.developerName,
+      developerId: formData.developerId,
+      buildPartnersCount: buildPartners?.length || 0,
+      availablePartnerIds: buildPartners?.slice(0, 5).map(p => ({ id: p.id, arDeveloperId: p.arDeveloperId, arName: p.arName })) || [],
+      selectedAssetPartner: selectedAsset ? (selectedAsset as any).assetRegisterDTO : null
+    });
+  }
 
   // Helper to parse numbers from formatted strings like "AED 1,234.56"
   const parseAmount = (value?: string) => {
@@ -546,8 +570,8 @@ export function mapFormDataToFundEgressSimplified(
     feIsTasPayment: false,
     status: 'INITIATED',
     enabled: true,
-    // Basic fields (support both old and new field names)
-    fePaymentRefNumber: formData.vaucherReferenceNumber || formData.tasReference || '',
+    // Basic fields
+    fePaymentRefNumber: formData.tasReference || '',
     feInvoiceRefNo: formData.invoiceRef || '',
     feInvoiceValue: formData.invoiceValue || '0',
     feInvoiceDate: formData.invoiceDate || '',
@@ -576,10 +600,10 @@ export function mapFormDataToFundEgressSimplified(
     feTransferToOtherUnit: formData.Transfertootherunit || false,
     feUnitTransferAppDate: formData.paymentDate || null,
     feUnitReraApprovedRefNo: formData.regulatorApprovalRef || null,
-    // HOA Approval details - use new fields if available, fallback to old fields
-    feReraApprovedRefNo: formData.hoaApprovalNumber || formData.paymentType1 || null,
+    // Regular approval details from Step 1 fields
+    feReraApprovedRefNo: formData.paymentType1 || null,
     feReraApprovedDate: ((): any => {
-      const v: any = formData.hoaApprovalDate || formData.paymentSubType1;
+      const v: any = formData.paymentSubType1;
       if (!v) return null as any;
       if (v && typeof v === 'object' && typeof v.toDate === 'function') {
         try { return v.toDate().toISOString() as any } catch { return null as any }
@@ -591,6 +615,23 @@ export function mapFormDataToFundEgressSimplified(
       return null as any;
     })(),
     
+    // Payment execution date and account numbers
+    fePaymentExecutionDate: ((): any => {
+      const v: any = formData.paymentDate;
+      if (!v) return null as any;
+      if (v && typeof v === 'object' && typeof v.toDate === 'function') {
+        try { return v.toDate().toISOString() as any } catch { return null as any }
+      }
+      if (v instanceof Date) return (v as Date).toISOString() as any;
+      if (typeof v === 'string') {
+        const d = new Date(v); return isNaN(d.getTime()) ? null as any : d.toISOString() as any;
+      }
+      return null as any;
+    })(),
+    escrowAccountNumber: formData.escrowAccount || null,
+    constructionAccountNumber: formData.corporateAccount || null,
+    corporateAccountNumber: formData.corporateAccount1 || null,
+    retentionAccountNumber: formData.corporateAccount2 || null,
 
     // Payment fields
     feAmountToBeReleased: formData.uploadDocuments || '0',
@@ -639,10 +680,9 @@ export function mapFormDataToFundEgressSimplified(
     feDealRefNo: formData.delRefNo || null,
     fePpcNumber: formData.ppcNo || null,
     feCorpCertEngFee: formData.vatCapExceeded4 || '0',
-    feRtZeroThree: formData.RT03 || null,
     feSplitPayment: false,
     fePaymentStatus: 'PENDING',
-    feDocVerified: false,
+    feDocVerified: formData.feDocVerified || false,
     feBenefFromProject: false,
     feIncludeInPayout: false,
     feTasPaymentSuccess: false,
@@ -659,28 +699,25 @@ export function mapFormDataToFundEgressSimplified(
     paymentModeDTO: formData.paymentMode ? { id: parseInt(formData.paymentMode) } : null,
     transactionTypeDTO: formData.engineerFeePayment ? { id: parseInt(formData.engineerFeePayment) } : null,
 
-    // Real estate asset - use assetRegisterName (new) or projectName (old) directly (id) if available
-    realEstateAssestDTO: (() => {
-      if (formData.assetRegisterName) {
-        return { id: parseInt(String(formData.assetRegisterName)) }
-      }
-      if (formData.projectName) {
-        return { id: parseInt(formData.projectName) }
-      }
-      return selectedAsset ? { id: selectedAsset.id } : null
-    })(),
+    // Real estate asset - use projectName directly (id) if available
+    managementFirmDTO: formData.projectName
+      ? { id: parseInt(formData.projectName) }
+      : selectedAsset
+      ? { id: selectedAsset.id }
+      : null,
 
-    // Build partner - send id and bpName if managementFirmName is used
-    buildPartnerDTO: (() => {
-      if (formData.managementFirmName) {
-        const partner = buildPartners.find((p: any) => p.bpName === formData.managementFirmName)
-        return partner ? { id: partner.id, bpName: partner.bpName } : null
-      }
-      return selectedPartner ? { id: selectedPartner.id } : null
-    })(),
+    // Build partner - try to use ID from formData if partner not found but developerId is numeric
+    // Also try to get ID from selected asset's assetRegisterDTO as fallback
+    assetRegisterDTO: selectedPartner 
+      ? { id: selectedPartner.id } 
+      : (selectedAsset && (selectedAsset as any).assetRegisterDTO?.id)
+        ? { id: (selectedAsset as any).assetRegisterDTO.id }
+        : (formData.developerId && !isNaN(parseInt(formData.developerId)))
+          ? { id: parseInt(formData.developerId) }
+          : null,
 
     // Capital partner unit - send only id
-    capitalPartnerUnitDTO: formData.unitNo ? { id: 0 } : null,
+    ownerRegistryUnitDTO: formData.unitNo ? { id: 0 } : null,
 
     // Payout to be made from CBS
     payoutToBeMadeFromCbsDTO: formData.uploadDocuments2

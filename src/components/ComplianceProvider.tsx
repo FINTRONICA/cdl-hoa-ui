@@ -72,6 +72,10 @@ export function ComplianceProvider({
 
   // Don't render anything until client-side hydration is complete
   if (!isClient) {
+    if (showLoadingUI) {
+      return <ComplianceLoadingUI />
+    }
+
     return <>{children}</>
   }
 

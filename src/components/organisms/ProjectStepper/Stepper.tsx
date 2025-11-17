@@ -20,7 +20,7 @@ import { FormProvider, useForm } from 'react-hook-form'
 import { DocumentItem } from '../DeveloperStepper/developerTypes'
 
 const steps = [
-  'Build Partner Assest Details',
+  'Management Firms Assest Details',
   'Documents',
   'Account',
   'Fee Details',
@@ -34,39 +34,52 @@ const steps = [
 const ProjectDetailsStepper: React.FC = () => {
   const [activeStep, setActiveStep] = useState(0)
   const [projectData, setProjectData] = useState<ProjectData>({
-    sectionId: 'PROJ7102',
-    developerId: '12345677',
-    developerName: '',
-    masterDeveloperName: '',
-    projectName: '',
-    projectLocation: '',
-    projectAccountCif: '',
-    projectStatus: '',
-    projectAccountStatusDate: null,
-    projectRegistrationDate: null,
-    projectStartDate: null,
-    projectCompletionDate: null,
-    retention: '5.00',
-    additionalRetention: '8.00',
-    totalRetention: '13.00',
-    retentionEffectiveStartDate: dayjs('2022-03-31'),
-    projectManagementExpenses: '5.00',
-    marketingExpenses: '10.00',
-    realEstateBrokerExpense: '',
-    advertisingExpense: '',
-    landOwnerName: '',
-    projectCompletionPercentage: '',
-    currency: 'AED',
-    actualConstructionCost: '',
-    noOfUnits: '12',
-    remarks: '',
-    specialApproval: '',
-    paymentType: '',
-    managedBy: 'erm_checker1,erm_checker1,erm_checker1',
-    backupRef: 'Master ENBD_robust_maker1',
-    relationshipManager: '',
-    assistantRelationshipManager: '',
-    teamLeaderName: '',
+    mfId: 'PROJ7102',
+    mfId: '',
+    mfName: '',
+    mfLocation: '',
+    mfReraNumber: '',
+    mfAccoutStatusDate: null,
+    mfAccStatusDate: null,
+    mfRegistrationDate: null,
+    mfStartDate: null,
+    mfCompletionDate: null,
+    mfRetentionPercent: '5.00',
+    mfAdditionalRetentionPercent: '8.00',
+    mfTotalRetentionPercent: '13.00',
+    mfRetentionEffectiveDate: dayjs('2022-03-31'),
+    mfManagementExpenses: '5.00',
+    mfMarketingExpenses: '10.00',
+    mfRealEstateBrokerExp: 0,
+    mfAdvertisementExp: 0,
+    mfLandOwnerName: '',
+    mfPercentComplete: '',
+    mfConstructionCost: 0,
+    mfNoOfUnits: 12,
+    mfRemarks: '',
+    mfSpecialApproval: '',
+    mfManagedBy: 'erm_checker1,erm_checker1,erm_checker1',
+    mfBackupUser: 'Master ENBD_robust_maker1',
+    mfRelationshipManagerName: '',
+    mfAssestRelshipManagerName: '',
+    mfTeamLeadName: '',
+    assetRegisterDTO: {
+      id: 0,
+    },
+    mfStatusDTO: {
+      id: 0,
+    },
+    mfTypeDTO: {
+      id: 0,
+    },
+    mfAccountStatusDTO: {
+      id: 0,
+    },
+    mfConstructionCostCurrencyDTO: {
+      id: 0,
+    },
+    status: null,
+    mfBlockPaymentTypeDTO: null,
     accounts: [
       {
         trustAccountNumber: '102800280',
@@ -107,6 +120,8 @@ const ProjectDetailsStepper: React.FC = () => {
         feePercentage: '2%',
         amount: '50,000',
         vatPercentage: '18%',
+        currency: 'AED',
+        debitAccount: '',
       },
       {
         feeType: 'Management Fee',
@@ -117,6 +132,8 @@ const ProjectDetailsStepper: React.FC = () => {
         feePercentage: '5%',
         amount: '1,25,000',
         vatPercentage: '5%',
+        currency: 'AED',
+        debitAccount: '',
       },
       {
         feeType: 'Maintenance',
@@ -127,38 +144,61 @@ const ProjectDetailsStepper: React.FC = () => {
         feePercentage: '2%',
         amount: '10,000',
         vatPercentage: '18%',
+        currency: 'AED',
+        debitAccount: '',
       },
     ],
     beneficiaries: [
       {
         id: 'BEN7103',
-        expenseType: 'Contractor Payment',
-        transferType: 'NEFT',
+        beneficiaryId: 'BEN7103',
+        beneficiaryType: 'Contractor Payment',
         name: 'Shree Developers Pvt. Ltd.',
         bankName: 'HDFC Bank',
         swiftCode: 'HDFCINBBXXX',
         routingCode: 'HDFC',
-        account: '',
+        accountNumber: '',
+        mfBeneficiaryId: 'BEN7103',
+        mfBeneficiaryType: 'Contractor Payment',
+        mfName: 'Shree Developers Pvt. Ltd.',
+        mfBankName: 'HDFC Bank',
+        mfSwiftCode: 'HDFCINBBXXX',
+        mfRoutingCode: 'HDFC',
+        mfAccountNumber: '',
       },
       {
         id: 'TXN-P002-CD107',
-        expenseType: 'Contractor Disbursement',
-        transferType: 'NEFT',
+        beneficiaryId: 'TXN-P002-CD107',
+        beneficiaryType: 'Contractor Disbursement',
         name: 'Mangal Buildcon LLP',
         bankName: 'ICICI Bank',
         swiftCode: 'ICICINBBRI',
         routingCode: 'ICIC0',
-        account: '',
+        accountNumber: '',
+        mfBeneficiaryId: 'TXN-P002-CD107',
+        mfBeneficiaryType: 'Contractor Disbursement',
+        mfName: 'Mangal Buildcon LLP',
+        mfBankName: 'ICICI Bank',
+        mfSwiftCode: 'ICICINBBRI',
+        mfRoutingCode: 'ICIC0',
+        mfAccountNumber: '',
       },
       {
         id: 'TXN-P003-MKT902',
-        expenseType: 'Marketing Budget Release',
-        transferType: 'International Wire Transfer',
+        beneficiaryId: 'TXN-P003-MKT902',
+        beneficiaryType: 'Marketing Budget Release',
         name: 'Zenith Media Solutions',
         bankName: 'HSBC Bank',
         swiftCode: 'HSBCINBBXXX',
         routingCode: 'HSBC',
-        account: '',
+        accountNumber: '',
+        mfBeneficiaryId: 'TXN-P003-MKT902',
+        mfBeneficiaryType: 'Marketing Budget Release',
+        mfName: 'Zenith Media Solutions',
+        mfBankName: 'HSBC Bank',
+        mfSwiftCode: 'HSBCINBBXXX',
+        mfRoutingCode: 'HSBC',
+        mfAccountNumber: '',
       },
     ],
     paymentPlan: [
@@ -188,6 +228,10 @@ const ProjectDetailsStepper: React.FC = () => {
       actualCost: '67,000.00',
       projectBudget: '',
     },
+    closureData: {
+      totalIncomeFund: '',
+      totalPayment: '',
+    },
   })
 
   const handleNext = () => {
@@ -208,12 +252,6 @@ const ProjectDetailsStepper: React.FC = () => {
         return (
           <Step1
             initialData={projectData}
-            onDataChange={(data: any) => {
-              setProjectData((prev) => ({
-                ...prev,
-                ...data,
-              }))
-            }}
           />
         )
 
@@ -228,8 +266,8 @@ const ProjectDetailsStepper: React.FC = () => {
           return (
             <FormProvider {...methods}>
               <DocumentUploadFactory
-                type="BUILD_PARTNER_ASSET"
-                entityId={(projectData as any).sectionId || 'temp_project_id'}
+                type="MANAGEMENT_FIRMS"
+                entityId={projectData.mfId || 'temp_project_id'}
                 isOptional={true}
                 onDocumentsChange={(documents: DocumentItem[]) => {
                   setProjectData((prev) => ({
@@ -312,12 +350,7 @@ const ProjectDetailsStepper: React.FC = () => {
 
       case 7: // Project Closure (shifted from step 6)
         return (
-          <Step7
-            projectEstimatedCost={
-              projectData.financialData.projectEstimatedCost
-            }
-            actualCost={projectData.financialData.actualCost}
-          />
+          <Step7 />
         )
 
       case 8: // Review (shifted from step 7)

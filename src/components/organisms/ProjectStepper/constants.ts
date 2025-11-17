@@ -1,6 +1,6 @@
 // Step names and configuration
 export const STEPS = [
-  'Build Partner Asset Details',
+  'Management Firm  Details',
   'Documents',
   'Asset Account Details',
   'Escrow Fee & Collection Details',
@@ -15,50 +15,53 @@ export const STEPS = [
 export const SKIP_VALIDATION_STEPS = [1, 3, 4] as const
 
 // Account types for Step 2
-export const ACCOUNT_TYPES = ['TRUST', 'RETENTION', 'SUB_CONSTRUCTION', 'CORPORATE'] as const
+export const ACCOUNT_TYPES = [
+  'TRUST',
+  'RETENTION',
+  'SUBCONSTRUCTION',
+  'CORPORATE',
+] as const
 
 export const ACCOUNT_LABELS = [
-  'Trust Account Number*',
-  'Retention Account*',
+  'Trust Account',
+  'Retention Account',
   'Sub Construction Account',
-  'Corporate Account Number',
+  'Corporate Account',
 ] as const
 
 // Default form values
 export const DEFAULT_FORM_VALUES = {
   // Step 1 defaults
-  reaId: '',
-  reaCif: '',
-  reaName: '',
-  reaLocation: '',
-  reaReraNumber: '',
-  reaRetentionPercent: '',
-  reaAdditionalRetentionPercent: '',
-  reaTotalRetentionPercent: '',
-  reaManagementExpenses: '',
-  reaMarketingExpenses: '',
-  reaRealEstateBrokerExp: 0,
-  reaAdvertisementExp: 0,
-  reaPercentComplete: '',
-  reaRemarks: '',
-  reaSpecialApproval: '',
-  reaManagedBy: '',
-  reaBackupUser: '',
-  reaTeamLeadName: '',
-  reaRelationshipManagerName: '',
-  reaAssestRelshipManagerName: '',
-  reaLandOwnerName: '',
-  reaConstructionCost: 0,
-  reaNoOfUnits: 0,
-  status: 'ACTIVE',
-  
+  mfId: '',
+  mfId: '',
+  mfName: '',
+  mfLocation: '',
+  mfReraNumber: '',
+  mfRetentionPercent: '',
+  mfAdditionalRetentionPercent: '',
+  mfTotalRetentionPercent: '',
+  mfManagementExpenses: '',
+  mfMarketingExpenses: '',
+  mflEstateBrokerExp: null,
+  mfAdvertisementExp: null,
+  mfPercentComplete: '',
+  mfRemarks: '',
+  mfSpecialApproval: '',
+  mfManagedBy: '',
+  mfBackupUser: '',
+  mfTeamLeadName: '',
+  mfRelationshipManagerName: '',
+  mfAssestRelshipManagerName: '',
+  mfLandOwnerName: '',
+  mfConstructionCost: null,
+  mfNoOfUnits: null,
+  status: '',
 
-  reaConstructionCostCurrencyDTO: { id: 32 },
-  buildPartnerDTO: { id: 501 },
-  reaStatusDTO: { id: 53 },
-  reaTypeDTO: { id: 51 },
-  reaAccountStatusDTO: { id: 55 },
-  
+  mfConstructionCostCurrencyDTO: {},
+  assetRegisterDTO: {},
+  mfStatusDTO: {},
+  mfTypeDTO: {},
+  mfAccountStatusDTO: {},
 
   accounts: [
     {
@@ -90,7 +93,6 @@ export const DEFAULT_FORM_VALUES = {
       currency: 'AED',
     },
   ],
-  
 
   fees: [
     {
@@ -104,20 +106,26 @@ export const DEFAULT_FORM_VALUES = {
       vatPercentage: '',
     },
   ],
-  
- 
+
   beneficiaries: [
     {
       id: '',
-      transferType: '',
+      beneficiaryId: '',
+      beneficiaryType: '',
       name: '',
       bankName: '',
       swiftCode: '',
       routingCode: '',
-      account: '',
+      accountNumber: '',
+      mfBeneficiaryId: '',
+      mfBeneficiaryType: '',
+      mfName: '',
+      mfBankName: '',
+      mfSwiftCode: '',
+      mfRoutingCode: '',
+      mfAccountNumber: '',
     },
   ],
-  
 
   paymentPlan: [
     {
@@ -126,14 +134,13 @@ export const DEFAULT_FORM_VALUES = {
       projectCompletionPercentage: '',
     },
   ],
-  
- 
+
   financialData: {
     projectEstimatedCost: '',
     actualCost: '',
     projectBudget: '',
   },
-  
+
   // Step 8 defaults
   closureData: {
     totalIncomeFund: '',
@@ -141,13 +148,11 @@ export const DEFAULT_FORM_VALUES = {
   },
 } as const
 
-
 export const VALIDATION_PATTERNS = {
   PERCENTAGE: /^\d+(\.\d{1,2})?%?$/,
   AMOUNT: /^\d+(\.\d{1,2})?$/,
   REQUIRED: (value: any) => !!value || 'This field is required',
 } as const
-
 
 export const ERROR_MESSAGES = {
   REQUIRED: 'This field is required',
@@ -159,13 +164,11 @@ export const ERROR_MESSAGES = {
   ACCOUNT_SAVE_FAILED: 'Failed to save bank accounts',
 } as const
 
-
 export const SUCCESS_MESSAGES = {
   STEP_SAVED: 'Step saved successfully!',
   ACCOUNTS_SAVED: 'Bank accounts saved successfully!',
   ALL_STEPS_COMPLETED: 'All steps completed successfully!',
 } as const
-
 
 export const API_CONFIG = {
   MAX_RETRIES: 3,
@@ -173,12 +176,10 @@ export const API_CONFIG = {
   VALIDATION_DEBOUNCE: 300,
 } as const
 
-
 export const DATE_FORMATS = {
   DISPLAY: 'DD/MM/YYYY',
   API: 'YYYY-MM-DD',
 } as const
-
 
 export const GRID_CONFIGS = {
   DEFAULT: { xs: 12, md: 6 },
@@ -188,7 +189,6 @@ export const GRID_CONFIGS = {
   TWO_THIRDS: { xs: 12, md: 8 },
   COMPACT: { xs: 12, md: 2 },
 } as const
-
 
 export const BUTTON_CONFIGS = {
   PRIMARY: {
@@ -205,12 +205,10 @@ export const BUTTON_CONFIGS = {
   },
 } as const
 
-
 export const TABLE_CONFIGS = {
   DEFAULT_ROWS_PER_PAGE: 20,
   PAGINATION_OPTIONS: [10, 20, 50, 100],
 } as const
-
 
 export const FIELD_TYPES = {
   TEXT: 'text',

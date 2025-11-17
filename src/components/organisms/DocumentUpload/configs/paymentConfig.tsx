@@ -182,9 +182,6 @@ export const paymentActions: DocumentAction<DocumentItem>[] = [
     confirmationMessage:
       'Are you sure you want to delete this document? This action cannot be undone.',
     onClick: async (document: DocumentItem) => {
-      // Note: This would need to be implemented in the parent component
-      // as it requires updating the local state
-      console.log('Delete document:', document.id)
     },
   },
 ]
@@ -221,10 +218,10 @@ export const createPaymentDocumentConfig = (
 
   const config: DocumentUploadConfig<DocumentItem, ApiDocumentResponse> = {
     entityId: paymentId,
-    entityType: 'PAYMENT',
+    entityType: 'PAYMENTS',
     documentService: paymentDocumentService,
     mapApiToDocument: mapApiToPaymentDocumentItem,
-    documentTypeSettingKey: 'PAYMENT_DOC_TYPE', // Setting key for payment document types
+    documentTypeSettingKey: 'INVESTOR_ID_TYPE', // Setting key for payment document types
     title: options?.title || 'Payment Documents',
     description:
       options?.description ||

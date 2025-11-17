@@ -44,7 +44,7 @@ export class BuildPartnerAssetLabelsService {
       }
       
       const labels = await apiClient.get<BuildPartnerAssetLabelResponse[]>(
-        API_ENDPOINTS.APP_LANGUAGE_TRANSLATION.BUILD_PARTNER_ASSET,
+        API_ENDPOINTS.APP_LANGUAGE_TRANSLATION.MANAGEMENT_FIRMS,
         {
           headers: {
             Authorization: `Bearer ${token}`

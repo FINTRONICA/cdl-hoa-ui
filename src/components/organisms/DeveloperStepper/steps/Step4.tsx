@@ -1,13 +1,7 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
-import {
-  Box,
-  Card,
-  CardContent,
-  Button,
-  Alert,
-} from '@mui/material'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { Box, Card, CardContent, Button, Alert } from '@mui/material'
 import { BeneficiaryData } from '../developerTypes'
 import { RightSlideBeneficiaryDetailsPanel } from '../../RightSlidePanel/RightSlideBeneficiaryDetailsPanel'
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined'
@@ -89,8 +83,8 @@ const mapApiBeneficiaryToBeneficiaryData = (
     swiftCode: apiBeneficiary.bpbSwiftCode || '',
     routingCode: apiBeneficiary.bpbRoutingCode || '',
     account: apiBeneficiary.bpbAccountNumber || '',
-    buildPartnerDTO:
-      apiBeneficiary.buildPartnerDTO || apiBeneficiary.buildPartnerDTO?.[0],
+    assetRegisterDTO:
+      apiBeneficiary.assetRegisterDTO || apiBeneficiary.assetRegisterDTO?.[0],
     // Include the transfer type DTO for display
     bpbTransferTypeDTO: apiBeneficiary.bpbTransferTypeDTO,
   }
@@ -138,7 +132,8 @@ const Step4: React.FC<Step4Props> = ({
   } = useBeneficiaryDropdowns()
 
   // Dynamic labels (same approach as Contact Details step)
-  const { data: buildPartnerLabels, getLabel } = useBuildPartnerLabelsWithCache()
+  const { data: buildPartnerLabels, getLabel } =
+    useBuildPartnerLabelsWithCache()
   const currentLanguage = useAppStore((state) => state.language) || 'EN'
 
   const getBuildPartnerLabelDynamic = useCallback(
@@ -153,25 +148,32 @@ const Step4: React.FC<Step4Props> = ({
   )
 
   // Helper function to get display name from ID
-  const getDisplayName = (id: string | number, options: any[], fallback?: string): string => {
+  const getDisplayName = (
+    id: string | number,
+    options: any[],
+    fallback?: string
+  ): string => {
     if (!id || !options || options.length === 0) return fallback || String(id)
-    
-    const option = options.find(opt => 
-      String(opt.id) === String(id) || 
-      String(opt.settingValue) === String(id) ||
-      String(opt.configId) === String(id)
+
+    const option = options.find(
+      (opt) =>
+        String(opt.id) === String(id) ||
+        String(opt.settingValue) === String(id) ||
+        String(opt.configId) === String(id)
     )
-    
+
     return option?.configValue || option?.settingValue || fallback || String(id)
   }
 
   // Helper function to get beneficiary type display name from DTO
-  const getBeneficiaryTypeDisplayName = (beneficiary: BeneficiaryDetails): string => {
+  const getBeneficiaryTypeDisplayName = (
+    beneficiary: BeneficiaryDetails
+  ): string => {
     // First try to get from bpbTransferTypeDTO
     if (beneficiary.bpbTransferTypeDTO?.languageTranslationId?.configValue) {
       return beneficiary.bpbTransferTypeDTO.languageTranslationId.configValue
     }
-    
+
     // Fallback to old method if DTO is not available
     // return getDisplayName(beneficiary.bpbBeneficiaryType, beneficiaryTypes, String(beneficiary.bpbBeneficiaryType))
     return ''
@@ -304,7 +306,7 @@ const Step4: React.FC<Step4Props> = ({
       key: 'bpbBeneficiaryId',
       label: getBuildPartnerLabelDynamic('CDL_BP_BENE_REF'),
       type: 'text' as const,
-      width: 'w-20',
+      width: 'w-28',
       sortable: true,
     },
     {
@@ -313,7 +315,7 @@ const Step4: React.FC<Step4Props> = ({
       type: 'text' as const,
       width: 'w-28',
       sortable: true,
-      render: (_: any, row: BeneficiaryDetails) => 
+      render: (_: any, row: BeneficiaryDetails) =>
         getBeneficiaryTypeDisplayName(row),
     },
     {
@@ -329,7 +331,7 @@ const Step4: React.FC<Step4Props> = ({
       type: 'text' as const,
       width: 'w-32',
       sortable: true,
-      render: (_: any, row: BeneficiaryDetails) => 
+      render: (_: any, row: BeneficiaryDetails) =>
         getBankNameDisplayName(row.bpbBankName),
     },
     {
@@ -400,6 +402,56 @@ const Step4: React.FC<Step4Props> = ({
     ],
     initialRowsPerPage: 20,
   })
+
+  // Filter beneficiaries based on search state when buildPartnerId exists (client-side filtering)
+  const filteredBeneficiaries = useMemo(() => {
+    if (!buildPartnerId) return beneficiaryDetails
+
+    // Check if there are any search values
+    const hasSearchValues = Object.values(search).some(
+      (val) => val.trim() !== ''
+    )
+    if (!hasSearchValues) return beneficiaryDetails
+
+    // Filter beneficiaries based on search state (same logic as useTableState)
+    return beneficiaryDetails.filter((beneficiary) => {
+      return [
+        'bpbBeneficiaryId',
+        'bpbBeneficiaryType',
+        'bpbName',
+        'bpbBankName',
+        'bpbSwiftCode',
+        'bpbRoutingCode',
+        'routingCode',
+        'bpbAccountNumber',
+      ].every((field) => {
+        const searchVal = search[field]?.trim() || ''
+        if (!searchVal) return true
+
+        // Handle special fields that need custom extraction
+        let value: string | undefined
+        if (field === 'bpbRoutingCode' || field === 'routingCode') {
+          value = String(
+            (beneficiary as any).bpbRoutingCode ??
+              (beneficiary as any).routingCode ??
+              ''
+          )
+        } else if (field === 'bpbBeneficiaryType') {
+          // For beneficiary type, search in the display name
+          value = getBeneficiaryTypeDisplayName(beneficiary)
+        } else if (field === 'bpbBankName') {
+          // For bank name, search in the display name
+          value = getBankNameDisplayName(beneficiary.bpbBankName)
+        } else {
+          value = String(beneficiary[field as keyof BeneficiaryDetails] ?? '')
+        }
+
+        const searchLower = searchVal.toLowerCase()
+        const valueLower = value.toLowerCase()
+        return valueLower.includes(searchLower)
+      })
+    })
+  }, [beneficiaryDetails, search, buildPartnerId])
 
   // Use API pagination state when buildPartnerId exists, otherwise use local state
   // Note: useTableState uses 1-based pages (1, 2, 3...), API uses 0-based (0, 1, 2...)
@@ -585,7 +637,7 @@ const Step4: React.FC<Step4Props> = ({
         </Box>
 
         <ExpandableDataTable<BeneficiaryDetails>
-          data={buildPartnerId ? beneficiaryDetails : paginated}
+          data={buildPartnerId ? filteredBeneficiaries : paginated}
           columns={tableColumns}
           searchState={search}
           onSearchChange={handleSearchChange}

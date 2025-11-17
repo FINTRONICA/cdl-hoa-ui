@@ -121,12 +121,7 @@ export class ValidationService {
         message = 'Account is valid'
       
       }
-      
-      // If no checks passed, log why
-      if (!isValid) {
-        console.log('❌ No validation checks passed - Account is invalid')
-      }
-      
+   
      
       
       return {

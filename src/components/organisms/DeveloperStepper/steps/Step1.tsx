@@ -33,6 +33,7 @@ import { developerIdService } from '../../../../services/api/developerIdService'
 import { useDeveloperDropdownLabels } from '../../../../hooks/useDeveloperDropdowns'
 import { getDeveloperDropdownLabel } from '../../../../constants/mappings/developerDropdownMapping'
 import { validateDeveloperField } from '../../../../lib/validation/developerSchemas'
+import type { DeveloperDropdownOption } from '@/services/api/developerDropdownService'
 
 interface Step1Props {
   isReadOnly?: boolean
@@ -42,12 +43,7 @@ interface Step1Props {
 const Step1 = ({ isReadOnly = false, developerId }: Step1Props) => {
   // Check if we're in edit mode (existing developer)
   const isEditMode = !!developerId
-  const {
-    control,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useFormContext()
+  const { control, watch, setValue } = useFormContext()
 
   // State for developer ID generation
   const [generatedId, setGeneratedId] = useState<string>('')
@@ -62,7 +58,8 @@ const Step1 = ({ isReadOnly = false, developerId }: Step1Props) => {
   } = useDeveloperDropdownLabels()
 
   // Dynamic label support (Phase 1: foundation)
-  const { data: buildPartnerLabels, getLabel } = useBuildPartnerLabelsWithCache()
+  const { data: buildPartnerLabels, getLabel } =
+    useBuildPartnerLabelsWithCache()
   const currentLanguage = useAppStore((state) => state.language) || 'EN'
 
   const getBuildPartnerLabelDynamic = useCallback(
@@ -70,11 +67,7 @@ const Step1 = ({ isReadOnly = false, developerId }: Step1Props) => {
       const fallback = getBuildPartnerLabel(configId)
 
       if (buildPartnerLabels) {
-        return getLabel(
-          configId,
-          currentLanguage,
-          fallback
-        )
+        return getLabel(configId, currentLanguage, fallback)
       }
       return fallback
     },
@@ -84,8 +77,8 @@ const Step1 = ({ isReadOnly = false, developerId }: Step1Props) => {
   // Initialize developer ID from form value
   useEffect(() => {
     const subscription = watch((value, { name }) => {
-      if (name === 'bpDeveloperId' && value.bpDeveloperId) {
-        setGeneratedId(value.bpDeveloperId)
+      if (name === 'arDeveloperId' && value.arDeveloperId) {
+        setGeneratedId(value.arDeveloperId)
       }
     })
     return () => subscription.unsubscribe()
@@ -93,7 +86,7 @@ const Step1 = ({ isReadOnly = false, developerId }: Step1Props) => {
 
   // Handle Fetch Details button click
   const handleFetchDetails = async () => {
-    const currentCif = watch('bpCifrera')
+    const currentCif = watch('arCifrera')
     if (!currentCif) {
       return
     }
@@ -104,15 +97,46 @@ const Step1 = ({ isReadOnly = false, developerId }: Step1Props) => {
         await buildPartnerService.getCustomerDetailsByCif(currentCif)
 
       // Populate only the name fields from customer details and clear validation errors
-      setValue('bpName', customerDetails.name.firstName, {
-        shouldValidate: true,
-        shouldDirty: true,
-      })
-      setValue('bpNameLocal', customerDetails.name.shortName, {
-        shouldValidate: true,
-        shouldDirty: true,
-      })
-    } catch (error) {
+      const customerName = customerDetails?.name ?? {}
+
+      if (customerName.firstName !== undefined) {
+        setValue('arName', customerName.firstName, {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+      }
+
+      if (customerName.shortName !== undefined) {
+        setValue('arNameLocal', customerName.shortName, {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+      }
+      if (customerName.companyNumber !== undefined) {
+        setValue('arCompanyNumber', customerName.companyNumber ?? '', {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+      }
+      if (customerName.property !== undefined) {
+        setValue('arProjectName', customerName.property ?? '', {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+      }
+      if (customerName.masterDeveloper !== undefined) {
+        setValue('arMasterDeveloper', customerName.masterDeveloper ?? '', {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+      }
+      if (customerName.masterCommunity !== undefined) {
+        setValue('arMasterCommunity', customerName.masterCommunity ?? '', {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+      }
+    } catch {
       // You might want to show a user-friendly error message here
     }
   }
@@ -123,11 +147,11 @@ const Step1 = ({ isReadOnly = false, developerId }: Step1Props) => {
       setIsGeneratingId(true)
       const newIdResponse = developerIdService.generateNewId()
       setGeneratedId(newIdResponse.id)
-      setValue('bpDeveloperId', newIdResponse.id, {
+      setValue('arDeveloperId', newIdResponse.id, {
         shouldValidate: true,
         shouldDirty: true,
       })
-    } catch (error) {
+    } catch {
       // Handle error silently
     } finally {
       setIsGeneratingId(false)
@@ -138,16 +162,28 @@ const Step1 = ({ isReadOnly = false, developerId }: Step1Props) => {
   useEffect(() => {
     if (!isEditMode || !developerId) return
 
-    const currentId = watch('bpRegulatorDTO.id')
+    const currentId = watch('arRegulatorDTO.id')
     if (currentId) return
 
     const loadExisting = async () => {
       try {
         const svc = new BuildPartnerService()
         const details = await svc.getBuildPartner(developerId)
-        const regulatorId = (details as any)?.bpRegulatorDTO?.id
-        if (regulatorId) {
-          setValue('bpRegulatorDTO.id', regulatorId, {
+        const regulatorData = details?.arRegulatorDTO
+        let regulatorId: number | string | undefined
+        if (
+          regulatorData &&
+          typeof regulatorData === 'object' &&
+          'id' in regulatorData
+        ) {
+          regulatorId = (regulatorData as { id?: number | string }).id
+        }
+        if (
+          regulatorId !== undefined &&
+          regulatorId !== null &&
+          regulatorId !== ''
+        ) {
+          setValue('arRegulatorDTO.id', regulatorId, {
             shouldValidate: true,
             shouldDirty: false,
           })
@@ -265,17 +301,17 @@ const Step1 = ({ isReadOnly = false, developerId }: Step1Props) => {
         defaultValue={defaultValue === undefined ? '' : defaultValue}
         rules={{
           required: required ? `${label} is required` : false,
-          validate: (value: any) => validateDeveloperField(0, name, value),
+          validate: (value: unknown) => validateDeveloperField(0, name, value),
         }}
-        render={({ field }) => (
+        render={({ field, fieldState }) => (
           <TextField
             {...field}
             label={label}
             fullWidth
             required={required}
             disabled={disabled || isReadOnly}
-            error={!!errors[name]}
-            helperText={errors[name]?.message?.toString()}
+            error={!!fieldState.error}
+            helperText={fieldState.error?.message}
             InputLabelProps={{ sx: labelSx }}
             InputProps={{ sx: valueSx }}
             sx={{
@@ -302,57 +338,79 @@ const Step1 = ({ isReadOnly = false, developerId }: Step1Props) => {
   const renderApiSelectField = (
     name: string,
     label: string,
-    options: unknown[],
+    options: DeveloperDropdownOption[],
     gridSize: number = 6,
     loading = false,
     required = false
-  ) => (
-    <Grid key={name} size={{ xs: 12, md: gridSize }}>
-      <Controller
-        name={name}
-        control={control}
-        rules={{
-          required: required ? `${label} is required` : false,
-          validate: (value: any) => validateDeveloperField(0, name, value),
-        }}
-        defaultValue={undefined}
-        render={({ field }) => (
-          <FormControl fullWidth error={!!errors[name]} required={required}>
-            <InputLabel sx={labelSx}>
-              {loading ? `Loading...` : label}
-            </InputLabel>
-            <Select
-              {...field}
-              input={<OutlinedInput label={loading ? `Loading...` : label} />}
-              label={loading ? `Loading...` : label}
-              sx={{ ...selectStyles, ...valueSx }}
-              IconComponent={KeyboardArrowDownIcon}
-              disabled={loading || isReadOnly}
-            >
-              {options.map((option) => (
-                <MenuItem
-                  key={(option as { configId?: string }).configId}
-                  value={(option as { id?: string }).id}
+  ) => {
+    return (
+      <Grid key={name} size={{ xs: 12, md: gridSize }}>
+        <Controller
+          name={name}
+          control={control}
+          rules={{
+            required: required ? `${label} is required` : false,
+            validate: (value: unknown) => {
+              // First check if required and empty
+              if (
+                required &&
+                (!value ||
+                  value === '' ||
+                  value === null ||
+                  value === undefined)
+              ) {
+                return `${label} is required`
+              }
+              // Then run additional validation
+              const validationResult = validateDeveloperField(0, name, value)
+              // validateDeveloperField returns true if valid, or an error message string if invalid
+              return validationResult
+            },
+          }}
+          defaultValue=""
+          render={({ field, fieldState: { error } }) => (
+            <FormControl fullWidth error={!!error} required={required}>
+              <InputLabel sx={labelSx}>
+                {loading ? `Loading...` : label}
+              </InputLabel>
+              <Select
+                {...field}
+                value={field.value || ''}
+                input={<OutlinedInput label={loading ? `Loading...` : label} />}
+                label={loading ? `Loading...` : label}
+                sx={{ ...selectStyles, ...valueSx }}
+                IconComponent={KeyboardArrowDownIcon}
+                disabled={loading || isReadOnly}
+              >
+                {options.map((option) => (
+                  <MenuItem key={option.configId} value={option.id}>
+                    {getDisplayLabel(
+                      option,
+                      getDeveloperDropdownLabel(option.configId || '')
+                    )}
+                  </MenuItem>
+                ))}
+              </Select>
+              {error && (
+                <FormHelperText
+                  error
+                  sx={{
+                    fontFamily: 'Outfit, sans-serif',
+                    fontSize: '12px',
+                    marginLeft: '14px',
+                    marginRight: '14px',
+                    marginTop: '4px',
+                  }}
                 >
-                  {getDisplayLabel(
-                    option as any,
-                    getDeveloperDropdownLabel(
-                      (option as { configId?: string }).configId || ''
-                    )
-                  )}
-                </MenuItem>
-              ))}
-            </Select>
-            {errors[name] && (
-              <FormHelperText error>
-                {errors[name]?.message?.toString()}
-              </FormHelperText>
-            )}
-          </FormControl>
-        )}
-      />
-    </Grid>
-  )
+                  {error?.message?.toString()}
+                </FormHelperText>
+              )}
+            </FormControl>
+          )}
+        />
+      </Grid>
+    )
+  }
 
   const renderCheckboxField = (
     name: string,
@@ -415,7 +473,7 @@ const Step1 = ({ isReadOnly = false, developerId }: Step1Props) => {
         rules={{
           required: required ? `${label} is required` : false,
         }}
-        render={({ field }) => (
+        render={({ field, fieldState }) => (
           <DatePicker
             label={label}
             value={field.value}
@@ -429,8 +487,8 @@ const Step1 = ({ isReadOnly = false, developerId }: Step1Props) => {
               textField: {
                 fullWidth: true,
                 required: required,
-                error: !!errors[name],
-                helperText: errors[name]?.message?.toString(),
+                error: !!fieldState.error,
+                helperText: fieldState.error?.message,
                 sx: datePickerStyles,
                 InputLabelProps: { sx: labelSx },
                 InputProps: {
@@ -460,15 +518,15 @@ const Step1 = ({ isReadOnly = false, developerId }: Step1Props) => {
         rules={{
           required: required ? `${label} is required` : false,
         }}
-        render={({ field }) => (
+        render={({ field, fieldState }) => (
           <TextField
             {...field}
             fullWidth
             label={label}
             required={required}
             disabled={isReadOnly}
-            error={!!errors[name]}
-            helperText={errors[name]?.message?.toString()}
+            error={!!fieldState.error}
+            helperText={fieldState.error?.message}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -524,15 +582,15 @@ const Step1 = ({ isReadOnly = false, developerId }: Step1Props) => {
         rules={{
           required: required ? `${label} is required` : false,
         }}
-        render={({ field }) => (
+        render={({ field, fieldState }) => (
           <TextField
             {...field}
             fullWidth
             label={label}
             required={required}
             value={field.value || generatedId}
-            error={!!errors[name]}
-            helperText={errors[name]?.message?.toString()}
+            error={!!fieldState.error}
+            helperText={fieldState.error?.message}
             onChange={(e) => {
               setGeneratedId(e.target.value)
               field.onChange(e)
@@ -622,50 +680,123 @@ const Step1 = ({ isReadOnly = false, developerId }: Step1Props) => {
           )}
 
           <Grid container rowSpacing={4} columnSpacing={2}>
+            {/* Updated: Changed from arDeveloperId to arDeveloperId */}
             {renderDeveloperIdField(
-              'bpDeveloperId',
-              getBuildPartnerLabelDynamic('CDL_BP_ID'),
+              'arDeveloperId',
+              getBuildPartnerLabelDynamic('CDL_AR_ID'),
               6,
               true
             )}
+            {/* Updated: Changed from arCifrera to arCifrera */}
             {renderTextFieldWithButton(
-              'bpCifrera',
-              getBuildPartnerLabelDynamic('CDL_BP_CIF'),
+              'arCifrera',
+              getBuildPartnerLabelDynamic('CDL_AR_CIF'),
               'Fetch Details',
               6,
               true
             )}
+            {/* Updated: Changed from arDeveloperRegNo to arDeveloperRegNo */}
             {renderTextField(
-              'bpDeveloperRegNo',
-              getBuildPartnerLabelDynamic('CDL_BP_REGNO'),
+              'arDeveloperRegNo',
+              getBuildPartnerLabelDynamic('CDL_AR_REGNO'),
               '',
               6,
               false,
               true
             )}
+            {/* Updated: Changed from arOnboardingDate to arOnboardingDate */}
             {renderDatePickerField(
-              'bpOnboardingDate',
-              getBuildPartnerLabelDynamic('CDL_BP_REGDATE'),
+              'arOnboardingDate',
+              getBuildPartnerLabelDynamic('CDL_AR_REGDATE'),
               6,
               true
             )}
+            {/* Updated: Changed from arName to arName */}
             <Grid size={{ xs: 12, md: 6 }}>
               <Controller
-                name="bpName"
+                name="arName"
                 control={control}
                 defaultValue=""
                 rules={{
-                  required: `${getBuildPartnerLabelDynamic('CDL_BP_NAME')} is required`,
+                  required: `${getBuildPartnerLabelDynamic('CDL_AR_NAME')} is required`,
                 }}
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <TextField
                     {...field}
-                    label={`${getBuildPartnerLabelDynamic('CDL_BP_NAME')}`}
+                    label={`${getBuildPartnerLabelDynamic('CDL_AR_NAME')}`}
                     fullWidth
                     required={true}
                     disabled={true}
-                    error={!!errors['bpName']}
-                    helperText={errors['bpName']?.message?.toString()}
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                    InputLabelProps={{ sx: labelSx }}
+                    InputProps={{ sx: valueSx }}
+                    sx={{
+                      ...commonFieldStyles,
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#F5F5F5',
+                        '& fieldset': {
+                          borderColor: '#E0E0E0',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: '#E0E0E0',
+                        },
+                      },
+                    }}
+                  />
+                )}
+              />
+            </Grid>
+            {/* Updated: Changed from arNameLocal to arNameLocal */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Controller
+                name="arNameLocal"
+                control={control}
+                defaultValue=""
+                rules={{
+                  required: `${getBuildPartnerLabelDynamic('CDL_AR_NAME_LOCALE')} is required`,
+                }}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    label={`${getBuildPartnerLabelDynamic('CDL_AR_NAME_LOCALE')}`}
+                    fullWidth
+                    required={true}
+                    disabled={true}
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                    InputLabelProps={{ sx: labelSx }}
+                    InputProps={{ sx: valueSx }}
+                    sx={{
+                      ...commonFieldStyles,
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#F5F5F5',
+                        '& fieldset': {
+                          borderColor: '#E0E0E0',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: '#E0E0E0',
+                        },
+                      },
+                    }}
+                  />
+                )}
+              />
+            </Grid>
+            {/* NEW FIELDS - Asset Register specific fields */}
+            {/* Updated: Using dynamic labels for new AR fields */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Controller
+                name="arProjectName"
+                control={control}
+                defaultValue=""
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label={getBuildPartnerLabelDynamic('CDL_AR_PROJECT')}
+                    fullWidth
+                    required={true}
+                    disabled={true}
                     InputLabelProps={{ sx: labelSx }}
                     InputProps={{ sx: valueSx }}
                     sx={{
@@ -686,21 +817,16 @@ const Step1 = ({ isReadOnly = false, developerId }: Step1Props) => {
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <Controller
-                name="bpNameLocal"
+                name="arCompanyNumber"
                 control={control}
                 defaultValue=""
-                rules={{
-                  required: `${getBuildPartnerLabelDynamic('CDL_BP_NAME_LOCALE')} is required`,
-                }}
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    label={`${getBuildPartnerLabelDynamic('CDL_BP_NAME_LOCALE')}`}
+                    label={getBuildPartnerLabelDynamic('CDL_AR_COMPANY_NUMBER')}
                     fullWidth
                     required={true}
                     disabled={true}
-                    error={!!errors['bpNameLocal']}
-                    helperText={errors['bpNameLocal']?.message?.toString()}
                     InputLabelProps={{ sx: labelSx }}
                     InputProps={{ sx: valueSx }}
                     sx={{
@@ -719,76 +845,158 @@ const Step1 = ({ isReadOnly = false, developerId }: Step1Props) => {
                 )}
               />
             </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Controller
+                name="arMasterCommunity"
+                control={control}
+                defaultValue=""
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label={getBuildPartnerLabelDynamic(
+                      'CDL_AR_MASTER_COMMUNITY'
+                    )}
+                    fullWidth
+                    required={true}
+                    disabled={true}
+                    InputLabelProps={{ sx: labelSx }}
+                    InputProps={{ sx: valueSx }}
+                    sx={{
+                      ...commonFieldStyles,
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#F5F5F5',
+                        '& fieldset': {
+                          borderColor: '#E0E0E0',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: '#E0E0E0',
+                        },
+                      },
+                    }}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Controller
+                name="arMasterDeveloper"
+                control={control}
+                defaultValue=""
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label={getBuildPartnerLabelDynamic(
+                      'CDL_AR_MASTER_DEVELOPER'
+                    )}
+                    fullWidth
+                    required={true}
+                    disabled={true}
+                    InputLabelProps={{ sx: labelSx }}
+                    InputProps={{ sx: valueSx }}
+                    sx={{
+                      ...commonFieldStyles,
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#F5F5F5',
+                        '& fieldset': {
+                          borderColor: '#E0E0E0',
+                        },
+                        '&:hover fieldset': {
+                          borderColor: '#E0E0E0',
+                        },
+                      },
+                    }}
+                  />
+                )}
+              />
+            </Grid>
+
+            {/* END NEW FIELDS */}
+            {/* Updated: Changed from arMasterName to arMasterName */}
             {renderTextField(
-              'bpMasterName',
-              getBuildPartnerLabelDynamic('CDL_BP_MASTER')
+              'arMasterName',
+              getBuildPartnerLabelDynamic('CDL_AR_MASTER')
             )}
+            {/* Updated: Changed from arRegulatorDTO.id to arRegulatorDTO.id */}
             {renderApiSelectField(
-              'bpRegulatorDTO.id',
-              getBuildPartnerLabelDynamic('CDL_BP_REGULATORY_AUTHORITY'),
+              'arRegulatorDTO.id',
+              getBuildPartnerLabelDynamic('CDL_AR_REGULATORY_AUTHORITY'),
               regulatoryAuthorities,
               6,
               dropdownsLoading,
               true
             )}
+            {/* Updated: Changed from arContactAddress to arContactAddress */}
             {renderTextField(
-              'bpContactAddress',
-              getBuildPartnerLabelDynamic('CDL_BP_ADDRESS'),
+              'arContactAddress',
+              getBuildPartnerLabelDynamic('CDL_AR_ADDRESS'),
               '',
               12,
               false,
               false
             )}
+            {/* Updated: Changed from arMobile to arMobile */}
             {renderTextField(
-              'bpMobile',
-              getBuildPartnerLabelDynamic('CDL_BP_MOBILE'),
+              'arMobile',
+              getBuildPartnerLabelDynamic('CDL_AR_MOBILE'),
               '',
               4,
               false,
               false
             )}
+            {/* Updated: Changed from arEmail to arEmail */}
             {renderTextField(
-              'bpEmail',
-              getBuildPartnerLabelDynamic('CDL_BP_EMAIL'),
+              'arEmail',
+              getBuildPartnerLabelDynamic('CDL_AR_EMAIL'),
               '',
               4,
               false,
               false
             )}
+            {/* Updated: Changed from arFax to arFax */}
             {renderTextField(
-              'bpFax',
-              getBuildPartnerLabelDynamic('CDL_BP_FAX'),
+              'arFax',
+              getBuildPartnerLabelDynamic('CDL_AR_FAX'),
               '',
               4,
               false,
               false
             )}
+            {/* Updated: Changed from arLicenseNo to arLicenseNo */}
             {renderTextField(
-              'bpLicenseNo',
-              getBuildPartnerLabelDynamic('CDL_BP_LICENSE'),
+              'arLicenseNo',
+              getBuildPartnerLabelDynamic('CDL_AR_LICENSE'),
               '',
               6,
               false,
               true
             )}
+            {/* Updated: Changed from arLicenseExpDate to arLicenseExpDate */}
             {renderDatePickerField(
-              'bpLicenseExpDate',
-              getBuildPartnerLabelDynamic('CDL_BP_LICENSE_VALID'),
+              'arLicenseExpDate',
+              getBuildPartnerLabelDynamic('CDL_AR_LICENSE_VALID'),
               6,
               true
             )}
+            {/* Updated: Changed from arWorldCheckFlag to arWorldCheckFlag */}
             {renderCheckboxField(
-              'bpWorldCheckFlag',
-              getBuildPartnerLabelDynamic('CDL_BP_WORLD_STATUS'),
+              'arWorldCheckFlag',
+              getBuildPartnerLabelDynamic('CDL_AR_WORLD_STATUS'),
               3
             )}
-            {renderCheckboxField('bpMigratedData', 'Migrated Data', 3)}
+            {/* Updated: Changed from arMigratedData to arMigratedData */}
+            {renderCheckboxField('arMigratedData', 'Migrated Data', 3)}
+            {/* Updated: Changed from arWorldCheckRemarks to arWorldCheckRemarks */}
             {renderTextField(
-              'bpWorldCheckRemarks',
-              getBuildPartnerLabelDynamic('CDL_BP_WORLD_REMARKS')
+              'arWorldCheckRemarks',
+              getBuildPartnerLabelDynamic('CDL_AR_WORLD_REMARKS')
             )}
-            {renderTextField('bpremark', getBuildPartnerLabelDynamic('CDL_BP_NOTES'))}
-            {renderTextField('bpContactTel', 'Account Contact Number')}
+            {/* Updated: Changed from arremark to arRemark */}
+            {renderTextField(
+              'arRemark',
+              getBuildPartnerLabelDynamic('CDL_AR_NOTES')
+            )}
+            {/* Updated: Changed from arContactTel to arContactTel */}
+            {renderTextField('arContactTel', 'Account Contact Number')}
           </Grid>
         </CardContent>
       </Card>

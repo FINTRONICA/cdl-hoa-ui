@@ -9,6 +9,8 @@ import {
   Box,
   Alert,
   Snackbar,
+  CircularProgress,
+  Typography,
 } from '@mui/material'
 import { FormProvider } from 'react-hook-form'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -36,13 +38,15 @@ export default function DeveloperStepperWrapper({
 }: StepperProps = {}) {
   const [activeStep, setActiveStep] = useState(initialStep)
   const [isEditingMode, setIsEditingMode] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
 
   // Check if we're in view mode (read-only)
   // Use prop if provided, otherwise read from URL params (backward compatibility)
   const mode = searchParams.get('mode')
-  const isViewMode = propIsViewMode !== undefined ? propIsViewMode : mode === 'view'
+  const isViewMode =
+    propIsViewMode !== undefined ? propIsViewMode : mode === 'view'
 
   const notifications = useStepNotifications()
   const dataProcessing = useStepDataProcessing()
@@ -56,7 +60,8 @@ export default function DeveloperStepperWrapper({
   const transformers = useStepDataTransformers()
 
   // Dynamic step labels (API-driven with fallback to static mapping)
-  const { data: buildPartnerLabels, getLabel } = useBuildPartnerLabelsWithCache()
+  const { data: buildPartnerLabels, getLabel } =
+    useBuildPartnerLabelsWithCache()
   const currentLanguage = useAppStore((state) => state.language) || 'EN'
 
   const getBuildPartnerLabelDynamic = useCallback(
@@ -73,11 +78,11 @@ export default function DeveloperStepperWrapper({
   // Define steps array (direct mapping for clarity)
   const steps = useMemo(
     () => [
-      getBuildPartnerLabelDynamic('CDL_BP_DETAILS'),
+      getBuildPartnerLabelDynamic('CDL_AR_DETAILS'),
       'Documents (Optional)',
-      getBuildPartnerLabelDynamic('CDL_BP_CONTACT'),
-      getBuildPartnerLabelDynamic('CDL_BP_FEES'),
-      getBuildPartnerLabelDynamic('CDL_BP_BENE_INFO'),
+      getBuildPartnerLabelDynamic('CDL_AR_CONTACT'),
+      // getBuildPartnerLabelDynamic('CDL_BP_FEES'),
+      // getBuildPartnerLabelDynamic('CDL_BP_BENE_INFO'),
       'Review',
     ],
     [getBuildPartnerLabelDynamic]
@@ -104,13 +109,22 @@ export default function DeveloperStepperWrapper({
 
   const { data: stepStatus } = useBuildPartnerStepStatus(developerId || '')
 
-  // Set editing mode based on URL parameter
+  // Set editing mode based on URL parameter or developerId
   useEffect(() => {
     const editing = searchParams.get('editing')
+    // If editing=true in URL, set editing mode
     if (editing === 'true') {
       setIsEditingMode(true)
     }
-  }, [searchParams])
+    // If there's a developerId but no view mode, it's also editing mode
+    else if (developerId && !isViewMode) {
+      setIsEditingMode(true)
+    }
+    // If no developerId and no editing param, it's create mode
+    else if (!developerId) {
+      setIsEditingMode(false)
+    }
+  }, [searchParams, developerId, isViewMode])
 
   // Helper function to build mode parameter for navigation (matching capital partner pattern)
   const getModeParam = useCallback(() => {
@@ -142,6 +156,7 @@ export default function DeveloperStepperWrapper({
 
   const handleSaveAndNext = async () => {
     try {
+      setIsSaving(true)
       notifications.clearNotifications()
 
       // In view mode, just navigate without saving
@@ -159,18 +174,23 @@ export default function DeveloperStepperWrapper({
       }
 
       // Documents (Optional), Contact, Fees, and Beneficiary steps don't need API call here - items are saved when "Add" is clicked
+      // These steps should skip ALL validation and just navigate
       if (
         activeStep === 1 ||
-        activeStep === 2 ||
-        activeStep === 3 ||
-        activeStep === 4
+        activeStep === 2 
       ) {
-        // For these steps, just navigate to next step without API call
+        // For these steps, just navigate to next step without API call or validation
         const nextStep = activeStep + 1
         if (nextStep < steps.length) {
           // Convert 0-based activeStep to 1-based URL step
           const nextUrlStep = nextStep + 1
-          router.push(`/build-partner/${developerId}/step/${nextUrlStep}${getModeParam()}`)
+          // Preserve editing mode when navigating back to Review
+          const modeParam = getModeParam()
+          router.push(
+            `/build-partner/${developerId}/step/${nextUrlStep}${modeParam}`
+          )
+          // Update local state to match navigation
+          setActiveStep(nextStep)
         } else {
           router.push('/build-partner')
         }
@@ -178,7 +198,7 @@ export default function DeveloperStepperWrapper({
       }
 
       // Review step (step 5) - complete the process and submit workflow request
-      if (activeStep === 5) {
+      if (activeStep === 3) {
         try {
           // Get the developer ID from step status
           const developerIdFromStatus =
@@ -186,7 +206,7 @@ export default function DeveloperStepperWrapper({
 
           if (!developerIdFromStatus) {
             notifications.showError(
-              'Developer ID not found. Please complete Step 1 first.'
+              'Asset Register ID not found. Please complete Step 1 first.'
             )
             return
           }
@@ -196,7 +216,7 @@ export default function DeveloperStepperWrapper({
 
           if (!step1Data) {
             notifications.showError(
-              'Developer data not found. Please complete Step 1 first.'
+              'Asset Register data not found. Please complete Step 1 first.'
             )
             return
           }
@@ -218,11 +238,11 @@ export default function DeveloperStepperWrapper({
           })
 
           notifications.showSuccess(
-            'Developer registration submitted successfully! Workflow request created.'
+            'Asset Register registration submitted successfully! Workflow request created.'
           )
           router.push('/build-partner')
         } catch (error) {
-          console.log(error)
+          console.error(error)
           const errorData = error as {
             response?: { data?: { message?: string } }
             message?: string
@@ -239,16 +259,28 @@ export default function DeveloperStepperWrapper({
       const isFormValid = await methods.trigger()
 
       if (!isFormValid) {
+        notifications.showError(
+          'Please fill in all required fields correctly before proceeding.'
+        )
         return
       }
 
       // All other steps make API calls
       const currentFormData = methods.getValues()
-      const stepSpecificData = transformStepData(
+      let stepSpecificData = transformStepData(
         activeStep + 1,
         currentFormData,
         transformers
       )
+
+      // Add enabled and deleted fields for Step1 update
+      if (activeStep === 0 && isEditingMode) {
+        stepSpecificData = {
+          ...stepSpecificData,
+          enabled: true,
+          deleted: false,
+        }
+      }
 
       // Enhanced validation with client-side and server-side validation
       const validationResult = await validation.validateStepData(
@@ -257,12 +289,14 @@ export default function DeveloperStepperWrapper({
       )
 
       if (!validationResult.isValid) {
-        if (validationResult.source !== 'client') {
-          const errorPrefix = 'Server validation failed'
-          notifications.showError(
-            `${errorPrefix}: ${validationResult.errors?.join(', ')}`
-          )
-        }
+        const errorPrefix =
+          validationResult.source === 'client'
+            ? 'Validation failed'
+            : 'Server validation failed'
+        const errorMessage = validationResult.errors?.length
+          ? `${errorPrefix}: ${validationResult.errors.join(', ')}`
+          : `${errorPrefix}. Please check the form for errors.`
+        notifications.showError(errorMessage)
         return
       }
 
@@ -274,29 +308,34 @@ export default function DeveloperStepperWrapper({
         developerId
       )
 
+
       notifications.showSuccess('Step saved successfully!')
 
       // Navigate to next step
       if (activeStep < steps.length - 1) {
-        // For Step 1, we need to get the developer ID from the API response and navigate to dynamic route
+        // For Step 1, we need to get the Asset Register ID from the API response and navigate to dynamic route
         if (activeStep === 0) {
-          // Step 1 just saved, get the developer ID from the API response
+          // Step 1 just saved, get the Asset Register ID from the API response
           const savedDeveloperId =
             (saveResponse as any)?.data?.id || (saveResponse as any)?.id
 
           if (savedDeveloperId) {
-            // Navigate to Step 2 using the dynamic route with the ID from backend
-            router.push(`/build-partner/${savedDeveloperId}/step/2${getModeParam()}`)
+            // Navigate to Step 2 using the dynamic route with the Asset Register ID from backend
+            router.push(
+              `/build-partner/${savedDeveloperId}/step/2${getModeParam()}`
+            )
           } else {
-            // Fallback to local state if no developer ID
+            // Fallback to local state if no Asset Register ID
             setActiveStep((prev) => prev + 1)
           }
         } else if (developerId) {
-          // For other steps, use the existing developer ID
+          // For other steps, use the existing Asset Register ID
           const nextStep = activeStep + 1
-          router.push(`/build-partner/${developerId}/step/${nextStep + 1}${getModeParam()}`)
+          router.push(
+            `/build-partner/${developerId}/step/${nextStep + 1}${getModeParam()}`
+          )
         } else {
-          // Fallback to local state
+          // Fallback to local state if no Asset Register ID
           setActiveStep((prev) => prev + 1)
         }
       } else {
@@ -305,6 +344,7 @@ export default function DeveloperStepperWrapper({
         notifications.showSuccess('All steps completed successfully!')
       }
     } catch (error: unknown) {
+      setIsSaving(false)
       console.error('Error saving step:', error)
       const errorData = error as {
         response?: { data?: { message?: string } }
@@ -315,6 +355,8 @@ export default function DeveloperStepperWrapper({
         errorData?.message ||
         'Failed to save step. Please try again.'
       notifications.showError(errorMessage)
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -329,95 +371,64 @@ export default function DeveloperStepperWrapper({
     }
   }
 
-  // Reset editing mode when starting fresh (no developerId)
-  useEffect(() => {
-    if (!developerId) {
-      setIsEditingMode(false)
-    }
-  }, [developerId])
-
   return (
     <FormProvider {...methods}>
-      <Box sx={{ width: '100%' }}>
+      <Box
+        sx={{
+          width: '100%',
+          backgroundColor: '#FFFFFFBF',
+          borderRadius: '16px',
+          paddingTop: '16px',
+          border: '1px solid #FFFFFF',
+        }}
+      >
         <Stepper activeStep={activeStep} alternativeLabel>
           {steps.map((label) => (
             <Step key={label}>
-              <StepLabel>{label}</StepLabel>
+              <StepLabel>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontFamily: 'Outfit, sans-serif',
+                    fontWeight: 400,
+                    fontStyle: 'normal',
+                    fontSize: '12px',
+                    lineHeight: '100%',
+                    letterSpacing: '0.36px',
+                    textAlign: 'center',
+                    verticalAlign: 'middle',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {label}
+                </Typography>
+              </StepLabel>
             </Step>
           ))}
         </Stepper>
 
-        <Box sx={{ mt: 4 }}>{stepRenderer.getStepContent(activeStep)}</Box>
-
         <Box
           sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            mt: 3,
-            mx: 6,
-            mb: 2,
+            my: 4,
+            backgroundColor: '#FFFFFFBF',
+            boxShadow: 'none',
           }}
         >
-          <Button
-            variant="outlined"
-            onClick={() => router.push('/build-partner')}
+          {stepRenderer.getStepContent(activeStep)}
+
+          <Box
             sx={{
-              fontFamily: 'Outfit, sans-serif',
-              fontWeight: 500,
-              fontStyle: 'normal',
-              fontSize: '14px',
-              lineHeight: '20px',
-              letterSpacing: 0,
+              display: 'flex',
+              justifyContent: 'space-between',
+              mt: 3,
+              mx: 6,
+              mb: 2,
             }}
           >
-            Cancel
-          </Button>
-          <Box>
-            {activeStep !== 0 && (
-              <Button
-                onClick={handleBack}
-                variant="outlined"
-                sx={{
-                  width: '114px',
-                  height: '36px',
-                  gap: '6px',
-                  opacity: 1,
-                  paddingTop: '2px',
-                  paddingRight: '3px',
-                  paddingBottom: '2px',
-                  paddingLeft: '3px',
-                  borderRadius: '6px',
-                  backgroundColor: '#DBEAFE',
-                  color: '#155DFC',
-                  border: 'none',
-                  mr: 2,
-                  fontFamily: 'Outfit, sans-serif',
-                  fontWeight: 500,
-                  fontStyle: 'normal',
-                  fontSize: '14px',
-                  lineHeight: '20px',
-                  letterSpacing: 0,
-                }}
-              >
-                Back
-              </Button>
-            )}
             <Button
-              onClick={handleSaveAndNext}
-              variant="contained"
+              variant="outlined"
+              onClick={() => router.push('/build-partner')}
               sx={{
-                width: '114px',
-                height: '36px',
-                gap: '6px',
-                opacity: 1,
-                paddingTop: '2px',
-                paddingRight: '3px',
-                paddingBottom: '2px',
-                paddingLeft: '3px',
-                borderRadius: '6px',
-                backgroundColor: '#2563EB',
-                color: '#FFFFFF',
-                boxShadow: 'none',
                 fontFamily: 'Outfit, sans-serif',
                 fontWeight: 500,
                 fontStyle: 'normal',
@@ -426,14 +437,83 @@ export default function DeveloperStepperWrapper({
                 letterSpacing: 0,
               }}
             >
-              {isViewMode
-                ? activeStep === steps.length - 1
-                  ? 'Done'
-                  : 'Next'
-                : activeStep === steps.length - 1
-                  ? 'Complete'
-                  : 'Save and Next'}
+              Cancel
             </Button>
+            <Box>
+              {activeStep !== 0 && (
+                <Button
+                  onClick={handleBack}
+                  variant="outlined"
+                  sx={{
+                    width: '114px',
+                    height: '36px',
+                    gap: '6px',
+                    opacity: 1,
+                    paddingTop: '2px',
+                    paddingRight: '3px',
+                    paddingBottom: '2px',
+                    paddingLeft: '3px',
+                    borderRadius: '6px',
+                    backgroundColor: '#DBEAFE',
+                    color: '#155DFC',
+                    border: 'none',
+                    mr: 2,
+                    fontFamily: 'Outfit, sans-serif',
+                    fontWeight: 500,
+                    fontStyle: 'normal',
+                    fontSize: '14px',
+                    lineHeight: '20px',
+                    letterSpacing: 0,
+                  }}
+                >
+                  Back
+                </Button>
+              )}
+              <Button
+                onClick={handleSaveAndNext}
+                variant="contained"
+                disabled={isSaving}
+                startIcon={
+                  isSaving ? (
+                    <CircularProgress size={16} color="inherit" />
+                  ) : undefined
+                }
+                sx={{
+                  width: isSaving ? '140px' : '114px',
+                  height: '36px',
+                  gap: '6px',
+                  opacity: 1,
+                  paddingTop: '2px',
+                  paddingRight: '3px',
+                  paddingBottom: '2px',
+                  paddingLeft: '3px',
+                  borderRadius: '6px',
+                  backgroundColor: '#2563EB',
+                  color: '#FFFFFF',
+                  boxShadow: 'none',
+                  fontFamily: 'Outfit, sans-serif',
+                  fontWeight: 500,
+                  fontStyle: 'normal',
+                  fontSize: '14px',
+                  lineHeight: '20px',
+                  letterSpacing: 0,
+                  '&.Mui-disabled': {
+                    backgroundColor: '#93C5FD',
+                    color: '#FFFFFF',
+                  },
+                }}
+              >
+                {isSaving
+                  ? 'Saving...'
+                  : isViewMode
+                    ? activeStep === steps.length - 1
+                      ? 'Done'
+                      : 'Next'
+                    : activeStep === steps.length - 1
+                      ? 'Complete'
+                      : 'Save and Next'}
+              </Button>
+            </Box>
           </Box>
         </Box>
 

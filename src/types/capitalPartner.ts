@@ -43,24 +43,24 @@ export interface InvestorTypeDTO {
 
 export interface CapitalPartnerResponse {
   id: number
-  capitalPartnerId: string
-  capitalPartnerName: string
-  capitalPartnerMiddleName: string
-  capitalPartnerLastName: string
-  capitalPartnerOwnershipPercentage: number | null
-  capitalPartnerIdNo: string
-  capitalPartnerTelephoneNo: string
-  capitalPartnerMobileNo: string
-  capitalPartnerEmail: string
-  capitalPartnerOwnerNumber: number
+  ownerRegistryId: string
+  ownerRegistryName: string
+  ownerRegistryMiddleName: string
+  ownerRegistryLastName: string
+  ownerRegistryOwnershipPercentage: number | null
+  ownerRegistryIdNo: string
+  ownerRegistryTelephoneNo: string
+  ownerRegistryMobileNo: string
+  ownerRegistryEmail: string
+  ownerRegistryOwnerNumber: number
   isCurrent: boolean
   idExpiaryDate: string
-  capitalPartnerLocaleName: string
+  ownerRegistryLocaleName: string
   documentTypeDTO: DocumentTypeDTO
   countryOptionDTO: CountryOptionDTO
   investorTypeDTO: InvestorTypeDTO
-  capitalPartnerBankInfoDTOS: any | null
-  capitalPartnerUnitDTO: any | null
+  ownerRegistryBankInfoDTOS: any | null
+  ownerRegistryUnitDTO: any | null
   deleted: boolean
   enabled: boolean
   taskStatusDTO: any | null
@@ -68,13 +68,14 @@ export interface CapitalPartnerResponse {
 
 export interface PaymentPlanResponse {
   id?: number
-  cpppInstallmentNumber: number
-  cpppInstallmentDate: string
-  cpppBookingAmount: number
-  capitalPartnerDTO: {
+  ownppInstallmentNumber: number
+  ownppInstallmentDate: string
+  ownppBookingAmount: number
+  ownerRegistryDTO: {
     id: number
   }
   deleted: boolean
+  enabled: boolean
 }
 
 export interface PayModeDTO {
@@ -87,17 +88,39 @@ export interface PayModeDTO {
   enabled: boolean
   deleted: boolean | null
 }
-
+// export interface OwnerRegistryContactResponse {
+//   id: number
+//   jointownDetailsContactName: string | null
+//   jointownDetailsFirstName: string
+//   jointownDetailsLastName: string
+//   jointownDetailsContactTelCode: string | null
+//   jointownDetailsContactTelNo: string
+//   jointownDetailsCountryMobCode: string
+//   jointownDetailsContactMobNo: string
+//   jointownDetailsContactEmail: string
+//   jointownDetailsContactAddress: string | null
+//   jointownDetailsContactAddressLine1: string
+//   jointownDetailsContactAddressLine2: string
+//   jointownDetailsContactPoBox: string
+//   jointownDetailsContactFaxNo: string
+//   enabled: boolean
+//   workflowStatus: string | null
+//   deleted: boolean | null
+//   ownerRegistryDTO?: {
+//     id: number
+//     [key: string]: any
+//   }
+// }
 export interface BankDetailsResponse {
   id: number
-  cpbiPayeeName: string
-  cpbiPayeeAddress: string
-  cpbiBankName: string
-  cpbiBankAddress: string
-  cpbiBicCode: string
-  cpbiBeneRoutingCode: string
-  cpbiAccountNumber: string
-  capitalPartnerDTO: CapitalPartnerResponse
+  ownbiPayeeName: string
+  ownbiPayeeAddress: string
+  ownbiBankName: string
+  ownbiBankAddress: string
+  ownbiBicCode: string
+  ownbiBeneRoutingCode: string
+  ownbiAccountNumber: string
+  ownerRegistryDTO: CapitalPartnerResponse
   payModeDTO: PayModeDTO
   deleted: boolean
 }
@@ -126,43 +149,43 @@ export interface PropertyIdDTO {
 
 export interface RealEstateAssetDTO {
   id: number
-  reaId: string
-  reaCif: string
-  reaName: string
-  reaNameLocal: string
-  reaLocation: string
-  reaReraNumber: string
-  reaStartDate: string
-  reaCompletionDate: string
-  reaPercentComplete: string
-  reaConstructionCost: number
-  reaAccStatusDate: string
-  reaRegistrationDate: string
-  reaNoOfUnits: number
-  reaRemarks: string
-  reaSpecialApproval: string
-  reaManagedBy: string
-  reaBackupUser: string
-  reaRetentionPercent: string
-  reaAdditionalRetentionPercent: string
-  reaTotalRetentionPercent: string
-  reaRetentionEffectiveDate: string
-  reaManagementExpenses: string
-  reaMarketingExpenses: string
-  reaAccoutStatusDate: string
-  reaTeamLeadName: string
-  reaRelationshipManagerName: string
-  reaAssestRelshipManagerName: string
-  reaRealEstateBrokerExp: number
-  reaAdvertisementExp: number
-  reaLandOwnerName: string
-  buildPartnerDTO: any | null
-  reaStatusDTO: any | null
-  reaTypeDTO: any | null
-  reaAccountStatusDTO: any | null
-  reaConstructionCostCurrencyDTO: any | null
+  mfId: string
+  mfId: string
+  mfName: string
+  mfNameLocal: string
+  mfLocation: string
+  mfReraNumber: string
+  mfStartDate: string
+  mfCompletionDate: string
+  mfPercentComplete: string
+  mfConstructionCost: number
+  mfAccStatusDate: string
+  mfRegistrationDate: string
+  mfNoOfUnits: number
+  mfRemarks: string
+  mfSpecialApproval: string
+  mfManagedBy: string
+  mfBackupUser: string
+  mfRetentionPercent: string
+  mfAdditionalRetentionPercent: string
+  mfTotalRetentionPercent: string
+  mfRetentionEffectiveDate: string
+  mfManagementExpenses: string
+  mfMarketingExpenses: string
+  mfAccoutStatusDate: string
+  mfTeamLeadName: string
+  mfRelationshipManagerName: string
+  mfAssestRelshipManagerName: string
+  mfRealEstateBrokerExp: number
+  mfAdvertisementExp: number
+  mfLandOwnerName: string
+  assetRegisterDTO: any | null
+  mfStatusDTO: any | null
+  mfTypeDTO: any | null
+  mfAccountStatusDTO: any | null
+  mfConstructionCostCurrencyDTO: any | null
   status: any | null
-  reaBlockPaymentTypeDTO: any | null
+  mfBlockPaymentTypeDTO: any | null
   deleted: boolean
   taskStatusDTO: any | null
 }
@@ -183,65 +206,65 @@ export interface CapitalPartnerUnitResponse {
   noofBedroom: string
   isModified: boolean
   partnerUnitDTO: any | null
-  capitalPartnerUnitTypeDTO: any | null
-  realEstateAssestDTO: RealEstateAssetDTO
+  ownerRegistryUnitTypeDTO: any | null
+  managementFirmDTO: RealEstateAssetDTO
   unitStatusDTO: UnitStatusDTO
   propertyIdDTO: PropertyIdDTO
   paymentPlanTypeDTO: any | null
-  capitalPartnerUnitBookingDTO: any | null
-  childCapitalPartnerUnitDTO: any | null
-  capitalPartnerDTOS: any | null
+  ownerRegistryUnitBookingDTO: any | null
+  childownerRegistryUnitDTO: any | null
+  ownerRegistryDTOS: any | null
   deleted: boolean
 }
 
 export interface CapitalPartnerUnitBookingResponse {
   id: number
-  cpubAmountPaid: number | null
-  cpubAreaSize: number
-  cpubForFeitAmount: number
-  cpubDldAmount: number
-  cpubRefundAmount: number
-  cpubTransferredAmount: number
-  cpubRemarks: string
-  capitalPartnerUnitDTOS: CapitalPartnerUnitResponse | null
+  ownubAmountPaid: number | null
+  ownubAreaSize: number
+  ownubForFeitAmount: number
+  ownubDldAmount: number
+  ownubRefundAmount: number
+  ownubTransferredAmount: number
+  ownubRemarks: string
+  ownerRegistryUnitDTOS: CapitalPartnerUnitResponse | null
   deleted: boolean
 }
 
 export interface CapitalPartnerUnitPurchaseResponse {
   id: number
-  cpuPurchaseDate: string | null
-  cpupSaleRate: number | null
-  cpuPurchasePrice: number | null
-  cpupUnitRegistrationFee: number | null
-  cpupAgentName: string
-  cpupAgentId: string
-  cpupGrossSaleprice: number
-  cpupVatApplicable: boolean
-  cpupDeedNo: string
-  cpupAgreementNo: string
-  cpupAgreementDate: string
-  cpupSalePurchaseAgreement: boolean
-  cpupWorldCheck: boolean
-  cpupAmtPaidToDevInEscorw: number
-  cpupAmtPaidToDevOutEscorw: number
-  cpupTotalAmountPaid: number
-  cpupUnitIban: string
-  cpupOqood: string | null
-  cpupOqoodPaid: boolean
-  cpupOqoodAmountPaid: string
-  cpupUnitAreaSize: string
-  cpupForfeitAmount: string
-  cpupDldAmount: string
-  cpupRefundAmount: string
-  cpupRemarks: string
-  cpupTransferredAmount: string
-  cpupUnitNoOtherFormat: string
-  cpupSalePrice: number
-  cpupProjectPaymentPlan: boolean
-  cpupReservationBookingForm: boolean
-  cpupModificationFeeNeeded: boolean
-  cpupCreditCurrencyDTO: any | null
-  cpuPurchasePriceCurrencyDTO: any | null
-  capitalPartnerUnitDTO: CapitalPartnerUnitResponse
+  ownuPurchaseDate: string | null
+  ownupSaleRate: number | null
+  ownuPurchasePrice: number | null
+  ownupUnitRegistrationFee: number | null
+  ownupAgentName: string
+  ownupAgentId: string
+  ownupGrossSaleprice: number
+  ownupVatApplicable: boolean
+  ownupDeedNo: string
+  ownupAgreementNo: string
+  ownupAgreementDate: string
+  ownupSalePurchaseAgreement: boolean
+  ownupWorldCheck: boolean
+  ownupAmtPaidToDevInEscorw: number
+  ownupAmtPaidToDevOutEscorw: number
+  ownupTotalAmountPaid: number
+  ownupUnitIban: string
+  ownupOqood: string | null
+  ownupOqoodPaid: boolean
+  ownupOqoodAmountPaid: string
+  ownupUnitAreaSize: string
+  ownupForfeitAmount: string
+  ownupDldAmount: string
+  ownupRefundAmount: string
+  ownupRemarks: string
+  ownupTransferredAmount: string
+  ownupUnitNoOtherFormat: string
+  ownupSalePrice: number
+  ownupProjectPaymentPlan: boolean
+  ownupReservationBookingForm: boolean
+  ownupModificationFeeNeeded: boolean
+  ownupCreditCurrencyDTO: any | null
+  ownuPurchasePriceCurrencyDTO: any | null
+  ownerRegistryUnitDTO: CapitalPartnerUnitResponse
   deleted: boolean
 }

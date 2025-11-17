@@ -22,9 +22,9 @@ interface WorkflowRequestData
   extends EngagementsActionsUIData,
     Record<string, unknown> {
   payloadJson?: {
-    bpName?: string
-    bpCifrera?: string
-    bpLicenseNo?: string
+    arName?: string
+    arCifrera?: string
+    arLicenseNo?: string
     [key: string]: unknown
   }
 }
@@ -88,14 +88,14 @@ const InvolvedActivitiesPage: React.FC = () => {
 
     return workflowResponse.content.map((item) => {
       const payloadJson = item.payloadJson as Record<string, unknown>
-      const payloadName = (payloadJson?.bpName as string) || '-'
-      const bpCifrera = (payloadJson?.bpCifrera as string) || '-'
+      const payloadName = (payloadJson?.arName as string) || '-'
+      const arCifrera = (payloadJson?.arCifrera as string) || '-'
 
       const result = {
         ...item,
         payloadJson: item.payloadJson,
         payloadName,
-        bpCifrera,
+        arCifrera,
         createdAt: formatDateOnly(item.createdAt),
       } as WorkflowRequestData
 
@@ -138,7 +138,7 @@ const InvolvedActivitiesPage: React.FC = () => {
 
         router.push(navigationPath)
       } catch (error) {
-        console.log(error)
+        console.error(error)
       }
     },
     [activeTab, router]
@@ -160,7 +160,7 @@ const InvolvedActivitiesPage: React.FC = () => {
       setSelectedTxnId(id)
       setIsTxnPanelOpen(true)
     } catch (error) {
-      console.log(error)
+      console.error(error)
       const id = row?.id ?? `temp-${index}`
       setSelectedTxnId(id)
       setIsTxnPanelOpen(true)
@@ -209,7 +209,7 @@ const InvolvedActivitiesPage: React.FC = () => {
       'stageName',
       'stageStatus',
       'payloadName',
-      'bpCifrera',
+      'arCifrera',
     ],
     initialRowsPerPage: 20,
   })
@@ -288,7 +288,7 @@ const InvolvedActivitiesPage: React.FC = () => {
     },
 
     {
-      key: 'bpCifrera',
+      key: 'arCifrera',
       label: getWorkflowRequestLabelDynamic('BP_CIFRERA'),
       type: 'text' as const,
       width: 'w-30',

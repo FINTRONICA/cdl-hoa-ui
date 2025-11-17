@@ -2,29 +2,29 @@ import { apiClient } from '@/lib/apiClient'
 import { buildApiUrl, API_ENDPOINTS } from '@/constants/apiEndpoints'
 
 // ---------- Response DTOs ----------
-export interface BuildPartnerDTO {
+export interface assetRegisterDTO {
   id: number
-  bpDeveloperId: string
-  bpCifrera: string
-  bpDeveloperRegNo: string
-  bpName: string
-  bpMasterName: string
-  bpNameLocal: string
-  bpOnboardingDate: string
-  bpContactAddress: string
-  bpContactTel: string
-  bpPoBox: string
-  bpMobile: string
-  bpFax: string
-  bpEmail: string
-  bpLicenseNo: string
-  bpLicenseExpDate: string
-  bpWorldCheckFlag: string
-  bpWorldCheckRemarks: string
-  bpMigratedData: boolean
-  bpremark: string
-  bpRegulatorDTO: any
-  bpActiveStatusDTO: any
+  arDeveloperId: string
+  arCifrera: string
+  arDeveloperRegNo: string
+  arName: string
+  arMasterName: string
+  arNameLocal: string
+  arOnboardingDate: string
+  arContactAddress: string
+  arContactTel: string
+  arPoBox: string
+  arMobile: string
+  arFax: string
+  arEmail: string
+  arLicenseNo: string
+  arLicenseExpDate: string
+  arWorldCheckFlag: string
+  arWorldCheckRemarks: string
+  arMigratedData: boolean
+  arremark: string
+  arRegulatorDTO: any
+  arActiveStatusDTO: any
   beneficiaryIds: number[]
   deleted: boolean | null
   taskStatusDTO: any
@@ -32,43 +32,44 @@ export interface BuildPartnerDTO {
 
 export interface RealEstateAsset {
   id: number
-  reaId: string
-  reaCif: string
-  reaName: string
-  reaNameLocal: string
-  reaLocation: string
-  reaReraNumber: string
-  reaStartDate: string
-  reaCompletionDate: string
-  reaPercentComplete: string
-  reaConstructionCost: number
-  reaAccStatusDate: string
-  reaRegistrationDate: string
-  reaNoOfUnits: number
-  reaRemarks: string
-  reaSpecialApproval: string
-  reaManagedBy: string
-  reaBackupUser: string
-  reaRetentionPercent: string
-  reaAdditionalRetentionPercent: string
-  reaTotalRetentionPercent: string
-  reaRetentionEffectiveDate: string
-  reaManagementExpenses: string
-  reaMarketingExpenses: string
-  reaAccoutStatusDate: string
-  reaTeamLeadName: string
-  reaRelationshipManagerName: string
-  reaAssestRelshipManagerName: string
-  reaRealEstateBrokerExp: number
-  reaAdvertisementExp: number
-  reaLandOwnerName: string
-  buildPartnerDTO: BuildPartnerDTO
-  reaStatusDTO: any
-  reaTypeDTO: any
-  reaAccountStatusDTO: any
-  reaConstructionCostCurrencyDTO: any
+  mfId: string
+  mfId: string
+  mfId: string
+  mfName: string
+  mfNameLocal: string
+  mfLocation: string
+  mfReraNumber: string
+  mfStartDate: string
+  mfCompletionDate: string
+  mfPercentComplete: string
+  mfConstructionCost: number
+  mfAccStatusDate: string
+  mfRegistrationDate: string
+  mfNoOfUnits: number
+  mfRemarks: string
+  mfSpecialApproval: string
+  mfManagedBy: string
+  mfBackupUser: string
+  mfRetentionPercent: string
+  mfAdditionalRetentionPercent: string
+  mfTotalRetentionPercent: string
+  mfRetentionEffectiveDate: string
+  mfManagementExpenses: string
+  mfMarketingExpenses: string
+  mfAccoutStatusDate: string
+  mfTeamLeadName: string
+  mfRelationshipManagerName: string
+  mfAssestRelshipManagerName: string
+  mfRealEstateBrokerExp: number
+  mfAdvertisementExp: number
+  mfLandOwnerName: string
+  assetRegisterDTO: assetRegisterDTO
+  mfStatusDTO: any
+  mfTypeDTO: any
+  mfAccountStatusDTO: any
+  mfConstructionCostCurrencyDTO: any
   status: any
-  reaBlockPaymentTypeDTO: any
+  mfBlockPaymentTypeDTO: any
   deleted: boolean
   taskStatusDTO: any
 }
@@ -87,7 +88,7 @@ export interface RealEstateAssetResponse {
 class RealEstateAssetService {
   async getRealEstateAssetById(id: number): Promise<RealEstateAsset> {
     const url = buildApiUrl(
-      API_ENDPOINTS.REAL_ESTATE_ASSET.GET_BY_ID(id.toString())
+      API_ENDPOINTS.MANAGEMENT_FIRMS.GET_BY_ID(id.toString())
     )
     const data = await apiClient.get<RealEstateAsset>(url)
     return data
@@ -98,7 +99,7 @@ class RealEstateAssetService {
     payload: Partial<RealEstateAsset>
   ): Promise<RealEstateAsset> {
     const url = buildApiUrl(
-      API_ENDPOINTS.REAL_ESTATE_ASSET.UPDATE(id.toString())
+      API_ENDPOINTS.MANAGEMENT_FIRMS.UPDATE(id.toString())
     )
     const response = await apiClient.put(url, payload)
     return response as RealEstateAsset
@@ -106,21 +107,25 @@ class RealEstateAssetService {
 
   async deleteRealEstateAsset(id: number): Promise<void> {
     const url = buildApiUrl(
-      API_ENDPOINTS.REAL_ESTATE_ASSET.SOFT_DELETE(id.toString())
+      API_ENDPOINTS.MANAGEMENT_FIRMS.SOFT_DELETE(id.toString())
     )
     await apiClient.delete(url)
   }
 
   async createRealEstateAsset(payload: any): Promise<RealEstateAsset> {
-    const url = buildApiUrl(API_ENDPOINTS.REAL_ESTATE_ASSET.SAVE)
+    const url = buildApiUrl(API_ENDPOINTS.MANAGEMENT_FIRMS.SAVE)
     const response = await apiClient.post(url, payload)
     return response as RealEstateAsset
   }
 
-  async findAllRealEstateAssets(): Promise<RealEstateAssetResponse> {
-    const url = buildApiUrl(API_ENDPOINTS.REAL_ESTATE_ASSET.GET_ALL)
+  async findAllRealEstateAssets(): Promise<
+    RealEstateAssetResponse | RealEstateAsset[]
+  > {
+    const url = buildApiUrl(API_ENDPOINTS.MANAGEMENT_FIRMS.GET_ALL)
     const filteredUrl = `${url}`
-    const data = await apiClient.get<RealEstateAssetResponse>(filteredUrl)
+    const data = await apiClient.get<
+      RealEstateAssetResponse | RealEstateAsset[]
+    >(filteredUrl)
     return data
   }
 
@@ -128,7 +133,7 @@ class RealEstateAssetService {
     page = 0,
     size = 1000
   ): Promise<RealEstateAssetResponse> {
-    const url = buildApiUrl(API_ENDPOINTS.REAL_ESTATE_ASSET.GET_ALL)
+    const url = buildApiUrl(API_ENDPOINTS.MANAGEMENT_FIRMS.GET_ALL)
     const queryParams = new URLSearchParams({
       page: page.toString(),
       size: size.toString(),

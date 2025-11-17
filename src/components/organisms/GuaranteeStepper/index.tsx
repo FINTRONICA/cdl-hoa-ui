@@ -46,7 +46,7 @@ export default function GuaranteeStepperWrapper({
   const [isEditMode, setIsEditMode] = useState(false)
   const [savedId, setSavedId] = useState<string | null>(null)
   const [buildPartners, setBuildPartners] = useState<
-    Array<{ id: number; bpName: string | null }>
+    Array<{ id: number; arName: string | null }>
   >([])
   const [originalSuretyBondData, setOriginalSuretyBondData] =
     useState<SuretyBondResponse | null>(null)
@@ -213,7 +213,7 @@ export default function GuaranteeStepperWrapper({
 
         // Find the selected build partner ID from the name
         const selectedDeveloper = buildPartners.find(
-          (bp) => bp.bpName === formValues.developerName
+          (bp) => bp.arName === formValues.developerName
         )
         const developerId = selectedDeveloper?.id || null
 
@@ -254,14 +254,14 @@ export default function GuaranteeStepperWrapper({
             ? { id: parseInt(formValues.guaranteeType) }
             : originalSuretyBondData.suretyBondTypeDTO,
 
-          realEstateAssestDTO: formValues.projectName
+          managementFirmDTO: formValues.projectName
             ? { id: parseInt(formValues.projectName) }
-            : originalSuretyBondData.realEstateAssestDTO,
+            : originalSuretyBondData.managementFirmDTO,
 
           // Build Partner can be updated by the user
-          buildPartnerDTO: developerId
+          assetRegisterDTO: developerId
             ? { id: developerId }
-            : originalSuretyBondData.buildPartnerDTO,
+            : originalSuretyBondData.assetRegisterDTO,
 
           issuerBankDTO: formValues.issuerBank
             ? { id: parseInt(formValues.issuerBank) }
@@ -350,7 +350,7 @@ export default function GuaranteeStepperWrapper({
 
       // Find the selected build partner ID from the name
       const selectedDeveloper = buildPartners.find(
-        (bp) => bp.bpName === formValues.developerName
+        (bp) => bp.arName === formValues.developerName
       )
       const developerId = selectedDeveloper?.id || null
 
@@ -362,10 +362,10 @@ export default function GuaranteeStepperWrapper({
         suretyBondTypeDTO: formValues.guaranteeType
           ? { id: parseInt(formValues.guaranteeType) }
           : null,
-        realEstateAssestDTO: formValues.projectName
+        managementFirmDTO: formValues.projectName
           ? { id: parseInt(formValues.projectName) }
           : null,
-        buildPartnerDTO: developerId ? { id: developerId } : null,
+        assetRegisterDTO: developerId ? { id: developerId } : null,
         suretyBondOpenEnded: formValues.openEndedGuarantee || false,
         suretyBondNoOfAmendment: formValues.noOfAmendments || null,
         suretyBondExpirationDate: formValues.guaranteeExpirationDate
@@ -441,7 +441,7 @@ export default function GuaranteeStepperWrapper({
 
       // Find the selected build partner ID from the name
       const selectedDeveloper = buildPartners.find(
-        (bp) => bp.bpName === formValues.developerName
+        (bp) => bp.arName === formValues.developerName
       )
       const developerId = selectedDeveloper?.id || null
 
@@ -482,14 +482,14 @@ export default function GuaranteeStepperWrapper({
           ? { id: parseInt(formValues.guaranteeType) }
           : originalSuretyBondData.suretyBondTypeDTO,
 
-        realEstateAssestDTO: formValues.projectName
+        managementFirmDTO: formValues.projectName
           ? { id: parseInt(formValues.projectName) }
-          : originalSuretyBondData.realEstateAssestDTO,
+          : originalSuretyBondData.managementFirmDTO,
 
         // Build Partner can be updated by the user
-        buildPartnerDTO: developerId
+        assetRegisterDTO: developerId
           ? { id: developerId }
-          : originalSuretyBondData.buildPartnerDTO,
+          : originalSuretyBondData.assetRegisterDTO,
 
         issuerBankDTO: formValues.issuerBank
           ? { id: parseInt(formValues.issuerBank) }
@@ -505,7 +505,14 @@ export default function GuaranteeStepperWrapper({
 
       toast.success(getTranslatedLabel('CDL_SB_UPDATED_SUCCESS'))
 
-      setActiveStep(1)
+      // Navigate to next step after update
+      const nextStep = activeStep + 1
+      setActiveStep(nextStep)
+      const guaranteeId = params.id as string
+      const modeParam = isViewMode ? '&mode=view' : ''
+      router.push(
+        `/surety_bond/new/${guaranteeId}?step=${nextStep}${modeParam}`
+      )
     } catch (error) {
       toast.error(getTranslatedLabel('CDL_SB_UPDATE_ERROR'))
     }
@@ -558,7 +565,7 @@ export default function GuaranteeStepperWrapper({
 
         return (
           <DocumentUploadFactory
-            type="BUILD_PARTNER"
+            type="SURETY_BOND"
             entityId={savedId}
             isOptional={true}
             isReadOnly={isViewMode}
@@ -572,6 +579,14 @@ export default function GuaranteeStepperWrapper({
         return (
           <Step2
             onEdit={handleEdit}
+            onEditDocuments={() => {
+              setActiveStep(1)
+              const guaranteeId = params.id as string
+              const modeParam = isViewMode ? '&mode=view' : ''
+              router.push(
+                `/surety_bond/new/${guaranteeId}?step=1${modeParam}`
+              )
+            }}
             suretyBondId={savedId}
             isViewMode={isViewMode}
           />
@@ -687,7 +702,7 @@ export default function GuaranteeStepperWrapper({
                     disabled={createLoading || updateLoading}
                     variant="contained"
                     sx={{
-                      width: '114px',
+                      width: '134px',
                       height: '36px',
                       borderRadius: '6px',
                       fontFamily: 'Outfit, sans-serif',
@@ -702,9 +717,7 @@ export default function GuaranteeStepperWrapper({
                       ? isEditMode
                         ? getTranslatedLabel('CDL_SB_UPDATING')
                         : getTranslatedLabel('CDL_SB_CREATING')
-                      : isEditMode
-                        ? getTranslatedLabel('CDL_SB_UPDATE')
-                        : getTranslatedLabel('CDL_SB_SAVE_NEXT')}
+                      : getTranslatedLabel('CDL_SB_SAVE_NEXT')}
                   </Button>
                 )}
                 {isViewMode && activeStep === 0 && (

@@ -1,207 +1,93 @@
-import dayjs, { type Dayjs } from 'dayjs'
 import { z } from 'zod'
+import dayjs, { Dayjs } from 'dayjs'
 
-import { type DocumentItem } from '@/components/organisms/DeveloperStepper/developerTypes'
+const dayjsSchema = z
+  .custom<Dayjs | null>((val) => {
+    if (val === null || val === undefined) return true
+    return dayjs.isDayjs(val)
+  }, 'Must be a valid Dayjs object or null')
+  .nullable()
 
-const dateSchema = z
-  .any()
-  .refine((value) => value !== null && value !== undefined && value !== '', {
-    message: 'Required field',
-  })
-  .transform((value) => {
-    if (value === null || value === undefined || value === '') {
-      return null
-    }
-
-    if (dayjs.isDayjs(value)) {
-      return value
-    }
-
-    const parsed = dayjs(value)
-    return parsed.isValid() ? parsed : null
-  })
-
-const stringRequired = z.string().min(1, 'Required field')
-
-export const budgetManagementFirmStep1Schema = z.object({
-  managementFirmGroupId: stringRequired,
-  managementFirmGroupName: stringRequired,
-  managementFirmGroupLocalName: stringRequired,
-  masterCommunityName: stringRequired,
-  masterCommunityLocalName: stringRequired,
-  managementCompanyId: stringRequired,
-  managementCompanyName: stringRequired,
-  managementCompanyLocalName: stringRequired,
-  managementFirmManagerEmail: z
+// Step 1: Budget Basic Information Schema
+export const BudgetStep1Schema = z.object({
+  assetRegisterId: z.string().min(1, 'Asset Register is required'),
+  managementFirmId: z.string().min(1, 'Management Firm is required'),
+  budgetId: z.string().min(1, 'Budget ID is required'),
+  budgetName: z.string().min(1, 'Budget Name is required'),
+  budgetPeriodCode: z.string().min(1, 'Budget Period Code is required'),
+  propertyGroupId: z
     .string()
-    .min(1, 'Required field')
-    .email('Enter a valid email address'),
-  serviceChargeGroupId: stringRequired,
-  serviceChargeGroupName: stringRequired,
-  serviceChargeGroupLocalName: stringRequired,
-  budgetPeriodCode: stringRequired,
-  budgetPeriodTitle: stringRequired,
-  budgetPeriodFrom: dateSchema,
-  budgetPeriodTo: dateSchema,
-  categoryCode: stringRequired,
-  categoryName: stringRequired,
-  categoryLocalName: stringRequired,
-  subCategoryCode: stringRequired,
-  subCategoryName: stringRequired,
-  subCategoryLocalName: stringRequired,
-  serviceCode: stringRequired,
-  serviceName: stringRequired,
-  serviceLocalName: stringRequired,
-  totalCost: z
+    .min(1, 'Property Group ID is required')
+    .regex(/^\d+$/, 'Property Group ID must be a number'),
+  propertyManagerEmail: z
     .string()
-    .min(1, 'Required field')
-    .refine((value) => !Number.isNaN(Number(value)), {
-      message: 'Enter a valid number',
-    }),
-  vatAmount: z
-    .string()
-    .min(1, 'Required field')
-    .refine((value) => !Number.isNaN(Number(value)), {
-      message: 'Enter a valid number',
-    }),
+    .min(1, 'Property Manager Email is required')
+    .email('Invalid email format'),
+  masterCommunityName: z.string().min(1, 'Master Community Name is required'),
+  masterCommunityNameLocale: z.string().optional().or(z.literal('')),
+  isActive: z.boolean().optional().default(true),
 })
 
-export type BudgetManagementFirmStep1Data = z.infer<
-  typeof budgetManagementFirmStep1Schema
->
-
-export type BudgetManagementFirmStep1FormValues = Omit<
-  BudgetManagementFirmStep1Data,
-  'budgetPeriodFrom' | 'budgetPeriodTo' | 'totalCost' | 'vatAmount'
-> & {
-  budgetPeriodFrom: Dayjs | null
-  budgetPeriodTo: Dayjs | null
-  totalCost: string
-  vatAmount: string
-  documents?: DocumentItem[]
-}
-
-// Helper function to validate numeric (10,0) format - max 10 digits, no decimals
-const numericInteger = (maxDigits: number = 10) =>
-  z
-    .string()
-    .min(1, 'Required field')
-    .refine(
-      (value) => {
-        const num = Number(value)
-        return (
-          !Number.isNaN(num) &&
-          Number.isInteger(num) &&
-          value.length <= maxDigits &&
-          num >= 0
-        )
-      },
-      {
-        message: `Enter a valid number (max ${maxDigits} digits, no decimals)`,
-      }
+// Step 2: Budget Items Schema
+export const BudgetStep2Schema = z.object({
+  budgetCategoryId: z.string().min(1, 'Budget Category is required'),
+  budgetItems: z
+    .array(
+      z.object({
+        id: z.number().optional(),
+        subCategoryCode: z.string().min(1, 'Sub-Category Code is required'),
+        subCategoryName: z.string().min(1, 'Sub-Category Name is required'),
+        subCategoryNameLocale: z.string().optional().or(z.literal('')),
+        serviceCode: z.string().min(1, 'Service Code is required'),
+        provisionalServiceCode: z.string().optional().or(z.literal('')),
+        serviceName: z.string().min(1, 'Service Name is required'),
+        serviceNameLocale: z.string().optional().or(z.literal('')),
+        totalBudget: z
+          .number()
+          .min(0, 'Total Budget must be 0 or greater')
+          .or(z.string().regex(/^\d*\.?\d+$/, 'Total Budget must be a valid number').transform(Number)),
+        availableBudget: z
+          .number()
+          .min(0, 'Available Budget must be 0 or greater')
+          .optional()
+          .or(z.string().regex(/^\d*\.?\d+$/, 'Available Budget must be a valid number').transform(Number).optional()),
+        utilizedBudget: z
+          .number()
+          .min(0, 'Utilized Budget must be 0 or greater')
+          .optional()
+          .or(z.string().regex(/^\d*\.?\d+$/, 'Utilized Budget must be a valid number').transform(Number).optional()),
+      })
     )
-
-// Helper function for alphanumeric (50,0) - max 50 characters, alphanumeric only
-const alphanumericString = (maxLength: number = 50) =>
-  z
-    .string()
-    .min(1, 'Required field')
-    .max(maxLength, `Maximum ${maxLength} characters allowed`)
-    .regex(/^[a-zA-Z0-9\s]*$/, 'Only alphanumeric characters and spaces are allowed')
-
-// Helper function for all characters (50,0) - max 50 characters, any character allowed
-const allCharactersString = (maxLength: number = 50) =>
-  z
-    .string()
-    .min(1, 'Required field')
-    .max(maxLength, `Maximum ${maxLength} characters allowed`)
-
-export const budgetMasterStep1Schema = z.object({
-  // Charge Type ID - Numeric (10,0)
-  chargeTypeId: numericInteger(10),
-  
-  // Charge Type - Alphanumeric (50,0)
-  chargeType: alphanumericString(50),
-  
-  // Group Name ID - All Characters (50,0) - for storing the ID
-  groupNameId: allCharactersString(50).optional(),
-  
-  // Group Name - Alphanumeric (50,0) - stores the label
-  groupName: alphanumericString(50),
-  
-  // Category Code - All Characters (50,0)
-  categoryCode: allCharactersString(50),
-  
-  // Category Name - Alphanumeric (50,0)
-  categoryName: alphanumericString(50),
-  
-  // Category Sub Code - All Characters (50,0)
-  categorySubCode: allCharactersString(50),
-  
-  // Category Sub Name - Alphanumeric (50,0)
-  categorySubName: alphanumericString(50),
-  
-  // Category Sub To Sub Code - All Characters (50,0)
-  categorySubToSubCode: allCharactersString(50),
-  
-  // Category Sub To Sub Name - Alphanumeric (50,0)
-  categorySubToSubName: alphanumericString(50),
-  
-  // Service Name - Alphanumeric (50,0)
-  serviceName: alphanumericString(50),
-  
-  // Service Code - All Characters (50,0)
-  serviceCode: allCharactersString(50),
-  
-  // Provisional Budget Code - All Characters (50,0)
-  provisionalBudgetCode: allCharactersString(50),
+    .optional()
+    .default([]),
 })
 
-export type BudgetMasterStep1Data = z.infer<
-  typeof budgetMasterStep1Schema
->
+// Step 3: Review Schema (no validation needed, just display)
+export const BudgetStep3Schema = z.object({})
 
-export type BudgetMasterStep1FormValues = Omit<
-  BudgetMasterStep1Data,
-  'chargeTypeId'
-> & {
-  chargeTypeId: string
-  documents?: DocumentItem[]
-}
+// Type exports
+export type BudgetStep1Data = z.infer<typeof BudgetStep1Schema>
+export type BudgetStep2Data = z.infer<typeof BudgetStep2Schema>
+export type BudgetStep3Data = z.infer<typeof BudgetStep3Schema>
 
-// Helper function to get max length for a field (used in form components)
-export const getFieldMaxLength = (fieldName: string): number | undefined => {
-  try {
-    const shapeFn = (budgetMasterStep1Schema as any)?._def?.shape
-    const shape = typeof shapeFn === 'function' ? shapeFn() : undefined
-    const node = shape?.[fieldName]
-    if (!node) return undefined
+// Combined schemas object
+export const BudgetStepperSchemas = {
+  step1: BudgetStep1Schema,
+  step2: BudgetStep2Schema,
+  step3: BudgetStep3Schema,
+} as const
 
-    const unwrap = (n: any): any => {
-      const typeName = n?._def?.typeName
-      if (typeName === 'ZodOptional' || typeName === 'ZodNullable')
-        return unwrap(n._def.innerType)
-      if (typeName === 'ZodEffects') return unwrap(n._def.schema)
-      if (typeName === 'ZodDefault') return unwrap(n._def.innerType)
-      return n
-    }
-
-    const strNode = unwrap(node)
-    if (strNode?._def?.typeName !== 'ZodString') return undefined
-    
-    // Check for max length in checks
-    const checks: any[] = strNode._def?.checks || []
-    const maxCheck = checks.find((c) => c?.kind === 'max')
-    if (maxCheck?.value) return maxCheck.value
-    
-    // For numeric fields, check the refine validation
-    if (fieldName === 'chargeTypeId') {
-      return 10 // Max 10 digits for chargeTypeId
-    }
-    
-    return undefined
-  } catch {
-    return undefined
+// Helper function to get step schema
+export const getBudgetStepSchema = (stepNumber: number) => {
+  switch (stepNumber) {
+    case 0:
+      return BudgetStep1Schema
+    case 1:
+      return BudgetStep2Schema
+    case 2:
+      return BudgetStep3Schema
+    default:
+      return z.object({})
   }
 }
 

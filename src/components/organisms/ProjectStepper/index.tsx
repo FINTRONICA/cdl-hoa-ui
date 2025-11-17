@@ -39,9 +39,9 @@ import { ProjectData } from './types'
 import {
   STEPS,
   SKIP_VALIDATION_STEPS,
-  DEFAULT_FORM_VALUES,
   ERROR_MESSAGES,
   SUCCESS_MESSAGES,
+  ACCOUNT_TYPES,
 } from './constants'
 import {
   stepperLabelSx,
@@ -51,12 +51,12 @@ import {
   buttonContainerSx,
 } from './styles'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { useAutoSave, useFormPersistence } from './hooks/useAutoSave'
 import { GlobalLoading } from '@/components/atoms'
 import {
   validateCurrentStep,
   stepRequiresValidation,
 } from './utils/stepValidation'
+import { getChangedAccounts } from './utils/accountDiff'
 
 export default function StepperWrapper({
   projectId,
@@ -68,6 +68,13 @@ export default function StepperWrapper({
   isViewMode?: boolean
 } = {}) {
   const [activeStep, setActiveStep] = useState(initialStep)
+
+  // Sync activeStep with initialStep when it changes (e.g., on page reload with step in URL)
+  useEffect(() => {
+    if (initialStep !== undefined && initialStep !== activeStep) {
+      setActiveStep(initialStep)
+    }
+  }, [initialStep])
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [isAddingContact, setIsAddingContact] = useState(false)
@@ -80,7 +87,6 @@ export default function StepperWrapper({
 
   const router = useRouter()
 
-  // Helper function to build mode parameter for navigation (matching capital partner pattern)
   const getModeParam = useCallback(() => {
     if (isViewMode) return '?mode=view'
     if (isEditingMode) return '?editing=true'
@@ -109,72 +115,19 @@ export default function StepperWrapper({
     'Review',
   ]
 
+  if (typeof window !== 'undefined' && !projectId) {
+    try {
+      localStorage.removeItem('form_projectStepper_1.0')
+      localStorage.removeItem('projectStepper_draft')
+    } catch (error) {}
+  }
+
   const methods = useForm<ProjectData>({
-    defaultValues: {
-      ...DEFAULT_FORM_VALUES,
-      reaAccoutStatusDate: null,
-      reaRegistrationDate: null,
-      reaStartDate: null,
-      reaCompletionDate: null,
-      reaRetentionEffectiveDate: dayjs('2022-03-31'),
-      reaAccStatusDate: null,
-      reaBlockPaymentTypeDTO: null,
-
-      estimate: {
-        revenue: '',
-        constructionCost: '',
-        projectManagementExpense: '',
-        landCost: '',
-        marketingExpense: '',
-        date: null,
-      },
-      actual: {
-        soldValue: '',
-        constructionCost: '',
-        infraCost: '',
-        landCost: '',
-        projectManagementExpense: '',
-        marketingExpense: '',
-        date: null,
-      },
-      breakdown: Array(30)
-        .fill(null)
-        .map(() => ({
-          outOfEscrow: '',
-          withinEscrow: '',
-          total: '',
-          exceptionalCapValue: '',
-        })),
-      additional: {
-        creditInterestRetention: '',
-        paymentsRetentionAccount: '',
-        reimbursementsDeveloper: '',
-        unitRegistrationFees: '',
-        creditInterestEscrow: '',
-        vatCapped: '',
-      },
-    } as unknown as ProjectData,
-    mode: 'onChange', // Validate on change but only show errors for touched fields
-    // Note: Validation will be handled per-step in the step components
+    defaultValues: {} as ProjectData,
+    mode: 'onChange',
   })
 
-  useAutoSave({
-    interval: 30000,
-    debounceMs: 2000,
-    onSave: async (data) => {
-      try {
-        localStorage.setItem('projectStepper_draft', JSON.stringify(data))
-      } catch (error) {
-        throw error
-      }
-    },
-    enabled: true,
-  })
-
-  useFormPersistence('projectStepper', {
-    enabled: true,
-    version: '1.0',
-  })
+  // Removed useAutoSave/useFormPersistence: data loads directly from APIs
 
   useEffect(() => {
     if (projectId && (shouldResetForm || activeStep >= 0) && !isAddingContact) {
@@ -188,116 +141,190 @@ export default function StepperWrapper({
           try {
             let processedData = { ...currentStepData }
 
-            // Handle data processing for all steps
             const stepData = currentStepData as any
 
-            // Process date fields (for Step 1)
             if (activeStep === 0) {
               if (
-                stepData.reaStartDate &&
-                typeof stepData.reaStartDate === 'string'
+                stepData.mfStartDate &&
+                typeof stepData.mfStartDate === 'string'
               ) {
-                ;(processedData as any).reaStartDate = dayjs(
-                  stepData.reaStartDate
+                ;(processedData as any).mfStartDate = dayjs(
+                  stepData.mfStartDate
                 )
               }
               if (
-                stepData.reaCompletionDate &&
-                typeof stepData.reaCompletionDate === 'string'
+                stepData.mfCompletionDate &&
+                typeof stepData.mfCompletionDate === 'string'
               ) {
-                ;(processedData as any).reaCompletionDate = dayjs(
-                  stepData.reaCompletionDate
+                ;(processedData as any).mfCompletionDate = dayjs(
+                  stepData.mfCompletionDate
                 )
               }
               if (
-                stepData.reaRetentionEffectiveDate &&
-                typeof stepData.reaRetentionEffectiveDate === 'string'
+                stepData.mfRetentionEffectiveDate &&
+                    typeof stepData.mfRetentionEffectiveDate === 'string'
               ) {
-                ;(processedData as any).reaRetentionEffectiveDate = dayjs(
-                  stepData.reaRetentionEffectiveDate
+                ;(processedData as any).mfRetentionEffectiveDate = dayjs(
+                  stepData.mfRetentionEffectiveDate
                 )
               }
               if (
-                stepData.reaAccoutStatusDate &&
-                typeof stepData.reaAccoutStatusDate === 'string'
+                stepData.mfAccoutStatusDate &&
+                typeof stepData.mfAccoutStatusDate === 'string'
               ) {
-                ;(processedData as any).reaAccoutStatusDate = dayjs(
-                  stepData.reaAccoutStatusDate
+                ;(processedData as any).mfAccoutStatusDate = dayjs(
+                  stepData.mfAccoutStatusDate
                 )
               }
               if (
-                stepData.reaRegistrationDate &&
-                typeof stepData.reaRegistrationDate === 'string'
+                stepData.mfRegistrationDate &&
+                typeof stepData.mfRegistrationDate === 'string'
               ) {
-                ;(processedData as any).reaRegistrationDate = dayjs(
-                  stepData.reaRegistrationDate
+                ;(processedData as any).mfRegistrationDate = dayjs(
+                  stepData.mfRegistrationDate
                 )
               }
 
-              // Process DTO objects (for Step 1)
               if (
-                stepData.buildPartnerDTO &&
-                typeof stepData.buildPartnerDTO === 'object'
+                stepData.assetRegisterDTO &&
+                typeof stepData.assetRegisterDTO === 'object'
               ) {
-                processedData.buildPartnerDTO = stepData.buildPartnerDTO
+                // Extract only necessary fields from assetRegisterDTO
+                ;(processedData as any).assetRegisterDTO = {
+                  id: stepData.assetRegisterDTO.id,
+                  arCifrera:
+                    stepData.assetRegisterDTO.arCifrera ??
+                    stepData.assetRegisterDTO.arCifHOA ??
+                    stepData.assetRegisterDTO.arCifrera,
+                  arName:
+                    stepData.assetRegisterDTO.arName ??
+                    stepData.assetRegisterDTO.arName,
+                  arMasterName:
+                    stepData.assetRegisterDTO.arMasterName ??
+                    stepData.assetRegisterDTO.arMasterName,
+                }
 
-                // Also set reaCif from buildPartnerDTO.bpCifrera if available
-                if (stepData.buildPartnerDTO.bpCifrera) {
-                  processedData.reaCif = stepData.buildPartnerDTO.bpCifrera
+                if (stepData.assetRegisterDTO.arCifrera) {
+                  ;(processedData as any).mfId =
+                    stepData.assetRegisterDTO.arCifrera
                 }
               }
+              // Extract only the id from mfStatusDTO
               if (
-                stepData.reaStatusDTO &&
-                typeof stepData.reaStatusDTO === 'object'
+                stepData.mfStatusDTO &&
+                typeof stepData.mfStatusDTO === 'object'
               ) {
-                processedData.reaStatusDTO = stepData.reaStatusDTO
+                ;(processedData as any).mfStatusDTO = {
+                  id: stepData.mfStatusDTO.id,
+                }
               }
+              // Extract only the id from mfTypeDTO
               if (
-                stepData.reaTypeDTO &&
-                typeof stepData.reaTypeDTO === 'object'
+                stepData.mfTypeDTO &&
+                typeof stepData.mfTypeDTO === 'object'
               ) {
-                processedData.reaTypeDTO = stepData.reaTypeDTO
+                ;(processedData as any).mfTypeDTO = {
+                  id: stepData.mfTypeDTO.id,
+                }
               }
+              // Extract only the id from mfAccountStatusDTO
               if (
-                stepData.reaAccountStatusDTO &&
-                typeof stepData.reaAccountStatusDTO === 'object'
+                stepData.mfAccountStatusDTO &&
+                typeof stepData.mfAccountStatusDTO === 'object'
               ) {
-                processedData.reaAccountStatusDTO = stepData.reaAccountStatusDTO
+                ;(processedData as any).mfAccountStatusDTO = {
+                  id: stepData.mfAccountStatusDTO.id,
+                }
               }
+              // Extract only the id from mfConstructionCostCurrencyDTO
               if (
-                stepData.reaConstructionCostCurrencyDTO &&
-                typeof stepData.reaConstructionCostCurrencyDTO === 'object'
+                stepData.mfConstructionCostCurrencyDTO &&
+                typeof stepData.mfConstructionCostCurrencyDTO === 'object'
               ) {
-                processedData.reaConstructionCostCurrencyDTO =
-                  stepData.reaConstructionCostCurrencyDTO
+                ;(processedData as any).mfConstructionCostCurrencyDTO = {
+                  id: stepData.mfConstructionCostCurrencyDTO.id,
+                }
+              }
+              // Extract only the id from mfBlockPaymentTypeDTO (Restricted Payment Type)
+              if (
+                stepData.mfBlockPaymentTypeDTO &&
+                typeof stepData.mfBlockPaymentTypeDTO === 'object'
+              ) {
+                ;(processedData as any).mfBlockPaymentTypeDTO = {
+                  id: stepData.mfBlockPaymentTypeDTO.id,
+                } 
               }
             }
 
-            // Handle other steps data processing
             if (activeStep === 2) {
-              // Step 3: Account data
               if (
                 (stepData as any).accounts &&
                 Array.isArray((stepData as any).accounts)
               ) {
-                ;(processedData as any).accounts = (
-                  stepData as any
-                ).accounts.map((account: any) => ({
-                  ...account,
-                  id: account.id, // Preserve the original ID for updates
-                  trustAccountNumber:
-                    account.accountNumber || account.trustAccountNumber || '', // Map accountNumber to trustAccountNumber
-                  currency: account.currencyCode || account.currency || '', // Map currencyCode to currency
-                  dateOpened: account.dateOpened
-                    ? dayjs(account.dateOpened)
-                    : null,
-                }))
+                const normalizeAccountType = (
+                  type: string | null | undefined
+                ) => {
+                  if (!type) {
+                    return ''
+                  }
+
+                  const formatted = String(type).trim().toUpperCase()
+
+                  switch (formatted) {
+                    case 'TRUST':
+                    case 'TRUST ACCOUNT':
+                      return 'TRUST'
+                    case 'RETENTION':
+                    case 'RETENTION ACCOUNT':
+                      return 'RETENTION'
+                    case 'SUBCONSTRUCTION':
+                    case 'SUB CONSTRUCTION':
+                    case 'SUB-CONSTRUCTION':
+                    case 'SUB CONSTRUCTION ACCOUNT':
+                    case 'SUB-CONSTRUCTION ACCOUNT':
+                      return 'SUBCONSTRUCTION'
+                    case 'CORPORATE':
+                    case 'CORPORATE ACCOUNT':
+                      return 'CORPORATE'
+                    default:
+                      return formatted
+                  }
+                }
+
+                const accountsByType = (stepData as any).accounts.reduce(
+                  (acc: Record<string, any>, account: any) => {
+                    const key = normalizeAccountType(account?.accountType)
+
+                    if (key) {
+                      acc[key] = account
+                    }
+
+                    return acc
+                  },
+                  {}
+                )
+
+                ;(processedData as any).accounts = ACCOUNT_TYPES.map((type) => {
+                  const account = accountsByType[type] || {}
+
+                  return {
+                    ...account,
+                    id: account.id ?? null,
+                    trustAccountNumber:
+                      account.accountNumber ||
+                      account.trustAccountNumber ||
+                      '',
+                    currency: account.currencyCode || account.currency || '',
+                    accountType: type,
+                    dateOpened: account.dateOpened
+                      ? dayjs(account.dateOpened)
+                      : null,
+                  }
+                })
               }
             }
 
             if (activeStep === 3) {
-              // Step 4: Fee data
-
               if (
                 (stepData as any).fees &&
                 Array.isArray((stepData as any).fees)
@@ -306,81 +333,81 @@ export default function StepperWrapper({
                   (fee: any) => ({
                     id: fee.id?.toString() || '',
                     FeeType:
-                      fee.reafCategoryDTO?.languageTranslationId?.configValue ||
-                      fee.reafCategoryDTO?.settingValue ||
+                      fee.mffCategoryDTO?.languageTranslationId?.configValue ||
+                      fee.mffCategoryDTO?.settingValue ||
                       fee.feeType ||
                       fee.FeeType ||
                       '',
                     Frequency:
-                      fee.reafFrequencyDTO?.languageTranslationId
+                      fee.mffFrequencyDTO?.languageTranslationId
                         ?.configValue ||
-                      fee.reafFrequencyDTO?.settingValue ||
+                      fee.mffFrequencyDTO?.settingValue ||
                       fee.frequency ||
                       fee.Frequency ||
                       'N/A',
                     DebitAmount:
-                      fee.reafDebitAmount?.toString() ||
+                      fee.mffDebitAmount?.toString() ||
                       fee.debitAmount ||
                       fee.DebitAmount ||
                       '',
                     Feetobecollected:
-                      fee.reafCollectionDate ||
+                      fee.mffCollectionDate ||
                       fee.feeToBeCollected ||
                       fee.Feetobecollected ||
                       '',
-                    NextRecoveryDate: fee.reafNextRecoveryDate
-                      ? dayjs(fee.reafNextRecoveryDate).format('YYYY-MM-DD')
+                    NextRecoveryDate: fee.mffNextRecoveryDate
+                      ? dayjs(fee.mffNextRecoveryDate).format('YYYY-MM-DD')
                       : fee.nextRecoveryDate
                         ? dayjs(fee.nextRecoveryDate).format('YYYY-MM-DD')
                         : fee.NextRecoveryDate || '',
                     FeePercentage:
-                      fee.reafFeePercentage?.toString() ||
+                      fee.mffFeePercentage?.toString() ||
                       fee.feePercentage ||
                       fee.FeePercentage ||
                       '',
                     Amount:
-                      fee.reafTotalAmount?.toString() ||
+                      fee.mffTotalAmount?.toString() ||
                       fee.amount ||
                       fee.Amount ||
                       '',
                     VATPercentage:
-                      fee.reafVatPercentage?.toString() ||
+                      fee.mffVatPercentage?.toString() ||
                       fee.vatPercentage ||
                       fee.VATPercentage ||
                       '',
-                    // Keep original field names for compatibility
+
                     feeType:
-                      fee.reafCategoryDTO?.languageTranslationId?.configValue ||
-                      fee.reafCategoryDTO?.settingValue ||
+                      fee.mffCategoryDTO?.languageTranslationId?.configValue ||
+                      fee.mffCategoryDTO?.settingValue ||
                       fee.feeType ||
                       '',
                     frequency:
-                      fee.reafFrequencyDTO?.languageTranslationId
+                      fee.mffFrequencyDTO?.languageTranslationId
                         ?.configValue ||
-                      fee.reafFrequencyDTO?.settingValue ||
+                      fee.mffFrequencyDTO?.settingValue ||
                       fee.frequency ||
                       'N/A',
                     debitAmount:
-                      fee.reafDebitAmount?.toString() || fee.debitAmount || '',
+                      fee.mffDebitAmount?.toString() || fee.debitAmount || '',
                     feeToBeCollected:
-                      fee.reafCollectionDate || fee.feeToBeCollected || '',
-                    nextRecoveryDate: fee.reafNextRecoveryDate
-                      ? dayjs(fee.reafNextRecoveryDate)
+                      fee.mffCollectionDate || fee.feeToBeCollected || '',
+                    nextRecoveryDate: fee.mffNextRecoveryDate
+                      ? dayjs(fee.mffNextRecoveryDate)
                       : fee.nextRecoveryDate
                         ? dayjs(fee.nextRecoveryDate)
                         : null,
                     feePercentage:
-                      fee.reafFeePercentage?.toString() ||
+                      fee.mffFeePercentage?.toString() ||
                       fee.feePercentage ||
                       '',
-                    amount: fee.reafTotalAmount?.toString() || fee.amount || '',
+                    amount: fee.mffTotalAmount?.toString() || fee.amount || '',
                     vatPercentage:
-                      fee.reafVatPercentage?.toString() ||
+                      fee.mffVatPercentage?.toString() ||
                       fee.vatPercentage ||
                       '',
                     currency:
-                      fee.reafCurrencyDTO?.languageTranslationId?.configValue ||
-                      fee.reafCurrencyDTO?.settingValue ||
+                      fee.mffCurrencyDTO?.languageTranslationId?.configValue ||
+                      fee.mffCurrencyDTO?.settingValue ||
                       fee.currency ||
                       '',
                   })
@@ -399,61 +426,61 @@ export default function StepperWrapper({
                   stepData as any
                 ).beneficiaries.map((beneficiary: any) => ({
                   id: beneficiary.id?.toString() || '',
-                  reaBeneficiaryId:
-                    beneficiary.reabBeneficiaryId ||
+                  mfBeneficiaryId:
+                    beneficiary.mfbBeneficiaryId ||
                     beneficiary.beneficiaryId ||
-                    beneficiary.reaBeneficiaryId ||
+                    beneficiary.mfBeneficiaryId ||
                     '',
-                  reaBeneficiaryType:
-                    beneficiary.reabType ||
+                  mfBeneficiaryType:
+                    beneficiary.mfbType ||
                     beneficiary.beneficiaryType ||
-                    beneficiary.reaBeneficiaryType ||
+                    beneficiary.mfBeneficiaryType ||
                     '',
-                  reaName:
-                    beneficiary.reabName ||
+                  mfName:
+                    beneficiary.mfbName ||
                     beneficiary.name ||
-                    beneficiary.reaName ||
+                    beneficiary.mfName ||
                     '',
-                  reaBankName:
-                    beneficiary.reabBank ||
+                  mfBankName:
+                    beneficiary.mfbBank ||
                     beneficiary.bankName ||
-                    beneficiary.reaBankName ||
+                    beneficiary.mfBankName ||
                     '',
-                  reaSwiftCode:
-                    beneficiary.reabSwift ||
+                  mfSwiftCode:
+                    beneficiary.mfbSwift ||
                     beneficiary.swiftCode ||
-                    beneficiary.reaSwiftCode ||
+                    beneficiary.mfSwiftCode ||
                     '',
-                  reaRoutingCode:
-                    beneficiary.reabRoutingCode ||
+                  mfRoutingCode:
+                    beneficiary.mfbRoutingCode ||
                     beneficiary.routingCode ||
-                    beneficiary.reaRoutingCode ||
+                    beneficiary.mfRoutingCode ||
                     '',
-                  reaAccountNumber:
-                    beneficiary.reabBeneAccount ||
+                  mfAccountNumber:
+                    beneficiary.mfbBeneAccount ||
                     beneficiary.accountNumber ||
-                    beneficiary.reaAccountNumber ||
+                    beneficiary.mfAccountNumber ||
                     '',
-                
+
                   beneficiaryId:
-                    beneficiary.reabBeneficiaryId ||
+                    beneficiary.mfbBeneficiaryId ||
                     beneficiary.beneficiaryId ||
                     '',
                   beneficiaryType:
-                    beneficiary.reabTranferTypeDTO.languageTranslationId
+                  beneficiary.mfbTransferTypeDTO?.languageTranslationId
                       .configValue ||
                     beneficiary.beneficiaryType ||
                     '',
-                  name: beneficiary.reabName || beneficiary.name || '',
-                  bankName: beneficiary.reabBank || beneficiary.bankName || '',
+                  name: beneficiary.mfbName || beneficiary.name || '',
+                  bankName: beneficiary.mfbBank || beneficiary.bankName || '',
                   swiftCode:
-                    beneficiary.reabSwift || beneficiary.swiftCode || '',
+                    beneficiary.mfbSwift || beneficiary.swiftCode || '',
                   routingCode:
-                    beneficiary.reabRoutingCode ||
+                    beneficiary.mfbRoutingCode ||
                     beneficiary.routingCode ||
                     '',
                   accountNumber:
-                    beneficiary.reabBeneAccount ||
+                    beneficiary.mfbBeneAccount ||
                     beneficiary.accountNumber ||
                     '',
                 }))
@@ -462,7 +489,6 @@ export default function StepperWrapper({
             }
 
             if (activeStep === 5) {
-              
               if (
                 (stepData as any).paymentPlan &&
                 Array.isArray((stepData as any).paymentPlan)
@@ -474,7 +500,6 @@ export default function StepperWrapper({
             }
 
             if (activeStep === 6) {
-          
               setShouldResetForm(false)
               return
             }
@@ -496,35 +521,35 @@ export default function StepperWrapper({
               apiData =
                 await realEstateAssetService.getProjectDetails(projectId)
               break
-            case 1: 
+            case 1:
               setShouldResetForm(false)
               return
-            case 2: 
+            case 2:
               apiData =
                 await realEstateAssetService.getProjectAccounts(projectId)
               break
-            case 3: 
+            case 3:
               apiData = await realEstateAssetService.getProjectFees(projectId)
               break
-            case 4: 
+            case 4:
               apiData =
                 await realEstateAssetService.getProjectBeneficiaries(projectId)
               break
-            case 5: 
+            case 5:
               apiData =
                 await realEstateAssetService.getProjectPaymentPlans(projectId)
               break
-            case 6: 
+            case 6:
               apiData =
                 await realEstateAssetService.getProjectFinancialSummary(
                   projectId
                 )
               break
-            case 7: 
+            case 7:
               apiData =
                 await realEstateAssetService.getProjectClosure(projectId)
               break
-            case 8: 
+            case 8:
               setShouldResetForm(false)
               return
             default:
@@ -535,46 +560,122 @@ export default function StepperWrapper({
           if (apiData) {
             let processedData = apiData
 
-            // Process the API data based on step
             if (activeStep === 0) {
-              // Step 1: Process project details
               processedData = {
                 ...apiData,
-                reaStartDate: apiData.reaStartDate
-                  ? dayjs(apiData.reaStartDate)
+                mfStartDate: apiData.mfStartDate
+                  ? dayjs(apiData.mfStartDate)
                   : null,
-                reaCompletionDate: apiData.reaCompletionDate
-                  ? dayjs(apiData.reaCompletionDate)
+                mfCompletionDate: apiData.mfCompletionDate
+                  ? dayjs(apiData.mfCompletionDate)
                   : null,
-                reaRetentionEffectiveDate: apiData.reaRetentionEffectiveDate
-                  ? dayjs(apiData.reaRetentionEffectiveDate)
+                mfRetentionEffectiveDate: apiData.mfRetentionEffectiveDate
+                  ? dayjs(apiData.mfRetentionEffectiveDate)
                   : null,
-                reaAccoutStatusDate: apiData.reaAccoutStatusDate
-                  ? dayjs(apiData.reaAccoutStatusDate)
+                mfAccoutStatusDate: apiData.mfAccoutStatusDate
+                  ? dayjs(apiData.mfAccoutStatusDate)
                   : null,
-                reaRegistrationDate: apiData.reaRegistrationDate
-                  ? dayjs(apiData.reaRegistrationDate)
+                mfRegistrationDate: apiData.mfRegistrationDate
+                  ? dayjs(apiData.mfRegistrationDate)
                   : null,
+                // Extract only necessary fields from nested DTOs
+                assetRegisterDTO: apiData.assetRegisterDTO
+                  ? {
+                      id: apiData.assetRegisterDTO.id,
+                      arCifrera:
+                        apiData.assetRegisterDTO.arCifrera ??
+                        apiData.assetRegisterDTO.arCifHOA ??
+                        apiData.assetRegisterDTO.arCifrera,
+                      arName:
+                        apiData.assetRegisterDTO.arName ??
+                        apiData.assetRegisterDTO.arName,
+                      arMasterName:
+                        apiData.assetRegisterDTO.arMasterName ??
+                        apiData.assetRegisterDTO.arMasterName,
+                    }
+                  : undefined,
+                mfStatusDTO: apiData.mfStatusDTO
+                  ? { id: apiData.mfStatusDTO.id }
+                  : undefined,
+                mfTypeDTO: apiData.mfTypeDTO
+                  ? { id: apiData.mfTypeDTO.id }
+                  : undefined,
+                mfAccountStatusDTO: apiData.mfAccountStatusDTO
+                  ? { id: apiData.mfAccountStatusDTO.id }
+                  : undefined,
+                mfConstructionCostCurrencyDTO:
+                  apiData.mfConstructionCostCurrencyDTO
+                    ? { id: apiData.mfConstructionCostCurrencyDTO.id }
+                    : undefined,
+                mfBlockPaymentTypeDTO: apiData.mfBlockPaymentTypeDTO
+                  ? { id: apiData.mfBlockPaymentTypeDTO.id }
+                  : undefined,
               }
             } else if (activeStep === 2) {
-              // Step 3: Process accounts data
-              // Handle paginated response structure
               const accountsArray =
                 apiData?.content || (Array.isArray(apiData) ? apiData : [])
+              const normalizeAccountType = (
+                type: string | null | undefined
+              ) => {
+                if (!type) {
+                  return ''
+                }
+
+                const formatted = String(type).trim().toUpperCase()
+
+                switch (formatted) {
+                  case 'TRUST':
+                  case 'TRUST ACCOUNT':
+                    return 'TRUST'
+                  case 'RETENTION':
+                  case 'RETENTION ACCOUNT':
+                    return 'RETENTION'
+                  case 'SUBCONSTRUCTION':
+                  case 'SUB CONSTRUCTION':
+                  case 'SUB-CONSTRUCTION':
+                  case 'SUB CONSTRUCTION ACCOUNT':
+                  case 'SUB-CONSTRUCTION ACCOUNT':
+                    return 'SUBCONSTRUCTION'
+                  case 'CORPORATE':
+                  case 'CORPORATE ACCOUNT':
+                    return 'CORPORATE'
+                  default:
+                    return formatted
+                }
+              }
+
+              const accountsByType = accountsArray.reduce(
+                (acc: Record<string, any>, account: any) => {
+                  const key = normalizeAccountType(account?.accountType)
+
+                  if (key) {
+                    acc[key] = account
+                  }
+
+                  return acc
+                },
+                {}
+              )
+
               processedData = {
-                accounts: accountsArray.map((account: any) => ({
-                  id: account.id, // Preserve the original ID for updates
-                  trustAccountNumber: account.accountNumber || '', // Map accountNumber to trustAccountNumber
-                  ibanNumber: account.ibanNumber || '',
-                  dateOpened: account.dateOpened
-                    ? dayjs(account.dateOpened)
-                    : null,
-                  accountTitle: account.accountTitle || '',
-                  currency: account.currencyCode || '', // Map currencyCode to currency
-                  accountType: account.accountType || '',
-                  isValidated: account.isValidated || false,
-                  enabled: account.enabled || false,
-                })),
+                accounts: ACCOUNT_TYPES.map((type) => {
+                  const account = accountsByType[type] || {}
+
+                  return {
+                    id: account.id ?? null,
+                    trustAccountNumber:
+                      account.accountNumber || account.trustAccountNumber || '',
+                    ibanNumber: account.ibanNumber || '',
+                    dateOpened: account.dateOpened
+                      ? dayjs(account.dateOpened)
+                      : null,
+                    accountTitle: account.accountTitle || '',
+                    currency: account.currencyCode || account.currency || '',
+                    accountType: type,
+                    isValidated: account.isValidated || false,
+                    enabled: account.enabled || false,
+                  }
+                }),
               }
             } else if (activeStep === 3) {
               const feesArray =
@@ -583,41 +684,41 @@ export default function StepperWrapper({
               const processedFees = feesArray.map((fee: any) => ({
                 id: fee.id?.toString() || '',
                 FeeType:
-                  fee.reafCategoryDTO?.languageTranslationId?.configValue ||
-                  fee.reafCategoryDTO?.settingValue ||
+                  fee.mffCategoryDTO?.languageTranslationId?.configValue ||
+                  fee.mffCategoryDTO?.settingValue ||
                   '',
                 Frequency:
-                  fee.reafFrequencyDTO?.languageTranslationId?.configValue ||
-                  fee.reafFrequencyDTO?.settingValue ||
-                  'N/A', // Default to 'N/A' since reafFrequencyDTO is null
-                DebitAmount: fee.reafDebitAmount?.toString() || '',
-                Feetobecollected: fee.reafCollectionDate || '',
-                NextRecoveryDate: fee.reafNextRecoveryDate
-                  ? dayjs(fee.reafNextRecoveryDate).format('YYYY-MM-DD')
+                  fee.mffFrequencyDTO?.languageTranslationId?.configValue ||
+                  fee.mffFrequencyDTO?.settingValue ||
+                  'N/A',
+                DebitAmount: fee.mffDebitAmount?.toString() || '',
+                Feetobecollected: fee.mffCollectionDate || '',
+                NextRecoveryDate: fee.mffNextRecoveryDate
+                  ? dayjs(fee.mffNextRecoveryDate).format('YYYY-MM-DD')
                   : '',
-                FeePercentage: fee.reafFeePercentage?.toString() || '',
-                Amount: fee.reafTotalAmount?.toString() || '',
-                VATPercentage: fee.reafVatPercentage?.toString() || '',
-                // Keep original field names for compatibility
+                FeePercentage: fee.mffFeePercentage?.toString() || '',
+                Amount: fee.mffTotalAmount?.toString() || '',
+                VATPercentage: fee.mffVatPercentage?.toString() || '',
+
                 feeType:
-                  fee.reafCategoryDTO?.languageTranslationId?.configValue ||
-                  fee.reafCategoryDTO?.settingValue ||
+                  fee.mffCategoryDTO?.languageTranslationId?.configValue ||
+                  fee.mffCategoryDTO?.settingValue ||
                   '',
                 frequency:
-                  fee.reafFrequencyDTO?.languageTranslationId?.configValue ||
-                  fee.reafFrequencyDTO?.settingValue ||
+                  fee.mffFrequencyDTO?.languageTranslationId?.configValue ||
+                  fee.mffFrequencyDTO?.settingValue ||
                   'N/A',
-                debitAmount: fee.reafDebitAmount?.toString() || '',
-                feeToBeCollected: fee.reafCollectionDate || '',
-                nextRecoveryDate: fee.reafNextRecoveryDate
-                  ? dayjs(fee.reafNextRecoveryDate)
+                debitAmount: fee.mffDebitAmount?.toString() || '',
+                feeToBeCollected: fee.mffCollectionDate || '',
+                nextRecoveryDate: fee.mffNextRecoveryDate
+                  ? dayjs(fee.mffNextRecoveryDate)
                   : null,
-                feePercentage: fee.reafFeePercentage?.toString() || '',
-                amount: fee.reafTotalAmount?.toString() || '',
-                vatPercentage: fee.reafVatPercentage?.toString() || '',
+                feePercentage: fee.mffFeePercentage?.toString() || '',
+                amount: fee.mffTotalAmount?.toString() || '',
+                vatPercentage: fee.mffVatPercentage?.toString() || '',
                 currency:
-                  fee.reafCurrencyDTO?.languageTranslationId?.configValue ||
-                  fee.reafCurrencyDTO?.settingValue ||
+                  fee.mffCurrencyDTO?.languageTranslationId?.configValue ||
+                  fee.mffCurrencyDTO?.settingValue ||
                   '',
               }))
 
@@ -625,50 +726,46 @@ export default function StepperWrapper({
                 fees: processedFees,
               }
             } else if (activeStep === 4) {
-              // Step 5: Process beneficiaries data
-              // Handle paginated response structure
               const beneficiariesArray =
                 apiData?.content || (Array.isArray(apiData) ? apiData : [])
               processedData = {
                 beneficiaries: beneficiariesArray.map((beneficiary: any) => ({
                   id: beneficiary.id?.toString() || '',
-                  reaBeneficiaryId: beneficiary.reabBeneficiaryId || '',
-                  reaBeneficiaryType:
-                    beneficiary.reabTranferTypeDTO?.languageTranslationId
+                  mfBeneficiaryId: beneficiary.mfbBeneficiaryId || '',
+                  mfBeneficiaryType:
+                    beneficiary.mfbTransferTypeDTO?.languageTranslationId
                       ?.configValue || '',
-                  reaName: beneficiary.reabName || '',
-                  reaBankName: beneficiary.reabBank || '',
-                  reaSwiftCode: beneficiary.reabSwift || '',
-                  reaRoutingCode: beneficiary.reabRoutingCode || '',
-                  reaAccountNumber: beneficiary.reabBeneAccount || '',
-                  // Keep original field names for compatibility
-                  beneficiaryId: beneficiary.reabBeneficiaryId || '',
+                  mfName: beneficiary.mfbName || '',
+                  mfBankName: beneficiary.mfbBank || '',
+                  mfSwiftCode: beneficiary.mfbSwift || '',
+                  mfRoutingCode: beneficiary.mfbRoutingCode || '',
+                  mfAccountNumber: beneficiary.mfbBeneAccount || '',
+
+                  beneficiaryId: beneficiary.mfbBeneficiaryId || '',
                   beneficiaryType:
-                    beneficiary.reabTranferTypeDTO?.languageTranslationId
+                    beneficiary.mfbTransferTypeDTO?.languageTranslationId
                       ?.configValue || '',
-                  name: beneficiary.reabName || '',
-                  bankName: beneficiary.reabBank || '',
-                  swiftCode: beneficiary.reabSwift || '',
-                  routingCode: beneficiary.reabRoutingCode || '',
-                  accountNumber: beneficiary.reabBeneAccount || '',
+                  name: beneficiary.mfbName || '',
+                  bankName: beneficiary.mfbBank || '',
+                  swiftCode: beneficiary.mfbSwift || '',
+                  routingCode: beneficiary.mfbRoutingCode || '',
+                  accountNumber: beneficiary.mfbBeneAccount || '',
                 })),
               }
             } else if (activeStep === 5) {
-              
               const paymentPlansArray =
                 apiData?.content || (Array.isArray(apiData) ? apiData : [])
               processedData = {
                 paymentPlan: paymentPlansArray.map((plan: any) => ({
                   id: plan.id?.toString() || '',
-                  installmentNumber: plan.reappInstallmentNumber || 0,
+                  installmentNumber: plan.mfppInstallmentNumber || 0,
                   installmentPercentage:
-                    plan.reappInstallmentPercentage?.toString() || '0',
+                    plan.mfppInstallmentPercentage?.toString() || '0',
                   projectCompletionPercentage:
-                    plan.reappProjectCompletionPercentage?.toString() || '0',
+                    plan.mfppProjectCompletionPercentage?.toString() || '0',
                 })),
               }
             } else if (activeStep === 6) {
-             
               setShouldResetForm(false)
               return
             } else if (activeStep === 7) {
@@ -681,11 +778,11 @@ export default function StepperWrapper({
               processedData = {
                 closureData: {
                   totalIncomeFund:
-                    closureData?.reacTotalIncomeFund?.toString() ||
+                    closureData?.mfcTotalIncomeFund?.toString() ||
                     closureData?.totalIncomeFund?.toString() ||
                     '',
                   totalPayment:
-                    closureData?.reacTotalPayment?.toString() ||
+                    closureData?.mfcTotalPayment?.toString() ||
                     closureData?.totalPayment?.toString() ||
                     '',
                 },
@@ -721,7 +818,7 @@ export default function StepperWrapper({
     if (activeStep === 3 && projectId && !isAddingContact) {
       const loadFeesData = async () => {
         try {
-          const apiData = await realEstateAssetService.getProjectFees(projectId)
+          const apiData = await mflEstateAssetService.getProjectFees(projectId)
 
           const feesArray =
             (apiData as any)?.content || (Array.isArray(apiData) ? apiData : [])
@@ -730,41 +827,41 @@ export default function StepperWrapper({
             const processedFees = feesArray.map((fee: any) => ({
               id: fee.id?.toString() || '',
               FeeType:
-                fee.reafCategoryDTO?.languageTranslationId?.configValue ||
-                fee.reafCategoryDTO?.settingValue ||
+                fee.mffCategoryDTO?.languageTranslationId?.configValue ||
+                fee.mffCategoryDTO?.settingValue ||
                 '',
               Frequency:
-                fee.reafFrequencyDTO?.languageTranslationId?.configValue ||
-                fee.reafFrequencyDTO?.settingValue ||
-                'N/A', 
-              DebitAmount: fee.reafDebitAmount?.toString() || '',
-              Feetobecollected: fee.reafCollectionDate || '',
-              NextRecoveryDate: fee.reafNextRecoveryDate
-                ? dayjs(fee.reafNextRecoveryDate).format('YYYY-MM-DD')
+                fee.mffFrequencyDTO?.languageTranslationId?.configValue ||
+                fee.mffFrequencyDTO?.settingValue ||
+                'N/A',
+              DebitAmount: fee.mffDebitAmount?.toString() || '',
+              Feetobecollected: fee.mffCollectionDate || '',
+              NextRecoveryDate: fee.mffNextRecoveryDate
+                ? dayjs(fee.mffNextRecoveryDate).format('YYYY-MM-DD')
                 : '',
-              FeePercentage: fee.reafFeePercentage?.toString() || '',
-              Amount: fee.reafTotalAmount?.toString() || '',
-              VATPercentage: fee.reafVatPercentage?.toString() || '',
-              
+              FeePercentage: fee.mffFeePercentage?.toString() || '',
+              Amount: fee.mffTotalAmount?.toString() || '',
+              VATPercentage: fee.mffVatPercentage?.toString() || '',
+
               feeType:
-                fee.reafCategoryDTO?.languageTranslationId?.configValue ||
-                fee.reafCategoryDTO?.settingValue ||
+                fee.mffCategoryDTO?.languageTranslationId?.configValue ||
+                fee.mffCategoryDTO?.settingValue ||
                 '',
               frequency:
-                fee.reafFrequencyDTO?.languageTranslationId?.configValue ||
-                fee.reafFrequencyDTO?.settingValue ||
+                fee.mffFrequencyDTO?.languageTranslationId?.configValue ||
+                fee.mffFrequencyDTO?.settingValue ||
                 'N/A',
-              debitAmount: fee.reafDebitAmount?.toString() || '',
-              feeToBeCollected: fee.reafCollectionDate || '',
-              nextRecoveryDate: fee.reafNextRecoveryDate
-                ? dayjs(fee.reafNextRecoveryDate)
+              debitAmount: fee.mffDebitAmount?.toString() || '',
+              feeToBeCollected: fee.mffCollectionDate || '',
+              nextRecoveryDate: fee.mffNextRecoveryDate
+                ? dayjs(fee.mffNextRecoveryDate)
                 : null,
-              feePercentage: fee.reafFeePercentage?.toString() || '',
-              amount: fee.reafTotalAmount?.toString() || '',
-              vatPercentage: fee.reafVatPercentage?.toString() || '',
+              feePercentage: fee.mffFeePercentage?.toString() || '',
+              amount: fee.mffTotalAmount?.toString() || '',
+              vatPercentage: fee.mffVatPercentage?.toString() || '',
               currency:
-                fee.reafCurrencyDTO?.languageTranslationId?.configValue ||
-                fee.reafCurrencyDTO?.settingValue ||
+                fee.mffCurrencyDTO?.languageTranslationId?.configValue ||
+                fee.mffCurrencyDTO?.settingValue ||
                 '',
             }))
 
@@ -784,7 +881,7 @@ export default function StepperWrapper({
       const loadBeneficiariesData = async () => {
         try {
           const apiData =
-            await realEstateAssetService.getProjectBeneficiaries(projectId)
+            await mflEstateAssetService.getProjectBeneficiaries(projectId)
 
           const beneficiariesArray =
             (apiData as any)?.content || (Array.isArray(apiData) ? apiData : [])
@@ -793,25 +890,25 @@ export default function StepperWrapper({
             const processedBeneficiaries = beneficiariesArray.map(
               (beneficiary: any) => ({
                 id: beneficiary.id?.toString() || '',
-                reaBeneficiaryId: beneficiary.reabBeneficiaryId || '',
-                reaBeneficiaryType:
-                  beneficiary.reabTranferTypeDTO?.languageTranslationId
+                mfBeneficiaryId: beneficiary.mfbBeneficiaryId || '',
+                mfBeneficiaryType:
+                  beneficiary.mfbTransferTypeDTO?.languageTranslationId
                     ?.configValue || '',
-                reaName: beneficiary.reabName || '',
-                reaBankName: beneficiary.reabBank || '',
-                reaSwiftCode: beneficiary.reabSwift || '',
-                reaRoutingCode: beneficiary.reabRoutingCode || '',
-                reaAccountNumber: beneficiary.reabBeneAccount || '',
-                
-                beneficiaryId: beneficiary.reabBeneficiaryId || '',
+                mfName: beneficiary.mfbName || '',
+                mfBankName: beneficiary.mfbBank || '',
+                mfSwiftCode: beneficiary.mfbSwift || '',
+                mfRoutingCode: beneficiary.mfbRoutingCode || '',
+                mfAccountNumber: beneficiary.mfbBeneAccount || '',
+
+                beneficiaryId: beneficiary.mfbBeneficiaryId || '',
                 beneficiaryType:
-                  beneficiary.reabTranferTypeDTO?.languageTranslationId
+                  beneficiary.mfbTransferTypeDTO?.languageTranslationId
                     ?.configValue || '',
-                name: beneficiary.reabName || '',
-                bankName: beneficiary.reabBank || '',
-                swiftCode: beneficiary.reabSwift || '',
-                routingCode: beneficiary.reabRoutingCode || '',
-                accountNumber: beneficiary.reabBeneAccount || '',
+                name: beneficiary.mfbName || '',
+                bankName: beneficiary.mfbBank || '',
+                swiftCode: beneficiary.mfbSwift || '',
+                routingCode: beneficiary.mfbRoutingCode || '',
+                accountNumber: beneficiary.mfbBeneAccount || '',
               })
             )
 
@@ -831,16 +928,16 @@ export default function StepperWrapper({
       const loadPaymentPlansData = async () => {
         try {
           const apiData =
-            await realEstateAssetService.getProjectPaymentPlans(projectId)
+            await mflEstateAssetService.getProjectPaymentPlans(projectId)
 
           if (apiData && apiData.length > 0) {
             const processedPaymentPlans = apiData.map((plan: any) => ({
               id: plan.id?.toString() || '',
-              installmentNumber: plan.reappInstallmentNumber || 0,
+              installmentNumber: plan.mfppInstallmentNumber || 0,
               installmentPercentage:
-                plan.reappInstallmentPercentage?.toString() || '',
+                plan.mfppInstallmentPercentage?.toString() || '',
               projectCompletionPercentage:
-                plan.reappProjectCompletionPercentage?.toString() || '',
+                plan.mfppProjectCompletionPercentage?.toString() || '',
             }))
 
             methods.setValue('paymentPlan', processedPaymentPlans)
@@ -854,101 +951,279 @@ export default function StepperWrapper({
     }
   }, [activeStep, projectId, isAddingContact, methods])
 
-
   useEffect(() => {
     if (activeStep === 6 && projectId && !isAddingContact) {
-      
-      
       const loadFinancialData = async () => {
         try {
-          const apiData = await realEstateAssetService.getProjectFinancialSummary(projectId)
-          
-         
+          const apiData =
+            await realEstateAssetService.getProjectFinancialSummary(projectId)
 
           const financialData = apiData?.content?.[0] || apiData
-          
-          
-          
+
           if (financialData?.id) {
             setFinancialSummaryId(financialData.id)
-            
+          } else {
+            console.warn(
+              '⚠️ Financial data has no ID - financialSummaryId will remain null'
+            )
           }
 
           if (financialData) {
             setShouldResetForm(false)
-           
+
             const breakdownMap = {
-              0: { out: 'reafsCurCashRecvdOutEscrow', within: 'reafsCurCashRecvdWithinEscrow', total: 'reafsCurCashRecvdTotal', except: 'reafsCurCashexceptCapVal' },
-              1: { out: 'reafsCurLandCostOut', within: 'reafsCurLandCostWithin', total: 'reafsCurLandTotal', except: 'reafsCurLandexceptCapVal' },
-              2: { out: 'reafsCurConsCostOut', within: 'reafsCurConsCostWithin', total: 'reafsCurConsCostTotal', except: 'reafsCurConsExcepCapVal' },
-              3: { out: 'reafsCurrentMktgExpOut', within: 'reafsCurrentMktgExpWithin', total: 'reafsCurrentMktgExpTotal', except: 'reafsCurrentmktgExcepCapVal' },
-              4: { out: 'reafsCurProjMgmtExpOut', within: 'reafsCurProjMgmtExpWithin', total: 'reafsCurProjMgmtExpTotal', except: 'reafsCurProjExcepCapVal' },
-              5: { out: 'currentMortgageOut', within: 'reafsCurrentMortgageWithin', total: 'reafsCurrentMortgageTotal', except: 'reafsCurMortgageExceptCapVal' },
-              6: { out: 'reafsCurrentVatPaymentOut', within: 'reafsCurrentVatPaymentWithin', total: 'reafsCurrentVatPaymentTotal', except: 'reafsCurVatExceptCapVal' },
-              7: { out: 'reafsCurrentOqoodOut', within: 'reafsCurrentOqoodWithin', total: 'reafsCurrentOqoodTotal', except: 'reafsCurOqoodExceptCapVal' },
-              8: { out: 'reafsCurrentRefundOut', within: 'reafsCurrentRefundWithin', total: 'reafsCurrentRefundTotal', except: 'reafsCurRefundExceptCapVal' },
-              9: { out: 'reafsCurBalInRetenAccOut', within: 'reafsCurBalInRetenAccWithin', total: 'reafsCurBalInRetenAccTotal', except: 'reafsCurBalInRetenExceptCapVal' },
-              10: { out: 'reafsCurBalInTrustAccOut', within: 'reafsCurBalInTrustAccWithin', total: 'reafsCurBalInTrustAccTotal', except: 'reafsCurBalInExceptCapVal' },
-              11: { out: 'reafsCurBalInSubsConsOut', within: 'reafsCurBalInRSubsConsWithin', total: 'reafsCurBalInSubsConsTotal', except: 'reafsCurBalInSubsConsCapVal' },
-              12: { out: 'reafsCurTechnFeeOut', within: 'reafsCurTechnFeeWithin', total: 'reafsCurTechnFeeTotal', except: 'reafsCurTechFeeExceptCapVal' },
-              13: { out: 'reafsCurUnIdeFundOut', within: 'reafsCurUnIdeFundWithin', total: 'reafsCurUnIdeFundTotal', except: 'reafsCurUnIdeExceptCapVal' },
-              14: { out: 'reafsCurLoanInstalOut', within: 'reafsCurLoanInstalWithin', total: 'reafsCurLoanInstalTotal', except: 'reafsCurLoanExceptCapVal' },
-              15: { out: 'reafsCurInfraCostOut', within: 'reafsCurInfraCostWithin', total: 'reafsCurInfraCostTotal', except: 'reafsCurInfraExceptCapVal' },
-              16: { out: 'reafsCurOthersCostOut', within: 'reafsCurOthersCostWithin', total: 'reafsCurOthersCostTotal', except: 'reafsCurOthersExceptCapVal' },
-              17: { out: 'reafsCurTransferCostOut', within: 'reafsCurTransferCostWithin', total: 'reafsCurTransferCostTotal', except: 'reafsCurTransferExceptCapVal' },
-              18: { out: 'reafsCurForfeitCostOut', within: 'reafsCurForfeitCostWithin', total: 'reafsCurForfeitCostTotal', except: 'reafsCurForfeitExceptCapVal' },
-              19: { out: 'reafsCurDeveEqtycostOut', within: 'reafsCurDeveEqtycostWithin', total: 'reafsCurDeveEqtycostTotal', except: 'reafsCurDeveExceptCapVal' },
-              20: { out: 'reafsCurAmntFundOut', within: 'reafsCurAmntFundWithin', total: 'reafsCurAmntFundTotal', except: 'reafsCurAmntExceptCapVal' },
-              21: { out: 'reafsCurOtherWithdOut', within: 'reafsCurOtherWithdWithin', total: 'reafsCurOtherWithdTotal', except: 'reafsCurOtherExceptCapVal' },
-              22: { out: 'reafsCurOqoodOthFeeOut', within: 'reafsCurOqoodOthFeeWithin', total: 'reafsCurOqoodOthFeeTotal', except: 'reafsOtherFeesAnPaymentExcepVal' },
-              23: { out: 'reafsCurVatDepositOut', within: 'reafsCurVatDepositWithin', total: 'reafsCurVatDepositTotal', except: 'reafsCurVatDepositCapVal' },
+              0: {
+                out: 'mffsCurCashRecvdOutEscrow',
+                within: 'mffsCurCashRecvdWithinEscrow',
+                total: 'mffsCurCashRecvdTotal',
+                except: 'mffsCurCashexceptCapVal',
+              },
+              1: {
+                out: 'mffsCurLandCostOut',
+                within: 'mffsCurLandCostWithin',
+                total: 'mffsCurLandTotal',
+                except: 'mffsCurLandexceptCapVal',
+              },
+              2: {
+                out: 'mffsCurConsCostOut',
+                within: 'mffsCurConsCostWithin',
+                total: 'mffsCurConsCostTotal',
+                except: 'mffsCurConsExcepCapVal',
+              },
+              3: {
+                out: 'mffsCurrentMktgExpOut',
+                within: 'mffsCurrentMktgExpWithin',
+                total: 'mffsCurrentMktgExpTotal',
+                except: 'mffsCurrentmktgExcepCapVal',
+              },
+              4: {
+                out: 'mffsCurProjMgmtExpOut',
+                within: 'mffsCurProjMgmtExpWithin',
+                total: 'mffsCurProjMgmtExpTotal',
+                except: 'mffsCurProjExcepCapVal',
+              },
+              5: {
+                out: 'currentMortgageOut',
+                within: 'mffsCurrentMortgageWithin',
+                total: 'mffsCurrentMortgageTotal',
+                except: 'mffsCurMortgageExceptCapVal',
+              },
+              6: {
+                out: 'mffsCurrentVatPaymentOut',
+                within: 'mffsCurrentVatPaymentWithin',
+                total: 'mffsCurrentVatPaymentTotal',
+                except: 'mffsCurVatExceptCapVal',
+              },
+              7: {
+                out: 'mffsCurrentOqoodOut',
+                within: 'mffsCurrentOqoodWithin',
+                total: 'mffsCurrentOqoodTotal',
+                except: 'mffsCurOqoodExceptCapVal',
+              },
+              8: {
+                out: 'mffsCurrentRefundOut',
+                within: 'mffsCurrentRefundWithin',
+                total: 'mffsCurrentRefundTotal',
+                except: 'mffsCurRefundExceptCapVal',
+              },
+              9: {
+                out: 'mffsCurBalInRetenAccOut',
+                within: 'mffsCurBalInRetenAccWithin',
+                total: 'mffsCurBalInRetenAccTotal',
+                except: 'mffsCurBalInRetenExceptCapVal',
+              },
+              10: {
+                out: 'mffsCurBalInTrustAccOut',
+                within: 'mffsCurBalInTrustAccWithin',
+                total: 'mffsCurBalInTrustAccTotal',
+                except: 'mffsCurBalInExceptCapVal',
+              },
+              11: {
+                out: 'mffsCurBalInSubsConsOut',
+                within: 'mffsCurBalInRSubsConsWithin',
+                total: 'mffsCurBalInSubsConsTotal',
+                except: 'mffsCurBalInSubsConsCapVal',
+              },
+              12: {
+                out: 'mffsCurTechnFeeOut',
+                within: 'mffsCurTechnFeeWithin',
+                total: 'mffsCurTechnFeeTotal',
+                except: 'mffsCurTechFeeExceptCapVal',
+              },
+              13: {
+                out: 'mffsCurUnIdeFundOut',
+                within: 'mffsCurUnIdeFundWithin',
+                total: 'mffsCurUnIdeFundTotal',
+                except: 'mffsCurUnIdeExceptCapVal',
+              },
+              14: {
+                out: 'mffsCurLoanInstalOut',
+                within: 'mffsCurLoanInstalWithin',
+                total: 'mffsCurLoanInstalTotal',
+                except: 'mffsCurLoanExceptCapVal',
+              },
+              15: {
+                out: 'mffsCurInfraCostOut',
+                within: 'mffsCurInfraCostWithin',
+                total: 'mffsCurInfraCostTotal',
+                except: 'mffsCurInfraExceptCapVal',
+              },
+              16: {
+                out: 'mffsCurOthersCostOut',
+                within: 'mffsCurOthersCostWithin',
+                total: 'mffsCurOthersCostTotal',
+                except: 'mffsCurOthersExceptCapVal',
+              },
+              17: {
+                out: 'mffsCurTransferCostOut',
+                within: 'mffsCurTransferCostWithin',
+                total: 'mffsCurTransferCostTotal',
+                except: 'mffsCurTransferExceptCapVal',
+              },
+              18: {
+                out: 'mffsCurForfeitCostOut',
+                within: 'mffsCurForfeitCostWithin',
+                total: 'mffsCurForfeitCostTotal',
+                except: 'mffsCurForfeitExceptCapVal',
+              },
+              19: {
+                out: 'mffsCurDeveEqtycostOut',
+                within: 'mffsCurDeveEqtycostWithin',
+                total: 'mffsCurDeveEqtycostTotal',
+                except: 'mffsCurDeveExceptCapVal',
+              },
+              20: {
+                out: 'mffsCurAmntFundOut',
+                within: 'mffsCurAmntFundWithin',
+                total: 'mffsCurAmntFundTotal',
+                except: 'mffsCurAmntExceptCapVal',
+              },
+              21: {
+                out: 'mffsCurOtherWithdOut',
+                within: 'mffsCurOtherWithdWithin',
+                total: 'mffsCurOtherWithdTotal',
+                except: 'mffsCurOtherExceptCapVal',
+              },
+              22: {
+                out: 'mffsCurOqoodOthFeeOut',
+                within: 'mffsCurOqoodOthFeeWithin',
+                total: 'mffsCurOqoodOthFeeTotal',
+                except: 'mffsOtherFeesAnPaymentExcepVal',
+              },
+              23: {
+                out: 'mffsCurVatDepositOut',
+                within: 'mffsCurVatDepositWithin',
+                total: 'mffsCurVatDepositTotal',
+                except: 'mffsCurVatDepositCapVal',
+              },
             }
 
-            const breakdown = Array(24).fill(null).map((_, index) => {
-              const mapping = breakdownMap[index as keyof typeof breakdownMap]
-              if (mapping) {
-                return {
-                  outOfEscrow: (financialData as any)[mapping.out]?.toString() || '',
-                  withinEscrow: (financialData as any)[mapping.within]?.toString() || '',
-                  total: (financialData as any)[mapping.total]?.toString() || '',
-                  exceptionalCapValue: (financialData as any)[mapping.except] || '',
+            const breakdown = Array(24)
+              .fill(null)
+              .map((_, index) => {
+                const mapping = breakdownMap[index as keyof typeof breakdownMap]
+                if (!mapping) {
+                  return {
+                    outOfEscrow: '',
+                    withinEscrow: '',
+                    total: '',
+                    exceptionalCapValue: '',
+                  }
                 }
-              }
-              return { outOfEscrow: '', withinEscrow: '', total: '', exceptionalCapValue: '' }
-            })
 
-          
+                // Explicitly access each field to ensure correct mapping per index
+                const financialDataAny = financialData as any
+                const outValue = financialDataAny.hasOwnProperty(mapping.out)
+                  ? financialDataAny[mapping.out]
+                  : undefined
+                const withinValue = financialDataAny.hasOwnProperty(
+                  mapping.within
+                )
+                  ? financialDataAny[mapping.within]
+                  : undefined
+                const totalValue = financialDataAny.hasOwnProperty(
+                  mapping.total
+                )
+                  ? financialDataAny[mapping.total]
+                  : undefined
+                const exceptValue = financialDataAny.hasOwnProperty(
+                  mapping.except
+                )
+                  ? financialDataAny[mapping.except]
+                  : undefined
+
+                return {
+                  outOfEscrow:
+                    outValue != null &&
+                    outValue !== undefined &&
+                    outValue !== ''
+                      ? String(outValue)
+                      : '',
+                  withinEscrow:
+                    withinValue != null &&
+                    withinValue !== undefined &&
+                    withinValue !== ''
+                      ? String(withinValue)
+                      : '',
+                  total:
+                    totalValue != null &&
+                    totalValue !== undefined &&
+                    totalValue !== ''
+                      ? String(totalValue)
+                      : '',
+                  exceptionalCapValue:
+                    exceptValue != null &&
+                    exceptValue !== undefined &&
+                    exceptValue !== ''
+                      ? String(exceptValue)
+                      : '',
+                }
+              })
+
             const completeFinancialData = {
               estimate: {
-                revenue: financialData.reafsEstRevenue?.toString() || '',
-                constructionCost: financialData.reafsEstConstructionCost?.toString() || '',
-                projectManagementExpense: financialData.reafsEstProjectMgmtExpense?.toString() || '',
-                landCost: financialData.reafsEstLandCost?.toString() || '',
-                marketingExpense: financialData.reafsEstMarketingExpense?.toString() || '',
-                date: financialData.reafsEstimatedDate ? dayjs(financialData.reafsEstimatedDate) : null,
+                revenue: financialData.mffsEstRevenue?.toString() || '',
+                constructionCost:
+                  financialData.mffsEstConstructionCost?.toString() || '',
+                projectManagementExpense:
+                  financialData.mffsEstProjectMgmtExpense?.toString() || '',
+                landCost: financialData.mffsEstLandCost?.toString() || '',
+                marketingExpense:
+                  financialData.mffsEstMarketingExpense?.toString() || '',
+                date: financialData.mffsEstimatedDate
+                  ? dayjs(financialData.mffsEstimatedDate)
+                  : null,
               },
               actual: {
-                soldValue: financialData.reafsActualSoldValue?.toString() || '',
-                constructionCost: financialData.reafsActualConstructionCost?.toString() || '',
-                infraCost: financialData.reafsActualInfraCost?.toString() || '',
-                landCost: financialData.reafsActualLandCost?.toString() || '',
-                projectManagementExpense: financialData.reafsActualProjectMgmtExpense?.toString() || '',
-                marketingExpense: financialData.reafsActualMarketingExp?.toString() || '',
-                date: financialData.reafsActualDate ? dayjs(financialData.reafsActualDate) : null,
+                soldValue: financialData.mffsActualSoldValue?.toString() || '',
+                constructionCost:
+                  financialData.mffsActualConstructionCost?.toString() || '',
+                infraCost: financialData.mffsActualInfraCost?.toString() || '',
+                landCost: financialData.mffsActualLandCost?.toString() || '',
+                projectManagementExpense:
+                  financialData.mffsActualProjectMgmtExpense?.toString() || '',
+                marketingExpense:
+                  financialData.mffsActualMarketingExp?.toString() || '',
+                date: financialData.mffsActualDate
+                  ? dayjs(financialData.mffsActualDate)
+                  : null,
               },
               breakdown,
               additional: {
-                creditInterestRetention: financialData.reafsCreditInterest?.toString() || '',
-                paymentsRetentionAccount: financialData.reafsPaymentForRetentionAcc?.toString() || '',
-                reimbursementsDeveloper: financialData.reafsDeveloperReimburse?.toString() || '',
-                unitRegistrationFees: financialData.reafsUnitRegFees?.toString() || '',
-                creditInterestEscrow: financialData.reafsCreditInterestProfit?.toString() || '',
-                vatCapped: financialData.reafsVatCappedCost?.toString() || '',
+                creditInterestRetention:
+                  financialData.mffsCreditInterest?.toString() || '',
+                paymentsRetentionAccount:
+                  financialData.mffsPaymentForRetentionAcc?.toString() || '',
+                reimbursementsDeveloper:
+                  financialData.mffsDeveloperReimburse?.toString() || '',
+                unitRegistrationFees:
+                  financialData.mffsUnitRegFees?.toString() || '',
+                creditInterestEscrow:
+                  financialData.mffsCreditInterestProfit?.toString() || '',
+                vatCapped: financialData.mffsVatCappedCost?.toString() || '',
               },
             }
 
-       
-            
             methods.reset({
               ...methods.getValues(),
               estimate: completeFinancialData.estimate,
@@ -958,7 +1233,6 @@ export default function StepperWrapper({
             } as any)
           }
         } catch (error) {
-          
           throw error
         }
       }
@@ -977,20 +1251,20 @@ export default function StepperWrapper({
           if (apiData) {
             const processedProjectData = {
               ...apiData,
-              reaStartDate: apiData.reaStartDate
-                ? dayjs(apiData.reaStartDate)
+              mfStartDate: apiData.mfStartDate
+                ? dayjs(apiData.mfStartDate)
                 : null,
-              reaCompletionDate: apiData.reaCompletionDate
-                ? dayjs(apiData.reaCompletionDate)
+              mfCompletionDate: apiData.mfCompletionDate
+                ? dayjs(apiData.mfCompletionDate)
                 : null,
-              reaRetentionEffectiveDate: apiData.reaRetentionEffectiveDate
-                ? dayjs(apiData.reaRetentionEffectiveDate)
+              mfRetentionEffectiveDate: apiData.mfRetentionEffectiveDate
+                ? dayjs(apiData.mfRetentionEffectiveDate)
                 : null,
-              reaAccoutStatusDate: apiData.reaAccoutStatusDate
-                ? dayjs(apiData.reaAccoutStatusDate)
+              mfAccoutStatusDate: apiData.mfAccoutStatusDate
+                ? dayjs(apiData.mfAccoutStatusDate)
                 : null,
-              reaRegistrationDate: apiData.reaRegistrationDate
-                ? dayjs(apiData.reaRegistrationDate)
+              mfRegistrationDate: apiData.mfRegistrationDate
+                ? dayjs(apiData.mfRegistrationDate)
                 : null,
             }
 
@@ -1013,21 +1287,19 @@ export default function StepperWrapper({
             await realEstateAssetService.getProjectClosure(projectId)
 
           if (apiData) {
-            
             const closureData = apiData?.content?.[0] || apiData
 
-          
             if (closureData?.id) {
               setProjectClosureId(closureData.id)
             }
 
             const processedClosureData = {
               totalIncomeFund:
-                closureData.reacTotalIncomeFund?.toString() ||
+                closureData.mfcTotalIncomeFund?.toString() ||
                 closureData.totalIncomeFund?.toString() ||
                 '',
               totalPayment:
-                closureData.reacTotalPayment?.toString() ||
+                closureData.mfcTotalPayment?.toString() ||
                 closureData.totalPayment?.toString() ||
                 '',
             }
@@ -1062,21 +1334,89 @@ export default function StepperWrapper({
           const accountsArray =
             (apiData as any)?.content || (Array.isArray(apiData) ? apiData : [])
 
+          ;(window as any).originalStep2Accounts = []
+
           if (accountsArray.length > 0) {
-            const processedAccounts = accountsArray.map((account: any) => ({
-              id: account.id,
-              trustAccountNumber:
-                account.accountNumber || account.trustAccountNumber || '',
-              ibanNumber: account.ibanNumber || '',
-              dateOpened: account.dateOpened ? dayjs(account.dateOpened) : null,
-              accountTitle: account.accountTitle || '',
-              currency: account.currencyCode || account.currency || '',
-              accountType: account.accountType || '',
-              isValidated: account.isValidated || false,
-              enabled: account.enabled || false,
-            }))
+            const normalizeAccountType = (type: string | null | undefined) => {
+              if (!type) {
+                return ''
+              }
+
+              const formatted = String(type).trim().toUpperCase()
+
+              switch (formatted) {
+                case 'TRUST':
+                case 'TRUST ACCOUNT':
+                  return 'TRUST'
+                case 'RETENTION':
+                case 'RETENTION ACCOUNT':
+                  return 'RETENTION'
+                case 'SUBCONSTRUCTION':
+                case 'SUB CONSTRUCTION':
+                case 'SUB-CONSTRUCTION':
+                case 'SUB CONSTRUCTION ACCOUNT':
+                case 'SUB-CONSTRUCTION ACCOUNT':
+                  return 'SUBCONSTRUCTION'
+                case 'CORPORATE':
+                case 'CORPORATE ACCOUNT':
+                  return 'CORPORATE'
+                default:
+                  return formatted
+              }
+            }
+
+            const accountsByType = accountsArray.reduce(
+              (acc: Record<string, any>, account: any) => {
+                const key = normalizeAccountType(account?.accountType)
+
+                if (key) {
+                  acc[key] = account
+                }
+
+                return acc
+              },
+              {}
+            )
+
+            const processedAccounts = ACCOUNT_TYPES.map((type) => {
+              const account = accountsByType[type] || {}
+              const dateOpened = account.dateOpened
+                ? dayjs(account.dateOpened)
+                : null
+
+              return {
+                id: account.id ?? null,
+                trustAccountNumber:
+                  account.accountNumber || account.trustAccountNumber || '',
+                ibanNumber: account.ibanNumber || '',
+                dateOpened,
+                accountTitle: account.accountTitle || '',
+                currency: account.currencyCode || account.currency || '',
+                accountType: type,
+                isValidated: account.isValidated || false,
+                enabled: account.enabled || false,
+              }
+            })
+
+            const normalizedOriginalAccounts = processedAccounts.map(
+              (account: any) => ({
+                id: account.id ?? null,
+                accountType: account.accountType || '',
+                accountNumber: account.trustAccountNumber || '',
+                ibanNumber: account.ibanNumber || '',
+                accountTitle: account.accountTitle || '',
+                currencyCode: account.currency || '',
+                dateOpened: account.dateOpened
+                  ? account.dateOpened.format('YYYY-MM-DD')
+                  : '',
+              })
+            )
+
+            ;(window as any).originalStep2Accounts = normalizedOriginalAccounts
 
             methods.setValue('accounts', processedAccounts)
+          } else {
+            methods.setValue('accounts', [])
           }
         } catch (error) {
           throw error
@@ -1091,7 +1431,6 @@ export default function StepperWrapper({
     if (!projectId) {
       setIsEditingMode(false)
     } else {
-      
       setIsEditingMode(true)
     }
   }, [projectId, isEditingMode])
@@ -1103,7 +1442,7 @@ export default function StepperWrapper({
       case 1:
         return (
           <DocumentUploadFactory
-            type="BUILD_PARTNER_ASSET"
+            type="MANAGEMENT_FIRMS"
             entityId={projectId || 'temp_project_id'}
             isReadOnly={isViewMode}
             isOptional={true}
@@ -1130,7 +1469,7 @@ export default function StepperWrapper({
       case 3:
         const watchedFees = methods.watch('fees')
         const buildPartnerIdForFees = methods
-          .watch('buildPartnerDTO.id')
+          .watch('assetRegisterDTO.id')
           ?.toString()
 
         return (
@@ -1148,7 +1487,7 @@ export default function StepperWrapper({
         )
       case 4:
         const buildPartnerIdForBeneficiaries = methods
-          .watch('buildPartnerDTO.id')
+          .watch('assetRegisterDTO.id')
           ?.toString()
         const watchedBeneficiaries = methods.watch('beneficiaries')
 
@@ -1211,88 +1550,94 @@ export default function StepperWrapper({
 
   const transformDetailsData = (formData: ProjectData) => ({
     ...(projectId && { id: projectId }),
-    reaId: formData.reaId,
-    reaCif: formData.reaCif,
-    reaName: formData.reaName,
-    reaLocation: formData.reaLocation,
-    reaReraNumber: formData.reaReraNumber,
-    reaStartDate: formData.reaStartDate
+      mfId: formData.mfId,
+    mfId: formData.mfId,
+    mfName: formData.mfName,
+    mfLocation: formData.mfLocation,
+    mfReraNumber: formData.mfReraNumber,
+    mfStartDate: formData.mfStartDate
       ? convertDatePickerToZonedDateTime(
-          formData.reaStartDate.format('YYYY-MM-DD')
+          formData.mfStartDate.format('YYYY-MM-DD')
         )
       : null,
-    reaCompletionDate: formData.reaCompletionDate
+    mfCompletionDate: formData.mfCompletionDate
       ? convertDatePickerToZonedDateTime(
-          formData.reaCompletionDate.format('YYYY-MM-DD')
+          formData.mfCompletionDate.format('YYYY-MM-DD')
         )
       : null,
-    reaRegistrationDate: formData.reaRegistrationDate
+    mfRegistrationDate: formData.mfRegistrationDate
       ? convertDatePickerToZonedDateTime(
-          formData.reaRegistrationDate.format('YYYY-MM-DD')
+          formData.mfRegistrationDate.format('YYYY-MM-DD')
         )
       : null,
-    reaAccoutStatusDate: formData.reaAccoutStatusDate
+    mfAccoutStatusDate: formData.mfAccoutStatusDate
       ? convertDatePickerToZonedDateTime(
-          formData.reaAccoutStatusDate.format('YYYY-MM-DD')
+          formData.mfAccoutStatusDate.format('YYYY-MM-DD')
         )
       : null,
-    reaConstructionCost:
-      typeof formData.reaConstructionCost === 'number'
-        ? formData.reaConstructionCost
-        : parseFloat(String(formData.reaConstructionCost || '0')),
-    reaNoOfUnits:
-      typeof formData.reaNoOfUnits === 'number'
-        ? formData.reaNoOfUnits
-        : parseInt(String(formData.reaNoOfUnits || '0')),
-    reaRemarks: formData.reaRemarks,
-    reaSpecialApproval: formData.reaSpecialApproval,
-    reaManagedBy: formData.reaManagedBy,
-    reaBackupUser: formData.reaBackupUser,
-    reaTeamLeadName: formData.reaTeamLeadName,
-    reaRelationshipManagerName: formData.reaRelationshipManagerName,
-    reaAssestRelshipManagerName: formData.reaAssestRelshipManagerName,
-    reaLandOwnerName: formData.reaLandOwnerName,
-    reaRetentionPercent: formData.reaRetentionPercent,
-    reaAdditionalRetentionPercent: formData.reaAdditionalRetentionPercent,
-    reaTotalRetentionPercent: formData.reaTotalRetentionPercent,
-    reaRetentionEffectiveDate: formData.reaRetentionEffectiveDate
+        mfConstructionCost:
+      typeof formData.mfConstructionCost === 'number'
+        ? formData.mfConstructionCost
+        : parseFloat(String(formData.mfConstructionCost || '0')),
+        mfNoOfUnits:
+      typeof formData.mfNoOfUnits === 'number'
+          ? formData.mfNoOfUnits
+        : parseInt(String(formData.mfNoOfUnits || '0')),
+    mfRemarks: formData.mfRemarks,
+    mfSpecialApproval: formData.mfSpecialApproval,
+    mfManagedBy: formData.mfManagedBy,
+    mfBackupUser: formData.mfBackupUser,
+    mfTeamLeadName: formData.mfTeamLeadName,
+    mfRelationshipManagerName: formData.mfRelationshipManagerName,
+    mfAssestRelshipManagerName: formData.mfAssestRelshipManagerName,
+    mfLandOwnerName: formData.mfLandOwnerName,
+    mfRetentionPercent: formData.mfRetentionPercent,
+    mfAdditionalRetentionPercent: formData.mfAdditionalRetentionPercent,
+    mfTotalRetentionPercent: formData.mfTotalRetentionPercent,
+    mfRetentionEffectiveDate: formData.mfRetentionEffectiveDate
       ? convertDatePickerToZonedDateTime(
-          formData.reaRetentionEffectiveDate.format('YYYY-MM-DD')
+          formData.mfRetentionEffectiveDate.format('YYYY-MM-DD')
         )
       : null,
-    reaManagementExpenses: formData.reaManagementExpenses,
-    reaMarketingExpenses: formData.reaMarketingExpenses,
-    reaRealEstateBrokerExp:
-      typeof formData.reaRealEstateBrokerExp === 'number'
-        ? formData.reaRealEstateBrokerExp
-        : parseFloat(String(formData.reaRealEstateBrokerExp || '0')),
-    reaAdvertisementExp:
-      typeof formData.reaAdvertisementExp === 'number'
-        ? formData.reaAdvertisementExp
-        : parseFloat(String(formData.reaAdvertisementExp || '0')),
-    reaPercentComplete: formData.reaPercentComplete,
-    reaConstructionCostCurrencyDTO: {
+      mfManagementExpenses: formData.mfManagementExpenses,
+    mfMarketingExpenses: formData.mfMarketingExpenses,
+    mfRealEstateBrokerExp:
+      typeof formData.mfRealEstateBrokerExp === 'number'
+        ? formData.mfRealEstateBrokerExp
+        : parseFloat(String(formData.mfRealEstateBrokerExp || '0')),
+    mfAdvertisementExp:
+      typeof formData.mfAdvertisementExp === 'number'
+        ? formData.mfAdvertisementExp
+        : parseFloat(String(formData.mfAdvertisementExp || '0')),
+    mfPercentComplete: formData.mfPercentComplete,
+    mfConstructionCostCurrencyDTO: {
       id:
         parseInt(
-          formData.reaConstructionCostCurrencyDTO?.id?.toString() || '32'
+          formData.mfConstructionCostCurrencyDTO?.id?.toString() || '32'
         ) || 32,
     },
-    buildPartnerDTO: {
-      id: parseInt(formData.buildPartnerDTO?.id?.toString() || '501') || 501,
+    assetRegisterDTO: {
+      id: parseInt(formData.assetRegisterDTO?.id?.toString() || '501') || 501,
     },
-    reaStatusDTO: {
-      id: parseInt(formData.reaStatusDTO?.id?.toString() || '53') || 53,
+    mfStatusDTO: {
+      id: parseInt(formData.mfStatusDTO?.id?.toString() || '53') || 53,
     },
-    reaTypeDTO: {
-      id: parseInt(formData.reaTypeDTO?.id?.toString() || '51') || 51,
+    mfTypeDTO: {
+      id: parseInt(formData.mfTypeDTO?.id?.toString() || '51') || 51,
     },
-    reaAccountStatusDTO: {
-      id: parseInt(formData.reaAccountStatusDTO?.id?.toString() || '55') || 55,
+    mfAccountStatusDTO: {
+        id: parseInt(formData.mfAccountStatusDTO?.id?.toString() || '55') || 55,
     },
+    mfBlockPaymentTypeDTO: formData.mfBlockPaymentTypeDTO?.id
+      ? {
+          id: parseInt(formData.mfBlockPaymentTypeDTO.id.toString()),
+        }
+      : null,
     status: formData.status || 'ACTIVE',
+    enabled: true,
+    deleted: false,
   })
 
-  
   const handleViewNext = useCallback(() => {
     if (activeStep < steps.length - 1) {
       const nextStep = activeStep + 1
@@ -1303,7 +1648,6 @@ export default function StepperWrapper({
         router.push(targetUrl)
       }
     } else {
-      
       router.push('/build-partner-assets')
     }
   }, [activeStep, steps.length, projectId, router])
@@ -1321,7 +1665,6 @@ export default function StepperWrapper({
   }, [activeStep, projectId, router])
 
   const handleSaveAndNext = useCallback(async () => {
-   
     if (isViewMode) {
       handleViewNext()
       return
@@ -1331,7 +1674,18 @@ export default function StepperWrapper({
       setErrorMessage(null)
       setSuccessMessage(null)
 
-      
+      // Check for unsaved changes in Step 5 (Payment Plan)
+      if (activeStep === 5) {
+        const step5State = (window as any).step5ValidationState || {}
+        if (step5State.hasUnsavedChanges) {
+          setErrorMessage(
+            'You have unsaved installment data. Please save all rows (click the ✓ icon) or cancel editing (click the ✗ icon) before proceeding.'
+          )
+          setTimeout(() => setErrorMessage(null), 5000)
+          return
+        }
+      }
+
       if (stepRequiresValidation(activeStep)) {
         const { isValid } = await validateCurrentStep(methods, activeStep)
 
@@ -1346,7 +1700,6 @@ export default function StepperWrapper({
 
       const currentFormData = methods.getValues()
 
-  
       if (SKIP_VALIDATION_STEPS.includes(activeStep as 1 | 3 | 4)) {
         const nextStep = activeStep + 1
         setActiveStep(nextStep)
@@ -1365,7 +1718,9 @@ export default function StepperWrapper({
           const step1Data = stepStatus?.stepData?.step1
 
           if (!projectIdFromStatus || !step1Data) {
-            setErrorMessage('No project data available - check stepStatus')
+            setErrorMessage(
+              'No Build Partner Asset data available - check stepStatus'
+            )
             return
           }
 
@@ -1378,7 +1733,7 @@ export default function StepperWrapper({
           })
 
           setSuccessMessage(
-            'Project registration submitted successfully! Workflow request created.'
+            'Build partner asset registration submitted successfully! Workflow request created.'
           )
           router.push('/build-partner-assets')
           return
@@ -1449,7 +1804,25 @@ export default function StepperWrapper({
             return
           }
 
-          const accountsToProcess = accountsToSave.map((account: any) => ({
+          const originalAccounts = (window as any).originalStep2Accounts || []
+          const changedAccounts = getChangedAccounts(
+            accountsToSave,
+            originalAccounts
+          )
+
+          if (changedAccounts.length === 0) {
+            setSuccessMessage('No account changes detected.')
+            const nextStep = activeStep + 1
+            setActiveStep(nextStep)
+
+            if (projectId) {
+              const targetUrl = `/build-partner-assets/${projectId}?step=${nextStep + 1}${getModeParam()}`
+              router.push(targetUrl)
+            }
+            return
+          }
+
+          const accountsToProcess = changedAccounts.map((account: any) => ({
             ...account,
 
             dateOpened: account.dateOpened
@@ -1480,11 +1853,28 @@ export default function StepperWrapper({
           }
 
           if (errors.length > 0) {
-           
             return
           }
 
           setSuccessMessage(SUCCESS_MESSAGES.ACCOUNTS_SAVED)
+
+          const currentAccountsSnapshot = methods.getValues('accounts') || []
+          const normalizedSnapshot = currentAccountsSnapshot.map(
+            (account: any) => ({
+              id: account.id ?? null,
+              accountType: account.accountType || '',
+              accountNumber: account.trustAccountNumber || '',
+              ibanNumber: account.ibanNumber || '',
+              accountTitle: account.accountTitle || '',
+              currencyCode: account.currency || '',
+              dateOpened: account.dateOpened
+                ? account.dateOpened.format?.('YYYY-MM-DD') ||
+                  new Date(account.dateOpened).toISOString().split('T')[0]
+                : '',
+            })
+          )
+
+          ;(window as any).originalStep2Accounts = normalizedSnapshot
 
           const nextStep = activeStep + 1
           setActiveStep(nextStep)
@@ -1501,6 +1891,16 @@ export default function StepperWrapper({
       }
 
       if (activeStep === 5) {
+        // Check payment plan validation before proceeding
+        const step5Validation = (window as any).step5ValidationState
+        if (step5Validation && !step5Validation.isValid) {
+          setErrorMessage(
+            'Payment plan percentages exceed 100%. Please adjust the values before proceeding.'
+          )
+          setTimeout(() => setErrorMessage(null), 5000)
+          return
+        }
+
         const nextStep = activeStep + 1
         setActiveStep(nextStep)
         if (projectId) {
@@ -1518,10 +1918,7 @@ export default function StepperWrapper({
           additional: (currentFormData as any).additional || {},
         }
 
-      
-
         if (isEditingMode && financialSummaryId) {
-          
           await saveFinancialSummary.mutateAsync({
             financialData: financialData,
             projectId: financialSummaryId.toString(),
@@ -1529,7 +1926,6 @@ export default function StepperWrapper({
             realProjectId: projectId,
           } as any)
         } else {
-          
           await stepManager.saveStep(6, financialData, projectId, false)
         }
         setSuccessMessage('Financial Summary saved successfully')
@@ -1556,7 +1952,7 @@ export default function StepperWrapper({
           await stepManager.saveStep(7, closureData, projectId, false)
         }
 
-        setSuccessMessage('Project Closure saved successfully')
+        setSuccessMessage('Asset Closure saved successfully')
         const nextStep = 8
         setActiveStep(nextStep)
         if (projectId) {
@@ -1619,7 +2015,9 @@ export default function StepperWrapper({
           const step1Data = stepStatus?.stepData?.step1
 
           if (!projectIdFromStatus || !step1Data) {
-            setErrorMessage('No project data available - check stepStatus')
+            setErrorMessage(
+              'No Build Partner Asset data available - check stepStatus'
+            )
             return
           }
 
@@ -1632,7 +2030,7 @@ export default function StepperWrapper({
           })
 
           setSuccessMessage(
-            'Project registration submitted successfully! Workflow request created.'
+            'Build Partner Asset registration submitted successfully! Workflow request created.'
           )
           router.push('/build-partner-assets')
         } catch (error) {
@@ -1657,7 +2055,6 @@ export default function StepperWrapper({
   }, [activeStep, methods, stepManager, projectId, router, isEditingMode])
 
   const handleBack = useCallback(() => {
-    
     if (isViewMode) {
       handleViewBack()
       return
@@ -1675,11 +2072,8 @@ export default function StepperWrapper({
   }, [activeStep, projectId, router, isViewMode, handleViewBack, getModeParam])
 
   const handleReset = useCallback(() => {
-    setActiveStep(0)
-    methods.reset()
-    setErrorMessage(null)
-    setSuccessMessage(null)
-  }, [methods])
+    router.push('/build-partner-assets')
+  }, [router])
 
   const handleEditStep = useCallback(
     (stepNumber: number) => {
@@ -1696,9 +2090,7 @@ export default function StepperWrapper({
     [setShouldResetForm, projectId, router, stepStatus, getModeParam]
   )
 
-  const onSubmit = (_data: ProjectData) => {
-    // Form submission is handled by handleSaveAndNext
-  }
+  const onSubmit = (_data: ProjectData) => {}
 
   if (isLoadingStepStatus && projectId) {
     return (

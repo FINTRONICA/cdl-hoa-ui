@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useEffect } from 'react'
 import {
@@ -11,17 +12,20 @@ import {
   DialogContent,
   DialogActions,
   Typography,
+  IconButton,
 } from '@mui/material'
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined'
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'
+import CloseIcon from '@mui/icons-material/Close'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import dayjs from 'dayjs'
+import type { Dayjs } from 'dayjs'
 import { FeeData } from '../types'
 import { RightSlideProjectFeeDetailsPanel } from '../../RightSlidePanel/RightSlideProjectFeeDetailsPanel'
 import { PermissionAwareDataTable } from '@/components/organisms/PermissionAwareDataTable'
 import { useTableState } from '@/hooks'
 import { cardStyles } from '../styles'
-import { useProjectLabels } from '@/hooks/useProjectLabels'
 import { realEstateAssetService } from '@/services/api/projectService'
 import { useBuildPartnerAssetLabelsWithUtils } from '@/hooks/useBuildPartnerAssetLabels'
 
@@ -43,13 +47,13 @@ interface FeeDetails extends Record<string, unknown> {
   debitAccount?: string
   currency?: string
   debitAmount?: string
-  feeToBeCollected?: any
-  nextRecoveryDate?: any
+  feeToBeCollected?: string | Dayjs | null
+  nextRecoveryDate?: string | Dayjs | null
   feePercentage?: string
   vatPercentage?: string
   totalAmount?: string
   collectionDate?: string
-  realEstateAssetDTO?: any
+  realEstateAssetDTO?: unknown
 }
 
 interface Step3Props {
@@ -89,21 +93,44 @@ const Step3: React.FC<Step3Props> = ({
   const feeDetails = fees || []
 
   // Helper function to convert FeeDetails to FeeData
+  const formatToString = (value: string | Dayjs | null | undefined) => {
+    if (!value) return ''
+    if (typeof value === 'string') return value
+    if (typeof (value as Dayjs).format === 'function') {
+      return (value as Dayjs).format('DD/MM/YYYY')
+    }
+    return ''
+  }
+
   const convertToFeeData = (feeDetails: FeeDetails[]): FeeData[] => {
     return feeDetails.map((fee) => ({
-      feeType: fee.FeeType || fee.feeType || '',
-      frequency: fee.Frequency || fee.frequency || '',
-      debitAmount: fee.DebitAmount || fee.debitAmount || '',
-      feeToBeCollected:
-        fee.Feetobecollected || fee.feeToBeCollected || fee.totalAmount || '',
+      id: fee.id?.toString?.() || (fee.id as string) || '',
+      feeType: fee.feeType || '',
+      frequency: fee.frequency || '',
+      debitAmount: fee.DebitAmount?.toString() || fee.debitAmount || '',
+      feeToBeCollected: formatToString(
+        fee.Feetobecollected || fee.feeToBeCollected
+      ),
       nextRecoveryDate: fee.NextRecoveryDate
         ? dayjs(fee.NextRecoveryDate, 'DD/MM/YYYY')
         : null,
-      feePercentage: fee.FeePercentage || fee.feePercentage || '',
-      amount: fee.Amount || fee.totalAmount || '',
-      vatPercentage: fee.VATPercentage || fee.vatPercentage || '',
-      currency: fee.Currency || fee.currency || '',
-      debitAccount: fee.DebitAccount || fee.debitAccount || '',
+      feePercentage: fee.FeePercentage?.toString() || fee.feePercentage || '',
+      amount: fee.Amount?.toString() || fee.totalAmount || '',
+      vatPercentage:
+        fee.VATPercentage?.toString() || fee.vatPercentage || '',
+      currency: fee.currency || '',
+      debitAccount: fee.debitAccount || '',
+      enabled:
+        fee.enabled === undefined || fee.enabled === null
+          ? true
+          : Boolean(fee.enabled),
+      deleted: Boolean(fee.deleted),
+      display: {
+        feeType: fee.FeeType || '',
+        frequency: fee.Frequency || '',
+        currency: fee.Currency || '',
+        debitAccount: fee.DebitAccount || '',
+      },
     }))
   }
 
@@ -115,24 +142,47 @@ const Step3: React.FC<Step3Props> = ({
       const response = await realEstateAssetService.getProjectFees(projectId)
 
       if (response && typeof response === 'object') {
-        const feesArray =
+        const feesArrayRaw =
           (response as any)?.content ||
           (Array.isArray(response) ? response : [])
 
+        const feesArray = feesArrayRaw.filter(
+          (fee: any) => fee && fee.deleted !== true
+        )
+
         // Process all fees data first
         const allProcessedFees = feesArray.map((fee: any) => {
+          const currencyDto = fee.mffCurrencyDTO
+          const debitAccountDto = fee.mffAccountTypeDTO
+          const frequencyDto = fee.mffFrequencyDTO
+          const feeCategoryDto = fee.mffCategoryDTO
+
           const currencyValue =
-            fee.reafCurrencyDTO?.languageTranslationId?.configValue || ''
+            currencyDto?.languageTranslationId?.configValue ||
+            currencyDto?.settingValue ||
+            ''
           const debitAccountValue =
-            fee.reafAccountTypeDTO?.languageTranslationId?.configValue || ''
+            debitAccountDto?.languageTranslationId?.configValue ||
+            debitAccountDto?.settingValue ||
+            ''
           const frequencyValue =
-            fee.reafFrequencyDTO?.languageTranslationId?.configValue || ''
+            frequencyDto?.languageTranslationId?.configValue ||
+            frequencyDto?.settingValue ||
+            fee.mffFrequency ||
+            fee.mffCalender ||
+            ''
           const feeCategoryValue =
-            fee.reafCategoryDTO?.languageTranslationId?.configValue || ''
-          const currencyId = fee.reafCurrencyDTO?.id?.toString() || ''
-          const debitAccountId = fee.reafAccountTypeDTO?.id?.toString() || ''
-          const frequencyId = fee.reafFrequencyDTO?.id?.toString() || ''
-          const feeCategoryId = fee.reafCategoryDTO?.id?.toString() || ''
+            feeCategoryDto?.languageTranslationId?.configValue ||
+            feeCategoryDto?.settingValue ||
+            ''
+          const currencyId = currencyDto?.id?.toString() || ''
+          const debitAccountId = debitAccountDto?.id?.toString() || ''
+          const frequencyId =
+            frequencyDto?.id?.toString() ||
+            (fee.frequency && fee.frequency.toString()) ||
+            (fee.mffFrequencyId && fee.mffFrequencyId.toString()) ||
+            ''
+          const feeCategoryId = feeCategoryDto?.id?.toString() || ''
 
           // Format dates to DD/MM/YYYY
           const formatDateToDDMMYYYY = (dateString: string) => {
@@ -141,21 +191,27 @@ const Step3: React.FC<Step3Props> = ({
               // Handle different date formats from API
               const date = dayjs(dateString)
               return date.isValid() ? date.format('DD/MM/YYYY') : ''
-            } catch (error) {
+            } catch {
               return ''
             }
           }
+
+          const enabled =
+            fee.enabled === undefined || fee.enabled === null
+              ? true
+              : Boolean(fee.enabled)
+          const deleted = fee.deleted === true
 
           return {
             id: fee.id?.toString() || '',
             FeeType: feeCategoryValue,
             Frequency: frequencyValue,
-            DebitAmount: fee.reafDebitAmount || '',
-            Feetobecollected: formatDateToDDMMYYYY(fee.reafCollectionDate),
-            NextRecoveryDate: formatDateToDDMMYYYY(fee.reafNextRecoveryDate),
-            FeePercentage: fee.reafFeePercentage || '',
-            Amount: fee.reafAmount || fee.reafTotalAmount || '',
-            VATPercentage: fee.reafVatPercentage || '',
+            DebitAmount: fee.mffDebitAmount || '',
+            Feetobecollected: formatDateToDDMMYYYY(fee.mffCollectionDate),
+            NextRecoveryDate: formatDateToDDMMYYYY(fee.mffNextRecoveryDate),
+            FeePercentage: fee.mffFeePercentage || '',
+            Amount: fee.mffAmount || fee.mffTotalAmount || '',
+            VATPercentage: fee.mffVatPercentage || '',
             Currency: currencyValue,
             DebitAccount: debitAccountValue,
             // Keep original field names for compatibility
@@ -163,13 +219,15 @@ const Step3: React.FC<Step3Props> = ({
             frequency: frequencyId,
             debitAccount: debitAccountId,
             currency: currencyId,
-            debitAmount: fee.reafDebitAmount || '',
-            feeToBeCollected: formatDateToDDMMYYYY(fee.reafCollectionDate),
-            nextRecoveryDate: formatDateToDDMMYYYY(fee.reafNextRecoveryDate),
-            feePercentage: fee.reafFeePercentage || '',
-            vatPercentage: fee.reafVatPercentage || '',
-            totalAmount: fee.reafTotalAmount || '',
-            collectionDate: formatDateToDDMMYYYY(fee.reafCollectionDate),
+            enabled,
+            deleted,
+            debitAmount: fee.mffDebitAmount || '',
+            feeToBeCollected: formatDateToDDMMYYYY(fee.mffCollectionDate),
+            nextRecoveryDate: formatDateToDDMMYYYY(fee.mffNextRecoveryDate),
+            feePercentage: fee.mffFeePercentage || '',
+            vatPercentage: fee.mffVatPercentage || '',
+            totalAmount: fee.mffTotalAmount || '',
+            collectionDate: formatDateToDDMMYYYY(fee.mffCollectionDate),
           }
         })
 
@@ -197,6 +255,7 @@ const Step3: React.FC<Step3Props> = ({
     if (projectId) {
       fetchFeesFromAPI(currentApiPage, currentApiSize)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, currentApiPage, currentApiSize])
 
   const addFee = () => {
@@ -293,15 +352,34 @@ const Step3: React.FC<Step3Props> = ({
       sortable: true,
     },
     {
-      key: 'DebitAmount',
-      label: getLabel('CDL_BPA_FEES_ACCOUNT', language, 'Debit Amount'),
+      key: 'Currency',
+      label: getLabel(
+        'CDL_BPA_FEES_CURRENCY',
+        language,
+        'Transaction Currency'
+      ),
       type: 'text' as const,
-      width: 'w-24',
+      width: 'w-20',
+      sortable: true,
+    },
+    {
+      key: 'DebitAccount',
+      label: getLabel(
+        'CDL_BPA_FEES_DEBIT_ACCOUNT',
+        language,
+        'Designated Debit Account'
+      ),
+      type: 'text' as const,
+      width: 'w-32',
       sortable: true,
     },
     {
       key: 'Feetobecollected',
-      label: getLabel('CDL_BPA_FEES_TOTAL', language, 'Fee to be Collected'),
+      label: getLabel(
+        'CDL_BPA_FEE_COLLECTION_DATE',
+        language,
+        'Fee Collection Date'
+      ),
       type: 'text' as const,
       width: 'w-30',
       sortable: true,
@@ -321,7 +399,7 @@ const Step3: React.FC<Step3Props> = ({
       sortable: true,
     },
     {
-      key: 'Amount',
+      key: 'DebitAmount',
       label: getLabel('CDL_BPA_FEES_AMOUNT', language, 'Fee Amount'),
       type: 'text' as const,
       width: 'w-24',
@@ -335,18 +413,7 @@ const Step3: React.FC<Step3Props> = ({
       sortable: true,
     },
     {
-      key: 'Currency',
-      label: getLabel(
-        'CDL_BPA_FEES_CURRENCY',
-        language,
-        'Transaction Currency'
-      ),
-      type: 'text' as const,
-      width: 'w-20',
-      sortable: true,
-    },
-    {
-      key: 'DebitAccount',
+      key: 'Amount',
       label: getLabel(
         'CDL_BPA_FEES_TOTAL_AMOUNT',
         language,
@@ -500,10 +567,12 @@ const Step3: React.FC<Step3Props> = ({
             onRowExpansionChange={handleRowExpansionChange}
             onRowDelete={handleDeleteClick}
             onRowEdit={editFee}
-            deletePermissions={['bpa_fee_delete']}
-            editPermissions={['bpa_fee_update']}
-            showDeleteAction={true}
-            showEditAction={true}
+            {...(!isViewMode && {
+              deletePermissions: ['bpa_fee_delete'],
+              editPermissions: ['bpa_fee_update'],
+            })}
+            showDeleteAction={!isViewMode}
+            showEditAction={!isViewMode}
           />
         </CardContent>
       </Card>
@@ -522,23 +591,100 @@ const Step3: React.FC<Step3Props> = ({
         onClose={cancelDelete}
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '12px',
+            padding: '8px',
+          },
+        }}
       >
-        <DialogTitle>
-          <Typography variant="h6" component="div">
-            Confirm Delete
-          </Typography>
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            paddingBottom: '16px',
+            fontFamily: 'Outfit, sans-serif',
+            fontWeight: 600,
+            fontSize: '20px',
+            lineHeight: '28px',
+          }}
+        >
+          <ErrorOutlineIcon
+            sx={{
+              color: '#DC2626',
+              fontSize: '24px',
+              backgroundColor: '#FEE2E2',
+              borderRadius: '50%',
+              padding: '4px',
+            }}
+          />
+          Delete Confirmation
+          <IconButton
+            aria-label="close"
+            onClick={cancelDelete}
+            sx={{
+              position: 'absolute',
+              right: 16,
+              top: 16,
+              color: '#6B7280',
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
         </DialogTitle>
         <DialogContent>
-          <Typography>
+          <Typography
+            sx={{
+              fontFamily: 'Outfit, sans-serif',
+              fontWeight: 400,
+              fontSize: '14px',
+              lineHeight: '20px',
+              color: '#374151',
+            }}
+          >
             Are you sure you want to delete the fee &quot;
             {feeToDelete?.FeeType}&quot;? This action cannot be undone.
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={cancelDelete} color="primary">
+        <DialogActions sx={{ padding: '16px 24px', gap: 1 }}>
+          <Button
+            onClick={cancelDelete}
+            variant="outlined"
+            sx={{
+              fontFamily: 'Outfit, sans-serif',
+              fontWeight: 500,
+              fontSize: '14px',
+              textTransform: 'none',
+              borderRadius: '8px',
+              borderColor: '#D1D5DB',
+              color: '#374151',
+              padding: '8px 16px',
+              '&:hover': {
+                borderColor: '#9CA3AF',
+                backgroundColor: '#F9FAFB',
+              },
+            }}
+          >
             Cancel
           </Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
+          <Button
+            onClick={confirmDelete}
+            variant="contained"
+            sx={{
+              fontFamily: 'Outfit, sans-serif',
+              fontWeight: 500,
+              fontSize: '14px',
+              textTransform: 'none',
+              borderRadius: '8px',
+              backgroundColor: '#DC2626',
+              color: '#FFFFFF',
+              padding: '8px 16px',
+              '&:hover': {
+                backgroundColor: '#B91C1C',
+              },
+            }}
+          >
             Delete
           </Button>
         </DialogActions>

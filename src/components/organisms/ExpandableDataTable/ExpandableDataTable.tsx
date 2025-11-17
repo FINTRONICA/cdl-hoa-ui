@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react'
+import React, { useMemo, useCallback, useState } from 'react'
 import { Checkbox } from '../../atoms/Checkbox'
 import { StatusBadge } from '../../atoms/StatusBadge'
 import { TableSearchRow } from '../../molecules/TableSearchRow'
@@ -119,11 +119,78 @@ const ExpandableDataTableComponent = <T extends Record<string, unknown>>({
   showGalleryAction = true,
   showTransactionAction = true,
   onRowClick,
-  sortConfig,
-  onSort,
+  sortConfig: externalSortConfig,
+  onSort: externalOnSort,
 }: ExpandableDataTableProps<T>) => {
   const { page, rowsPerPage, totalRows, totalPages, startItem, endItem } =
     paginationState
+
+  // Internal sorting state (used when external sort props not provided)
+  const [internalSortConfig, setInternalSortConfig] = useState<{
+    key: string
+    direction: 'asc' | 'desc'
+  } | null>(null)
+
+  // Use external sort config if provided, otherwise use internal
+  const sortConfig = externalSortConfig !== undefined ? externalSortConfig : internalSortConfig
+
+  // Internal sort handler
+  const handleInternalSort = useCallback((key: string) => {
+    setInternalSortConfig(prev => {
+      if (prev?.key === key) {
+        return {
+          key,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc'
+        }
+      } else {
+        return { key, direction: 'asc' }
+      }
+    })
+  }, [])
+
+  // Use external onSort if provided, otherwise use internal
+  const onSort = externalOnSort || handleInternalSort
+
+  // Sort data internally if no external sorting
+  const sortedData = useMemo(() => {
+    if (!sortConfig || externalSortConfig !== undefined) {
+      // If external sort is provided, don't sort here (parent handles it)
+      return data
+    }
+
+    // Internal sorting
+    return [...data].sort((a, b) => {
+      const aVal = a[sortConfig.key]
+      const bVal = b[sortConfig.key]
+      
+      // Handle null/undefined values
+      if (aVal === null || aVal === undefined) {
+        if (bVal === null || bVal === undefined) return 0
+        return 1
+      }
+      if (bVal === null || bVal === undefined) return -1
+      
+      // Handle array values
+      if (Array.isArray(aVal) && Array.isArray(bVal)) {
+        const aStr = aVal.join(', ').toLowerCase()
+        const bStr = bVal.join(', ').toLowerCase()
+        const comparison = aStr.localeCompare(bStr)
+        return sortConfig.direction === 'asc' ? comparison : -comparison
+      }
+      
+      // Convert to string and compare
+      const aStr = String(aVal).toLowerCase().trim()
+      const bStr = String(bVal).toLowerCase().trim()
+      
+      if (aStr === bStr) return 0
+      
+      const comparison = aStr.localeCompare(bStr)
+      return sortConfig.direction === 'asc' ? comparison : -comparison
+    })
+  }, [data, sortConfig, externalSortConfig])
+
+  // Use sorted data for rendering
+  const displayData = sortedData
 
   // Memoize selection logic
   const toggleRow = useCallback(
@@ -235,14 +302,14 @@ const ExpandableDataTableComponent = <T extends Record<string, unknown>>({
             />
           </thead>
           <tbody className="divide-y divide-[#E2E8F0]">
-            {data.map((row, index) => (
+            {displayData.map((row, index) => (
               <React.Fragment key={index}>
                 <tr
                   className={`transition-colors min-h-[64px] ${
                     selectedRows.includes(index)
                       ? 'bg-blue-50 border-l-4 border-blue-500'
                       : ''
-                  } ${onRowClick ? ' hover:bg-gray-50' : ''}`}
+                  } ${onRowClick ? ' hover:bg-gray-50 cursor-pointer' : ''}`}
                   onClick={
                     onRowClick ? () => onRowClick(row, index) : undefined
                   }

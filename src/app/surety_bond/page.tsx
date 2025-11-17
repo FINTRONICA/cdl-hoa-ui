@@ -66,9 +66,9 @@ const transformSuretyBondToGuarantee = (
     referenceNumber: suretyBond.suretyBondReferenceNumber || 'N/A',
     type:
       suretyBond.suretyBondTypeDTO?.languageTranslationId?.configValue || 'N/A',
-    projectName: suretyBond.realEstateAssestDTO?.reaName || 'N/A',
+    projectName: suretyBond.managementFirmDTO?.mfName || 'N/A',
     buildPartnerName:
-      suretyBond.realEstateAssestDTO?.buildPartnerDTO?.bpName || 'N/A',
+      suretyBond.managementFirmDTO?.assetRegisterDTO?.arName || 'N/A',
     amount: suretyBond.suretyBondAmount || 0,
     expirationDate: suretyBond.suretyBondExpirationDate
       ? new Date(suretyBond.suretyBondExpirationDate).toLocaleDateString(

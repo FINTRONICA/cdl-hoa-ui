@@ -22,8 +22,7 @@ export const useStepHandlers = (
 
   const handleSaveAndNext = useCallback(async () => {
     try {
-     
-      console.log("inside handleSaveAndNext")
+    
 
       notifications.clearNotifications()
 

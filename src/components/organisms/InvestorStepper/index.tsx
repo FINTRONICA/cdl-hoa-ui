@@ -12,7 +12,12 @@ import {
   Alert,
   Snackbar,
 } from '@mui/material'
-import { FormProvider, useForm, type Resolver, type ResolverResult } from 'react-hook-form'
+import {
+  FormProvider,
+  useForm,
+  type Resolver,
+  type ResolverResult,
+} from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   CapitalPartnerStep1Schema,
@@ -25,11 +30,10 @@ import {
 import Step1, { type Step1Ref } from './steps/Step1'
 import Step2, { type Step2Ref } from './steps/Step2'
 import Step3, { type Step3Ref } from './steps/Step3'
-import Step4, { type Step4Ref } from './steps/Step4'
+// import Step4, { type Step4Ref } from './steps/Step4'
 import Step5 from './steps/Step5'
 import DocumentUploadFactory from '../DocumentUpload/DocumentUploadFactory'
 import { DocumentItem } from '../DeveloperStepper/developerTypes'
-
 
 type CapitalPartnerFormData = CapitalPartnerStep1Data &
   CapitalPartnerStep2Data & {
@@ -43,12 +47,12 @@ import { useAppStore } from '@/store'
 
 // Step configuration with config IDs for dynamic labels
 const stepConfigs = [
-  { key: 'basic', configId: 'CDL_CP_BASIC_INFO' },
-  { key: 'documents', configId: 'CDL_CP_DOCUMENTS' },
-  { key: 'unit', configId: 'CDL_CP_UNIT_DETAILS' },
-  { key: 'payment', configId: 'CDL_CP_PAYMENT_PLAN' },
-  { key: 'bank', configId: 'CDL_CP_BANK_DETAILS' },
-  { key: 'review', configId: 'CDL_CP_REVIEW' },
+  { key: 'basic', configId: 'CDL_OWNER_BASIC_INFO' },
+  { key: 'documents', configId: 'CDL_OWNER_DOCUMENTS' },
+  { key: 'unit', configId: 'CDL_OWNER_UNIT_DETAILS' },
+  { key: 'payment', configId: 'CDL_OWNER_UNIT_PAYMENT_PLAN' },
+  // { key: 'bank', configId: 'CDL_OWNER_BANK_DETAILS' },
+  { key: 'review', configId: 'CDL_OWNER_REVIEW' },
 ]
 
 // Fallback step labels
@@ -57,18 +61,18 @@ const fallbackSteps = [
   'Documents',
   'Unit Details',
   'Payment Plan',
-  'Bank Details',
+  // 'Bank Details',
   'Review',
 ]
 
 interface InvestorsStepperWrapperProps {
-  initialCapitalPartnerId?: number | null
+  initialownerRegistryId?: number | null
   initialStep?: number
   isViewMode?: boolean
 }
 
 export default function InvestorsStepperWrapper({
-  initialCapitalPartnerId = null,
+  initialownerRegistryId = null,
   initialStep = 0,
   isViewMode = false,
 }: InvestorsStepperWrapperProps = {}) {
@@ -82,8 +86,8 @@ export default function InvestorsStepperWrapper({
 
   const [activeStep, setActiveStep] = useState(initialStep)
   const [isSaving, setIsSaving] = useState(false)
-  const [capitalPartnerId, setCapitalPartnerId] = useState<number | null>(
-    initialCapitalPartnerId
+  const [ownerRegistryId, setownerRegistryId] = useState<number | null>(
+    initialownerRegistryId
   )
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -93,11 +97,11 @@ export default function InvestorsStepperWrapper({
     getLabel(config.configId, currentLanguage, fallbackSteps[index])
   )
 
-  const isEditMode = Boolean(capitalPartnerId)
+  const isEditMode = Boolean(ownerRegistryId)
   const step1Ref = useRef<Step1Ref>(null)
   const step2Ref = useRef<Step2Ref>(null)
   const step3Ref = useRef<Step3Ref>(null)
-  const step4Ref = useRef<Step4Ref>(null)
+  // const step4Ref = useRef<Step4Ref>(null)
 
   // Keep active step in a ref so the resolver can react to step changes without remounting the form
   const activeStepRef = useRef(activeStep)
@@ -115,19 +119,27 @@ export default function InvestorsStepperWrapper({
       switch (step) {
         case 0:
           return (
-            zodResolver(CapitalPartnerStep1Schema) as unknown as Resolver<CapitalPartnerFormData>
+            zodResolver(
+              CapitalPartnerStep1Schema
+            ) as unknown as Resolver<CapitalPartnerFormData>
           )(values, context, options)
         case 2:
           return (
-            zodResolver(CapitalPartnerStep2Schema) as unknown as Resolver<CapitalPartnerFormData>
+            zodResolver(
+              CapitalPartnerStep2Schema
+            ) as unknown as Resolver<CapitalPartnerFormData>
           )(values, context, options)
         case 4:
           return (
-            zodResolver(CapitalPartnerStep4Schema) as unknown as Resolver<CapitalPartnerFormData>
+            zodResolver(
+              CapitalPartnerStep4Schema
+            ) as unknown as Resolver<CapitalPartnerFormData>
           )(values, context, options)
         default:
- 
-          return { values, errors: {} } as ResolverResult<CapitalPartnerFormData>
+          return {
+            values,
+            errors: {},
+          } as ResolverResult<CapitalPartnerFormData>
       }
     },
     []
@@ -135,7 +147,8 @@ export default function InvestorsStepperWrapper({
 
   const updateURL = (step: number, id?: number | null) => {
     if (id && step >= 0) {
-      router.push(`/capital-partner/${id}/step/${step + 1}${isViewMode ? '?mode=view' : ''}`)
+      const queryParam = isViewMode ? '?mode=view' : '?editing=true'
+      router.push(`/capital-partner/${id}/step/${step + 1}${queryParam}`)
     } else if (step === 0) {
       router.push('/capital-partner/new')
     }
@@ -158,10 +171,10 @@ export default function InvestorsStepperWrapper({
   }, [searchParams, activeStep, steps.length])
 
   useEffect(() => {
-    if (params.id && !capitalPartnerId) {
-      setCapitalPartnerId(parseInt(params.id as string))
+    if (params.id && !ownerRegistryId) {
+      setownerRegistryId(parseInt(params.id as string))
     }
-  }, [params.id, capitalPartnerId])
+  }, [params.id, ownerRegistryId])
 
   const methods = useForm<CapitalPartnerFormData>({
     resolver: dynamicResolver,
@@ -182,47 +195,61 @@ export default function InvestorsStepperWrapper({
       accountContact: '',
       mobileNumber: '',
       email: '',
-     
-      
+
       // Additional fields for other steps
       documents: [],
       paymentPlan: [],
     },
-  })
+  } as any)
 
   const handleAsyncStep = async (stepRef: {
     handleSaveAndNext: () => Promise<void>
   }) => {
-    
     try {
       setIsSaving(true)
-      
       await stepRef.handleSaveAndNext()
-    } catch {
+      return true
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to save data'
+      setErrorMessage(errorMessage)
       return false
     } finally {
       setIsSaving(false)
     }
-    return true
   }
 
   const navigateToNextStep = () => {
     const nextStep = activeStep + 1
     if (nextStep < steps.length) {
       setActiveStep(nextStep)
-      updateURL(nextStep, capitalPartnerId)
+      updateURL(nextStep, ownerRegistryId)
     }
   }
 
   const handleNext = async () => {
-
     if (isViewMode) {
       navigateToNextStep()
       return
     }
 
+    // Check for unsaved changes in Step 3 (Payment Plan)
+    if (activeStep === 3) {
+      const step3State = (window as any).step3ValidationState || {}
+      if (step3State.hasUnsavedChanges) {
+        setErrorMessage(
+          'You have unsaved payment plan data. Please save all rows (click the ✓ icon) or cancel editing (click the ✗ icon) before proceeding.'
+        )
+        setTimeout(() => setErrorMessage(null), 5000)
+        return
+      }
+    }
+
     if (activeStep === 0 && step1Ref.current) {
-      await handleAsyncStep(step1Ref.current)
+      const success = await handleAsyncStep(step1Ref.current)
+      if (success) {
+        navigateToNextStep()
+      }
       return
     }
 
@@ -232,21 +259,28 @@ export default function InvestorsStepperWrapper({
     }
 
     if (activeStep === 2 && step2Ref.current) {
-    
-      await handleAsyncStep(step2Ref.current)
+      const success = await handleAsyncStep(step2Ref.current)
+      if (success) {
+        navigateToNextStep()
+      }
       return
     }
 
     if (activeStep === 3 && step3Ref.current) {
- 
-      await handleAsyncStep(step3Ref.current)
+      const success = await handleAsyncStep(step3Ref.current)
+      if (success) {
+        navigateToNextStep()
+      }
       return
     }
 
-    if (activeStep === 4 && step4Ref.current) {
-      await handleAsyncStep(step4Ref.current)
-      return
-    }
+    // if (activeStep === 4 && step4Ref.current) {
+    //   const success = await handleAsyncStep(step4Ref.current)
+    //   if (success) {
+    //     navigateToNextStep()
+    //   }
+    //   return
+    // }
 
     navigateToNextStep()
   }
@@ -255,13 +289,13 @@ export default function InvestorsStepperWrapper({
     const prevStep = activeStep - 1
     if (prevStep >= 0) {
       setActiveStep(prevStep)
-      updateURL(prevStep, capitalPartnerId)
+      updateURL(prevStep, ownerRegistryId)
     }
   }
 
   const handleReset = () => {
     setActiveStep(0)
-    setCapitalPartnerId(null)
+    setownerRegistryId(null)
     setIsSaving(false)
     setErrorMessage(null)
     setSuccessMessage(null)
@@ -274,7 +308,7 @@ export default function InvestorsStepperWrapper({
   const handleStep1SaveAndNext = (data: { id: number }) => {
     if (data && data.id) {
       const nextStep = activeStep + 1
-      setCapitalPartnerId(data.id)
+      setownerRegistryId(data.id)
       setActiveStep(nextStep)
       updateURL(nextStep, data.id)
     }
@@ -284,7 +318,7 @@ export default function InvestorsStepperWrapper({
     const nextStep = activeStep + 1
     if (nextStep < steps.length) {
       setActiveStep(nextStep)
-      updateURL(nextStep, capitalPartnerId)
+      updateURL(nextStep, ownerRegistryId)
     }
   }
 
@@ -292,17 +326,17 @@ export default function InvestorsStepperWrapper({
     const nextStep = activeStep + 1
     if (nextStep < steps.length) {
       setActiveStep(nextStep)
-      updateURL(nextStep, capitalPartnerId)
+      updateURL(nextStep, ownerRegistryId)
     }
   }
 
-  const handleStep4SaveAndNext = () => {
-    const nextStep = activeStep + 1
-    if (nextStep < steps.length) {
-      setActiveStep(nextStep)
-      updateURL(nextStep, capitalPartnerId)
-    }
-  }
+  // const handleStep4SaveAndNext = () => {
+  //   const nextStep = activeStep + 1
+  //   if (nextStep < steps.length) {
+  //     setActiveStep(nextStep)
+  //     updateURL(nextStep, ownerRegistryId)
+  //   }
+  // }
 
   const handleDocumentsChange = useCallback(
     (documents: DocumentItem[]) => {
@@ -323,8 +357,8 @@ export default function InvestorsStepperWrapper({
       setErrorMessage(null)
       setSuccessMessage(null)
       setIsSaving(true)
-      const capitalPartnerIdForWorkflow = capitalPartnerId?.toString()
-      if (!capitalPartnerIdForWorkflow) {
+      const ownerRegistryIdForWorkflow = ownerRegistryId?.toString()
+      if (!ownerRegistryIdForWorkflow) {
         setErrorMessage(
           'Capital Partner ID not found. Please complete Step 1 first.'
         )
@@ -333,7 +367,7 @@ export default function InvestorsStepperWrapper({
       }
       const step1Data = methods.getValues()
       await createCapitalPartnerWorkflowRequest.mutateAsync({
-        referenceId: capitalPartnerIdForWorkflow,
+        referenceId: ownerRegistryIdForWorkflow,
         payloadData: { ...step1Data } as Record<string, unknown>,
         referenceType: 'CAPITAL_PARTNER',
         moduleName: 'CAPITAL_PARTNER',
@@ -366,25 +400,27 @@ export default function InvestorsStepperWrapper({
             ref={step1Ref}
             onSaveAndNext={handleStep1SaveAndNext}
             isEditMode={isEditMode}
-            capitalPartnerId={capitalPartnerId}
+            ownerRegistryId={ownerRegistryId}
             isViewMode={isViewMode}
           />
         )
       case 1:
         return (
           <DocumentUploadFactory
-            type="INVESTOR"
-            entityId={capitalPartnerId?.toString() || ''}
+            type="OWNER_REGISTRY"
+            entityId={ownerRegistryId?.toString() || ''}
             isOptional={true}
             onDocumentsChange={handleDocumentsChange}
             formFieldName="documents"
+            isReadOnly={isViewMode}
           />
         )
       case 2:
         return (
           <Step2
+            key={`step2-${ownerRegistryId || 'new'}-${activeStep}`}
             ref={step2Ref}
-            capitalPartnerId={capitalPartnerId}
+            ownerRegistryId={ownerRegistryId}
             onSaveAndNext={handleStep2SaveAndNext}
             isEditMode={isEditMode}
             isViewMode={isViewMode}
@@ -396,25 +432,25 @@ export default function InvestorsStepperWrapper({
             ref={step3Ref}
             paymentPlan={methods.watch('paymentPlan') || []}
             onPaymentPlanChange={handlePaymentPlanChange}
-            capitalPartnerId={capitalPartnerId}
+            ownerRegistryId={ownerRegistryId}
             onSaveAndNext={handleStep3SaveAndNext}
             isEditMode={isEditMode}
             isViewMode={isViewMode}
           />
         )
+      // case 4:
+      //   return (
+      //     <Step4
+      //       ref={step4Ref}
+      //       ownerRegistryId={ownerRegistryId}
+      //       onSaveAndNext={handleStep4SaveAndNext}
+      //       isEditMode={isEditMode}
+      //       isViewMode={isViewMode}
+      //     />
+      //   )
       case 4:
         return (
-          <Step4
-            ref={step4Ref}
-            capitalPartnerId={capitalPartnerId}
-            onSaveAndNext={handleStep4SaveAndNext}
-            isEditMode={isEditMode}
-            isViewMode={isViewMode}
-          />
-        )
-      case 5:
-        return (
-          <Step5 capitalPartnerId={capitalPartnerId} isViewMode={isViewMode} />
+          <Step5 ownerRegistryId={ownerRegistryId} isViewMode={isViewMode} />
         )
       default:
         return null
@@ -458,8 +494,8 @@ export default function InvestorsStepperWrapper({
             ))}
           </Stepper>
 
-          <Box 
-            key={`step-${activeStep}-${capitalPartnerId}`}
+          <Box
+            key={`step-${activeStep}-${ownerRegistryId}`}
             sx={{ my: 4, backgroundColor: '#FFFFFFBF', boxShadow: 'none' }}
           >
             {getStepContent(activeStep)}
@@ -522,11 +558,11 @@ export default function InvestorsStepperWrapper({
                   }
                   variant="contained"
                   disabled={
+                    isSaving ||
                     (activeStep === steps.length - 1 && isSaving) ||
                     createCapitalPartnerWorkflowRequest.isPending
                   }
                   sx={{
-                    
                     width: '114px',
                     height: '36px',
                     gap: '6px',

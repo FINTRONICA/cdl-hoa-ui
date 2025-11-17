@@ -30,6 +30,7 @@ import {
   Card,
   CardContent,
   FormControl,
+  FormHelperText,
   Grid,
   InputAdornment,
   InputLabel,
@@ -45,12 +46,11 @@ import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import dayjs from 'dayjs'
 import { CapitalPartnerStep1Schema } from '@/lib/validation'
-import { FormError } from '../../../atoms/FormError'
 
 interface Step1Props {
   onSaveAndNext?: (data: any) => void
   isEditMode?: boolean
-  capitalPartnerId?: number | null
+  ownerRegistryId?: number | null
   isViewMode?: boolean
 }
 
@@ -60,7 +60,7 @@ export interface Step1Ref {
 
 const Step1 = forwardRef<Step1Ref, Step1Props>(
   (
-    { onSaveAndNext, isEditMode, capitalPartnerId, isViewMode = false },
+    { onSaveAndNext, isEditMode, ownerRegistryId, isViewMode = false },
     ref
   ) => {
     const {
@@ -69,6 +69,8 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
       setValue,
       trigger,
       formState: { errors },
+      setError,
+      clearErrors,
     } = useFormContext()
 
     // Get labels from API
@@ -77,7 +79,6 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
 
     const [investorId, setInvestorId] = useState<string>('')
     const [isGeneratingId, setIsGeneratingId] = useState<boolean>(false)
-    const [saveError, setSaveError] = useState<string | null>(null)
     const {
       data: investorTypes,
       loading: loadingInvestorTypes,
@@ -99,12 +100,12 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
       data: existingCapitalPartnerData,
       isLoading: isLoadingExistingData,
     } = useGetEnhanced<CapitalPartnerResponse>(
-      API_ENDPOINTS.CAPITAL_PARTNER.GET_BY_ID(
-        (capitalPartnerId || 0).toString()
+      API_ENDPOINTS.OWNER_REGISTRY.GET_BY_ID(
+        (ownerRegistryId || 0).toString()
       ),
       {},
       {
-        enabled: Boolean(isEditMode && capitalPartnerId),
+        enabled: Boolean(isEditMode && ownerRegistryId),
         // Disable caching to always fetch fresh data
         gcTime: 0,
         staleTime: 0,
@@ -123,27 +124,27 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
         )
         setValue(
           'investorId',
-          existingCapitalPartnerData.capitalPartnerId || ''
+          existingCapitalPartnerData.ownerRegistryId || ''
         )
         setValue(
           'investorFirstName',
-          existingCapitalPartnerData.capitalPartnerName || ''
+          existingCapitalPartnerData.ownerRegistryName || ''
         )
         setValue(
           'investorMiddleName',
-          existingCapitalPartnerData.capitalPartnerMiddleName || ''
+          existingCapitalPartnerData.ownerRegistryMiddleName || ''
         )
         setValue(
           'investorLastName',
-          existingCapitalPartnerData.capitalPartnerLastName || ''
+          existingCapitalPartnerData.ownerRegistryLastName || ''
         )
         setValue(
           'arabicName',
-          existingCapitalPartnerData.capitalPartnerLocaleName || ''
+          existingCapitalPartnerData.ownerRegistryLocaleName || ''
         )
         setValue(
           'ownership',
-          existingCapitalPartnerData.capitalPartnerOwnershipPercentage?.toString() ||
+          existingCapitalPartnerData.ownerRegistryOwnershipPercentage?.toString() ||
             ''
         )
         setValue(
@@ -152,7 +153,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
         )
         setValue(
           'idNumber',
-          existingCapitalPartnerData.capitalPartnerIdNo || ''
+          existingCapitalPartnerData.ownerRegistryIdNo || ''
         )
         setValue(
           'idExpiryDate',
@@ -166,16 +167,18 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
         )
         setValue(
           'accountContact',
-          existingCapitalPartnerData.capitalPartnerTelephoneNo || ''
+          existingCapitalPartnerData.ownerRegistryTelephoneNo || ''
         )
         setValue(
           'mobileNumber',
-          existingCapitalPartnerData.capitalPartnerMobileNo || ''
+          existingCapitalPartnerData.ownerRegistryMobileNo || ''
         )
-        setValue('email', existingCapitalPartnerData.capitalPartnerEmail || '')
+        setValue('email', existingCapitalPartnerData.ownerRegistryEmail || '')
 
         // Set investorId state for the UI
-        setInvestorId(existingCapitalPartnerData.capitalPartnerId || '')
+        const ownerRegistryIdValue = existingCapitalPartnerData.ownerRegistryId || ''
+        setInvestorId(ownerRegistryIdValue)
+        setValue('investorId', ownerRegistryIdValue)
       }
     }, [
       existingCapitalPartnerData,
@@ -209,7 +212,6 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
     }
     const handleSaveAndNext = async () => {
       try {
-        setSaveError(null)
 
         // Build current form data for schema validation and payload mapping
         const formData: Step1FormData = {
@@ -229,13 +231,64 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
           email: watch('email'),
         }
 
+        // First, trigger React Hook Form validation to show field-level errors
+        const fieldsToValidate = [
+          'investorType',
+          'investorId',
+          'investorFirstName',
+          'investorIdType',
+          'idNumber',
+        ] as const
+        
+        // Trigger validation for all required fields
+        const isValid = await trigger(fieldsToValidate as unknown as any[])
+        
+        // Validate with Zod to get specific error messages
         const zodResult = CapitalPartnerStep1Schema.safeParse(formData)
-        if (!zodResult.success) {
-          await trigger()
-
-          return
+        
+        if (!isValid || !zodResult.success) {
+          // Clear existing errors first
+          clearErrors(fieldsToValidate as unknown as any)
+          
+          // Set errors from Zod validation for better error messages
+          if (!zodResult.success) {
+            zodResult.error.issues.forEach((issue) => {
+              const field = (issue.path?.[0] as string) || ''
+              if (field) {
+                setError(field as any, {
+                  type: 'manual',
+                  message: issue.message,
+                })
+              }
+            })
+          }
+          
+          // Also trigger validation again to show React Hook Form errors
+          await trigger(fieldsToValidate as unknown as any[])
+          
+          // Scroll to first error field to make it visible
+          if (!zodResult.success && zodResult.error.issues.length > 0) {
+            const firstError = zodResult.error.issues[0]
+            if (firstError) {
+              const firstErrorField = (firstError.path?.[0] as string) || ''
+              if (firstErrorField) {
+              // Try to find the field element by name or ID
+              const element = document.querySelector(`[name="${firstErrorField}"]`) as HTMLElement
+              if (element) {
+                setTimeout(() => {
+                  element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  element.focus()
+                }, 100)
+              }
+              }
+            }
+          }
+          
+          // Throw error to prevent navigation and show error message
+          throw new Error('Please fill all required fields correctly')
         }
-
+        
+        // Final validation trigger to ensure all errors are cleared
         await trigger()
 
         const payload = mapStep1ToCapitalPartnerPayload(
@@ -245,18 +298,18 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
           countries
         )
         let response
-        if (isEditMode && capitalPartnerId) {
+        if (isEditMode && ownerRegistryId) {
           const updatePayload = {
             ...payload,
-            id: capitalPartnerId,
+            id: ownerRegistryId,
           }
 
           if (existingCapitalPartnerData) {
-            updatePayload.capitalPartnerUnitDTO =
-              existingCapitalPartnerData.capitalPartnerUnitDTO
+            updatePayload.ownerRegistryUnitDTO =
+              existingCapitalPartnerData.ownerRegistryUnitDTO
 
-            updatePayload.capitalPartnerBankInfoDTOS =
-              existingCapitalPartnerData.capitalPartnerBankInfoDTOS
+            updatePayload.ownerRegistryBankInfoDTOS =
+              existingCapitalPartnerData.ownerRegistryBankInfoDTOS
 
             if (existingCapitalPartnerData.taskStatusDTO?.id) {
               updatePayload.taskStatusDTO = {
@@ -270,7 +323,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
           }
 
           response = await capitalPartnerService.updateCapitalPartner(
-            capitalPartnerId,
+            ownerRegistryId,
             updatePayload
           )
         } else {
@@ -282,9 +335,6 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
           onSaveAndNext(response)
         }
       } catch (error) {
-        setSaveError(
-          error instanceof Error ? error.message : 'Failed to save data'
-        )
         throw error
       }
     }
@@ -418,6 +468,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                   required={required}
                   disabled={isViewMode}
                   error={!!errors[name] && !isViewMode}
+                  helperText={errors[name]?.message as string}
                   InputLabelProps={{
                     sx: {
                       ...getLabelSx(),
@@ -468,10 +519,18 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                         },
                       }),
                   }}
-                />
-                <FormError
-                  error={errors[name]?.message as string}
-                  touched={true}
+                  value={field.value || ''}
+                  onChange={(e) => {
+                    field.onChange(e)
+                    if (errors[name]) {
+                      clearErrors(name as any)
+                    }
+                    trigger(name as any)
+                  }}
+                  onBlur={() => {
+                    field.onBlur()
+                    trigger(name as any)
+                  }}
                 />
               </>
             )}
@@ -501,9 +560,18 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                 required={required}
                 disabled={isViewMode}
                 error={!!errors[name] && !isViewMode}
+                helperText={errors[name]?.message as string}
                 onChange={(e) => {
                   setInvestorId(e.target.value)
                   field.onChange(e)
+                  if (errors[name]) {
+                    clearErrors(name as any)
+                  }
+                  trigger(name as any)
+                }}
+                onBlur={() => {
+                  field.onBlur()
+                  trigger(name as any)
                 }}
                 InputProps={{
                   endAdornment: !isViewMode ? (
@@ -560,10 +628,6 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                       },
                     }),
                 }}
-              />
-              <FormError
-                error={errors[name]?.message as string}
-                touched={true}
               />
             </>
           )}
@@ -640,6 +704,18 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                     }}
                     IconComponent={KeyboardArrowDownIcon}
                     disabled={loading || isViewMode}
+                    value={field.value || ''}
+                    onChange={(e) => {
+                      field.onChange(e)
+                      if (errors[name]) {
+                        clearErrors(name as any)
+                      }
+                      trigger(name as any)
+                    }}
+                    onBlur={() => {
+                      field.onBlur()
+                      trigger(name as any)
+                    }}
                   >
                     {options.map((option) => (
                       <MenuItem key={option.id} value={option.settingValue}>
@@ -647,11 +723,10 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                       </MenuItem>
                     ))}
                   </Select>
+                  {errors[name] && (
+                    <FormHelperText error>{errors[name]?.message as string}</FormHelperText>
+                  )}
                 </FormControl>
-                <FormError
-                  error={errors[name]?.message as string}
-                  touched={true}
-                />
               </>
             )}
           />
@@ -720,27 +795,12 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                 </Typography>
               </Box>
             )}
-            {saveError && (
-              <Box
-                sx={{
-                  mb: 2,
-                  p: 1,
-                  bgcolor: '#fef2f2',
-                  borderRadius: 1,
-                  border: '1px solid #ef4444',
-                }}
-              >
-                <Typography variant="body2" color="error">
-                  ⚠️ 123{saveError} 456
-                </Typography>
-              </Box>
-            )}
 
             <Grid container rowSpacing={4} columnSpacing={2}>
               {renderApiSelectField(
                 'investorType',
-                'CDL_CP_TYPE',
-                'Investor Type',
+                'CDL_OWNER_TYPE',
+                'Owner Registry Type',
                 investorTypes?.length
                   ? investorTypes
                   : getFallbackOptions('investorType'),
@@ -750,41 +810,41 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
               )}
               {renderInvestorIdField(
                 'investorId',
-                getLabel('CDL_CP_REFID', currentLanguage, 'Investor ID'),
+                getLabel('CDL_OWNER_REFID', currentLanguage, 'Owner Registry ID'),
                 6,
                 true
               )}
               {renderTextField(
                 'investorFirstName',
-                'CDL_CP_FIRSTNAME',
-                'Investor Name',
+                'CDL_OWNER_FIRSTNAME',
+                'Owner Registry Name',
                 '',
                 true
               )}
               {renderTextField(
                 'investorMiddleName',
-                'CDL_CP_MIDDLENAME',
-                'Middle Name'
+                'CDL_OWNER_MIDDLENAME',
+                'Owner Registry Middle Name'
               )}
               {renderTextField(
                 'investorLastName',
-                'CDL_CP_LASTNAME',
-                'Last Name'
+                'CDL_OWNER_LASTNAME',
+                'Owner Registry Last Name'
               )}
               {renderTextField(
                 'arabicName',
-                'CDL_CP_LOCALE_NAME',
+                'CDL_OWNER_LOCALE_NAME',
                 'Arabic Name'
               )}
               {renderTextField(
                 'ownership',
-                'CDL_CP_OWNERSHIP',
+                'CDL_OWNER_OWNERSHIP',
                 'Ownership Percentage'
               )}
               {renderApiSelectField(
                 'investorIdType',
-                'CDL_CP_ID_TYPE',
-                'Investor ID Type',
+                'CDL_OWNER_ID_TYPE',
+                'Owner Registry ID Type',
                 idTypes?.length
                   ? idTypes
                   : getFallbackOptions('investorIdType'),
@@ -792,7 +852,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                 true,
                 loadingIdTypes
               )}
-              {renderTextField('idNumber', 'CDL_CP_DOC_NO', 'ID No.', '', true)}
+              {renderTextField('idNumber', 'CDL_OWNER_DOC_NO', 'ID No.', '', true)}
               <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="idExpiryDate"
@@ -802,12 +862,22 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                     <>
                       <DatePicker
                         label={getLabel(
-                          'CDL_CP_ID_EXP',
+                          'CDL_OWNER_ID_EXP',
                           currentLanguage,
                           'ID Expiry Date'
                         )}
                         value={field.value}
-                        onChange={field.onChange}
+                        onChange={(newValue) => {
+                          field.onChange(newValue)
+                          if (errors.idExpiryDate) {
+                            clearErrors('idExpiryDate' as any)
+                          }
+                          trigger('idExpiryDate' as any)
+                        }}
+                        onClose={() => {
+                          field.onBlur()
+                          trigger('idExpiryDate' as any)
+                        }}
                         format="DD/MM/YYYY"
                         disabled={isViewMode}
                         slots={{ openPickerIcon: StyledCalendarIcon }}
@@ -815,7 +885,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                           textField: {
                             fullWidth: true,
                             error: !!errors.idExpiryDate && !isViewMode,
-                            helperText: '',
+                            helperText: errors.idExpiryDate?.message as string,
                             sx: {
                               ...datePickerStyles,
                               ...(!!errors.idExpiryDate &&
@@ -839,17 +909,13 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                           },
                         }}
                       />
-                      <FormError
-                        error={(errors as any).idExpiryDate?.message as string}
-                        touched={true}
-                      />
                     </>
                   )}
                 />
               </Grid>
               {renderApiSelectField(
                 'nationality',
-                'CDL_CP_NATIONALITY',
+                'CDL_OWNER_NATIONALITY',
                 'Nationality',
                 countries?.length
                   ? countries
@@ -860,17 +926,17 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
               )}
               {renderTextField(
                 'accountContact',
-                'CDL_CP_TELEPHONE',
+                'CDL_OWNER_TELEPHONE',
                 'Account Contact Number',
                 ''
               )}
               {renderTextField(
                 'mobileNumber',
-                'CDL_CP_MOBILE',
+                'CDL_OWNER_MOBILE',
                 'Mobile Number',
                 ''
               )}
-              {renderTextField('email', 'CDL_CP_EMAIL', 'Email Address', '')}
+              {renderTextField('email', 'CDL_OWNER_EMAIL', 'Email Address', '')}
             </Grid>
           </CardContent>
         </Card>

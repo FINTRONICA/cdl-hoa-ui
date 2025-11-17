@@ -10,9 +10,9 @@ const paymentPlanItemSchema = z.object({
     .max(5, 'Installment Percentage must be maximum 5 characters')
     .regex(/^[0-9]+(\.[0-9]{1,2})?$/, 'Installment Percentage must be a valid number (e.g., 25 or 25.5)'),
   projectCompletionPercentage: z.string()
-    .min(1, 'Project Completion Percentage is required')
-    .max(5, 'Project Completion Percentage must be maximum 5 characters')
-    .regex(/^[0-9]+(\.[0-9]{1,2})?$/, 'Project Completion Percentage must be a valid number (e.g., 25 or 25.5)'),
+    .min(1, 'Management Firm Completion Percentage is required')
+    .max(5, 'Management Firm Completion Percentage must be maximum 5 characters')
+    .regex(/^[0-9]+(\.[0-9]{1,2})?$/, 'Management Firm Completion Percentage must be a valid number (e.g., 25 or 25.5)'),
 })
 
 // Main payment plan validation schema

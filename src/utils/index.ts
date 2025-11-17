@@ -372,6 +372,7 @@ export { JWTParser } from '@/utils/jwtParser';
  * @returns Decoded JWT payload or null if not found/invalid
  */
 export const decodeStoredJWT = (): JWTPayload | null => {
+  if (typeof window === 'undefined') return null;
   const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
   if (!token) return null;
   
@@ -384,6 +385,7 @@ export const decodeStoredJWT = (): JWTPayload | null => {
  * @returns User info from JWT or null if not found/invalid
  */
 export const getCurrentUserFromJWT = (): { name: any; email: any; role: string; issuedAt: Date; expiresAt: Date } | null => {
+  if (typeof window === 'undefined') return null;
   const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
   if (!token) return null;
   
@@ -396,6 +398,7 @@ export const getCurrentUserFromJWT = (): { name: any; email: any; role: string; 
  * @returns True if expired or invalid, false otherwise
  */
 export const isCurrentJWTExpired = (): boolean => {
+  if (typeof window === 'undefined') return true;
   const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
   if (!token) return true;
   
@@ -408,6 +411,7 @@ export const isCurrentJWTExpired = (): boolean => {
  * @returns True if expiring soon, false otherwise
  */
 export const isCurrentJWTExpiringSoon = (minutes: number = 5): boolean => {
+  if (typeof window === 'undefined') return true;
   const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
   if (!token) return true;
   
@@ -434,7 +438,7 @@ export function generateDeveloperId(): string {
   return generateId('DEV');
 }
 
-export function generateReaId(): string {
+export function generatemfId(): string {
   return generateId('REA');
 }
 

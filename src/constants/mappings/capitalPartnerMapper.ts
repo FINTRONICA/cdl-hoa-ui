@@ -15,23 +15,23 @@ export const mapCapitalPartnerToInvestorData = (
 
     // Extract build partner data from nested structure
     const buildPartnerData =
-      cp.capitalPartnerUnitDTO?.realEstateAssestDTO?.buildPartnerDTO
+      cp.ownerRegistryUnitDTO?.managementFirmDTO?.assetRegisterDTO
 
     return {
       id: cp.id,
-      investor: cp.capitalPartnerName ?? '-',
-      investorId: cp.capitalPartnerId ?? '-',
-      developerName: cp.capitalPartnerLocaleName ?? '-',
-      developerIdRera: cp.capitalPartnerIdNo ?? '-',
-      developerCif: cp.capitalPartnerOwnershipPercentage?.toString() ?? '-',
+      investor: cp.ownerRegistryName ?? '-',
+      investorId: cp.ownerRegistryId ?? '-',
+      developerName: cp.ownerRegistryLocaleName ?? '-',
+      developerIdRera: cp.ownerRegistryIdNo ?? '-',
+      developerCif: cp.ownerRegistryOwnershipPercentage?.toString() ?? '-',
       projectName:
-        cp.capitalPartnerUnitDTO?.realEstateAssestDTO?.reaName ?? '-',
-      projectCIF: cp.capitalPartnerUnitDTO?.realEstateAssestDTO?.reaCif ?? '-',
-      unitNumber: cp.capitalPartnerUnitDTO?.unitRefId ?? '-',
+        cp.ownerRegistryUnitDTO?.managementFirmDTO?.mfName ?? '-',
+      projectCIF: cp.ownerRegistryUnitDTO?.managementFirmDTO?.mfCif ?? '-',
+      unitNumber: cp.ownerRegistryUnitDTO?.unitRefId ?? '-',
       approvalStatus: mapApiStatus(cp.taskStatusDTO),
-      buildPartnerName: buildPartnerData?.bpName ?? '-',
-      buildPartnerCif: buildPartnerData?.bpCifrera ?? '-',
-      buildPartnerId: buildPartnerData?.bpDeveloperId ?? '-',
+      buildPartnerName: buildPartnerData?.arName ?? '-',
+      buildPartnerCif: buildPartnerData?.arCifrera ?? '-',
+      buildPartnerId: buildPartnerData?.arDeveloperId ?? '-',
     }
   } catch (error) {
     console.error('Error mapping capital partner data:', error, cp)

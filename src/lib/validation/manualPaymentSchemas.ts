@@ -53,99 +53,62 @@ export const ManualPaymentPrimitives = {
 
 
 export const manualPaymentStep1Schema = z.object({
-  // OLD FIELDS - COMMENTED OUT
-  // tasReference: ManualPaymentPrimitives.nonEmptyTrimmed,
-  // developerName: ManualPaymentPrimitives.nonEmptyTrimmed,
-  // developerId: ManualPaymentPrimitives.nonEmptyTrimmed,
-  // projectName: ManualPaymentPrimitives.idRequired,
-  // projectId: ManualPaymentPrimitives.nonEmptyTrimmed,
-  // projectStatus: ManualPaymentPrimitives.idOptional,
-  // corporateAccount1: ManualPaymentPrimitives.nonEmptyTrimmed,
-  // retentionAccount1: z.string().optional().nullable(),
-  // corporateAccount2: ManualPaymentPrimitives.nonEmptyTrimmed,
-  // retentionAccount2: z.string().optional().nullable(),
-  // paymentType1: ManualPaymentPrimitives.nonEmptyTrimmedMax(15), 
-  // paymentSubType1: ManualPaymentPrimitives.dateValue,
-  // engineerApprovedAmount: ManualPaymentPrimitives.trimmedMax(15).optional().nullable(),
-  // amountPaid1: ManualPaymentPrimitives.trimmedMax(15).optional().nullable(),
-  // totalAmountPaid1: ManualPaymentPrimitives.idRequired,
-  // vatCapExceeded3: ManualPaymentPrimitives.amountRequired, 
-  // vatCapExceeded4: ManualPaymentPrimitives.trimmedMax(15).optional().nullable(),
-  // delRefNo: ManualPaymentPrimitives.nonEmptyTrimmedMax(15), 
-  // ppcNo: ManualPaymentPrimitives.trimmedMax(15).optional().nullable(),
 
-  // NEW FIELDS START
-  vaucherReferenceNumber: ManualPaymentPrimitives.nonEmptyTrimmed,
-  assetRegisterName: ManualPaymentPrimitives.idRequired,
-  managementFirmName: ManualPaymentPrimitives.nonEmptyTrimmedMax(100),
-  managementFirmAccountStatus: ManualPaymentPrimitives.idOptional,
-  
-  // Account balances (kept as they are used)
+  tasReference: ManualPaymentPrimitives.nonEmptyTrimmed,
+  developerName: ManualPaymentPrimitives.nonEmptyTrimmed,
+  developerId: ManualPaymentPrimitives.nonEmptyTrimmed,
+  projectName: ManualPaymentPrimitives.idRequired,
+  projectId: ManualPaymentPrimitives.nonEmptyTrimmed,
+
+  // Pre-populated from asset; do not validate as required
+  projectStatus: ManualPaymentPrimitives.idOptional,
+
   escrowAccount: ManualPaymentPrimitives.nonEmptyTrimmed,
   subConstructionAccount: z.string().optional().nullable(),
+  corporateAccount: ManualPaymentPrimitives.nonEmptyTrimmed,
   retentionAccount: z.string().optional().nullable(),
+  corporateAccount1: ManualPaymentPrimitives.nonEmptyTrimmed,
+  retentionAccount1: z.string().optional().nullable(),
+  corporateAccount2: ManualPaymentPrimitives.nonEmptyTrimmed,
+  retentionAccount2: z.string().optional().nullable(),
 
+ 
   paymentType: ManualPaymentPrimitives.idRequired,
+
   paymentSubType: ManualPaymentPrimitives.idOptional,
 
-  hoaApprovalNumber: ManualPaymentPrimitives.nonEmptyTrimmedMax(50),
-  hoaApprovalDate: ManualPaymentPrimitives.dateValue,
+ 
+  paymentType1: ManualPaymentPrimitives.nonEmptyTrimmedMax(15), 
+  paymentSubType1: ManualPaymentPrimitives.dateValue, 
+
 
   invoiceRef: ManualPaymentPrimitives.nonEmptyTrimmedMax(15),
   invoiceCurrency: ManualPaymentPrimitives.idRequired,
   invoiceValue: ManualPaymentPrimitives.nonEmptyTrimmedMax(15),
+ 
   invoiceDate: ManualPaymentPrimitives.dateValue.optional().nullable(),
 
-  specialRate: z.coerce.boolean().optional().nullable(),
-  corporateAmount: z.coerce.boolean().optional().nullable(),
-
-  RT03: ManualPaymentPrimitives.nonEmptyTrimmedMax(50),
+  engineerApprovedAmount: ManualPaymentPrimitives.trimmedMax(15).optional().nullable(),
   totalEligibleAmount: ManualPaymentPrimitives.trimmedMax(15).optional().nullable(),
   amountPaid: ManualPaymentPrimitives.trimmedMax(15).optional().nullable(),
-  capExceeded: z.coerce.boolean().optional().nullable(),
+  amountPaid1: ManualPaymentPrimitives.trimmedMax(15).optional().nullable(),
   totalAmountPaid: ManualPaymentPrimitives.trimmedMax(15).optional().nullable(),
-  paymentCurrency: ManualPaymentPrimitives.idRequired,
+
+  totalAmountPaid1: ManualPaymentPrimitives.idRequired,
+
+
   debitCreditToEscrow: ManualPaymentPrimitives.trimmedMax(15).optional().nullable(),
   currentEligibleAmount: ManualPaymentPrimitives.trimmedMax(15).optional().nullable(),
   debitFromRetention: ManualPaymentPrimitives.trimmedMax(15).optional().nullable(),
   totalPayoutAmount: ManualPaymentPrimitives.trimmedMax(15).optional().nullable(),
   amountInTransit: ManualPaymentPrimitives.trimmedMax(15).optional().nullable(),
-
-  // Budget Details
-  budgetYear: ManualPaymentPrimitives.idRequired,
-  budgetCategory: ManualPaymentPrimitives.idRequired,
-  budgetSubCategory: ManualPaymentPrimitives.idRequired,
-  budgetServiceName: ManualPaymentPrimitives.idRequired,
-  provisionalBudget: z.coerce.boolean().optional().nullable(),
-  HOAExemption: z.coerce.boolean().optional().nullable(),
-  categoryCode: ManualPaymentPrimitives.nonEmptyTrimmedMax(50),
-  categoryName: z.string().optional().nullable(),
-  subCategoryCode: ManualPaymentPrimitives.nonEmptyTrimmedMax(50),
-  subCategoryName: z.string().optional().nullable(),
-  serviceCode: ManualPaymentPrimitives.nonEmptyTrimmedMax(50),
-  serviceName: z.string().optional().nullable(),
-  provisionalBudgetCode: ManualPaymentPrimitives.nonEmptyTrimmedMax(50),
-  provisionalBudgetName: z.string().optional().nullable(),
-  availableBudgetAmount: z.string().optional().nullable(),
-  utilizedBudgetAmount: z.string().optional().nullable(),
-  invoiceBudgetAmount: z.string().optional().nullable(),
-
-  // Beneficiary Details - Use nested objects for proper validation
-  voucherDTO: z.object({
-    benVoucher: ManualPaymentPrimitives.idRequired, // Required if voucherDTO exists
-    benVoucherName: z.string().optional().nullable(),
-    benVoucherSwiftCode: z.string().optional().nullable(),
-    benVoucherRoutingCode: z.string().optional().nullable(),
-    benVoucherAccountNumber: z.string().optional().nullable(),
-  }), // Required object (benVoucher is required, so object must exist)
-  
-  // Build Partner DTO for bank name
-  buildPartnerDTO: z.object({
-    bpName: z.string().optional().nullable(),
-  }).optional().nullable(),
-
-  engineerFeePayment: ManualPaymentPrimitives.backendDropdownRequired,
-  routinfSortcode: ManualPaymentPrimitives.nonEmptyTrimmedMax(50),
+  vatCapExceeded: ManualPaymentPrimitives.trimmedMax(15).optional().nullable(),
+  vatCapExceeded3: ManualPaymentPrimitives.amountRequired, 
+  vatCapExceeded4: ManualPaymentPrimitives.trimmedMax(15).optional().nullable(), 
+  specialRate: z.coerce.boolean().optional().nullable(),
+  corporateAmount: z.coerce.boolean().optional().nullable(),
+  delRefNo: ManualPaymentPrimitives.nonEmptyTrimmedMax(15), 
+  ppcNo: ManualPaymentPrimitives.trimmedMax(15).optional().nullable(),
 
 
   narration1: ManualPaymentPrimitives

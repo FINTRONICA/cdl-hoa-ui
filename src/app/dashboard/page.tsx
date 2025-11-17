@@ -741,8 +741,8 @@ const GuaranteeChart = ({
 const Dashboard = () => {
   const { getLabelResolver } = useSidebarConfig()
   const dashboardTitle = getLabelResolver
-    ? getLabelResolver('dashboard', 'Dashboard')
-    : 'Dashboard'
+    ? getLabelResolver('dashboard', 'Command Center')
+    : 'Command Center'
 
   const [isSubmitting, setIsSubmitting] = useState(false)
  

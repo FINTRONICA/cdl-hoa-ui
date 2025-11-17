@@ -25,7 +25,10 @@ import {
   buildPartnerService,
   type BuildPartner,
   type BuildPartnerBeneficiaryResponse,
+  type BuildPartnerContactResponse,
+  type BuildPartnerFeeResponse,
 } from '@/services/api/buildPartnerService'
+import type { ApiDocumentResponse } from '../developerTypes'
 import { formatDate } from '@/utils'
 import { GlobalLoading } from '@/components/atoms'
 import { useBuildPartnerLabelsWithCache } from '@/hooks/useBuildPartnerLabelsWithCache'
@@ -78,21 +81,25 @@ const renderCheckboxField = (label: string, checked: boolean) => (
 
 // Data interfaces
 interface ContactData {
-  bpcFirstName: string
-  bpcLastName: string
-  bpcContactEmail: string
-  bpcContactAddressLine1: string
-  bpcContactAddressLine2: string
-  bpcContactPoBox: string
-  bpcCountryMobCode: string
-  bpcContactTelNo: string
-  bpcContactMobNo: string
-  bpcContactFaxNo: string
+  arcFirstName: string
+  arcLastName: string
+  arcContactEmail: string
+  arcContactAddressLine1: string
+  arcContactAddressLine2: string
+  arcContactPoBox: string
+  arcCountryMobCode: string
+  arcContactTelNo: string
+  arcContactMobNo: string
+  arcContactFaxNo: string
 }
 
 interface FeeData {
   bpFeeCategoryDTO?: { languageTranslationId?: { configValue?: string } }
   bpFeeFrequencyDTO?: { languageTranslationId?: { configValue?: string } }
+  bpAccountTypeDTO?: {
+    languageTranslationId?: { configValue?: string }
+    settingValue?: string
+  }
   debitAmount?: number
   feeCollectionDate?: string
   feeNextRecoveryDate?: string
@@ -110,6 +117,49 @@ interface DocumentData {
   fileSize: number
 }
 
+const hasContentArray = <T,>(
+  value: unknown
+): value is { content: T[] } => {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+  const content = (value as { content?: unknown }).content
+  return Array.isArray(content)
+}
+
+const isBeneficiaryResponse = (
+  value: unknown
+): value is BuildPartnerBeneficiaryResponse => {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    'bpbBeneficiaryId' in value
+  )
+}
+
+const getRegulatorLabel = (regulator: unknown): string | null => {
+  if (!regulator || typeof regulator !== 'object') {
+    return null
+  }
+
+  const translation = (regulator as {
+    languageTranslationId?: { configValue?: string }
+    settingValue?: string
+  }).languageTranslationId?.configValue
+
+  if (translation) {
+    return translation
+  }
+
+  return (regulator as { settingValue?: string }).settingValue ?? null
+}
+
+type BeneficiaryDisplay = BuildPartnerBeneficiaryResponse & {
+  bpbTransferTypeDTO?: {
+    languageTranslationId?: { configValue?: string }
+  }
+}
+
 interface Step5Props {
   developerId?: string | undefined
   onEditStep?: ((stepNumber: number) => void) | undefined
@@ -124,9 +174,9 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
     useState<BuildPartner | null>(null)
   const [contactData, setContactData] = useState<ContactData[]>([])
   const [feeData, setFeeData] = useState<FeeData[]>([])
-  const [beneficiaryData, setBeneficiaryData] = useState<
-    BuildPartnerBeneficiaryResponse[]
-  >([])
+  const [beneficiaryData, setBeneficiaryData] = useState<BeneficiaryDisplay[]>(
+    []
+  )
   const [documentData, setDocumentData] = useState<DocumentData[]>([])
 
   const [loading, setLoading] = useState(true)
@@ -165,7 +215,7 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
             buildPartnerService.getBuildPartnerBeneficiaries(buildPartnerId),
             buildPartnerService.getBuildPartnerDocuments(
               buildPartnerId,
-              'BUILD_PARTNER'
+              'ASSET_REGISTER'
             ),
           ])
 
@@ -184,82 +234,145 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
         setBuildPartnerDetails(detailsResult as BuildPartner)
 
         // Handle paginated responses for contacts
-        let contactArray: ContactData[] = []
-        if (Array.isArray(contactsResult)) {
-          contactArray = contactsResult as ContactData[]
-        } else if (
-          contactsResult &&
-          typeof contactsResult === 'object' &&
-          'content' in contactsResult
-        ) {
-          contactArray = Array.isArray((contactsResult as any).content)
-            ? ((contactsResult as any).content as ContactData[])
-            : []
+        let contactArray: BuildPartnerContactResponse[] = []
+        if (hasContentArray<BuildPartnerContactResponse>(contactsResult)) {
+          contactArray = contactsResult.content
+        } else if (Array.isArray(contactsResult)) {
+          contactArray = contactsResult as BuildPartnerContactResponse[]
         }
-        setContactData(contactArray)
+        const normalizedContacts: ContactData[] = contactArray.map(
+          (contact) => ({
+            id: contact.id,
+            arcContactName: contact.arcContactName ?? null,
+            arcFirstName: contact.arcFirstName ?? null,
+            arcLastName: contact.arcLastName ?? null,
+            arcContactEmail: contact.arcContactEmail ?? null,
+            arcContactAddress: contact.arcContactAddress ?? null,
+            arcContactAddressLine1: contact.arcContactAddressLine1 ?? null,
+            arcContactAddressLine2: contact.arcContactAddressLine2 ?? null,
+            arcContactPoBox: contact.arcContactPoBox ?? null,
+            arcCountryMobCode: contact.arcCountryMobCode ?? null,
+            arcContactTelCode: contact.arcContactTelCode ?? null,
+            arcContactTelNo: contact.arcContactTelNo ?? null,
+            arcContactMobNo: contact.arcContactMobNo ?? null,
+            arcContactFaxNo: contact.arcContactFaxNo ?? null,
+            enabled: contact.enabled ?? false,
+            workflowStatus: contact.workflowStatus ?? null,
+            deleted: contact.deleted ?? null,
+            assetRegisterDTO: contact.assetRegisterDTO
+              ? {
+                  id: contact.assetRegisterDTO.id,
+                  enabled: (contact.assetRegisterDTO as { enabled?: boolean })
+                    .enabled,
+                  deleted: (contact.assetRegisterDTO as { deleted?: boolean })
+                    .deleted,
+                }
+              : undefined,
+          })
+        )
+        setContactData(normalizedContacts)
 
         // Handle paginated responses for fees
-        let feeArray: FeeData[] = []
-        if (Array.isArray(feesResult)) {
-          feeArray = feesResult as FeeData[]
-        } else if (
-          feesResult &&
-          typeof feesResult === 'object' &&
-          'content' in feesResult
-        ) {
-          feeArray = Array.isArray((feesResult as any).content)
-            ? ((feesResult as any).content as FeeData[])
-            : []
+        let feeArray: BuildPartnerFeeResponse[] = []
+        if (hasContentArray<BuildPartnerFeeResponse>(feesResult)) {
+          feeArray = feesResult.content
+        } else if (Array.isArray(feesResult)) {
+          feeArray = feesResult as BuildPartnerFeeResponse[]
         }
-        setFeeData(feeArray)
+        const normalizedFees: FeeData[] = feeArray.map((fee) => {
+          const normalized: FeeData = {}
+
+          if (fee.debitAmount !== undefined) {
+            normalized.debitAmount = fee.debitAmount
+          }
+          if (fee.feeCollectionDate) {
+            normalized.feeCollectionDate = fee.feeCollectionDate
+          }
+          if (fee.feeNextRecoveryDate) {
+            normalized.feeNextRecoveryDate = fee.feeNextRecoveryDate
+          }
+          if (fee.feePercentage !== undefined) {
+            normalized.feePercentage = fee.feePercentage
+          }
+          if (fee.totalAmount !== undefined) {
+            normalized.totalAmount = fee.totalAmount
+          }
+          if (fee.vatPercentage !== undefined) {
+            normalized.vatPercentage = fee.vatPercentage
+          }
+
+          const categoryValue =
+            fee.bpFeeCategoryDTO?.languageTranslationId?.configValue
+          if (categoryValue) {
+            normalized.bpFeeCategoryDTO = {
+              languageTranslationId: { configValue: categoryValue },
+            }
+          }
+
+          const frequencyValue =
+            fee.bpFeeFrequencyDTO?.languageTranslationId?.configValue
+          if (frequencyValue) {
+            normalized.bpFeeFrequencyDTO = {
+              languageTranslationId: { configValue: frequencyValue },
+            }
+          }
+
+          const currencyValue =
+            fee.bpFeeCurrencyDTO?.languageTranslationId?.configValue
+          if (currencyValue) {
+            normalized.bpFeeCurrencyDTO = {
+              languageTranslationId: { configValue: currencyValue },
+            }
+          }
+
+          const accountTranslation =
+            fee.bpAccountTypeDTO?.languageTranslationId?.configValue
+          const accountSetting = fee.bpAccountTypeDTO?.settingValue
+          if (accountTranslation || accountSetting) {
+            const accountDto: NonNullable<FeeData['bpAccountTypeDTO']> = {}
+            if (accountTranslation) {
+              accountDto.languageTranslationId = {
+                configValue: accountTranslation,
+              }
+            }
+            if (accountSetting) {
+              accountDto.settingValue = accountSetting
+            }
+            normalized.bpAccountTypeDTO = accountDto
+          }
+
+          return normalized
+        })
+        setFeeData(normalizedFees)
 
         // Handle different possible beneficiary response formats
-        let beneficiaryArray: BuildPartnerBeneficiaryResponse[] = []
-        if (Array.isArray(beneficiariesResult)) {
+        let beneficiaryArray: BeneficiaryDisplay[] = []
+        if (hasContentArray<BeneficiaryDisplay>(beneficiariesResult)) {
+          beneficiaryArray = beneficiariesResult.content
+        } else if (Array.isArray(beneficiariesResult)) {
           beneficiaryArray =
-            beneficiariesResult as BuildPartnerBeneficiaryResponse[]
-        } else if (
-          beneficiariesResult &&
-          typeof beneficiariesResult === 'object'
-        ) {
-          // If it's an object with a content property (paginated response)
-          const beneficiariesObj = beneficiariesResult as any
-          if (
-            beneficiariesObj.content &&
-            Array.isArray(beneficiariesObj.content)
-          ) {
-            beneficiaryArray =
-              beneficiariesObj.content as BuildPartnerBeneficiaryResponse[]
-          } else {
-            // If it's a single beneficiary object, wrap it in an array
-            beneficiaryArray = [
-              beneficiariesResult as BuildPartnerBeneficiaryResponse,
-            ]
-          }
+            beneficiariesResult as BeneficiaryDisplay[]
+        } else if (isBeneficiaryResponse(beneficiariesResult)) {
+          beneficiaryArray = [beneficiariesResult]
         }
         setBeneficiaryData(beneficiaryArray)
 
         // Handle paginated responses for documents
-        let documentArray: any[] = []
-        if (Array.isArray(documentsResult)) {
-          documentArray = documentsResult
-        } else if (
-          documentsResult &&
-          typeof documentsResult === 'object' &&
-          'content' in documentsResult
-        ) {
-          documentArray = Array.isArray((documentsResult as any).content)
-            ? (documentsResult as any).content
-            : []
+        let documentArray: ApiDocumentResponse[] = []
+        if (hasContentArray<ApiDocumentResponse>(documentsResult)) {
+          documentArray = documentsResult.content
+        } else if (Array.isArray(documentsResult)) {
+          documentArray = documentsResult as ApiDocumentResponse[]
         }
 
         setDocumentData(
           documentArray.map((doc) => ({
             id: doc.id?.toString() || '',
             fileName: doc.documentName || '',
-            documentType: doc.documentTypeDTO?.languageTranslationId?.configValue ||  '',
+            documentType:
+              doc.documentTypeDTO?.languageTranslationId?.configValue || '',
             uploadDate: doc.uploadDate || '',
-            fileSize: parseInt(doc.documentSize || '0'),
+            fileSize: Number(doc.documentSize ?? 0),
           }))
         )
       } catch (err) {
@@ -280,45 +393,45 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
   ) => {
     const fields = [
       {
-        label: getBuildPartnerLabelDynamic('CDL_BP_AUTH_NAME'),
+        label: getBuildPartnerLabelDynamic('CDL_AR_AUTH_NAME'),
         value:
-          `${contact.bpcFirstName || ''} ${contact.bpcLastName || ''}`.trim() ||
+          `${contact.arcFirstName || ''} ${contact.arcLastName || ''}`.trim() ||
           '',
         gridSize: 6,
       },
       {
-        label: getBuildPartnerLabelDynamic('CDL_BP_EMAIL_ADDRESS'),
-        value: contact.bpcContactEmail || ' ',
+        label: getBuildPartnerLabelDynamic('CDL_AR_EMAIL_ADDRESS'),
+        value: contact.arcContactEmail || ' ',
         gridSize: 6,
       },
       {
-        label: getBuildPartnerLabelDynamic('CDL_BP_BUSINESS_ADDRESS'),
+        label: getBuildPartnerLabelDynamic('CDL_AR_BUSINESS_ADDRESS'),
         value:
-          `${contact.bpcContactAddressLine1 || ''} ${contact.bpcContactAddressLine2 || ''}`.trim() ||
+          `${contact.arcContactAddressLine1 || ''} ${contact.arcContactAddressLine2 || ''}`.trim() ||
           '',
         gridSize: 6,
       },
       {
-        label: getBuildPartnerLabelDynamic('CDL_BP_POBOX'),
-        value: contact.bpcContactPoBox || '',
+        label: getBuildPartnerLabelDynamic('CDL_AR_POBOX'),
+        value: contact.arcContactPoBox || '',
         gridSize: 6,
       },
       {
-        label: getBuildPartnerLabelDynamic('CDL_BP_COUNTRY_CODE'),
-        value: contact.bpcCountryMobCode || '',
+        label: getBuildPartnerLabelDynamic('CDL_AR_COUNTRY_CODE'),
+        value: contact.arcCountryMobCode || '',
         gridSize: 3,
       },
       {
-        label: getBuildPartnerLabelDynamic('CDL_BP_TELEPHONE_NUMBER'),
-        value: contact.bpcContactTelNo || '',
+        label: getBuildPartnerLabelDynamic('CDL_AR_TELEPHONE_NUMBER'),
+        value: contact.arcContactTelNo || '',
         gridSize: 3,
       },
       {
-        label: getBuildPartnerLabelDynamic('CDL_BP_MOBILE_NUMBER'),
-        value: contact.bpcContactMobNo || '',
+        label: getBuildPartnerLabelDynamic('CDL_AR_MOBILE_NUMBER'),
+        value: contact.arcContactMobNo || '',
         gridSize: 3,
       },
-      { label: getBuildPartnerLabelDynamic('CDL_BP_FAX_NUMBER'), value: contact.bpcContactFaxNo || '', gridSize: 3 },
+      { label: getBuildPartnerLabelDynamic('CDL_AR_FAX_NUMBER'), value: contact.arcContactFaxNo || '', gridSize: 3 },
     ]
     return (
       <Box sx={{ mb: 0 }}>
@@ -370,8 +483,8 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
       {
         label: getBuildPartnerLabelDynamic('CDL_BP_FEES_ACCOUNT'),
         value:
-          (fee as any)?.bpAccountTypeDTO?.languageTranslationId?.configValue ||
-          (fee as any)?.bpAccountTypeDTO?.settingValue ||
+          fee.bpAccountTypeDTO?.languageTranslationId?.configValue ||
+          fee.bpAccountTypeDTO?.settingValue ||
           '',
         gridSize: 6,
       },
@@ -451,7 +564,7 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
 
   // Render beneficiary fields with actual API data
   const renderBeneficiaryFields = (
-    beneficiary: BuildPartnerBeneficiaryResponse | any,
+    beneficiary: BeneficiaryDisplay,
     title: string,
     isLast: boolean
   ) => {
@@ -589,7 +702,7 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
                 color: '#1E2939',
               }}
             >
-              {getBuildPartnerLabelDynamic('CDL_BP_DETAILS')}
+              {getBuildPartnerLabelDynamic('CDL_AR_DETAILS')}
             </Typography>
             {!isReadOnly && (
               <Button
@@ -621,28 +734,28 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                getBuildPartnerLabelDynamic('CDL_BP_ID'),
-                buildPartnerDetails.bpDeveloperId
+                getBuildPartnerLabelDynamic('CDL_AR_ID'),
+                buildPartnerDetails.arDeveloperId
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                getBuildPartnerLabelDynamic('CDL_BP_CIF'),
-                buildPartnerDetails.bpCifrera
+                getBuildPartnerLabelDynamic('CDL_AR_CIF'),
+                buildPartnerDetails.arCifrera
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                getBuildPartnerLabelDynamic('CDL_BP_REGNO'),
-                buildPartnerDetails.bpDeveloperRegNo
+                getBuildPartnerLabelDynamic('CDL_AR_REGNO'),
+                buildPartnerDetails.arDeveloperRegNo
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                getBuildPartnerLabelDynamic('CDL_BP_REGDATE'),
-                buildPartnerDetails.bpOnboardingDate
+                getBuildPartnerLabelDynamic('CDL_AR_REGDATE'),
+                buildPartnerDetails.arOnboardingDate
                   ? formatDate(
-                      buildPartnerDetails.bpOnboardingDate,
+                      buildPartnerDetails.arOnboardingDate,
                       'DD/MM/YYYY'
                     )
                   : ' '
@@ -650,55 +763,79 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                getBuildPartnerLabelDynamic('CDL_BP_NAME'),
-                buildPartnerDetails.bpName
+                getBuildPartnerLabelDynamic('CDL_AR_NAME'),
+                buildPartnerDetails.arName
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                getBuildPartnerLabelDynamic('CDL_BP_NAME_LOCALE'),
-                buildPartnerDetails.bpNameLocal
+                getBuildPartnerLabelDynamic('CDL_AR_NAME_LOCALE'),
+                buildPartnerDetails.arNameLocal
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                getBuildPartnerLabelDynamic('CDL_BP_MASTER'),
-                buildPartnerDetails.bpMasterName
+                getBuildPartnerLabelDynamic('CDL_AR_MASTER'),
+                buildPartnerDetails.arMasterName
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                getBuildPartnerLabelDynamic('CDL_BP_REGULATORY_AUTHORITY'),
-                (buildPartnerDetails.bpRegulatorDTO as any)?.languageTranslationId?.configValue || null
+                getBuildPartnerLabelDynamic('CDL_AR_PROJECT'),
+                buildPartnerDetails.arProjectName || 'N/A'
+              )}
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              {renderDisplayField(
+                getBuildPartnerLabelDynamic('CDL_AR_MASTER_DEVELOPER'),
+                buildPartnerDetails.arMasterDeveloper || 'N/A'
+              )}
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              {renderDisplayField(
+                getBuildPartnerLabelDynamic('CDL_AR_MASTER_COMMUNITY'),
+                buildPartnerDetails.arMasterCommunity || 'N/A'
+              )}
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              {renderDisplayField(
+                getBuildPartnerLabelDynamic('CDL_AR_COMPANY_NUMBER'),
+                buildPartnerDetails.arCompanyNumber || 'N/A'
+              )}
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              {renderDisplayField(
+                getBuildPartnerLabelDynamic('CDL_AR_REGULATORY_AUTHORITY'),
+                getRegulatorLabel(buildPartnerDetails.arRegulatorDTO)
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 12 }}>
               {renderDisplayField(
-                getBuildPartnerLabelDynamic('CDL_BP_ADDRESS'),
-                buildPartnerDetails.bpContactAddress
+                getBuildPartnerLabelDynamic('CDL_AR_ADDRESS'),
+                buildPartnerDetails.arContactAddress
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 3 }}>
-              {renderDisplayField(getBuildPartnerLabelDynamic('CDL_BP_MOBILE'), buildPartnerDetails.bpMobile)}
+              {renderDisplayField(getBuildPartnerLabelDynamic('CDL_AR_MOBILE'), buildPartnerDetails.arMobile)}
             </Grid>
             <Grid size={{ xs: 12, md: 3 }}>
-              {renderDisplayField(getBuildPartnerLabelDynamic('CDL_BP_EMAIL'), buildPartnerDetails.bpEmail)}
+              {renderDisplayField(getBuildPartnerLabelDynamic('CDL_AR_EMAIL'), buildPartnerDetails.arEmail)}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              {renderDisplayField(getBuildPartnerLabelDynamic('CDL_BP_FAX'), buildPartnerDetails.bpFax)}
+              {renderDisplayField(getBuildPartnerLabelDynamic('CDL_AR_FAX'), buildPartnerDetails.arFax)}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                getBuildPartnerLabelDynamic('CDL_BP_LICENSE'),
-                buildPartnerDetails.bpLicenseNo
+                getBuildPartnerLabelDynamic('CDL_AR_LICENSE'),
+                buildPartnerDetails.arLicenseNo
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                getBuildPartnerLabelDynamic('CDL_BP_LICENSE_VALID'),
-                buildPartnerDetails.bpLicenseExpDate
+                getBuildPartnerLabelDynamic('CDL_AR_LICENSE_VALID'),
+                buildPartnerDetails.arLicenseExpDate
                   ? formatDate(
-                      buildPartnerDetails.bpLicenseExpDate,
+                      buildPartnerDetails.arLicenseExpDate,
                       'DD/MM/YYYY'
                     )
                   : ' '
@@ -706,29 +843,30 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
             </Grid>
             <Grid size={{ xs: 12, md: 3 }}>
               {renderCheckboxField(
-                getBuildPartnerLabelDynamic('CDL_BP_WORLD_STATUS'),
-                buildPartnerDetails.bpWorldCheckFlag === 'true'
+                getBuildPartnerLabelDynamic('CDL_AR_WORLD_STATUS'),
+                buildPartnerDetails.arWorldCheckFlag === true ||
+                  buildPartnerDetails.arWorldCheckFlag === 'true'
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 3 }}>
               {renderCheckboxField(
                 'Migrated Data',
-                buildPartnerDetails.bpMigratedData === true
+                buildPartnerDetails.arMigratedData === true
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
-                getBuildPartnerLabelDynamic('CDL_BP_WORLD_REMARKS'),
-                buildPartnerDetails.bpWorldCheckRemarks
+                getBuildPartnerLabelDynamic('CDL_AR_WORLD_REMARKS'),
+                buildPartnerDetails.arWorldCheckRemarks
               )}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              {renderDisplayField(getBuildPartnerLabelDynamic('CDL_BP_NOTES'), buildPartnerDetails.bpremark)}
+              {renderDisplayField(getBuildPartnerLabelDynamic('CDL_AR_NOTES'), buildPartnerDetails.arRemark)}
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               {renderDisplayField(
                 'Account Contact Number',
-                buildPartnerDetails.bpContactTel
+                buildPartnerDetails.arContactTel
               )}
             </Grid>
           </Grid>
@@ -909,7 +1047,7 @@ const Step5 = ({ developerId, onEditStep, isReadOnly = false }: Step5Props) => {
                   color: '#1E2939',
                 }}
               >
-              {getBuildPartnerLabelDynamic('CDL_BP_CONTACT')}
+              {getBuildPartnerLabelDynamic('CDL_AR_CONTACT')}
               </Typography>
               {!isReadOnly && (
                 <Button

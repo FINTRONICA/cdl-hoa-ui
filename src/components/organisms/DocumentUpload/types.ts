@@ -1,5 +1,4 @@
 import { ReactNode } from 'react'
-import type { DropdownOption } from '@/services/api/applicationSettingService'
 
 // Base document interface that can be extended
 export interface BaseDocument {
@@ -80,7 +79,6 @@ export interface DocumentUploadConfig<T = BaseDocument, ApiResponse = unknown> {
 
   // Document type configuration
   documentTypeSettingKey?: string // Setting key for fetching document types (e.g., 'INVESTOR_ID_TYPE', 'PROJECT_DOC_TYPE')
-  documentTypeOptions?: DropdownOption[] // Optional static list of document types when settings API is unavailable
 
   // UI configuration
   title?: string

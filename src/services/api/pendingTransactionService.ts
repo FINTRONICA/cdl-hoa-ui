@@ -39,23 +39,13 @@ export interface PendingTransaction {
   ptfiCreditedEscrow: boolean | null
   ptfiCbsResponse: string | null
   ptfiPaymentRefNo: string | null
-  realEstateAssestDTO: any | null
-  capitalPartnerUnitDTO: any | null
+  managementFirmDTO: any | null
+  ownerRegistryUnitDTO: any | null
   bucketTypeDTO: any | null
   depositModeDTO: any | null
   subDepositTypeDTO: any | null
   bankAccountDTO: any | null
   taskStatusDTO?: any | null
-  // New fields
-  ptfiManagementFirmsNumber?: string | null
-  ptfiManagementName?: string | null
-  ptfiTransactionRefNumber?: string | null
-  ptfiOwnerBuyerName?: string | null
-  ptfiSplitAmount?: number | null
-  ptfiReceivableBucket?: string | null
-  ptfiDepositMode?: string | null
-  ptfiReservePercentage?: number | null
-  ptfiReserveAmount?: number | null
 }
 
 export interface PendingTransactionFilters {
@@ -90,17 +80,6 @@ export interface PendingTransactionUIData {
   projectRegulatorId?: string
   developerName?: string
   taskStatusDTO?: any | null
-  // New fields
-  managementFirmsNumber?: string
-  managementName?: string
-  transactionRefNumber?: string
-  ownerBuyerName?: string
-  unitReferenceNumber?: string
-  splitAmount?: string
-  receivableBucket?: string
-  depositMode?: string
-  reservePercentage?: string
-  reserveAmount?: string
 }
 
 export interface PendingTransactionLabel {
@@ -168,21 +147,10 @@ export const mapPendingTransactionToUIData = (
     allocated: apiData.ptfiIsAllocated ? 'Yes' : 'No',
     discard: apiData.ptfiDiscard ? 'Yes' : 'No',
     tasUpdate: String(apiData.ptfiTasUpdate),
-    projectName: apiData?.realEstateAssestDTO?.reaName || '—',
-    projectRegulatorId: apiData?.realEstateAssestDTO?.reaId || '—',
+    projectName: apiData?.managementFirmDTO?.mfName || '—',
+    projectRegulatorId: apiData?.managementFirmDTO?.mfId || '—',
     developerName: apiData.ptfiPrimaryUnitHolderName || '—',
     taskStatusDTO: apiData.taskStatusDTO || null,
-    // New fields
-    managementFirmsNumber: apiData.ptfiManagementFirmsNumber || '—',
-    managementName: apiData.ptfiManagementName || '—',
-    transactionRefNumber: apiData.ptfiTransactionRefNumber || '—',
-    ownerBuyerName: apiData.ptfiOwnerBuyerName || '—',
-    unitReferenceNumber: apiData.ptfiUnitRefNumber || '—',
-    splitAmount: formatAmount(apiData.ptfiSplitAmount ?? null),
-    receivableBucket: apiData.ptfiReceivableBucket || '—',
-    depositMode: apiData.ptfiDepositMode || '—',
-    reservePercentage: apiData.ptfiReservePercentage ? String(apiData.ptfiReservePercentage) : '—',
-    reserveAmount: formatAmount(apiData.ptfiReserveAmount ?? null),
   }
 }
 

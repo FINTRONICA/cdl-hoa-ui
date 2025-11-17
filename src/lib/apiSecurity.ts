@@ -201,13 +201,6 @@ export class APISecurityService {
     path: string;
     details?: unknown;
   }): void {
-    console.log(`[SECURITY] ${event.type}:`, {
-      timestamp: new Date().toISOString(),
-      ip: event.ip,
-      userAgent: event.userAgent,
-      path: event.path,
-      details: event.details
-    });
   }
 }
 

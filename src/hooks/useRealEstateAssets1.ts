@@ -25,9 +25,8 @@ export const useRealEstateAssets = (): UseRealEstateAssetsReturn => {
       setError(null)
 
       const response = await realEstateAssetService.findAllRealEstateAssets()
-
-      // Extract the content array from the response
-      setData(response.content || [])
+      const firms = Array.isArray(response) ? response : response.content || []
+      setData(firms)
     } catch (err) {
       console.error('Error fetching real estate assets:', err)
       setError(
@@ -61,12 +60,24 @@ export const transformRealEstateAssetsForDropdown = (
 ) => {
   return assets.map((asset) => ({
     id: asset.id,
-    displayName: asset.reaName, // Project Name
-    settingValue: asset.reaId, // Project ID
+    displayName:
+      asset.mfName ??
+      asset.assetRegisterDTO?.arName ??
+      asset.mfId ??
+      asset.id?.toString() ??
+      'Management Firm',
+    settingValue: asset.mfId ?? asset.id?.toString() ?? '',
     // Additional data for dependent fields
-    projectId: asset.reaId,
-    developerId: asset.buildPartnerDTO?.bpDeveloperId || '',
-    developerName: asset.buildPartnerDTO?.bpName || '',
+    projectId: asset.mfId ?? asset.id?.toString() ?? '',
+    assetRegisterId:
+      asset.assetRegisterDTO?.arDeveloperRegNo ??
+      asset.assetRegisterDTO?.arDeveloperId ??
+      '',
+    assetRegisterName:
+      asset.assetRegisterDTO?.arMasterName ??
+      asset.assetRegisterDTO?.arName ??
+      '',
+    managementFirmCif: asset.mfId ?? '',
     // Store the full asset for reference
     fullAsset: asset,
   }))

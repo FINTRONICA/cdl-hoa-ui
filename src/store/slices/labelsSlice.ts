@@ -95,6 +95,12 @@ export interface LabelsState {
   discardedTransactionLabelsError: string | null
   discardedTransactionLabelsLastFetched: number | null
 
+  // Budget labels
+  budgetLabels: ProcessedLabels | null
+  budgetLabelsLoading: boolean
+  budgetLabelsError: string | null
+  budgetLabelsLastFetched: number | null
+
   // Global loading state for all labels
   allLabelsLoading: boolean
   allLabelsError: string | null
@@ -162,6 +168,11 @@ export interface LabelsActions {
   setDiscardedTransactionLabelsLoading: (loading: boolean) => void
   setDiscardedTransactionLabelsError: (error: string | null) => void
 
+  // Budget labels actions
+  setBudgetLabels: (labels: ProcessedLabels) => void
+  setBudgetLabelsLoading: (loading: boolean) => void
+  setBudgetLabelsError: (error: string | null) => void
+
   // Global actions
   setAllLabelsLoading: (loading: boolean) => void
   setAllLabelsError: (error: string | null) => void
@@ -181,7 +192,8 @@ export interface LabelsActions {
       | 'workflowAmountStageOverride'
       | 'workflowRequested'
       | 'pendingTransaction'
-      | 'discardedTransaction',
+      | 'discardedTransaction'
+      | 'budget',
     configId: string,
     language: string,
     fallback: string
@@ -202,6 +214,7 @@ export interface LabelsActions {
       | 'workflowRequested'
       | 'pendingTransaction'
       | 'discardedTransaction'
+      | 'budget'
   ) => boolean
   getAvailableLanguages: (
     type:
@@ -217,6 +230,7 @@ export interface LabelsActions {
       | 'workflowRequested'
       | 'pendingTransaction'
       | 'discardedTransaction'
+      | 'budget'
   ) => string[]
 
   // Status helpers
@@ -233,6 +247,7 @@ export interface LabelsActions {
     workflowRequested: boolean
     pendingTransaction: boolean
     discardedTransaction: boolean
+    budget: boolean
     any: boolean
     all: boolean
   }
@@ -303,6 +318,13 @@ export const labelsSlice: StateCreator<LabelsSlice> = (set, get) => ({
   discardedTransactionLabelsLoading: false,
   discardedTransactionLabelsError: null,
   discardedTransactionLabelsLastFetched: null,
+
+  // Budget labels
+  budgetLabels: null,
+  budgetLabelsLoading: false,
+  budgetLabelsError: null,
+  budgetLabelsLastFetched: null,
+
 
   allLabelsLoading: false,
   allLabelsError: null,
@@ -528,6 +550,21 @@ export const labelsSlice: StateCreator<LabelsSlice> = (set, get) => ({
     set({ discardedTransactionLabelsError: error })
   },
 
+  // Budget labels actions
+  setBudgetLabels: (labels) => {
+    set({
+      budgetLabels: labels,
+      budgetLabelsLastFetched: Date.now(),
+      budgetLabelsError: null,
+    })
+  },
+  setBudgetLabelsLoading: (loading) => set({ budgetLabelsLoading: loading }),
+  setBudgetLabelsError: (error) => {
+    if (error) {
+      console.error('Error fetching budget labels:', error)
+    }
+    set({ budgetLabelsError: error })
+  },
   // Global actions
   setAllLabelsLoading: (loading) => set({ allLabelsLoading: loading }),
 
@@ -577,6 +614,10 @@ export const labelsSlice: StateCreator<LabelsSlice> = (set, get) => ({
       workflowRequestedLabelsError: null,
       pendingTransactionLabelsError: null,
       discardedTransactionLabelsError: null,
+      budgetLabelsError: null,
+      budgetLabelsLastFetched: null,
+      budgetLabelsLoading: false,
+      budgetLabels: null,
       allLabelsError: null,
     })
   },
@@ -621,6 +662,9 @@ export const labelsSlice: StateCreator<LabelsSlice> = (set, get) => ({
         break
       case 'discardedTransaction':
         labels = state.discardedTransactionLabels
+        break
+      case 'budget':
+        labels = state.budgetLabels
         break
       default:
         console.warn('⚠️ [COMPLIANCE] Unknown label type:', type)
@@ -700,6 +744,11 @@ export const labelsSlice: StateCreator<LabelsSlice> = (set, get) => ({
           state.discardedTransactionLabels &&
           Object.keys(state.discardedTransactionLabels).length > 0
         )
+      case 'budget':
+        return !!(
+          state.budgetLabels &&
+          Object.keys(state.budgetLabels).length > 0
+        )
       default:
         return false
     }
@@ -748,6 +797,9 @@ export const labelsSlice: StateCreator<LabelsSlice> = (set, get) => ({
       case 'discardedTransaction':
         labels = state.discardedTransactionLabels
         break
+      case 'budget':
+        labels = state.budgetLabels
+        break
       default:
         return ['EN']
     }
@@ -784,6 +836,7 @@ export const labelsSlice: StateCreator<LabelsSlice> = (set, get) => ({
       workflowRequested: state.workflowRequestedLabelsLoading,
       pendingTransaction: state.pendingTransactionLabelsLoading,
       discardedTransaction: state.discardedTransactionLabelsLoading,
+      budget: state.budgetLabelsLoading,
       any:
         state.sidebarLabelsLoading ||
         state.buildPartnerLabelsLoading ||
@@ -796,7 +849,7 @@ export const labelsSlice: StateCreator<LabelsSlice> = (set, get) => ({
         state.workflowAmountStageOverrideLabelsLoading ||
         state.workflowRequestedLabelsLoading ||
         state.pendingTransactionLabelsLoading ||
-        state.discardedTransactionLabelsLoading ||
+        state.budgetLabelsLoading ||
         state.allLabelsLoading,
       all: state.allLabelsLoading,
     }

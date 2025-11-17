@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Box,
   Card,
@@ -12,7 +12,10 @@ import {
   DialogContent,
   DialogActions,
   Typography,
+  IconButton,
 } from '@mui/material'
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline'
+import CloseIcon from '@mui/icons-material/Close'
 import { BeneficiaryData } from '../types'
 import { RightSlideProjectBeneficiaryDetailsPanel } from '../../RightSlidePanel/RightSlideProjectBeneficiaryDetailsPanel'
 import AddCircleOutlineOutlinedIcon from '@mui/icons-material/AddCircleOutlineOutlined'
@@ -21,23 +24,30 @@ import { PermissionAwareDataTable } from '@/components/organisms/PermissionAware
 import { useTableState } from '@/hooks'
 import { useBeneficiaryDropdowns } from '@/hooks/useBeneficiaryDropdowns'
 import { cardStyles } from '../styles'
-// import { useProjectLabels } from '@/hooks/useProjectLabels'
+
 import { useBuildPartnerAssetLabelsWithUtils } from '@/hooks/useBuildPartnerAssetLabels'
 import { realEstateAssetService } from '@/services/api/projectService'
 import { PageActionButtons } from '@/components/molecules/PageActionButtons'
 import { GlobalLoading } from '@/components/atoms'
 
 interface BeneficiaryDetails extends Record<string, unknown> {
-  reaBeneficiaryId: string
-  reaBeneficiaryType: string
-  reaName: string
-  reaBankName: string
-  reaSwiftCode: string
-  reaRoutingCode: string
-  reaAccountNumber: string
-  reaBeneficiaryTypeId?: string | number
-  reaBankNameId?: string | number
+  mfBeneficiaryId: string
+  mfBeneficiaryType: string
+  mfName: string
+  mfBankName: string
+  mfSwiftCode: string
+  mfRoutingCode: string
+  mfAccountNumber: string
+  mfBeneficiaryTypeId?: string | number
+  mfBankNameId?: string | number
   realEstateAssetDTO?: any
+  beneficiaryId?: string
+  beneficiaryType?: string
+  name?: string
+  bankName?: string
+  swiftCode?: string
+  routingCode?: string
+  accountNumber?: string
 }
 
 interface Step4Props {
@@ -61,7 +71,6 @@ const Step4: React.FC<Step4Props> = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
 
-  // API-driven pagination state
   const [currentApiPage, setCurrentApiPage] = useState(1)
   const [currentApiSize, setCurrentApiSize] = useState(20)
   const [apiBeneficiariesData, setApiBeneficiariesData] = useState<
@@ -82,23 +91,110 @@ const Step4: React.FC<Step4Props> = ({
   const { getLabel } = useBuildPartnerAssetLabelsWithUtils()
   const language = 'en'
 
-  // Helper function to convert BeneficiaryDetails to BeneficiaryData
+  const normalizeBeneficiary = (
+    beneficiary: any
+  ): BeneficiaryDetails => {
+    const transferTypeDto =
+      beneficiary.mfTransferTypeDTO ||
+      beneficiary.mfbTransferTypeDTO ||
+      beneficiary.reabTranferTypeDTO ||
+      beneficiary.reabTransferTypeDTO
+
+    const mfBeneficiaryType =
+      beneficiary.mfBeneficiaryType ||
+      transferTypeDto?.languageTranslationId?.configValue ||
+      transferTypeDto?.settingValue ||
+      beneficiary.mfbType ||
+      beneficiary.transferType ||
+      beneficiary.beneficiaryType ||
+      ''
+
+    const mfBeneficiaryId =
+      beneficiary.mfBeneficiaryId ||
+      beneficiary.mfbBeneficiaryId ||
+      beneficiary.beneficiaryId ||
+      ''
+
+    const mfName =
+      beneficiary.mfName ||
+      beneficiary.mfbName ||
+      beneficiary.name ||
+      ''
+
+    const mfBankName =
+      beneficiary.mfBankName ||
+      beneficiary.mfbBank ||
+      beneficiary.bankName ||
+      ''
+
+    const mfSwiftCode =
+      beneficiary.mfSwiftCode ||
+      beneficiary.mfbSwift ||
+      beneficiary.swiftCode ||
+      ''
+
+    const mfRoutingCode =
+      beneficiary.mfRoutingCode ||
+      beneficiary.mfbRoutingCode ||
+      beneficiary.routingCode ||
+      ''
+
+    const mfAccountNumber =
+      beneficiary.mfAccountNumber ||
+      beneficiary.mfbBeneAccount ||
+      beneficiary.accountNumber ||
+      ''
+
+    return {
+      id: beneficiary.id?.toString() || '',
+      mfBeneficiaryId,
+      mfBeneficiaryType,
+      mfName,
+      mfBankName,
+      mfSwiftCode,
+      mfRoutingCode,
+      mfAccountNumber,
+      mfBeneficiaryTypeId: beneficiary.mfBeneficiaryTypeId,
+      mfBankNameId: beneficiary.mfBankNameId,
+      realEstateAssetDTO: beneficiary.realEstateAssetDTO,
+      beneficiaryId: mfBeneficiaryId,
+      beneficiaryType: mfBeneficiaryType,
+      name: mfName,
+      bankName: mfBankName,
+      swiftCode: mfSwiftCode,
+      routingCode: mfRoutingCode,
+      accountNumber: mfAccountNumber,
+    }
+  }
+
   const convertToBeneficiaryData = (
     beneficiaryDetails: BeneficiaryDetails[]
   ): BeneficiaryData[] => {
     return beneficiaryDetails.map((beneficiary) => ({
       id: beneficiary.id?.toString() || '',
-      expenseType: beneficiary.reaBeneficiaryType || '',
-      transferType: beneficiary.reaBeneficiaryType || '',
-      name: beneficiary.reaName || '',
-      bankName: beneficiary.reaBankName || '',
-      swiftCode: beneficiary.reaSwiftCode || '',
-      routingCode: beneficiary.reaRoutingCode || '',
-      account: beneficiary.reaAccountNumber || '',
+      beneficiaryId:
+        beneficiary.mfBeneficiaryId || beneficiary.beneficiaryId || '',
+      beneficiaryType:
+        beneficiary.mfBeneficiaryType || beneficiary.beneficiaryType || '',
+      name: beneficiary.mfName || beneficiary.name || '',
+      bankName: beneficiary.mfBankName || beneficiary.bankName || '',
+      swiftCode: beneficiary.mfSwiftCode || beneficiary.swiftCode || '',
+      routingCode: beneficiary.mfRoutingCode || beneficiary.routingCode || '',
+      accountNumber:
+        beneficiary.mfAccountNumber || beneficiary.accountNumber || '',
+      mfBeneficiaryId:
+        beneficiary.mfBeneficiaryId || beneficiary.beneficiaryId || '',
+      mfBeneficiaryType:
+        beneficiary.mfBeneficiaryType || beneficiary.beneficiaryType || '',
+      mfName: beneficiary.mfName || beneficiary.name || '',
+      mfBankName: beneficiary.mfBankName || beneficiary.bankName || '',
+      mfSwiftCode: beneficiary.mfSwiftCode || beneficiary.swiftCode || '',
+      mfRoutingCode: beneficiary.mfRoutingCode || beneficiary.routingCode || '',
+      mfAccountNumber:
+        beneficiary.mfAccountNumber || beneficiary.accountNumber || '',
     }))
   }
 
-  // Function to fetch beneficiaries from API with pagination
   const fetchBeneficiariesFromAPI = async (page: number, size: number) => {
     if (!projectId) return
 
@@ -111,36 +207,12 @@ const Step4: React.FC<Step4Props> = ({
           (response as any)?.content ||
           (Array.isArray(response) ? response : [])
 
-        // Process all beneficiaries data first
         const allProcessedBeneficiaries = beneficiariesArray.map(
-          (beneficiary: any) => ({
-            id: beneficiary.id?.toString() || '',
-            reaBeneficiaryId: beneficiary.reabBeneficiaryId || '',
-            reaBeneficiaryType:
-              beneficiary.reabTranferTypeDTO?.languageTranslationId
-                ?.configValue ||
-              beneficiary.reabType ||
-              '',
-            reaName: beneficiary.reabName || '',
-            reaBankName: beneficiary.reabBank || '',
-            reaSwiftCode: beneficiary.reabSwift || '',
-            reaRoutingCode: beneficiary.reabRoutingCode || '',
-            reaAccountNumber: beneficiary.reabBeneAccount || '',
-            // Keep original field names for compatibility
-            beneficiaryId: beneficiary.reabBeneficiaryId || '',
-            beneficiaryType: beneficiary.reabType || '',
-            name: beneficiary.reabName || '',
-            bankName: beneficiary.reabBank || '',
-            swiftCode: beneficiary.reabSwift || '',
-            routingCode: beneficiary.reabRoutingCode || '',
-            accountNumber: beneficiary.reabBeneAccount || '',
-          })
+          normalizeBeneficiary
         )
 
-        // Store full data
         setFullApiBeneficiariesData(allProcessedBeneficiaries)
 
-        // Apply client-side pagination
         const totalElements = allProcessedBeneficiaries.length
         const totalPages = Math.ceil(totalElements / size)
         const startIndex = (page - 1) * size
@@ -159,14 +231,11 @@ const Step4: React.FC<Step4Props> = ({
     }
   }
 
-  // Load beneficiaries on component mount and when projectId changes
   useEffect(() => {
     if (projectId) {
       fetchBeneficiariesFromAPI(currentApiPage, currentApiSize)
     }
   }, [projectId, currentApiPage, currentApiSize])
-
-  // Load dropdown data from API
 
   const handleDownloadTemplate = async () => {
     try {
@@ -197,23 +266,24 @@ const Step4: React.FC<Step4Props> = ({
 
   const handleBeneficiaryAdded = async (newBeneficiary: unknown) => {
     if (editingBeneficiary) {
+      const normalized = normalizeBeneficiary(newBeneficiary)
       const updatedBeneficiaries = beneficiaryDetails.map((beneficiary) =>
         beneficiary.id === editingBeneficiary.id
-          ? (newBeneficiary as BeneficiaryData)
+          ? normalized
           : beneficiary
       )
-      onBeneficiariesChange(updatedBeneficiaries)
+      onBeneficiariesChange(convertToBeneficiaryData(updatedBeneficiaries))
     } else {
+      const normalized = normalizeBeneficiary(newBeneficiary)
       const updatedBeneficiaries = [
         ...beneficiaryDetails,
-        newBeneficiary as BeneficiaryData,
+        normalized,
       ]
-      onBeneficiariesChange(updatedBeneficiaries)
+      onBeneficiariesChange(convertToBeneficiaryData(updatedBeneficiaries))
     }
 
     setEditingBeneficiary(null)
 
-    // Refresh the data from API to ensure consistency
     if (projectId) {
       await fetchBeneficiariesFromAPI(currentApiPage, currentApiSize)
     }
@@ -232,12 +302,10 @@ const Step4: React.FC<Step4Props> = ({
   const confirmDelete = async () => {
     if (beneficiaryToDelete?.id) {
       try {
-        // Call API to soft delete the beneficiary
         await realEstateAssetService.softDeleteProjectBeneficiary(
           beneficiaryToDelete.id.toString()
         )
 
-        // Remove the beneficiary from the local list after successful API call
         const updatedBeneficiaries = beneficiaryDetails.filter(
           (beneficiary) => beneficiary.id !== beneficiaryToDelete.id
         )
@@ -246,13 +314,11 @@ const Step4: React.FC<Step4Props> = ({
         setDeleteDialogOpen(false)
         setBeneficiaryToDelete(null)
 
-        // Refresh the data from API to ensure consistency
         if (projectId) {
           await fetchBeneficiariesFromAPI(currentApiPage, currentApiSize)
         }
       } catch (error) {
         console.error('Error deleting beneficiary:', error)
-        // You might want to show an error message to the user here
       }
     }
   }
@@ -264,9 +330,9 @@ const Step4: React.FC<Step4Props> = ({
 
   const tableColumns = [
     {
-      key: 'reaBeneficiaryId',
+      key: 'mfBeneficiaryId',
       label: getLabel(
-        'CDL_BPA_BENE_REFID',
+        'CDL_MF_BENE_REFID',
         language,
         'Beneficiary Reference ID'
       ),
@@ -275,43 +341,43 @@ const Step4: React.FC<Step4Props> = ({
       sortable: true,
     },
     {
-      key: 'reaBeneficiaryType',
-      label: getLabel('CDL_BPA_BENE_TRANSFER', language, 'Transfer Method'),
+      key: 'mfBeneficiaryType',
+      label: getLabel('CDL_MF_BENE_TRANSFER', language, 'Transfer Method'),
       type: 'text' as const,
       width: 'w-28',
       sortable: true,
     },
     {
-      key: 'reaName',
-      label: getLabel('CDL_BPA_BENE_NAME', language, 'Beneficiary Full Name'),
+      key: 'mfName',
+      label: getLabel('CDL_MF_BENE_NAME', language, 'Beneficiary Full Name'),
       type: 'text' as const,
       width: 'w-30',
       sortable: true,
     },
     {
-      key: 'reaBankName',
-      label: getLabel('CDL_BPA_BENE_BANK', language, 'Bank Name'),
+      key: 'mfBankName',
+      label: getLabel('CDL_MF_BENE_BANK', language, 'Bank Name'),
       type: 'text' as const,
       width: 'w-32',
       sortable: true,
     },
     {
-      key: 'reaSwiftCode',
-      label: getLabel('CDL_BPA_BENE_BIC', language, 'SWIFT/BIC Code'),
+      key: 'mfSwiftCode',
+      label: getLabel('CDL_MF_BENE_BIC', language, 'SWIFT/BIC Code'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
     },
     {
-      key: 'reaRoutingCode',
-      label: getLabel('CDL_BPA_BENE_ROUTING', language, 'Routing Number'),
+      key: 'mfRoutingCode',
+      label: getLabel('CDL_MF_BENE_ROUTING', language, 'Routing Number'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
     },
     {
-      key: 'reaAccountNumber',
-      label: getLabel('CDL_BPA_BENE_ACC', language, 'Bank Account Number'),
+      key: 'mfAccountNumber',
+      label: getLabel('CDL_MF_BENE_ACC', language, 'Bank Account Number'),
       type: 'text' as const,
       width: 'w-24',
       sortable: true,
@@ -343,25 +409,23 @@ const Step4: React.FC<Step4Props> = ({
   } = useTableState({
     data: beneficiaryDetails as unknown as BeneficiaryDetails[],
     searchFields: [
-      'reaBeneficiaryId',
-      'reaBeneficiaryType',
-      'reaName',
-      'reaBankName',
-      'reaSwiftCode',
-      'reaRoutingCode',
-      'reaAccountNumber',
+      'mfBeneficiaryId',
+      'mfBeneficiaryType',
+      'mfName',
+      'mfBankName',
+      'mfSwiftCode',
+      'mfRoutingCode',
+      'mfAccountNumber',
     ],
     initialRowsPerPage: currentApiSize,
   })
 
-  // Update the table state when API size changes
   useEffect(() => {
     if (rowsPerPage !== currentApiSize) {
       localHandleRowsPerPageChange(currentApiSize)
     }
   }, [currentApiSize, rowsPerPage, localHandleRowsPerPageChange])
 
-  // API pagination handlers
   const handlePageChange = (newPage: number) => {
     const hasSearch = Object.values(search).some((value) => value.trim())
 
@@ -369,7 +433,7 @@ const Step4: React.FC<Step4Props> = ({
       localHandlePageChange(newPage)
     } else {
       setCurrentApiPage(newPage)
-      // Apply client-side pagination to existing data
+
       const startIndex = (newPage - 1) * currentApiSize
       const endIndex = startIndex + currentApiSize
       const paginatedBeneficiaries = fullApiBeneficiariesData.slice(
@@ -384,7 +448,7 @@ const Step4: React.FC<Step4Props> = ({
   const handleRowsPerPageChange = (newRowsPerPage: number) => {
     setCurrentApiSize(newRowsPerPage)
     setCurrentApiPage(1)
-    // Apply client-side pagination to existing data
+
     const startIndex = 0
     const endIndex = newRowsPerPage
     const paginatedBeneficiaries = fullApiBeneficiariesData.slice(
@@ -396,25 +460,93 @@ const Step4: React.FC<Step4Props> = ({
     localHandleRowsPerPageChange(newRowsPerPage)
   }
 
-  // Determine which data and pagination to use
   const hasActiveSearch = Object.values(search).some((value) => value.trim())
+
+  // Filter API beneficiaries based on search state when projectId exists (client-side filtering)
+  const filteredApiBeneficiaries = useMemo(() => {
+    if (!projectId || !hasActiveSearch) return fullApiBeneficiariesData
+
+    // Filter fullApiBeneficiariesData based on search state (same logic as useTableState)
+    return fullApiBeneficiariesData.filter((beneficiary) => {
+      return [
+              'mfBeneficiaryId',
+        'mfBeneficiaryType',
+        'mfName',
+        'mfBankName',
+        'mfSwiftCode',
+        'mfRoutingCode',
+        'mfAccountNumber',
+      ].every((field) => {
+        const searchVal = search[field]?.trim() || ''
+        if (!searchVal) return true
+
+        const value = String(
+          beneficiary[field as keyof BeneficiaryDetails] ?? ''
+        )
+        const searchLower = searchVal.toLowerCase()
+        const valueLower = value.toLowerCase()
+        return valueLower.includes(searchLower)
+      })
+    })
+  }, [fullApiBeneficiariesData, search, projectId, hasActiveSearch])
+
+  // Apply pagination to filtered API beneficiaries when search is active
+  const paginatedFilteredApiBeneficiaries = useMemo(() => {
+    if (!projectId || !hasActiveSearch) return []
+
+    const startIndex = (localPage - 1) * currentApiSize
+    const endIndex = startIndex + currentApiSize
+    return filteredApiBeneficiaries.slice(startIndex, endIndex)
+  }, [
+    filteredApiBeneficiaries,
+    localPage,
+    currentApiSize,
+    projectId,
+    hasActiveSearch,
+  ])
+
   const apiTotal = apiPagination?.totalElements || 0
   const apiTotalPages = apiPagination?.totalPages || 1
 
-  const effectiveData = hasActiveSearch ? localPaginated : apiBeneficiariesData
-  const effectiveTotalRows = hasActiveSearch ? localTotalRows : apiTotal
-  const effectiveTotalPages = hasActiveSearch ? localTotalPages : apiTotalPages
-  const effectivePage = hasActiveSearch ? localPage : currentApiPage
+  // Use filtered API data when projectId exists and search is active, otherwise use existing logic
+  const effectiveData =
+    projectId && hasActiveSearch
+      ? paginatedFilteredApiBeneficiaries
+      : hasActiveSearch
+        ? localPaginated
+        : apiBeneficiariesData
+  const effectiveTotalRows =
+    projectId && hasActiveSearch
+      ? filteredApiBeneficiaries.length
+      : hasActiveSearch
+        ? localTotalRows
+        : apiTotal
+  const effectiveTotalPages =
+    projectId && hasActiveSearch
+      ? Math.ceil(filteredApiBeneficiaries.length / currentApiSize)
+      : hasActiveSearch
+        ? localTotalPages
+        : apiTotalPages
+  const effectivePage =
+    projectId && hasActiveSearch
+      ? localPage
+      : hasActiveSearch
+        ? localPage
+        : currentApiPage
 
-  // Calculate effective startItem and endItem based on pagination type
-  const effectiveStartItem = hasActiveSearch
-    ? localStartItem
-    : (currentApiPage - 1) * currentApiSize + 1
-  const effectiveEndItem = hasActiveSearch
-    ? localEndItem
-    : Math.min(currentApiPage * currentApiSize, apiTotal)
+  const effectiveStartItem =
+    projectId && hasActiveSearch
+      ? (localPage - 1) * currentApiSize + 1
+      : hasActiveSearch
+        ? localStartItem
+        : (currentApiPage - 1) * currentApiSize + 1
+  const effectiveEndItem =
+    projectId && hasActiveSearch
+      ? Math.min(localPage * currentApiSize, filteredApiBeneficiaries.length)
+      : hasActiveSearch
+        ? localEndItem
+        : Math.min(currentApiPage * currentApiSize, apiTotal)
 
-  // Show loading stat
   if (dropdownsLoading) {
     return (
       <Card sx={cardStyles}>
@@ -456,9 +588,7 @@ const Step4: React.FC<Step4Props> = ({
           >
             <Button
               variant="outlined"
-              onClick={() => {
-                // No need to refresh since we're using local state
-              }}
+              onClick={() => {}}
               sx={{
                 borderRadius: '8px',
                 textTransform: 'none',
@@ -568,10 +698,12 @@ const Step4: React.FC<Step4Props> = ({
           onRowExpansionChange={handleRowExpansionChange}
           onRowDelete={handleDeleteClick}
           onRowEdit={editBeneficiary}
-          deletePermissions={['bpa_beneficiary_delete']}
-          editPermissions={['bpa_beneficiary_update']}
-          showDeleteAction={true}
-          showEditAction={true}
+          {...(!isViewMode && {
+            deletePermissions: ['bpa_beneficiary_delete'],
+            editPermissions: ['bpa_beneficiary_update'],
+          })}
+          showDeleteAction={!isViewMode}
+          showEditAction={!isViewMode}
         />
       </CardContent>
 
@@ -580,7 +712,7 @@ const Step4: React.FC<Step4Props> = ({
         onClose={handleClosePanel}
         onBeneficiaryAdded={handleBeneficiaryAdded}
         title={getLabel(
-          'CDL_BPA_BENE_INFO',
+          'CDL_MF_BENE_INFO',
           language,
           'Beneficiary Banking Details'
         )}
@@ -599,23 +731,100 @@ const Step4: React.FC<Step4Props> = ({
         onClose={cancelDelete}
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '12px',
+            padding: '8px',
+          },
+        }}
       >
-        <DialogTitle>
-          <Typography variant="h6" component="div">
-            Confirm Delete
-          </Typography>
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            paddingBottom: '16px',
+            fontFamily: 'Outfit, sans-serif',
+            fontWeight: 600,
+            fontSize: '20px',
+            lineHeight: '28px',
+          }}
+        >
+          <ErrorOutlineIcon
+            sx={{
+              color: '#DC2626',
+              fontSize: '24px',
+              backgroundColor: '#FEE2E2',
+              borderRadius: '50%',
+              padding: '4px',
+            }}
+          />
+          Delete Confirmation
+          <IconButton
+            aria-label="close"
+            onClick={cancelDelete}
+            sx={{
+              position: 'absolute',
+              right: 16,
+              top: 16,
+              color: '#6B7280',
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
         </DialogTitle>
         <DialogContent>
-          <Typography>
+          <Typography
+            sx={{
+              fontFamily: 'Outfit, sans-serif',
+              fontWeight: 400,
+              fontSize: '14px',
+              lineHeight: '20px',
+              color: '#374151',
+            }}
+          >
             Are you sure you want to delete the beneficiary &quot;
-            {beneficiaryToDelete?.reaName}&quot;? This action cannot be undone.
+            {beneficiaryToDelete?.mfName as string  }&quot;? This action cannot be undone.
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={cancelDelete} color="primary">
+        <DialogActions sx={{ padding: '16px 24px', gap: 1 }}>
+          <Button
+            onClick={cancelDelete}
+            variant="outlined"
+            sx={{
+              fontFamily: 'Outfit, sans-serif',
+              fontWeight: 500,
+              fontSize: '14px',
+              textTransform: 'none',
+              borderRadius: '8px',
+              borderColor: '#D1D5DB',
+              color: '#374151',
+              padding: '8px 16px',
+              '&:hover': {
+                borderColor: '#9CA3AF',
+                backgroundColor: '#F9FAFB',
+              },
+            }}
+          >
             Cancel
           </Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
+          <Button
+            onClick={confirmDelete}
+            variant="contained"
+            sx={{
+              fontFamily: 'Outfit, sans-serif',
+              fontWeight: 500,
+              fontSize: '14px',
+              textTransform: 'none',
+              borderRadius: '8px',
+              backgroundColor: '#DC2626',
+              color: '#FFFFFF',
+              padding: '8px 16px',
+              '&:hover': {
+                backgroundColor: '#B91C1C',
+              },
+            }}
+          >
             Delete
           </Button>
         </DialogActions>

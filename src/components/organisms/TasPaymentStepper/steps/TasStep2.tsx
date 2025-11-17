@@ -1,21 +1,146 @@
+'use client'
+
 import React, { useState, useEffect } from 'react'
 import {
   Box,
+  Grid,
+  Typography,
   Card,
   CardContent,
-  Typography,
   Divider,
-  Grid,
-  Chip,
+  Checkbox,
+  FormControlLabel,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
 } from '@mui/material'
-import { useParams } from 'next/navigation'
 import {
   fundEgressService,
   FundEgressData,
 } from '@/services/api/fundEgressService'
+import { useParams } from 'next/navigation'
 import { useManualPaymentLabelsWithCache } from '@/hooks/useManualPaymentLabelsWithCache'
-import { VOUCHER_LABELS } from '@/constants/mappings/manualPaymentLabels'
-import { GlobalLoading } from '@/components/atoms'
+import { MANUAL_PAYMENT_LABELS } from '@/constants/mappings/manualPaymentLabels'
+import { buildPartnerService } from '@/services/api/buildPartnerService'
+import { DocumentItem } from '../../DeveloperStepper/developerTypes'
+
+// Utility function to format date from ISO to dd/mm/yyyy
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return '-'
+
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return '-'
+
+    const day = String(date.getDate()).padStart(2, '0')
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const year = date.getFullYear()
+
+    return `${day}/${month}/${year}`
+  } catch (error) {
+    return '-'
+  }
+}
+
+const labelSx = {
+  color: '#6A7282',
+  fontFamily: 'Outfit',
+  fontWeight: 400,
+  fontStyle: 'normal',
+  fontSize: '12px',
+  letterSpacing: 0,
+}
+
+const valueSx = {
+  color: '#1E2939',
+  fontFamily: 'Outfit',
+  fontWeight: 400,
+  fontStyle: 'normal',
+  fontSize: '14px',
+  letterSpacing: 0,
+  wordBreak: 'break-word',
+}
+
+const fieldBoxSx = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 0.5,
+}
+
+const renderDisplayField = (
+  label: string,
+  value: string | number | null = '-'
+) => (
+  <Box sx={fieldBoxSx}>
+    <Typography sx={labelSx}>{label}</Typography>
+    <Typography sx={valueSx}>{value || '-'}</Typography>
+  </Box>
+)
+
+const renderCheckboxField = (label: string, checked: boolean) => (
+  <FormControlLabel
+    control={<Checkbox checked={checked} disabled />}
+    label={label}
+    sx={{
+      '& .MuiFormControlLabel-label': {
+        fontFamily: 'Outfit, sans-serif',
+        fontStyle: 'normal',
+        fontSize: '14px',
+        lineHeight: '24px',
+        letterSpacing: '0.5px',
+        verticalAlign: 'middle',
+      },
+    }}
+  />
+)
+
+interface SectionProps {
+  title: string
+  fields: {
+    gridSize: number
+    label: string
+    value: string | number | boolean | null
+  }[]
+}
+
+const Section = ({ title, fields }: SectionProps) => (
+  <Box mb={4}>
+    <Typography
+      variant="h6"
+      fontWeight={600}
+      gutterBottom
+      sx={{
+        fontFamily: 'Outfit, sans-serif',
+        fontWeight: 500,
+        fontStyle: 'normal',
+        fontSize: '18px',
+        lineHeight: '28px',
+        letterSpacing: '0.15px',
+        verticalAlign: 'middle',
+      }}
+    >
+      {title}
+    </Typography>
+
+    <Grid container spacing={3} mt={3}>
+      {fields.map((field, idx) => (
+        <Grid
+          size={{ xs: 12, md: field.gridSize }}
+          key={`field-${title}-${idx}`}
+        >
+          {typeof field.value === 'boolean'
+            ? renderCheckboxField(field.label, field.value)
+            : renderDisplayField(field.label, field.value)}
+        </Grid>
+      ))}
+    </Grid>
+  </Box>
+)
 
 const TasStep2: React.FC = () => {
   const [fundEgressData, setFundEgressData] = useState<FundEgressData | null>(
@@ -23,9 +148,11 @@ const TasStep2: React.FC = () => {
   )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [documents, setDocuments] = useState<DocumentItem[]>([])
+  const [loadingDocuments, setLoadingDocuments] = useState(false)
   const params = useParams()
 
-  // Use translation hook for TAS payment labels (same as manual payment)
+  // Get dynamic labels
   const { getLabel } = useManualPaymentLabelsWithCache('EN')
 
   useEffect(() => {
@@ -37,12 +164,14 @@ const TasStep2: React.FC = () => {
         // Get payment ID from URL parameters
         const paymentId = params.id as string
 
-        if (!paymentId || paymentId.startsWith('temp_')) {
+        if (!paymentId) {
           setError('No valid payment ID found in URL')
           setLoading(false)
           return
         }
 
+        // Check if data is already available from parent component
+        // to avoid duplicate API calls
         const data = await fundEgressService.getFundEgressById(paymentId)
 
         if (!data) {
@@ -51,9 +180,50 @@ const TasStep2: React.FC = () => {
           return
         }
 
+        // Check if data has the expected structure
+        if (!data.fePaymentRefNumber && !data.id) {
+          setError('Unexpected data structure returned from API')
+          setLoading(false)
+          return
+        }
+
         setFundEgressData(data)
+
+        // Fetch documents if payment ID exists
+        if (paymentId) {
+          try {
+            setLoadingDocuments(true)
+            const docResponse = await buildPartnerService.getBuildPartnerDocuments(
+              paymentId,
+              'PAYMENTS',
+              0,
+              100
+            )
+            const mappedDocuments: DocumentItem[] = docResponse.content.map(
+              (doc: any) => ({
+                id: doc.id?.toString() || `doc_${Date.now()}`,
+                name: doc.documentName || 'Unknown Document',
+                size: doc.documentSize
+                  ? parseInt(doc.documentSize.replace(' bytes', ''))
+                  : 0,
+                type: 'application/pdf',
+                uploadDate: doc.uploadDate ? new Date(doc.uploadDate) : new Date(),
+                status: 'completed' as const,
+                url: doc.location,
+                classification:
+                  doc.documentTypeDTO?.languageTranslationId?.configValue ||
+                  doc.documentType?.settingValue ||
+                  'N/A',
+              })
+            )
+            setDocuments(mappedDocuments)
+          } catch (docErr) {
+            console.error('Failed to fetch documents:', docErr)
+          } finally {
+            setLoadingDocuments(false)
+          }
+        }
       } catch (err) {
-        console.error('Failed to fetch fund egress data:', err)
         setError(err instanceof Error ? err.message : 'Failed to fetch data')
       } finally {
         setLoading(false)
@@ -63,101 +233,29 @@ const TasStep2: React.FC = () => {
     fetchData()
   }, [params])
 
-  const renderDisplayField = (label: string, value: any) => (
-    <Box sx={{ mb: 2 }}>
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ fontSize: '12px', fontWeight: 500 }}
-      >
-        {label}
-      </Typography>
-      <Typography variant="body1" sx={{ fontSize: '14px', fontWeight: 400 }}>
-        {value || '-'}
-      </Typography>
-    </Box>
-  )
-
-  const renderCheckboxField = (label: string, value: boolean) => (
-    <Box sx={{ mb: 2 }}>
-      <Typography
-        variant="body2"
-        color="text.secondary"
-        sx={{ fontSize: '12px', fontWeight: 500 }}
-      >
-        {label}
-      </Typography>
-      <Chip
-        label={value ? 'Yes' : 'No'}
-        color={value ? 'success' : 'default'}
-        size="small"
-        sx={{ mt: 0.5 }}
-      />
-    </Box>
-  )
-
-  const Section: React.FC<{ title: string; fields: any[] }> = ({
-    title,
-    fields,
-  }) => (
-    <Box sx={{ mb: 4 }}>
-      <Typography
-        variant="h6"
-        sx={{ fontSize: '16px', fontWeight: 600, mb: 2, color: '#1E2939' }}
-      >
-        {title}
-      </Typography>
-      <Grid container spacing={3}>
-        {fields.map((field, idx) => (
-          <Grid
-            size={{ xs: 12, md: field.gridSize }}
-            key={`field-${field.label}-${idx}`}
-          >
-            {typeof field.value === 'boolean'
-              ? renderCheckboxField(field.label, field.value)
-              : renderDisplayField(field.label, field.value)}
-          </Grid>
-        ))}
-      </Grid>
-    </Box>
-  )
-
   if (loading) {
     return (
       <Box
-        sx={{
-          backgroundColor: '#FFFFFFBF',
-          borderRadius: '16px',
-          margin: '0 auto',
-          width: '100%',
-          height: '400px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="400px"
       >
-        <GlobalLoading fullHeight className="min-h-[400px]" />
+        <CircularProgress />
+        <Typography sx={{ ml: 2 }}>Loading...</Typography>
       </Box>
     )
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <Typography variant="h6" color="error">
-          Error loading TAS payment details
-        </Typography>
-        <Typography variant="body2" sx={{ mt: 1 }}>
-          {error}
-        </Typography>
-      </Box>
-    )
-  }
-
-  if (!fundEgressData) {
-    return (
-      <Box sx={{ p: 3, textAlign: 'center' }}>
-        <Typography variant="h6">No TAS payment data found</Typography>
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="400px"
+      >
+        <Typography color="error">Error: {error}</Typography>
       </Box>
     )
   }
@@ -167,81 +265,126 @@ const TasStep2: React.FC = () => {
       gridSize: 6,
       label:
         getLabel(
-          VOUCHER_LABELS.FORM_FIELDS.TAS_REFERENCE,
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.TAS_REFERENCE,
           'EN',
-          VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.TAS_REFERENCE
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TAS_REFERENCE
         ) + '*',
-      value: fundEgressData.fePaymentRefNumber || '-',
+      value: fundEgressData?.fePaymentRefNumber || '-',
     },
     {
       gridSize: 6,
       label:
         getLabel(
-          VOUCHER_LABELS.FORM_FIELDS.INVOICE_DATE,
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEVELOPER_NAME,
           'EN',
-          VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_DATE
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_NAME
         ) + '*',
-      value: fundEgressData.fePaymentDate || '-',
+      value: fundEgressData?.assetRegisterDTO?.arName || '-',
     },
     {
       gridSize: 6,
       label:
         getLabel(
-          VOUCHER_LABELS.FORM_FIELDS.DEVELOPER_NAME,
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEVELOPER_ID,
           'EN',
-          VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_NAME
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEVELOPER_ID
         ) + '*',
-      value: fundEgressData.buildPartnerDTO?.bpName || '-',
+      value: fundEgressData?.assetRegisterDTO?.arDeveloperId || '-',
     },
     {
       gridSize: 6,
       label:
         getLabel(
-          VOUCHER_LABELS.FORM_FIELDS.PROJECT_NAME,
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROJECT_NAME,
           'EN',
-          VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_NAME
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_NAME
         ) + '*',
-      value: fundEgressData.realEstateAssestDTO?.reaName || '-',
+      value: fundEgressData?.managementFirmDTO?.mfName || '-',
     },
     {
       gridSize: 6,
       label:
         getLabel(
-          VOUCHER_LABELS.FORM_FIELDS.PAYMENT_TYPE,
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROJECT_ID,
           'EN',
-          VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_TYPE
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_ID
         ) + '*',
-      value: fundEgressData.voucherPaymentTypeDTO?.name || '-',
+      value: (fundEgressData?.managementFirmDTO as any)?.mfId || fundEgressData?.managementFirmDTO?.mfId || '-',
     },
     {
       gridSize: 6,
       label:
         getLabel(
-          VOUCHER_LABELS.FORM_FIELDS.PROJECT_STATUS,
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROJECT_STATUS,
           'EN',
-          VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_STATUS
-        ) + '*',
-      value: fundEgressData.fePaymentStatus || '-',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_STATUS
+        ),
+      value:
+        ((fundEgressData?.managementFirmDTO?.mfAccountStatusDTO as any)
+          ?.languageTranslationId?.configValue ||
+          fundEgressData?.managementFirmDTO?.mfAccountStatusDTO?.settingValue ||
+          (fundEgressData?.managementFirmDTO?.mfAccountStatusDTO as any)?.name ||
+          '-'),
     },
     {
       gridSize: 6,
       label:
         getLabel(
-          VOUCHER_LABELS.FORM_FIELDS.INVOICE_CURRENCY,
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.ESCROW_ACCOUNT,
           'EN',
-          VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_CURRENCY
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.ESCROW_ACCOUNT
         ) + '*',
-      value: fundEgressData.paymentCurrencyDTO?.name || '-',
+      value: fundEgressData?.escrowAccountNumber || '-',
+    },
+    {
+      gridSize: 6,
+      label: 'Current Balance in Escrow Account*',
+      value: fundEgressData?.feCurBalInEscrowAcc || '0',
     },
     {
       gridSize: 6,
       label:
         getLabel(
-          VOUCHER_LABELS.FORM_FIELDS.INVOICE_DATE,
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.SUB_CONSTRUCTION_ACCOUNT,
           'EN',
-          VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_DATE
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.SUB_CONSTRUCTION_ACCOUNT
+        ),
+      value: fundEgressData?.constructionAccountNumber || '-',
+    },
+    {
+      gridSize: 6,
+      label: 'Current Balance in Sub Construction Account*',
+      value: fundEgressData?.feSubConsAccBalance || '0',
+    },
+    {
+      gridSize: 6,
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.CORPORATE_ACCOUNT,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CORPORATE_ACCOUNT
         ) + '*',
-      value: fundEgressData.feInvoiceDate || '-',
+      value: fundEgressData?.corporateAccountNumber || '-',
+    },
+    {
+      gridSize: 6,
+      label: 'Current Balance in Corporate Account*',
+      value: fundEgressData?.feCorporateAccBalance || '0',
+    },
+    {
+      gridSize: 6,
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.RETENTION_ACCOUNT,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.RETENTION_ACCOUNT
+        ),
+      value: fundEgressData?.retentionAccountNumber || '-',
+    },
+    {
+      gridSize: 6,
+      label: 'Current Balance in Retention Account*',
+      value: fundEgressData?.feCurBalInRetentionAcc || '0',
     },
   ]
 
@@ -250,143 +393,459 @@ const TasStep2: React.FC = () => {
       gridSize: 6,
       label:
         getLabel(
-          VOUCHER_LABELS.FORM_FIELDS.PAYMENT_SUB_TYPE,
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_TYPE,
           'EN',
-          VOUCHER_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_SUB_TYPE
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_TYPE
         ) + '*',
-      value: fundEgressData.voucherPaymentSubTypeDTO?.name || '-',
+      value:
+        (fundEgressData?.expenseTypeDTO as any)?.languageTranslationId
+          ?.configValue ||
+        fundEgressData?.voucherPaymentTypeDTO?.name ||
+        '-',
     },
     {
       gridSize: 6,
       label:
         getLabel(
-          VOUCHER_LABELS.SECTION_TITLES.EXPENSE_TYPE,
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_SUB_TYPE,
           'EN',
-          VOUCHER_LABELS.FALLBACKS.SECTION_TITLES.EXPENSE_TYPE
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_SUB_TYPE
         ) + '*',
-      value: fundEgressData.voucherPaymentTypeDTO?.name || '-',
+      value:
+        (fundEgressData?.expenseSubTypeDTO as any)?.languageTranslationId
+          ?.configValue ||
+        fundEgressData?.voucherPaymentSubTypeDTO?.name ||
+        '-',
+    },
+    {
+      gridSize: 6,
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.REGULAR_APPROVAL_REF,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.REGULAR_APPROVAL_REF
+        ) + '*',
+      value: fundEgressData?.feReraApprovedRefNo || '-',
+    },
+    {
+      gridSize: 6,
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.REGULAR_APPROVAL_DATE,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.REGULAR_APPROVAL_DATE
+        ) + '*',
+      value: formatDate(fundEgressData?.feReraApprovedDate),
+    },
+    {
+      gridSize: 3,
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_REF,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_REF
+        ) + '*',
+      value: fundEgressData?.feInvoiceRefNo || '-',
+    },
+    {
+      gridSize: 3,
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_CURRENCY,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_CURRENCY
+        ) + '*',
+      value:
+        fundEgressData?.invoiceCurrencyDTO?.languageTranslationId
+          ?.configValue || '-',
+    },
+    {
+      gridSize: 3,
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_VALUE,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_VALUE
+        ) + '*',
+      value: fundEgressData?.feInvoiceValue || '0',
+    },
+    {
+      gridSize: 3,
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_DATE,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_DATE
+        ) + '*',
+      value: formatDate(fundEgressData?.feInvoiceDate),
     },
   ]
 
   const amountDetails = [
     {
       gridSize: 6,
-      label: 'Engineer Approved Amount*',
-      value: fundEgressData.feEngineerApprovedAmt || '0',
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.ENGINEER_APPROVED_AMOUNT,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.ENGINEER_APPROVED_AMOUNT
+        ) + '*',
+      value: fundEgressData?.feEngineerApprovedAmt || '0',
     },
     {
       gridSize: 6,
-      label: 'Total Eligible Amount (Invoice)*',
-      value: fundEgressData.feTotalEligibleAmtInv || '0',
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.TOTAL_ELIGIBLE_AMOUNT,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TOTAL_ELIGIBLE_AMOUNT
+        ) + '*',
+      value: fundEgressData?.feTotalEligibleAmtInv || '0',
     },
     {
       gridSize: 6,
-      label: 'Amount Paid against Invoice*',
-      value: fundEgressData.feAmtPaidAgainstInv || '0',
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.AMOUNT_PAID,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.AMOUNT_PAID
+        ) + '*',
+      value: fundEgressData?.feAmtPaidAgainstInv || '0',
     },
     {
       gridSize: 6,
-      label: 'Cap Exceeded',
-      value: fundEgressData.feCapExcedded || '-',
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.CAP_EXCEEDED,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CAP_EXCEEDED
+      ),
+      value: fundEgressData?.feCapExcedded || '-',
     },
     {
       gridSize: 3,
-      label: 'Total Amount paid (Payment Type)*',
-      value: fundEgressData.feTotalAmountPaid || '0',
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.TOTAL_AMOUNT_PAID,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TOTAL_AMOUNT_PAID
+        ) + '*',
+      value: fundEgressData?.feTotalAmountPaid || '0',
     },
     {
       gridSize: 3,
-      label: 'Debit/Credit to Escrow*',
-      value: fundEgressData.feDebitFromEscrow || '0',
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_CURRENCY,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_CURRENCY
+        ) + '*',
+      value:
+        fundEgressData?.paymentCurrencyDTO?.languageTranslationId
+          ?.configValue || '-',
     },
     {
       gridSize: 3,
-      label: 'Current Eligible Amount*',
-      value: fundEgressData.feCurEligibleAmt || '0',
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEBIT_CREDIT_ESCROW,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEBIT_CREDIT_ESCROW
+        ) + '*',
+      value: fundEgressData?.feDebitFromEscrow || '0',
     },
     {
       gridSize: 3,
-      label: 'Debit from Retention*',
-      value: fundEgressData.feDebitFromRetention || '0',
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.CURRENT_ELIGIBLE_AMOUNT,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CURRENT_ELIGIBLE_AMOUNT
+        ) + '*',
+      value: fundEgressData?.feCurEligibleAmt || '0',
     },
     {
       gridSize: 3,
-      label: 'Total Payout Amount*',
-      value: fundEgressData.feTotalPayoutAmt || '0',
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEBIT_FROM_RETENTION,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEBIT_FROM_RETENTION
+        ) + '*',
+      value: fundEgressData?.feDebitFromRetention || '0',
     },
     {
       gridSize: 3,
-      label: 'Amount in Transit*',
-      value: fundEgressData.feAmountInTransit || '0',
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.TOTAL_PAYOUT_AMOUNT,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TOTAL_PAYOUT_AMOUNT
+        ) + '*',
+      value: fundEgressData?.feTotalPayoutAmt || '0',
     },
     {
       gridSize: 3,
-      label: 'VAT Cap Exceeded',
-      value: fundEgressData.feVarCapExcedded || '-',
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.AMOUNT_IN_TRANSIT,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.AMOUNT_IN_TRANSIT
+        ) + '*',
+      value: fundEgressData?.feAmountInTransit || '0',
     },
     {
       gridSize: 3,
-      label: 'Invoice Ref no.*',
-      value: fundEgressData.feInvoiceRefNo || '-',
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.VAT_CAP_EXCEEDED,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.VAT_CAP_EXCEEDED
+      ),
+      value: fundEgressData?.feVarCapExcedded || '-',
     },
     {
       gridSize: 3,
-      label: 'Special Rate',
-      value: fundEgressData.feSpecialRate || false,
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.SPECIAL_RATE,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.SPECIAL_RATE
+      ),
+      value: fundEgressData?.feSpecialRate || false,
     },
     {
       gridSize: 3,
-      label: 'Corporate Amount',
-      value: fundEgressData.feCorporatePayment || false,
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.CORPORATE_AMOUNT,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CORPORATE_AMOUNT
+      ),
+      value: fundEgressData?.feCorporatePayment || false,
     },
     {
       gridSize: 3,
-      label: 'Deal Ref No',
-      value: fundEgressData.feDealRefNo || '-',
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.DEAL_REF_NO,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.DEAL_REF_NO
+      ),
+      value: fundEgressData?.feDealRefNo || '-',
     },
     {
       gridSize: 3,
-      label: 'PPC Number',
-      value: fundEgressData.fePpcNumber || '-',
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.PPC_NUMBER,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PPC_NUMBER
+      ),
+      value: fundEgressData?.fePpcNumber || '-',
     },
     {
       gridSize: 6,
-      label: 'Indicative Rate',
-      value: fundEgressData.feIndicativeRate || '0',
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.INDICATIVE_RATE,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INDICATIVE_RATE
+      ),
+      value: fundEgressData?.feIndicativeRate || '0',
+    },
+    {
+      gridSize: 6,
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.CORPORATE_CERTIFICATION_FEES,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CORPORATE_CERTIFICATION_FEES
+      ),
+      value: fundEgressData?.feCorpCertEngFee || '0',
+    },
+  ]
+
+  const paymentExecution = [
+    {
+      gridSize: 4,
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.REGULATOR_APPROVAL_DATE,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.REGULATOR_APPROVAL_DATE
+      ),
+      value: formatDate(fundEgressData?.feUnitTransferAppDate),
+    },
+    {
+      gridSize: 6,
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.CHARGE_MODE,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CHARGE_MODE
+      ),
+      value: (fundEgressData?.chargedCodeDTO as any)?.languageTranslationId?.configValue || '-',
+    },
+    {
+      gridSize: 6,
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_MODE,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_MODE
+        ) + '*',
+      value:( fundEgressData?.paymentModeDTO as any)?.languageTranslationId?.configValue || '-',
+    },
+    {
+      gridSize: 6,
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.TRANSACTION_TYPE,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.TRANSACTION_TYPE
+      ),
+      value:
+        fundEgressData?.transactionTypeDTO?.languageTranslationId
+          ?.configValue || '-',
+    },
+    {
+      gridSize: 6,
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.AMOUNT_TO_BE_RELEASED,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.AMOUNT_TO_BE_RELEASED
+      ),
+      value: fundEgressData?.feAmountToBeReleased || '0',
+    },
+    {
+      gridSize: 6,
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_DATE,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_DATE
+        ) + '*',
+      value: formatDate(
+        fundEgressData?.feBeneDateOfPayment ||
+        fundEgressData?.fePaymentDate ||
+        null
+      ),
+    },
+    {
+      gridSize: 6,
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.VAT_PAYMENT_AMOUNT,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.VAT_PAYMENT_AMOUNT
+        ) + '*',
+      value: fundEgressData?.feBeneVatPaymentAmt || '0',
+    },
+    {
+      gridSize: 6,
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.ENGINEER_FEE_PAYMENT_NEEDED,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.ENGINEER_FEE_PAYMENT_NEEDED
+      ),
+      value: fundEgressData?.feIsEngineerFee || false,
+    },
+    {
+      gridSize: 6,
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.ENGINEER_FEES_PAYMENT,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.ENGINEER_FEES_PAYMENT
+      ),
+      value: fundEgressData?.feCorporatePaymentEngFee || '0',
+    },
+    {
+      gridSize: 6,
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.BANK_CHARGES,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.BANK_CHARGES
+      ),
+      value:
+        (fundEgressData as any)?.fBbankCharges ??
+        '0',
+    },
+    {
+      gridSize: 6,
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.PAYMENT_FROM_CBS,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PAYMENT_FROM_CBS
+      ),
+      value:
+        (fundEgressData?.payoutToBeMadeFromCbsDTO as any)?.languageTranslationId
+          ?.configValue ||
+        fundEgressData?.payoutToBeMadeFromCbsDTO?.name ||
+        '-',
     },
   ]
 
   const narrationDetails = [
     {
-      gridSize: 12,
-      label: 'Narration*',
-      value: fundEgressData.feNarration1 || '-',
+      gridSize: 6,
+      label:
+        getLabel(
+          MANUAL_PAYMENT_LABELS.FORM_FIELDS.NARRATION_1,
+          'EN',
+          MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.NARRATION_1
+        ) + '*',
+      value: fundEgressData?.feNarration1 || '-',
     },
-    { gridSize: 12, label: 'Remarks', value: fundEgressData.feRemark || '-' },
+    {
+      gridSize: 6,
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.NARRATION_2,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.NARRATION_2
+      ),
+      value: fundEgressData?.feNarration2 || '-',
+    },
+    {
+      gridSize: 6,
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.REMARKS,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.REMARKS
+      ),
+      value: fundEgressData?.feRemark || '-',
+    },
+  ]
+
+  const unitCancellation = [
+    {
+      gridSize: 6,
+      label: getLabel(
+        MANUAL_PAYMENT_LABELS.FORM_FIELDS.REGULATOR_APPROVAL_DATE,
+        'EN',
+        MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.REGULATOR_APPROVAL_DATE
+      ),
+      value: formatDate(fundEgressData?.feUnitTransferAppDate),
+    },
   ]
 
   return (
     <Card
       sx={{
-        maxWidth: '100%',
-        width: '100%',
-        margin: '0',
-        maxHeight: '100vh',
-        overflow: 'hidden',
+        boxShadow: 'none',
+        backgroundColor: '#FFFFFFBF',
+        width: '94%',
+        margin: '0 auto',
       }}
     >
       <CardContent>
-        <Typography
-          variant="h5"
-          fontWeight={600}
-          sx={{ fontFamily: 'Outfit', fontSize: '20px', mb: 2 }}
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={2}
         >
-          {getLabel(
-            VOUCHER_LABELS.STEPS.REVIEW,
-            'EN',
-            VOUCHER_LABELS.FALLBACKS.STEPS.REVIEW
-          )}
-        </Typography>
+          <Typography
+            variant="h5"
+            fontWeight={600}
+            sx={{ fontFamily: 'Outfit', fontSize: '20px' }}
+          >
+            {getLabel(
+              MANUAL_PAYMENT_LABELS.SECTION_TITLES.GENERAL_DETAILS,
+              'EN',
+              MANUAL_PAYMENT_LABELS.FALLBACKS.SECTION_TITLES.GENERAL_DETAILS
+            )}
+          </Typography>
+        </Box>
         <Divider sx={{ mb: 2 }} />
 
         <Grid container spacing={3} mb={4} mt={3}>
@@ -402,9 +861,128 @@ const TasStep2: React.FC = () => {
           ))}
         </Grid>
 
-        <Section title="Expense Type" fields={expenseType} />
-        <Section title="Amount Details" fields={amountDetails} />
-        <Section title="Narration" fields={narrationDetails} />
+        <Section
+          title={getLabel(
+            MANUAL_PAYMENT_LABELS.SECTION_TITLES.EXPENSE_TYPE,
+            'EN',
+            MANUAL_PAYMENT_LABELS.FALLBACKS.SECTION_TITLES.EXPENSE_TYPE
+          )}
+          fields={expenseType}
+        />
+        <Section
+          title={getLabel(
+            MANUAL_PAYMENT_LABELS.SECTION_TITLES.AMOUNT_DETAILS,
+            'EN',
+            MANUAL_PAYMENT_LABELS.FALLBACKS.SECTION_TITLES.AMOUNT_DETAILS
+          )}
+          fields={amountDetails}
+        />
+        <Section
+          title={getLabel(
+            MANUAL_PAYMENT_LABELS.SECTION_TITLES.NARRATION,
+            'EN',
+            MANUAL_PAYMENT_LABELS.FALLBACKS.SECTION_TITLES.NARRATION
+          )}
+          fields={narrationDetails}
+        />
+        <Section
+          title={getLabel(
+            MANUAL_PAYMENT_LABELS.SECTION_TITLES.UNIT_CANCELLATION,
+            'EN',
+            MANUAL_PAYMENT_LABELS.FALLBACKS.SECTION_TITLES.UNIT_CANCELLATION
+          )}
+          fields={unitCancellation}
+        />
+        <Section
+          title={getLabel(
+            MANUAL_PAYMENT_LABELS.PAYMENT_TYPES.OTHERS,
+            'EN',
+            'Others'
+          )}
+          fields={paymentExecution}
+        />
+
+        {/* feDocVerified Checkbox - Before Documents */}
+        <Box sx={{ mt: 3, mb: 3 }}>
+          {renderCheckboxField(
+            'Please review the Surety Bond details and documents before submitting the payment. *',
+            fundEgressData?.feDocVerified || false
+          )}
+        </Box>
+
+        {/* Documents Section */}
+        <Box mb={4}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={1}
+          >
+            <Typography
+              variant="h6"
+              fontWeight={600}
+              sx={{
+                fontFamily: 'Outfit, sans-serif',
+                fontWeight: 500,
+                fontStyle: 'normal',
+                fontSize: '18px',
+                lineHeight: '28px',
+                letterSpacing: '0.15px',
+                verticalAlign: 'middle',
+              }}
+            >
+              Documents
+            </Typography>
+          </Box>
+          <Divider sx={{ mt: 1, mb: 3 }} />
+          {loadingDocuments ? (
+            <Box display="flex" justifyContent="center" py={4}>
+              <CircularProgress size={24} />
+              <Typography sx={{ ml: 2 }}>Loading documents...</Typography>
+            </Box>
+          ) : documents.length > 0 ? (
+            <TableContainer component={Paper} sx={{ boxShadow: 'none' }}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ ...labelSx, fontWeight: 600 }}>
+                      Document Name
+                    </TableCell>
+                    <TableCell sx={{ ...labelSx, fontWeight: 600 }}>
+                      Document Type
+                    </TableCell>
+                    <TableCell sx={{ ...labelSx, fontWeight: 600 }}>
+                      Upload Date
+                    </TableCell>
+                    <TableCell sx={{ ...labelSx, fontWeight: 600 }}>
+                      Size
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {documents.map((doc) => (
+                    <TableRow key={doc.id}>
+                      <TableCell sx={valueSx}>{doc.name}</TableCell>
+                      <TableCell sx={valueSx}>
+                        {doc.classification || 'N/A'}
+                      </TableCell>
+                      <TableCell sx={valueSx}>
+                        {formatDate(doc.uploadDate?.toISOString())}
+                      </TableCell>
+                      <TableCell sx={valueSx}>
+                        {doc.size ? `${(doc.size / 1024).toFixed(2)} KB` : '-'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Typography sx={{ ...valueSx, py: 2 }}>
+              No documents uploaded
+            </Typography>
+          )}
+        </Box>
       </CardContent>
     </Card>
   )

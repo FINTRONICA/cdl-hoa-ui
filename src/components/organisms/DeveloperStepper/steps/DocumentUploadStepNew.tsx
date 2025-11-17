@@ -17,7 +17,7 @@ const DocumentUploadStep: React.FC<DocumentUploadStepProps> = ({
 }) => {
   return (
     <DocumentUploadFactory
-      type="BUILD_PARTNER"
+      type="ASSET_REGISTER"
       entityId={buildPartnerId}
       isOptional={isOptional}
       {...(onDocumentsChange && { onDocumentsChange })}

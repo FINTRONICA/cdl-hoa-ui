@@ -17,24 +17,24 @@ export interface TaskStatusDTO {
 
 // ---------- Request DTO ----------
 export interface CapitalPartnerRequest {
-  capitalPartnerId: string
-  capitalPartnerName: string
-  capitalPartnerMiddleName?: string
-  capitalPartnerLastName: string
-  capitalPartnerOwnershipPercentage?: number
-  capitalPartnerIdNo?: string
-  capitalPartnerTelephoneNo?: string
-  capitalPartnerMobileNo?: string
-  capitalPartnerEmail?: string
-  capitalPartnerOwnerNumber?: number
+  ownerRegistryId: string
+  ownerRegistryName: string
+  ownerRegistryMiddleName?: string
+  ownerRegistryLastName: string
+  ownerRegistryOwnershipPercentage?: number
+  ownerRegistryIdNo?: string
+  ownerRegistryTelephoneNo?: string
+  ownerRegistryMobileNo?: string
+  ownerRegistryEmail?: string
+  ownerRegistryOwnerNumber?: number
   isCurrent?: boolean
   idExpiaryDate?: string
-  capitalPartnerLocaleName?: string
+  ownerRegistryLocaleName?: string
   documentTypeDTO?: OptionDTO
   countryOptionDTO?: OptionDTO
   investorTypeDTO?: OptionDTO
-  capitalPartnerBankInfoDTOS?: any[]
-  capitalPartnerUnitDTO?: any
+  ownerRegistryBankInfoDTOS?: any[]
+  ownerRegistryUnitDTO?: any
   deleted?: boolean
   taskStatusDTO?: TaskStatusDTO | null
 }
@@ -47,20 +47,20 @@ export interface OptionDTO {
 // ---------- Response DTO ----------
 export interface CapitalPartnerResponse {
   id: number
-  capitalPartnerId: string
-  capitalPartnerName: string
-  capitalPartnerMiddleName: string
-  capitalPartnerLastName: string
-  capitalPartnerOwnershipPercentage: number
-  capitalPartnerIdNo: string
-  capitalPartnerTelephoneNo: string
-  capitalPartnerMobileNo: string
-  capitalPartnerEmail: string
-  capitalPartnerOwnerNumber: number
+  ownerRegistryId: string
+  ownerRegistryName: string
+  ownerRegistryMiddleName: string
+  ownerRegistryLastName: string
+  ownerRegistryOwnershipPercentage: number
+  ownerRegistryIdNo: string
+  ownerRegistryTelephoneNo: string
+  ownerRegistryMobileNo: string
+  ownerRegistryEmail: string
+  ownerRegistryOwnerNumber: number
   isCurrent: boolean
   idExpiaryDate: string
-  capitalPartnerLocaleName: string
-  capitalPartnerUnitDTO: any
+  ownerRegistryLocaleName: string
+  ownerRegistryUnitDTO: any
   documentTypeDTO: OptionDTO
   countryOptionDTO: OptionDTO
   investorTypeDTO: OptionDTO
@@ -92,7 +92,7 @@ class CapitalPartnerService {
     size = 20
   ): Promise<PaginatedResponse<CapitalPartnerUIData>> {
     try {
-      const baseUrl = buildApiUrl(API_ENDPOINTS.CAPITAL_PARTNER.GET_ALL)
+      const baseUrl = buildApiUrl(API_ENDPOINTS.OWNER_REGISTRY.GET_ALL)
       const url = `${baseUrl}&page=${page}&size=${size}`
 
       const data =
@@ -151,7 +151,7 @@ class CapitalPartnerService {
 
   async getCapitalPartnerById(id: number): Promise<CapitalPartnerResponse> {
     const url = buildApiUrl(
-      API_ENDPOINTS.CAPITAL_PARTNER.GET_BY_ID(id.toString())
+      API_ENDPOINTS.OWNER_REGISTRY.GET_BY_ID(id.toString())
     )
     const data = await apiClient.get<CapitalPartnerResponse>(url)
     return data
@@ -161,20 +161,20 @@ class CapitalPartnerService {
     id: number,
     payload: Partial<CapitalPartnerRequest>
   ): Promise<CapitalPartnerResponse> {
-    const url = buildApiUrl(API_ENDPOINTS.CAPITAL_PARTNER.UPDATE(id.toString()))
+    const url = buildApiUrl(API_ENDPOINTS.OWNER_REGISTRY.UPDATE(id.toString()))
     const response = await apiClient.put(url, payload)
     return response as CapitalPartnerResponse
   }
 
   static async deleteCapitalPartner(id: number): Promise<void> {
     const url = buildApiUrl(
-      API_ENDPOINTS.CAPITAL_PARTNER.SOFT_DELETE(id.toString())
+      API_ENDPOINTS.OWNER_REGISTRY.SOFT_DELETE(id.toString())
     )
     await apiClient.delete(url)
   }
 
   async createCapitalPartner(payload: any): Promise<CapitalPartnerResponse> {
-    const url = buildApiUrl(API_ENDPOINTS.CAPITAL_PARTNER.SAVE)
+    const url = buildApiUrl(API_ENDPOINTS.OWNER_REGISTRY.SAVE)
     const response = await apiClient.post(url, payload)
     return response as CapitalPartnerResponse
   }

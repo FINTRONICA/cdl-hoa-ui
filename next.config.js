@@ -1,24 +1,39 @@
-/** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   serverExternalPackages: ['bcryptjs'],
+
   eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
   typescript: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has type errors.
     ignoreBuildErrors: true,
   },
+
+  // Updated images configuration for Next.js 15
   images: {
-    domains: ['cdn.builder.io'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cdn.builder.io',
+        pathname: '/**',
+      },
+    ],
   },
-  transpilePackages: ['@mui/material', '@mui/icons-material', '@mui/x-date-pickers'],
+
+  transpilePackages: [
+    '@mui/material',
+    '@mui/icons-material',
+    '@mui/x-date-pickers',
+  ],
+
   experimental: {
-    optimizePackageImports: ['@mui/material', '@mui/icons-material', '@mui/x-date-pickers'],
+    optimizePackageImports: [
+      '@mui/material',
+      '@mui/icons-material',
+      '@mui/x-date-pickers',
+    ],
   },
+
   async headers() {
     return [
       {
@@ -27,6 +42,14 @@ const nextConfig = {
           {
             key: 'X-Frame-Options',
             value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
           },
           {
             key: 'Referrer-Policy',
@@ -38,7 +61,7 @@ const nextConfig = {
           },
         ],
       },
-    ];
+    ]
   },
 }
 

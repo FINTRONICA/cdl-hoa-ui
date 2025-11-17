@@ -3,15 +3,15 @@
  * Maps UI elements to actual API configIds from /api/v1/app-language-translation/payments
  */
 
-export const VOUCHER_LABELS = {
+export const MANUAL_PAYMENT_LABELS = {
   // Page Title
-  PAGE_TITLE: 'CDL_VOUCHER', // "Voucher Payment Overview"
+  PAGE_TITLE: 'CDL_PAYMENTS', // "Payment Overview"
   
   // Step Labels
   STEPS: {
-    DETAILS: 'CDL_VOUCHER_INFO', // "General Payment Information"
-    DOCUMENTS: 'CDL_VOUCHER_REVIEW', // "Review Guarantee Details & Documents Prior to Submission"
-    REVIEW: 'CDL_VOUCHER', // "Payment Overview"
+    DETAILS: 'CDL_PAYMENTS_INFO', // "General Payment Information"
+    DOCUMENTS: 'CDL_PAYMENTS_REVIEW', // "Review Guarantee Details & Documents Prior to Submission"
+    REVIEW: 'CDL_PAYMENTS', // "Payment Overview"
   },
 
   // Section Titles
@@ -21,8 +21,6 @@ export const VOUCHER_LABELS = {
     AMOUNT_DETAILS: 'CDL_PAYMENTS_AMOUNT_INFO', // "Amount & Eligibility Summary"
     NARRATION: 'CDL_PAYMENTS_NARRATION', // "Payment Narration"
     UNIT_CANCELLATION: 'CDL_PAYMENTS_UNIT_CAN_DETAILS', // "Unit Cancellation & Adjustment Details"
-    BUDGET_DETAILS: 'CDL_BUDGET_DETAILS', // "Budget Details"
-    BENEFICIARY_DETAILS: 'CDL_BENEFICIARY_DETAILS', // "Beneficiary Details"
   },
 
   // Form Field Labels
@@ -87,43 +85,30 @@ export const VOUCHER_LABELS = {
     BANK_CHARGES: 'CDL_PAYMENTS_BANK_CHARGES', // "Bank Charges"
     PAYMENT_FROM_CBS: 'CDL_PAYMENTS_PAYOUT_CBS', // "Payout via CBS"
     REVIEW_NOTE: 'CDL_PAYMENTS_REVIEW', // "Review Guarantee Details & Documents Prior to Submission"
-    // New Fields
-    VAUCHER_REFERENC_NUMBER: 'CDL_VAUCHER_REF_NUMBER', // "Voucher Reference Number"
-    ASSET_REGISTER_NAME: 'CDL_ASSET_REGISTER_NAME', // "Asset Register Name"
-    MANAGEMENT_FIRM_NAME: 'CDL_MANAGEMENT_FIRM_NAME', // "Management Firm Name"
-    MANAGEMENT_FIRM_ACCOUNT_STATUS: 'CDL_MANAGEMENT_FIRM_ACC_STATUS', // "Management Firm Account Status"
-    HOA_APPROVAL_NUMBER: 'CDL_HOA_APPROVAL_NUMBER', // "HOA Approval Number"
-    HOA_APPROVAL_DATE: 'CDL_HOA_APPROVAL_DATE', // "HOA Approval Date"
-    RT03: 'CDL_RT03', // "RT03"
-    BUDGET_YEAR: 'CDL_BUDGET_YEAR', // "Budget Year"
-    BUDGET_CATEGORY: 'CDL_BUDGET_CATEGORY', // "Budget Category"
-    BUDGET_SUB_CATEGORY: 'CDL_BUDGET_SUB_CATEGORY', // "Budget Sub Category"
-    BUDGET_SERVICE_NAME: 'CDL_BUDGET_SERVICE_NAME', // "Budget Service Name"
-    PROVISIONAL_BUDGET: 'CDL_PROVISIONAL_BUDGET', // "Provisional Budget"
+    BUDGET_YEAR: 'CDL_TRAN_BUDGET_YEAR', // "Budget Year"
+    BUDGET_CATEGORY: 'CDL_TRAN_CATEGORY', // "Budget Category"
+    BUDGET_SUB_CATEGORY: 'CDL_TRAN_SUBCATEGORY', // "Budget Sub Category"
+    BUDGET_SERVICE_NAME: 'CDL_TRAN_SERVICE_NAME', // "Budget Service Name"
+    PROVISIONAL_BUDGET: 'CDL_TRAN_PROVISIONAL_BUDGET', // "Provisional Budget"
     HOA_EXEMPTION: 'CDL_HOA_EXEMPTION', // "HOA Exemption"
-    CATEGORY_CODE: 'CDL_CATEGORY_CODE', // "Category Code"
-    SUB_CATEGORY_CODE: 'CDL_SUB_CATEGORY_CODE', // "Sub Category Code"
-    SERVICE_CODE: 'CDL_SERVICE_CODE', // "Service Code"
-    PROVISIONAL_BUDGET_CODE: 'CDL_PROVISIONAL_BUDGET_CODE', // "Provisional Budget Code"
-    AVAILABLE_BUDGET_AMOUNT: 'CDL_AVAILABLE_BUDGET_AMOUNT', // "Available Budget Amount"
-    UTILIZED_BUDGET_AMOUNT: 'CDL_UTILIZED_BUDGET_AMOUNT', // "Utilized Budget Amount"
+    CATEGORY_CODE: 'CDL_TRAN_CATEGORY_CODE', // "Category Code"
+    SUB_CATEGORY_CODE: 'CDL_TRAN_SUBCATEGORY_CODE', // "Sub Category Code"
+    SERVICE_CODE: 'CDL_TRAN_SERVICE_CODE', // "Service Code"
+    PROVISIONAL_BUDGET_CODE: 'CDL_TRAN_PROVISIONAL_BUDGET_CODE', // "Provisional Budget Code"
+    AVAILABLE_BUDGET_AMOUNT: 'CDL_TRAN_AVAILABLE_BUDGET_AMOUNT', // "Available Budget Amount"
+    UTILIZED_BUDGET_AMOUNT: 'CDL_TRAN_UTILIZED_BUDGET_AMOUNT', // "Utilized Budget Amount"
     INVOICE_BUDGET_AMOUNT: 'CDL_INVOICE_BUDGET_AMOUNT', // "Invoice Budget Amount"
     ROUTINF_SORTCODE: 'CDL_ROUTINF_SORTCODE', // "Routing Sort Code"
-    // Beneficiary Fields
-    BEN_VOUCHER_ACCOUNT: 'CDL_BEN_VOUCHER_ACCOUNT', // "Beneficiary Account"
-    BEN_VOUCHER_NAME: 'CDL_BEN_VOUCHER_NAME', // "Beneficiary Name"
-    BEN_VOUCHER_BANK_NAME: 'CDL_BEN_VOUCHER_BANK_NAME', // "Beneficiary Bank Name"
-    BEN_VOUCHER_SWIFT_CODE: 'CDL_BEN_VOUCHER_SWIFT_CODE', // "Beneficiary Swift Code"
-    BEN_VOUCHER_ROUTING_CODE: 'CDL_BEN_VOUCHER_ROUTING_CODE', // "Beneficiary Routing Code"
-    BEN_VOUCHER_ACCOUNT_NUMBER: 'CDL_BEN_VOUCHER_ACCOUNT_NUMBER', // "Beneficiary Account Number"
+    CDL_TRAN_RERA_EXCEPTION: 'CDL_TRAN_RERA_EXCEPTION', // "RERA Exception"
+    
   },
 
   // Table Column Labels
   TABLE_COLUMNS: {
     DATE: 'CDL_PAYMENTS_PAYMENT_DATE', // "Payment Execution Date"
     EMS_REF: 'CDL_PAYMENTS_EMS_REFNO', // "EMS Payment Reference Number"
-    DEVELOPER_NAME: 'CDL_TRANS_BP_NAME', // "Build Partner Name"
-    PROJECT_NAME: 'CDL_TRANS_BPA_NAME', // "Build Partner Assets Name"
+    DEVELOPER_NAME: 'CDL_TRANS_AR_NAME', // "Build Partner Name"
+    PROJECT_NAME: 'CDL_TRANS_MF_NAME', // "Build Partner Assets Name"
     PAYMENT_TYPE: 'CDL_PAYMENTS_PAYMENT_TYPE', // "Payment Type"
     PAYMENT_SUB_TYPE: 'CDL_PAYMENTS_PAYMENT_SUB_TYPE', // "Payment Sub-Type"
     INVOICE_NUMBER: 'CDL_PAYMENTS_INVOICE_REFNO', // "Invoice Reference Number"
@@ -155,8 +140,8 @@ export const VOUCHER_LABELS = {
   EXPANDED_FIELDS: {
     DATE: 'CDL_PAYMENTS_PAYMENT_DATE', // "Payment Execution Date"
     EMS_REF: 'CDL_PAYMENTS_EMS_REFNO', // "EMS Payment Reference Number"
-    DEVELOPER_NAME: 'CDL_TRANS_BP_NAME', // "Build Partner Name"
-    PROJECT_NAME: 'CDL_TRANS_BPA_NAME', // "Build Partner Assets Name"
+    DEVELOPER_NAME: 'CDL_TRANS_AR_NAME', // "Build Partner Name"
+    PROJECT_NAME: 'CDL_TRANS_MF_NAME', // "Build Partner Assets Name"
     PAYMENT_TYPE: 'CDL_PAYMENTS_PAYMENT_TYPE', // "Payment Type"
     PAYMENT_SUB_TYPE: 'CDL_PAYMENTS_PAYMENT_SUB_TYPE', // "Payment Sub-Type"
     INVOICE_NUMBER: 'CDL_PAYMENTS_INVOICE_REFNO', // "Invoice Reference Number"
@@ -233,6 +218,13 @@ export const VOUCHER_LABELS = {
     CBS: 'CDL_PAYMENTS_PAYOUT_CBS', // "Payout via CBS"
   },
 
+  // Button Labels
+  BUTTONS: {
+    SAVE_NEXT: 'CDL_COMMON_SAVE_NEXT', // "Save & Next"
+    SAVE_CONTINUE: 'CDL_COMMON_SAVE_CONTINUE', // "Save & Continue"
+    SAVING: 'CDL_COMMON_SAVING', // "Saving..."
+  },
+
   // Additional Form Labels from API
   ADDITIONAL_FORM_FIELDS: {
     SUB_CONSTRUCTION_BALANCE: 'CDL_PAYMENTS_SUBCONS_BAL', // "Sub-Construction Account Current Balance"
@@ -268,9 +260,9 @@ export const VOUCHER_LABELS = {
 
   // Fallback Labels (used when API doesn't have the specific label)
   FALLBACKS: {
-    PAGE_TITLE: ' Voucher ',
+    PAGE_TITLE: 'Voucher Payments',
     STEPS: {
-      DETAILS: 'Voucher Details',
+      DETAILS: 'Payment Details',
       DOCUMENTS: 'Documents',
       REVIEW: 'Review',
     },
@@ -280,8 +272,6 @@ export const VOUCHER_LABELS = {
       AMOUNT_DETAILS: 'Amount Details',
       NARRATION: 'Narration',
       UNIT_CANCELLATION: 'Unit Cancellation Details',
-      BUDGET_DETAILS: 'Budget Details',
-      BENEFICIARY_DETAILS: 'Beneficiary Details',
     },
     FORM_FIELDS: {
       TAS_REFERENCE: 'Tas/EMS Payment Ref no.',
@@ -344,41 +334,12 @@ export const VOUCHER_LABELS = {
       BANK_CHARGES: 'Bank Charges',
       PAYMENT_FROM_CBS: 'Payment to be made from CBS',
       REVIEW_NOTE: 'Please review the Guarantee details and Documents before submitting the payment',
-      // New Fields Fallbacks
-      VAUCHER_REFERENC_NUMBER: 'Voucher Reference Number',
-      ASSET_REGISTER_NAME: 'Asset Register Name',
-      MANAGEMENT_FIRM_NAME: 'Management Firm Name',
-      MANAGEMENT_FIRM_ACCOUNT_STATUS: 'Management Firm Account Status',
-      HOA_APPROVAL_NUMBER: 'HOA Approval Number',
-      HOA_APPROVAL_DATE: 'HOA Approval Date',
-      RT03: 'RT03',
-      BUDGET_YEAR: 'Budget Year',
-      BUDGET_CATEGORY: 'Budget Category',
-      BUDGET_SUB_CATEGORY: 'Budget Sub Category',
-      BUDGET_SERVICE_NAME: 'Budget Service Name',
-      PROVISIONAL_BUDGET: 'Provisional Budget',
-      HOA_EXEMPTION: 'HOA Exemption',
-      CATEGORY_CODE: 'Category Code',
-      SUB_CATEGORY_CODE: 'Sub Category Code',
-      SERVICE_CODE: 'Service Code',
-      PROVISIONAL_BUDGET_CODE: 'Provisional Budget Code',
-      AVAILABLE_BUDGET_AMOUNT: 'Available Budget Amount',
-      UTILIZED_BUDGET_AMOUNT: 'Utilized Budget Amount',
-      INVOICE_BUDGET_AMOUNT: 'Invoice Budget Amount',
-      ROUTINF_SORTCODE: 'Routing Sort Code',
-      // Beneficiary Fields Fallbacks
-      BEN_VOUCHER_ACCOUNT: 'Beneficiary Account',
-      BEN_VOUCHER_NAME: 'Beneficiary Name',
-      BEN_VOUCHER_BANK_NAME: 'Beneficiary Bank Name',
-      BEN_VOUCHER_SWIFT_CODE: 'Beneficiary Swift Code',
-      BEN_VOUCHER_ROUTING_CODE: 'Beneficiary Routing Code',
-      BEN_VOUCHER_ACCOUNT_NUMBER: 'Beneficiary Account Number',
     },
     TABLE_COLUMNS: {
       DATE: 'Date',
       EMS_REF: 'EMS Payment Ref. No.',
-      DEVELOPER_NAME: 'Build Partner',
-      PROJECT_NAME: 'Build Partner Assets',
+      DEVELOPER_NAME: 'Asset Register',
+      PROJECT_NAME: 'Management Firm',
       PAYMENT_TYPE: 'Payment Type',
       PAYMENT_SUB_TYPE: 'Payment Sub Type',
       INVOICE_NUMBER: 'Invoice Number',
@@ -436,21 +397,26 @@ export const VOUCHER_LABELS = {
       REJECT_ERROR: 'Failed to reject payment. Please try again.',
       REFRESH_ERROR: 'Error refreshing data',
     },
+    BUTTONS: {
+      SAVE_NEXT: 'Save & Next',
+      SAVE_CONTINUE: 'Save & Continue',
+      SAVING: 'Saving...',
+    },
   },
 } as const
 
 // Type definitions for better TypeScript support
-export type ManualPaymentLabelKey = keyof typeof VOUCHER_LABELS
-export type TableColumnKey = keyof typeof VOUCHER_LABELS.TABLE_COLUMNS
-export type StatusOptionKey = keyof typeof VOUCHER_LABELS.STATUS_OPTIONS
-export type ExpandedSectionKey = keyof typeof VOUCHER_LABELS.EXPANDED_SECTIONS
-export type ExpandedFieldKey = keyof typeof VOUCHER_LABELS.EXPANDED_FIELDS
-export type DocumentKey = keyof typeof VOUCHER_LABELS.DOCUMENTS
-export type ActionMessageKey = keyof typeof VOUCHER_LABELS.ACTION_MESSAGES
-export type PaymentTypeKey = keyof typeof VOUCHER_LABELS.PAYMENT_TYPES
-export type PaymentMethodKey = keyof typeof VOUCHER_LABELS.PAYMENT_METHODS
-export type AdditionalFormFieldKey = keyof typeof VOUCHER_LABELS.ADDITIONAL_FORM_FIELDS
-export type LoadingLabelKey = keyof typeof VOUCHER_LABELS.LOADING_LABELS
+export type ManualPaymentLabelKey = keyof typeof MANUAL_PAYMENT_LABELS
+export type TableColumnKey = keyof typeof MANUAL_PAYMENT_LABELS.TABLE_COLUMNS
+export type StatusOptionKey = keyof typeof MANUAL_PAYMENT_LABELS.STATUS_OPTIONS
+export type ExpandedSectionKey = keyof typeof MANUAL_PAYMENT_LABELS.EXPANDED_SECTIONS
+export type ExpandedFieldKey = keyof typeof MANUAL_PAYMENT_LABELS.EXPANDED_FIELDS
+export type DocumentKey = keyof typeof MANUAL_PAYMENT_LABELS.DOCUMENTS
+export type ActionMessageKey = keyof typeof MANUAL_PAYMENT_LABELS.ACTION_MESSAGES
+export type PaymentTypeKey = keyof typeof MANUAL_PAYMENT_LABELS.PAYMENT_TYPES
+export type PaymentMethodKey = keyof typeof MANUAL_PAYMENT_LABELS.PAYMENT_METHODS
+export type AdditionalFormFieldKey = keyof typeof MANUAL_PAYMENT_LABELS.ADDITIONAL_FORM_FIELDS
+export type LoadingLabelKey = keyof typeof MANUAL_PAYMENT_LABELS.LOADING_LABELS
 
 // Helper function to get configId with fallback
 export const getManualPaymentLabel = (
@@ -458,8 +424,7 @@ export const getManualPaymentLabel = (
   key: string,
   fallback?: string
 ): string => {
-  const categoryData = VOUCHER_LABELS[category] as Record<string, string> | undefined
-  const configId = categoryData?.[key]
+  const configId = (MANUAL_PAYMENT_LABELS[category] as any)?.[key]
   return configId || fallback || key
 }
 
@@ -468,44 +433,43 @@ export const getManualPaymentFallback = (
   category: Exclude<ManualPaymentLabelKey, 'FALLBACKS' | 'PAYMENT_TYPES' | 'PAYMENT_METHODS' | 'YES_NO' | 'LOADING_LABELS' | 'ADDITIONAL_FORM_FIELDS'>,
   key: string
 ): string => {
-  const fallbackData = VOUCHER_LABELS.FALLBACKS[category] as Record<string, string> | undefined
-  return fallbackData?.[key] || key
+  return (MANUAL_PAYMENT_LABELS.FALLBACKS[category] as any)?.[key] || key
 }
 
 // Helper function to get loading label
 export const getManualPaymentLoadingLabel = (fieldName: string, originalLabel?: string): string => {
   const loadingLabels: Record<string, string> = {
     // Form field names (lowercase)
-    developerName: VOUCHER_LABELS.LOADING_LABELS.DEVELOPER_NAME,
-    projectName: VOUCHER_LABELS.LOADING_LABELS.PROJECT_NAME,
-    paymentType: VOUCHER_LABELS.LOADING_LABELS.PAYMENT_TYPE,
-    paymentSubType: VOUCHER_LABELS.LOADING_LABELS.PAYMENT_SUB_TYPE,
-    invoiceCurrency: VOUCHER_LABELS.LOADING_LABELS.INVOICE_CURRENCY,
-    paymentCurrency: VOUCHER_LABELS.LOADING_LABELS.PAYMENT_CURRENCY,
-    depositMode: VOUCHER_LABELS.LOADING_LABELS.DEPOSIT_MODE,
-    paymentMode: VOUCHER_LABELS.LOADING_LABELS.PAYMENT_MODE,
-    transferType: VOUCHER_LABELS.LOADING_LABELS.TRANSFER_TYPE,
-    buildAssetAccountStatus: VOUCHER_LABELS.LOADING_LABELS.BUILD_ASSET_ACCOUNT_STATUS,
-    chargeMode: VOUCHER_LABELS.LOADING_LABELS.CHARGE_MODE,
-    transactionType: VOUCHER_LABELS.LOADING_LABELS.TRANSACTION_TYPE,
-    bankCharges: VOUCHER_LABELS.LOADING_LABELS.BANK_CHARGES,
-    totalAmountPaid: VOUCHER_LABELS.LOADING_LABELS.TOTAL_AMOUNT_PAID,
+    developerName: MANUAL_PAYMENT_LABELS.LOADING_LABELS.DEVELOPER_NAME,
+    projectName: MANUAL_PAYMENT_LABELS.LOADING_LABELS.PROJECT_NAME,
+    paymentType: MANUAL_PAYMENT_LABELS.LOADING_LABELS.PAYMENT_TYPE,
+    paymentSubType: MANUAL_PAYMENT_LABELS.LOADING_LABELS.PAYMENT_SUB_TYPE,
+    invoiceCurrency: MANUAL_PAYMENT_LABELS.LOADING_LABELS.INVOICE_CURRENCY,
+    paymentCurrency: MANUAL_PAYMENT_LABELS.LOADING_LABELS.PAYMENT_CURRENCY,
+    depositMode: MANUAL_PAYMENT_LABELS.LOADING_LABELS.DEPOSIT_MODE,
+    paymentMode: MANUAL_PAYMENT_LABELS.LOADING_LABELS.PAYMENT_MODE,
+    transferType: MANUAL_PAYMENT_LABELS.LOADING_LABELS.TRANSFER_TYPE,
+    buildAssetAccountStatus: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BUILD_ASSET_ACCOUNT_STATUS,
+    chargeMode: MANUAL_PAYMENT_LABELS.LOADING_LABELS.CHARGE_MODE,
+    transactionType: MANUAL_PAYMENT_LABELS.LOADING_LABELS.TRANSACTION_TYPE,
+    bankCharges: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BANK_CHARGES,
+    totalAmountPaid: MANUAL_PAYMENT_LABELS.LOADING_LABELS.TOTAL_AMOUNT_PAID,
     
     // API config ID names (uppercase)
-    DEVELOPER_NAME: VOUCHER_LABELS.LOADING_LABELS.DEVELOPER_NAME,
-    PROJECT_NAME: VOUCHER_LABELS.LOADING_LABELS.PROJECT_NAME,
-    PAYMENT_TYPE: VOUCHER_LABELS.LOADING_LABELS.PAYMENT_TYPE,
-    PAYMENT_SUB_TYPE: VOUCHER_LABELS.LOADING_LABELS.PAYMENT_SUB_TYPE,
-    INVOICE_CURRENCY: VOUCHER_LABELS.LOADING_LABELS.INVOICE_CURRENCY,
-    PAYMENT_CURRENCY: VOUCHER_LABELS.LOADING_LABELS.PAYMENT_CURRENCY,
-    DEPOSIT_MODE: VOUCHER_LABELS.LOADING_LABELS.DEPOSIT_MODE,
-    PAYMENT_MODE: VOUCHER_LABELS.LOADING_LABELS.PAYMENT_MODE,
-    TRANSFER_TYPE: VOUCHER_LABELS.LOADING_LABELS.TRANSFER_TYPE,
-    BUILD_ASSET_ACCOUNT_STATUS: VOUCHER_LABELS.LOADING_LABELS.BUILD_ASSET_ACCOUNT_STATUS,
-    CHARGE_MODE: VOUCHER_LABELS.LOADING_LABELS.CHARGE_MODE,
-    TRANSACTION_TYPE: VOUCHER_LABELS.LOADING_LABELS.TRANSACTION_TYPE,
-    BANK_CHARGES: VOUCHER_LABELS.LOADING_LABELS.BANK_CHARGES,
-    TOTAL_AMOUNT_PAID: VOUCHER_LABELS.LOADING_LABELS.TOTAL_AMOUNT_PAID,
+    DEVELOPER_NAME: MANUAL_PAYMENT_LABELS.LOADING_LABELS.DEVELOPER_NAME,
+    PROJECT_NAME: MANUAL_PAYMENT_LABELS.LOADING_LABELS.PROJECT_NAME,
+    PAYMENT_TYPE: MANUAL_PAYMENT_LABELS.LOADING_LABELS.PAYMENT_TYPE,
+    PAYMENT_SUB_TYPE: MANUAL_PAYMENT_LABELS.LOADING_LABELS.PAYMENT_SUB_TYPE,
+    INVOICE_CURRENCY: MANUAL_PAYMENT_LABELS.LOADING_LABELS.INVOICE_CURRENCY,
+    PAYMENT_CURRENCY: MANUAL_PAYMENT_LABELS.LOADING_LABELS.PAYMENT_CURRENCY,
+    DEPOSIT_MODE: MANUAL_PAYMENT_LABELS.LOADING_LABELS.DEPOSIT_MODE,
+    PAYMENT_MODE: MANUAL_PAYMENT_LABELS.LOADING_LABELS.PAYMENT_MODE,
+    TRANSFER_TYPE: MANUAL_PAYMENT_LABELS.LOADING_LABELS.TRANSFER_TYPE,
+    BUILD_ASSET_ACCOUNT_STATUS: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BUILD_ASSET_ACCOUNT_STATUS,
+    CHARGE_MODE: MANUAL_PAYMENT_LABELS.LOADING_LABELS.CHARGE_MODE,
+    TRANSACTION_TYPE: MANUAL_PAYMENT_LABELS.LOADING_LABELS.TRANSACTION_TYPE,
+    BANK_CHARGES: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BANK_CHARGES,
+    TOTAL_AMOUNT_PAID: MANUAL_PAYMENT_LABELS.LOADING_LABELS.TOTAL_AMOUNT_PAID,
   }
 
   return loadingLabels[fieldName] || (originalLabel ? `Loading ${originalLabel.replace(/\*/g, '').trim()}...` : 'Loading...')

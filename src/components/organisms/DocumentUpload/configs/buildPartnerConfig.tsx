@@ -22,7 +22,7 @@ export const buildPartnerDocumentService: DocumentService<
   getDocuments: async (buildPartnerId: string, page = 0, size = 20) => {
     return buildPartnerService.getBuildPartnerDocuments(
       buildPartnerId,
-      'BUILD_PARTNER',
+      'ASSET_REGISTER',
       page,
       size
     )
@@ -36,7 +36,7 @@ export const buildPartnerDocumentService: DocumentService<
     return buildPartnerService.uploadBuildPartnerDocument(
       file,
       buildPartnerId,
-      'BUILD_PARTNER',
+      'ASSET_REGISTER',
       documentType
     )
   },
@@ -181,9 +181,6 @@ export const buildPartnerActions: DocumentAction<DocumentItem>[] = [
     confirmationMessage:
       'Are you sure you want to delete this document? This action cannot be undone.',
     onClick: async (document: DocumentItem) => {
-      // Note: This would need to be implemented in the parent component
-      // as it requires updating the local state
-      console.log('Delete document:', document.id)
     },
   },
 ]
@@ -220,7 +217,7 @@ export const createBuildPartnerDocumentConfig = (
 
   const config: DocumentUploadConfig<DocumentItem, ApiDocumentResponse> = {
     entityId: buildPartnerId,
-    entityType: 'BUILD_PARTNER',
+    entityType: 'ASSET_REGISTER',
     documentService: buildPartnerDocumentService,
     mapApiToDocument: mapApiToDocumentItem,
     documentTypeSettingKey: 'INVESTOR_ID_TYPE', // Default setting key for build partner documents

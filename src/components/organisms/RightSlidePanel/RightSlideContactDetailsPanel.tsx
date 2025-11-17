@@ -33,6 +33,8 @@ import { useBuildPartnerLabelsWithCache } from '@/hooks/useBuildPartnerLabelsWit
 import { getBuildPartnerLabel } from '@/constants/mappings/buildPartnerMapping'
 import { useAppStore } from '@/store'
 import { FormError } from '../../atoms/FormError'
+import type { ContactData } from '../DeveloperStepper/developerTypes'
+import type { FeeDropdownOption } from '@/services/api/feeDropdownService'
 
 interface RightSlidePanelProps {
   isOpen: boolean
@@ -42,20 +44,7 @@ interface RightSlidePanelProps {
   title?: string
   buildPartnerId?: string | undefined
   mode?: 'add' | 'edit'
-  contactData?: {
-    id?: string | number
-    name?: string
-    address?: string
-    email?: string
-    pobox?: string
-    countrycode?: string
-    mobileno?: string
-    telephoneno?: string
-    fax?: string
-    buildPartnerDTO?: {
-      id: number
-    }
-  }
+  contactData?: ContactData | null
   contactIndex?: number
 }
 
@@ -99,13 +88,16 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
   } = useFeeDropdownLabels()
 
   // Phase 1: Dynamic label foundation
-  const { data: buildPartnerLabels, getLabel } = useBuildPartnerLabelsWithCache()
+  const { data: buildPartnerLabels, getLabel } =
+    useBuildPartnerLabelsWithCache()
   const currentLanguage = useAppStore((state) => state.language) || 'EN'
 
   const getBuildPartnerLabelDynamic = useCallback(
     (configId: string): string => {
       const fallback = getBuildPartnerLabel(configId)
-      return buildPartnerLabels ? getLabel(configId, currentLanguage, fallback) : fallback
+      return buildPartnerLabels
+        ? getLabel(configId, currentLanguage, fallback)
+        : fallback
     },
     [buildPartnerLabels, currentLanguage, getLabel]
   )
@@ -115,6 +107,7 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
     handleSubmit,
     reset,
     trigger,
+    getValues,
     formState: { errors },
   } = useForm<ContactFormData>({
     defaultValues: {
@@ -129,60 +122,64 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
       mobileno: '',
       fax: '',
     },
-    mode: 'onChange', 
+    mode: 'onChange',
   })
 
- 
   const validateContactField = (
-    fieldName: string,
-    _value: any,
+    fieldName: keyof ContactFormData,
+    _value: unknown,
     allValues: ContactFormData
   ) => {
     try {
-      
       const selectedCountryCode = countryCodes.find(
-        (country) => country.id.toString() === allValues.countrycode.toString()
+        (country) =>
+          country.id?.toString() === allValues.countrycode?.toString()
       )
-      const countryCodeValue = selectedCountryCode
-        ? selectedCountryCode.configValue
-        : allValues.countrycode
+      const countryCodeValue =
+        selectedCountryCode?.configValue ?? allValues.countrycode ?? ''
 
+      const arcContactAddress = `${allValues.address1} ${allValues.address2}`.trim()
       const contactForValidation = {
         contactData: [
           {
-            name: `${allValues.fname} ${allValues.lname}`.trim(),
-            address: `${allValues.address1} ${allValues.address2}`.trim(),
-            email: allValues.email,
-            pobox: allValues.pobox,
-            countrycode: countryCodeValue,
-            mobileno: allValues.mobileno,
-            telephoneno: allValues.telephoneno,
-            fax: allValues.fax,
-            buildPartnerDTO: {
-              id: buildPartnerId ? parseInt(buildPartnerId) : undefined,
-            },
+            arcContactName: `${allValues.fname} ${allValues.lname}`.trim(),
+            arcFirstName: allValues.fname,
+            arcLastName: allValues.lname,
+            arcContactEmail: allValues.email,
+            arcContactAddress,
+            arcContactAddressLine1: allValues.address1,
+            arcContactAddressLine2: allValues.address2,
+            arcContactPoBox: allValues.pobox,
+            arcContactTelCode: countryCodeValue,
+            arcCountryMobCode: countryCodeValue,
+            arcContactMobNo: allValues.mobileno,
+            arcContactTelNo: allValues.telephoneno,
+            arcContactFaxNo: allValues.fax,
+            assetRegisterDTO: buildPartnerId
+              ? {
+                  id: parseInt(buildPartnerId),
+                }
+              : undefined,
           },
         ],
       }
 
-     
       const result = DeveloperStep3Schema.safeParse(contactForValidation)
 
       if (result.success) {
         return true
       } else {
-        
         const fieldMapping: Record<string, string> = {
-          fname: 'name',
-          lname: 'name',
-          email: 'email',
-          address1: 'address',
-          address2: 'address',
-          pobox: 'pobox',
-          countrycode: 'countrycode',
-          mobileno: 'mobileno',
-          telephoneno: 'telephoneno',
-          fax: 'fax',
+          fname: 'arcFirstName',
+          lname: 'arcLastName',
+          email: 'arcContactEmail',
+          address1: 'arcContactAddressLine1',
+          address2: 'arcContactAddressLine2',
+          pobox: 'arcContactPoBox',
+          countrycode: 'arcContactTelCode',
+          mobileno: 'arcContactMobNo',
+          telephoneno: 'arcContactTelNo',
+          fax: 'arcContactFaxNo',
         }
 
         const schemaFieldName = fieldMapping[fieldName]
@@ -204,32 +201,26 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
 
         return true
       }
-    } catch (error) {
-      return true 
+    } catch {
+      return true
     }
   }
 
- 
   React.useEffect(() => {
     if (isOpen && mode === 'edit' && (apiContactData || contactData)) {
-     
-      const dataToUse: any = apiContactData || contactData
+      const dataToUse =
+        (apiContactData as BuildPartnerContactResponse | undefined) ??
+        contactData ??
+        ({} as ContactData)
 
-     
-      const firstName =
-        dataToUse.bpcFirstName || contactData?.name?.split(' ')[0] || ''
-      const lastName =
-        dataToUse.bpcLastName ||
-        contactData?.name?.split(' ').slice(1).join(' ') ||
-        ''
+      const firstName = dataToUse.arcFirstName || ''
+      const lastName = dataToUse.arcLastName || ''
 
-     
-      const address1 = dataToUse.bpcContactAddressLine1 || ''
-      const address2 = dataToUse.bpcContactAddressLine2 || ''
+      const address1 = dataToUse.arcContactAddressLine1 || ''
+      const address2 = dataToUse.arcContactAddressLine2 || ''
 
-    
       const countryCodeFromApi =
-        dataToUse.bpcCountryMobCode || contactData?.countrycode || ''
+        dataToUse.arcContactTelCode || dataToUse.arcCountryMobCode || ''
       let countryCodeId = countryCodeFromApi
 
       if (countryCodes.length > 0 && countryCodeFromApi) {
@@ -246,15 +237,14 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
       reset({
         fname: firstName,
         lname: lastName,
-        email: dataToUse.bpcContactEmail || contactData?.email || '',
+          email: dataToUse.arcContactEmail || '',
         address1: address1,
         address2: address2,
-        pobox: dataToUse.bpcContactPoBox || contactData?.pobox || '',
+          pobox: dataToUse.arcContactPoBox || '',
         countrycode: countryCodeId,
-        telephoneno:
-          dataToUse.bpcContactTelNo || contactData?.telephoneno || '',
-        mobileno: dataToUse.bpcContactMobNo || contactData?.mobileno || '',
-        fax: dataToUse.bpcContactFaxNo || contactData?.fax || '',
+          telephoneno: dataToUse.arcContactTelNo || '',
+          mobileno: dataToUse.arcContactMobNo || '',
+          fax: dataToUse.arcContactFaxNo || '',
       })
     } else if (isOpen && mode === 'add') {
       reset({
@@ -297,29 +287,36 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
       }
 
       const selectedCountryCode = countryCodes.find(
-        (country) => country.id.toString() === data.countrycode.toString()
+        (country) =>
+          country.id?.toString() === data.countrycode?.toString()
       )
-      const countryCodeValue = selectedCountryCode
-        ? selectedCountryCode.configValue
-        : data.countrycode
+      const countryCodeValue =
+        selectedCountryCode?.configValue ?? data.countrycode ?? ''
 
       const isEditing = mode === 'edit'
 
-     
+      const arcContactAddress = `${data.address1} ${data.address2}`.trim()
       const contactForValidation = {
         contactData: [
           {
-            name: `${data.fname} ${data.lname}`.trim(),
-            address: `${data.address1} ${data.address2}`.trim(),
-            email: data.email,
-            pobox: data.pobox,
-            countrycode: countryCodeValue,
-            mobileno: data.mobileno,
-            telephoneno: data.telephoneno,
-            fax: data.fax,
-            buildPartnerDTO: {
-              id: buildPartnerId ? parseInt(buildPartnerId) : undefined,
-            },
+            arcContactName: `${data.fname} ${data.lname}`.trim(),
+            arcFirstName: data.fname,
+            arcLastName: data.lname,
+            arcContactEmail: data.email,
+            arcContactAddress,
+            arcContactAddressLine1: data.address1,
+            arcContactAddressLine2: data.address2,
+            arcContactPoBox: data.pobox,
+            arcContactTelCode: countryCodeValue,
+            arcCountryMobCode: countryCodeValue,
+            arcContactMobNo: data.mobileno,
+            arcContactTelNo: data.telephoneno,
+            arcContactFaxNo: data.fax,
+            assetRegisterDTO: buildPartnerId
+              ? {
+                  id: parseInt(buildPartnerId),
+                }
+              : undefined,
           },
         ],
       }
@@ -334,34 +331,36 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
         return
       }
 
+      const arcContactTelCodeValue =
+        selectedCountryCode?.configValue || countryCodeValue
+      const arcCountryMobCodeValue =
+        selectedCountryCode?.configValue || countryCodeValue
+
       const contactPayload: BuildPartnerContactData = {
         ...(isEditing && contactData?.id && { id: contactData.id }),
-        bpcFirstName: data.fname,
-        bpcLastName: data.lname,
-        bpcContactEmail: data.email,
-        bpcContactAddressLine1: data.address1,
-        bpcContactAddressLine2: data.address2,
-        bpcContactPoBox: data.pobox,
-        bpcCountryMobCode: countryCodeValue,
-        bpcContactTelNo: data.telephoneno,
-        bpcContactMobNo: data.mobileno,
-        bpcContactFaxNo: data.fax,
-        
-        ...(isEditing && apiContactData
-          ? {
-              enabled:
-                (apiContactData as BuildPartnerContactResponse).enabled ??
-                false,
-              deleted:
-                (apiContactData as BuildPartnerContactResponse).deleted ?? null,
-              workflowStatus:
-                (apiContactData as BuildPartnerContactResponse)
-                  .workflowStatus ?? null,
-            }
-          : {}),
+        arcFirstName: data.fname,
+        arcLastName: data.lname,
+        arcContactEmail: data.email,
+        arcContactName: `${data.fname} ${data.lname}`.trim(),
+        arcContactAddress: `${data.address1} ${data.address2}`.trim(),
+        arcContactAddressLine1: data.address1,
+        arcContactAddressLine2: data.address2,
+        arcContactPoBox: data.pobox,
+        arcCountryMobCode: arcCountryMobCodeValue,
+        arcContactTelCode: arcContactTelCodeValue,
+        arcContactTelNo: data.telephoneno,
+        arcContactMobNo: data.mobileno,
+        arcContactFaxNo: data.fax,
+        enabled: true,
+        deleted: false,
+        workflowStatus:
+          (apiContactData as BuildPartnerContactResponse | undefined)
+            ?.workflowStatus ?? null,
         ...(buildPartnerId && {
-          buildPartnerDTO: {
+          assetRegisterDTO: {
             id: parseInt(buildPartnerId),
+            enabled: true,
+            deleted: false,
           },
         }),
       }
@@ -378,37 +377,39 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
           : 'Contact added successfully!'
       )
 
-      const selectedCountryCodeForDisplay = countryCodes.find(
-        (country) => country.id?.toString() === data.countrycode?.toString()
-      )
-
-      const countryCodeDisplayValue = selectedCountryCodeForDisplay
-        ? selectedCountryCodeForDisplay.configValue
-        : countryCodeValue
-
-      const contactForForm = {
+      const contactForForm: ContactData = {
         ...(isEditing && contactData?.id && { id: contactData.id }),
-        name: `${data.fname} ${data.lname}`.trim(),
-        address: `${data.address1} ${data.address2}`.trim(),
-        email: data.email,
-        pobox: data.pobox,
-        countrycode: countryCodeDisplayValue,
-        mobileno: data.mobileno,
-        telephoneno: data.telephoneno,
-        fax: data.fax,
-        buildPartnerDTO: {
-          id: buildPartnerId ? parseInt(buildPartnerId) : undefined,
-        },
+        arcContactName: contactPayload.arcContactName ?? null,
+        arcFirstName: contactPayload.arcFirstName ?? null,
+        arcLastName: contactPayload.arcLastName ?? null,
+        arcContactEmail: contactPayload.arcContactEmail ?? null,
+        arcContactAddress: contactPayload.arcContactAddress ?? null,
+        arcContactAddressLine1: contactPayload.arcContactAddressLine1 ?? null,
+        arcContactAddressLine2: contactPayload.arcContactAddressLine2 ?? null,
+        arcContactPoBox: contactPayload.arcContactPoBox ?? null,
+        arcCountryMobCode: contactPayload.arcCountryMobCode ?? null,
+        arcContactTelCode: contactPayload.arcContactTelCode ?? null,
+        arcContactTelNo: contactPayload.arcContactTelNo ?? null,
+        arcContactMobNo: contactPayload.arcContactMobNo ?? null,
+        arcContactFaxNo: contactPayload.arcContactFaxNo ?? null,
+        enabled: true,
+        deleted: false,
+        workflowStatus: contactPayload.workflowStatus ?? null,
+        ...(buildPartnerId && {
+          assetRegisterDTO: {
+            id: parseInt(buildPartnerId),
+            enabled: true,
+            deleted: false,
+          },
+        }),
       }
 
-   
       if (isEditing && onContactUpdated && contactIndex !== undefined) {
         onContactUpdated(contactForForm, contactIndex)
       } else if (!isEditing && onContactAdded) {
         onContactAdded(contactForForm)
       }
 
-     
       setTimeout(() => {
         reset()
         onClose()
@@ -433,7 +434,6 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
     onClose()
   }
 
- 
   const commonFieldStyles = {
     '& .MuiOutlinedInput-root': {
       height: '46px',
@@ -512,8 +512,8 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
         control={control}
         defaultValue={defaultValue}
         rules={{
-          validate: (value: any) => {
-            const allValues = control._formValues as ContactFormData
+          validate: (value: unknown) => {
+            const allValues = getValues()
             return validateContactField(name, value, allValues)
           },
         }}
@@ -529,7 +529,10 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
               InputProps={{ sx: valueSx }}
               sx={errors[name] ? errorFieldStyles : commonFieldStyles}
             />
-            <FormError error={(errors[name]?.message as string) || ''} touched={true} />
+            <FormError
+              error={(errors[name]?.message as string) || ''}
+              touched={true}
+            />
           </>
         )}
       />
@@ -565,18 +568,20 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
                 </MenuItem>
               ))}
             </Select>
-            <FormError error={(errors[name]?.message as string) || ''} touched={true} />
+            <FormError
+              error={(errors[name]?.message as string) || ''}
+              touched={true}
+            />
           </FormControl>
         )}
       />
     </Grid>
   )
 
-  
   const renderApiSelectField = (
     name: keyof ContactFormData,
     label: string,
-    options: unknown[],
+    options: FeeDropdownOption[],
     gridSize: number = 6,
     required = false,
     loading = false
@@ -586,8 +591,8 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
         name={name}
         control={control}
         rules={{
-          validate: (value: any) => {
-            const allValues = control._formValues as ContactFormData
+          validate: (value: unknown) => {
+            const allValues = getValues()
             return validateContactField(name, value, allValues)
           },
         }}
@@ -599,29 +604,22 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
             </InputLabel>
             <Select
               {...field}
-              input={
-                <OutlinedInput
-                  label={loading ? `Loading...` : label}
-                />
-              }
+              input={<OutlinedInput label={loading ? `Loading...` : label} />}
               label={loading ? `Loading...` : label}
               sx={{ ...selectStyles, ...valueSx }}
               IconComponent={KeyboardArrowDownIcon}
               disabled={loading}
             >
               {options.map((option) => (
-                <MenuItem
-                  key={(option as { id?: string }).id}
-                  value={(option as { id?: string }).id}
-                >
-                  {getDisplayLabel(
-                    option as any,
-                    (option as { configValue?: string }).configValue
-                  )}
+                <MenuItem key={option.id} value={option.id}>
+                  {getDisplayLabel(option, option.configValue)}
                 </MenuItem>
               ))}
             </Select>
-            <FormError error={(errors[name]?.message as string) || ''} touched={true} />
+            <FormError
+              error={(errors[name]?.message as string) || ''}
+              touched={true}
+            />
           </FormControl>
         )}
       />
@@ -641,6 +639,9 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
           backdropFilter: 'blur(15px)',
           border: '2px solid rgba(255, 255, 255, 0.3)',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
         },
       }}
     >
@@ -656,26 +657,46 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
           lineHeight: '28px',
           letterSpacing: '0.15px',
           verticalAlign: 'middle',
+          flexShrink: 0,
+          borderBottom: '1px solid #E5E7EB',
+          backgroundColor: 'white',
+          zIndex: 11,
         }}
       >
         {mode === 'edit'
-          ? getBuildPartnerLabelDynamic('CDL_BP_CONTACT_EDIT')
-          : getBuildPartnerLabelDynamic('CDL_BP_CONTACT_ADD')}
+          ? getBuildPartnerLabelDynamic('CDL_AR_CONTACT_EDIT')
+          : getBuildPartnerLabelDynamic('CDL_AR_CONTACT_ADD')}
         <IconButton onClick={handleClose}>
           <CancelOutlinedIcon />
         </IconButton>
       </DialogTitle>
 
-      <form noValidate onSubmit={handleSubmit(onSubmit)}>
-        <DialogContent dividers>
-          
+      <form
+        noValidate
+        onSubmit={handleSubmit(onSubmit)}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1,
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        <DialogContent
+          dividers
+          sx={{
+            flex: 1,
+            overflowY: 'auto',
+            paddingBottom: '20px',
+            marginBottom: '80px', // Space for fixed buttons
+          }}
+        >
           {countryCodesError && (
             <Alert severity="error" sx={{ mb: 2 }}>
               Failed to load country code options. Please refresh the page.
             </Alert>
           )}
 
-          
           {!countryCodesLoading &&
             !countryCodesError &&
             countryCodes.length === 0 && (
@@ -687,42 +708,42 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
           <Grid container rowSpacing={4} columnSpacing={2} mt={3}>
             {renderTextField(
               'fname',
-              getBuildPartnerLabelDynamic('CDL_BP_AUTH_FIRST_NAME'),
+              getBuildPartnerLabelDynamic('CDL_AR_AUTH_FIRST_NAME'),
               '',
               6,
               true
             )}
             {renderTextField(
               'lname',
-              getBuildPartnerLabelDynamic('CDL_BP_AUTH_LAST_NAME'),
+              getBuildPartnerLabelDynamic('CDL_AR_AUTH_LAST_NAME'),
               '',
               6,
               true
             )}
             {renderTextField(
               'email',
-              getBuildPartnerLabelDynamic('CDL_BP_EMAIL_ADDRESS'),
+              getBuildPartnerLabelDynamic('CDL_AR_EMAIL_ADDRESS'),
               '',
               12,
               true
             )}
             {renderTextField(
               'address1',
-              getBuildPartnerLabelDynamic('CDL_BP_ADDRESS_LINE1'),
+              getBuildPartnerLabelDynamic('CDL_AR_ADDRESS_LINE1'),
               '',
               12,
               true
             )}
             {renderTextField(
               'address2',
-              getBuildPartnerLabelDynamic('CDL_BP_ADDRESS_LINE2'),
+              getBuildPartnerLabelDynamic('CDL_AR_ADDRESS_LINE2'),
               '',
               12,
               false
             )}
             {renderTextField(
               'pobox',
-              getBuildPartnerLabelDynamic('CDL_BP_POBOX'),
+              getBuildPartnerLabelDynamic('CDL_AR_POBOX'),
               '',
               12,
               false
@@ -730,7 +751,7 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
             {countryCodes.length > 0
               ? renderApiSelectField(
                   'countrycode',
-                  getBuildPartnerLabelDynamic('CDL_BP_COUNTRY_CODE'),
+                  getBuildPartnerLabelDynamic('CDL_AR_COUNTRY_CODE'),
                   countryCodes,
                   6,
                   true,
@@ -738,28 +759,28 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
                 )
               : renderSelectField(
                   'countrycode',
-                  getBuildPartnerLabelDynamic('CDL_BP_COUNTRY_CODE'),
+                  getBuildPartnerLabelDynamic('CDL_AR_COUNTRY_CODE'),
                   ['+971', '+1', '+44', '+91'],
                   6,
                   true
                 )}
             {renderTextField(
               'telephoneno',
-              getBuildPartnerLabelDynamic('CDL_BP_TELEPHONE_NUMBER'),
+              getBuildPartnerLabelDynamic('CDL_AR_TELEPHONE_NUMBER'),
               '',
               6,
               false
             )}
             {renderTextField(
               'mobileno',
-              getBuildPartnerLabelDynamic('CDL_BP_MOBILE_NUMBER'),
+              getBuildPartnerLabelDynamic('CDL_AR_MOBILE_NUMBER'),
               '',
               6,
               true
             )}
             {renderTextField(
               'fax',
-              getBuildPartnerLabelDynamic('CDL_BP_FAX_NUMBER'),
+              getBuildPartnerLabelDynamic('CDL_AR_FAX_NUMBER'),
               '',
               12,
               false
@@ -774,6 +795,10 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
             left: 0,
             right: 0,
             padding: 2,
+            backgroundColor: 'white',
+            borderTop: '1px solid #E5E7EB',
+            boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.05)',
+            zIndex: 10,
           }}
         >
           <Grid container spacing={2}>
@@ -826,7 +851,6 @@ export const RightSlideContactDetailsPanel: React.FC<RightSlidePanelProps> = ({
         </Box>
       </form>
 
-     
       <Snackbar
         open={!!errorMessage}
         autoHideDuration={6000}

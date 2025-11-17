@@ -40,32 +40,22 @@ export interface ProcessedTransaction {
   pfiCreditedEscrow: boolean | null
   pfiCbsResponse: string | null
   pfiPaymentRefNo: string | null
-  realEstateAssestDTO: {
+  managementFirmDTO: {
     id?: number
-    reaName?: string
-    reaId?: string
-    reaCif?: string
-    reaUnitNumber?: string
-    reaDeveloperName?: string
-    reaOqoodFormat?: string
+    mfName?: string
+    mfId?: string
+    mfId?: string
+    mfUnitNumber?: string
+    mfDeveloperName?: string
+    mfOqoodFormat?: string
   } | null
-  capitalPartnerUnitDTO: any | null
+  ownerRegistryUnitDTO: any | null
   bucketTypeDTO: any | null
   depositModeDTO: any | null
   subDepositTypeDTO: any | null
   deleted: boolean | null
   enabled: boolean | null
   taskStatusDTO: any | null
-  // New fields
-  pfiManagementFirmsNumber?: string | null
-  pfiManagementName?: string | null
-  pfiTransactionRefNumber?: string | null
-  pfiOwnerBuyerName?: string | null
-  pfiSplitAmount?: number | null
-  pfiReceivableBucket?: string | null
-  pfiDepositMode?: string | null
-  pfiReservePercentage?: number | null
-  pfiReserveAmount?: number | null
 }
 
 export interface ProcessedTransactionFilters {
@@ -109,16 +99,6 @@ export interface ProcessedTransactionUIData {
   branchCode?: string
   checkNumber?: string
   retentionAmount?: string
-  // New fields
-  managementFirmsNumber?: string
-  managementName?: string
-  transactionRefNumber?: string
-  ownerBuyerName?: string
-  splitAmount?: string
-  receivableBucket?: string
-  depositMode?: string
-  reservePercentage?: string
-  reserveAmount?: string
 }
 
 export interface CreateProcessedTransactionRequest {
@@ -169,16 +149,16 @@ export const mapProcessedTransactionToUIData = (
     id: String(apiData.id),
     date: formatDate(apiData.pfiTransactionDate),
     transId: apiData.pfiTransactionId || '—',
-    projectAccountId: apiData.realEstateAssestDTO?.reaCif || '—',
+    projectAccountId: apiData.managementFirmDTO?.mfId || '—',
     developerName:
-      apiData.realEstateAssestDTO?.reaDeveloperName ||
+      apiData.managementFirmDTO?.mfDeveloperName ||
       apiData.pfiPrimaryUnitHolderName ||
       '—',
-    projectName: apiData.realEstateAssestDTO?.reaName || '—',
-    projectRegulatorId: apiData.realEstateAssestDTO?.reaId || '—',
+    projectName: apiData.managementFirmDTO?.mfName || '—',
+    projectRegulatorId: apiData.managementFirmDTO?.mfId || '—',
     unitNo:
-      apiData.realEstateAssestDTO?.reaUnitNumber ||
-      apiData.realEstateAssestDTO?.reaOqoodFormat ||
+      apiData.managementFirmDTO?.mfUnitNumber ||
+      apiData.managementFirmDTO?.mfOqoodFormat ||
       apiData.pfiUnitRefNumber ||
       '—',
     receivableCategory: '—',
@@ -204,16 +184,6 @@ export const mapProcessedTransactionToUIData = (
     retentionAmount: apiData.pfiRetentionAmount
       ? formatAmount(apiData.pfiRetentionAmount)
       : '—',
-    // New fields
-    managementFirmsNumber: apiData.pfiManagementFirmsNumber || '—',
-    managementName: apiData.pfiManagementName || '—',
-    transactionRefNumber: apiData.pfiTransactionRefNumber || '—',
-    ownerBuyerName: apiData.pfiOwnerBuyerName || '—',
-    splitAmount: apiData.pfiSplitAmount ? formatAmount(apiData.pfiSplitAmount) : '—',
-    receivableBucket: apiData.pfiReceivableBucket || '—',
-    depositMode: apiData.pfiDepositMode || '—',
-    reservePercentage: apiData.pfiReservePercentage ? String(apiData.pfiReservePercentage) : '—',
-    reserveAmount: apiData.pfiReserveAmount ? formatAmount(apiData.pfiReserveAmount) : '—',
   }
 }
 

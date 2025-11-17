@@ -47,9 +47,6 @@ export function usePendingTransactionLabelsWithCache() {
     isFetching: pendingTransactionLabelsLoading,
     isSuccess: !!pendingTransactionLabels,
     refetch: () => {
-      console.log(
-        '🏦 [COMPLIANCE] Refetch requested - handled by compliance loader'
-      )
       return Promise.resolve({ data: pendingTransactionLabels })
     },
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import dayjs from 'dayjs'
 import { realEstateAssetService } from '@/services/api/projectService'
 
 // Data interfaces for project review
@@ -89,6 +90,13 @@ export interface BeneficiaryData {
   swiftCode: string
   routingCode: string
   accountNumber: string
+  mfBeneficiaryId?: string
+  mfBeneficiaryType?: string
+  mfName?: string
+  mfBankName?: string
+  mfSwiftCode?: string
+  mfRoutingCode?: string
+  mfAccountNumber?: string
 }
 
 export interface PaymentPlanData {
@@ -171,44 +179,44 @@ export function useProjectReview(projectId: string) {
 
         const mappedProjectDetails: ProjectDetails | null = projectDetailsResult ? {
           id: projectDetailsResult.id?.toString() || '',
-          projectName: projectDetailsResult.reaName || '',
-          projectLocation: projectDetailsResult.reaLocation || '',
-          projectStatus: projectDetailsResult.reaStatusDTO?.languageTranslationId?.configValue || '',
-          projectAccountStatus: projectDetailsResult.reaAccountStatusDTO?.languageTranslationId?.configValue || '',
-          projectAccountStatusDate: projectDetailsResult.reaAccStatusDate || '',
-          projectRegistrationDate: projectDetailsResult.reaRegistrationDate || '',
-          projectStartDate: projectDetailsResult.reaStartDate || '',
-          projectStartDateEst: projectDetailsResult.reaCompletionDate || '',
-          projectCompletionDate: projectDetailsResult.reaCompletionDate || '',
-          retentionPercent: projectDetailsResult.reaRetentionPercent || '',
-          additionalRetentionPercent: projectDetailsResult.reaAdditionalRetentionPercent || '',
-          totalRetentionPercent: projectDetailsResult.reaTotalRetentionPercent || '',
-          retentionEffectiveStartDate: projectDetailsResult.reaRetentionEffectiveDate || '',
-          projectManagementExpenses: projectDetailsResult.reaManagementExpenses || '',
-          marketingExpenses: projectDetailsResult.reaMarketingExpenses || '',
-          realEstateBrokerExpense: projectDetailsResult.reaRealEstateBrokerExp?.toString() || '',
-          advertisingExpense: projectDetailsResult.reaAdvertisementExp?.toString() || '',
-          landOwnerName: projectDetailsResult.reaLandOwnerName || '',
-          projectCompletionPercentage: projectDetailsResult.reaPercentComplete || '',
-          currency: projectDetailsResult.reaConstructionCostCurrencyDTO?.languageTranslationId?.configValue || '',
-          actualConstructionCost: projectDetailsResult.reaConstructionCost?.toString() || '',
-          noOfUnits: projectDetailsResult.reaNoOfUnits?.toString() || '',
-          remarks: projectDetailsResult.reaRemarks || '',
-          specialApproval: projectDetailsResult.reaSpecialApproval || '',
-          managedBy: projectDetailsResult.reaManagedBy || '',
-          backupRef: projectDetailsResult.reaBackupUser || '',
-          relationshipManager: projectDetailsResult.reaRelationshipManagerName || '',
-          assistantRelationshipManager: projectDetailsResult.reaAssestRelshipManagerName || '',
-          teamLeaderName: projectDetailsResult.reaTeamLeadName || '',
+          projectName: projectDetailsResult.mfName || '',
+          projectLocation: projectDetailsResult.mfLocation || '',
+          projectStatus: projectDetailsResult.mfStatusDTO?.languageTranslationId?.configValue || '',
+          projectAccountStatus: projectDetailsResult.mfAccountStatusDTO?.languageTranslationId?.configValue || '',
+          projectAccountStatusDate: projectDetailsResult.mfAccStatusDate || '',
+          projectRegistrationDate: projectDetailsResult.mfRegistrationDate || '',
+          projectStartDate: projectDetailsResult.mfStartDate || '',
+          projectStartDateEst: projectDetailsResult.mfCompletionDate || '',
+          projectCompletionDate: projectDetailsResult.mfCompletionDate || '',
+          retentionPercent: projectDetailsResult.mfRetentionPercent || '',
+          additionalRetentionPercent: projectDetailsResult.mfAdditionalRetentionPercent || '',
+          totalRetentionPercent: projectDetailsResult.mfTotalRetentionPercent || '',
+          retentionEffectiveStartDate: projectDetailsResult.mfRetentionEffectiveDate || '',
+          projectManagementExpenses: projectDetailsResult.mfManagementExpenses || '',
+          marketingExpenses: projectDetailsResult.mfMarketingExpenses || '',
+          realEstateBrokerExpense: projectDetailsResult.mfRealEstateBrokerExp?.toString() || '',
+          advertisingExpense: projectDetailsResult.mfAdvertisementExp?.toString() || '',
+          landOwnerName: projectDetailsResult.mfLandOwnerName || '',
+          projectCompletionPercentage: projectDetailsResult.mfPercentComplete || '',
+          currency: projectDetailsResult.mfConstructionCostCurrencyDTO?.languageTranslationId?.configValue || '',
+          actualConstructionCost: projectDetailsResult.mfConstructionCost?.toString() || '',
+          noOfUnits: projectDetailsResult.mfNoOfUnits?.toString() || '',
+          remarks: projectDetailsResult.mfRemarks || '',
+          specialApproval: projectDetailsResult.mfSpecialApproval || '',
+          managedBy: projectDetailsResult.mfManagedBy || '',
+          backupRef: projectDetailsResult.mfBackupUser || '',
+          relationshipManager: projectDetailsResult.mfRelationshipManagerName || '',
+          assistantRelationshipManager: projectDetailsResult.mfAssestRelshipManagerName || '',
+          teamLeaderName: projectDetailsResult.mfTeamLeadName || '',
           // Developer fields
-          developerCif: projectDetailsResult.buildPartnerDTO?.bpCifrera || '',
-          developerId: projectDetailsResult.buildPartnerDTO?.bpDeveloperId || '',
-          developerName: projectDetailsResult.buildPartnerDTO?.bpName || '',
-          masterDeveloperName: projectDetailsResult.buildPartnerDTO?.bpMasterName || '',
-          reraNumber: projectDetailsResult.reaReraNumber || '',
-          projectType: projectDetailsResult.reaTypeDTO?.languageTranslationId?.configValue || '',
-          projectAccountCif: projectDetailsResult.reaCif || '',
-          paymentType: projectDetailsResult.reaBlockPaymentTypeDTO?.languageTranslationId?.configValue || '',
+          developerCif: projectDetailsResult.assetRegisterDTO?.arCifrera || '',
+          developerId: projectDetailsResult.assetRegisterDTO?.arDeveloperId || '',
+          developerName: projectDetailsResult.assetRegisterDTO?.arName || '',
+          masterDeveloperName: projectDetailsResult.assetRegisterDTO?.arMasterName || '',
+          reraNumber: projectDetailsResult.mfReraNumber || '',
+          projectType: projectDetailsResult.mfTypeDTO?.languageTranslationId?.configValue || '',
+          projectAccountCif: projectDetailsResult.mfId || '',
+          paymentType: projectDetailsResult.mfBlockPaymentTypeDTO?.languageTranslationId?.configValue || '',
         } : null
 
         const mappedAccounts: AccountData[] = Array.isArray(accountsResult) ? accountsResult.map((acc: any) => ({
@@ -221,59 +229,166 @@ export function useProjectReview(projectId: string) {
           accountType: acc.accountType || '',
         })) : []
 
-        const mappedFees: FeeData[] = Array.isArray(feesResult) ? feesResult.map((fee: any) => ({
-          id: fee.id?.toString() || '',
-          feeType: fee.reafCategoryDTO?.languageTranslationId?.configValue || fee.reafCategoryDTO?.settingValue || '',
-          frequency: fee.reafFrequencyDTO?.languageTranslationId?.configValue || fee.reafFrequencyDTO?.settingValue || '',
-          debitAmount: fee.reafDebitAmount?.toString() || '',
-          feeToBeCollected: fee.reafCollectionDate || '',
-          nextRecoveryDate: fee.reafNextRecoveryDate || '',
-          feePercentage: fee.reafFeePercentage?.toString() || '',
-          amount: fee.reafTotalAmount?.toString() || '',
-          vatPercentage: fee.reafVatPercentage?.toString() || '',
-          currency: fee.reafCurrencyDTO?.languageTranslationId?.configValue || fee.reafCurrencyDTO?.settingValue || '',
-        })) : []
+        const formatDateField = (value: string | null | undefined) => {
+          if (!value) return ''
+          const parsed = dayjs(value)
+          return parsed.isValid() ? parsed.format('DD/MM/YYYY') : value
+        }
 
-        const mappedBeneficiaries: BeneficiaryData[] = Array.isArray(beneficiariesResult) ? beneficiariesResult.map((ben: any) => ({
+        const mappedFees: FeeData[] = Array.isArray(feesResult)
+          ? feesResult.map((fee: any) => {
+              const feeTypeLabel =
+                fee.mffCategoryDTO?.languageTranslationId?.configValue ||
+                fee.mffCategoryDTO?.settingValue ||
+                ''
+              const frequencyLabel =
+                fee.mffFrequencyDTO?.languageTranslationId?.configValue ||
+                fee.mffFrequencyDTO?.settingValue ||
+                fee.mffFrequency ||
+                fee.mffCalender ||
+                ''
+              const debitAccountLabel =
+                fee.mffAccountTypeDTO?.languageTranslationId?.configValue ||
+                fee.mffAccountTypeDTO?.settingValue ||
+                ''
+              const currencyLabel =
+                fee.mffCurrencyDTO?.languageTranslationId?.configValue ||
+                fee.mffCurrencyDTO?.settingValue ||
+                ''
+
+              return {
+          id: fee.id?.toString() || '',
+                feeType: feeTypeLabel,
+                frequency: frequencyLabel,
+                debitAmount: fee.mffDebitAmount?.toString() || '',
+                feeToBeCollected: formatDateField(fee.mffCollectionDate),
+                nextRecoveryDate: formatDateField(fee.mffNextRecoveryDate),
+                feePercentage: fee.mffFeePercentage?.toString() || '',
+                amount: fee.mffTotalAmount?.toString() || '',
+                vatPercentage: fee.mffVatPercentage?.toString() || '',
+                currency: currencyLabel,
+                debitAccount: debitAccountLabel,
+                enabled:
+                  fee.enabled === undefined || fee.enabled === null
+                    ? true
+                    : Boolean(fee.enabled),
+                deleted: Boolean(fee.deleted),
+                display: {
+                  feeType: feeTypeLabel,
+                  frequency: frequencyLabel,
+                  currency: currencyLabel,
+                  debitAccount: debitAccountLabel,
+                },
+              }
+            })
+          : []
+
+        const mappedBeneficiaries: BeneficiaryData[] = Array.isArray(beneficiariesResult)
+          ? beneficiariesResult.map((ben: any) => {
+              const transferTypeDto =
+                ben.mfTransferTypeDTO ||
+                ben.mfbTransferTypeDTO ||
+                ben.reabTranferTypeDTO ||
+                ben.reabTransferTypeDTO
+
+              const beneficiaryType =
+                ben.mfBeneficiaryType ||
+                transferTypeDto?.languageTranslationId?.configValue ||
+                transferTypeDto?.settingValue ||
+                ben.mfbType ||
+                ben.transferType ||
+                ben.beneficiaryType ||
+                ''
+
+              const beneficiaryId =
+                ben.mfBeneficiaryId || ben.mfbBeneficiaryId || ben.beneficiaryId || ''
+
+              const name = ben.mfName || ben.mfbName || ben.name || ''
+              const bankName = ben.mfBank || ben.mfbBank || ben.bankName || ''
+              const swiftCode = ben.mfSwift || ben.mfbSwift || ben.swiftCode || ''
+              const routingCode =
+                ben.mfRoutingCode || ben.mfbRoutingCode || ben.routingCode || ''
+              const accountNumber =
+                ben.mfBeneAccount || ben.mfbBeneAccount || ben.accountNumber || ''
+
+              return {
           id: ben.id?.toString() || '',
-          beneficiaryId: ben.reabBeneficiaryId || '',
-          // Use Transfer Type DTO label if available; fallback to stored string
-          beneficiaryType:
-            // Handle both API spellings: reabTransferTypeDTO and reabTranferTypeDTO
-            ben.reabTransferTypeDTO?.languageTranslationId?.configValue ||
-            ben.reabTransferTypeDTO?.settingValue ||
-            ben.reabTranferTypeDTO?.languageTranslationId?.configValue ||
-            ben.reabTranferTypeDTO?.settingValue ||
-            ben.reabType ||
-            '',
-          name: ben.reabName || '',
-          bankName: ben.reabBank || '',
-          swiftCode: ben.reabSwift || '',
-          routingCode: ben.reabRoutingCode || '',
-          accountNumber: ben.reabBeneAccount || '',
-        })) : []
+                beneficiaryId,
+                beneficiaryType,
+                name,
+                bankName,
+                swiftCode,
+                routingCode,
+                accountNumber,
+                mfBeneficiaryId: beneficiaryId,
+                mfBeneficiaryType: beneficiaryType,
+                mfName: name,
+                mfBankName: bankName,
+                mfSwiftCode: swiftCode,
+                mfRoutingCode: routingCode,
+                mfAccountNumber: accountNumber,
+              }
+            })
+          : []
 
         const mappedPaymentPlans: PaymentPlanData[] = Array.isArray(paymentPlansResult) ? paymentPlansResult.map((plan: any) => ({
           id: plan.id?.toString() || '',
-          installmentNumber: plan.reappInstallmentNumber || 0,
-          installmentPercentage: plan.reappInstallmentPercentage?.toString() || '0',
-          projectCompletionPercentage: plan.reappProjectCompletionPercentage?.toString() || '0',
+          installmentNumber: plan.mfppInstallmentNumber || 0,
+          installmentPercentage: plan.mfppInstallmentPercentage?.toString() || '0',
+          projectCompletionPercentage: plan.mfppProjectCompletionPercentage?.toString() || '0',
         })) : []
 
-        const mappedDocuments: DocumentData[] = Array.isArray(documentsResult) ? documentsResult.map((doc: any) => ({
-          id: doc.id?.toString() || '',
-          fileName: doc.documentName || '',
-          // Prefer human-friendly configValue; fall back to settingValue
-          documentType: doc.documentTypeDTO?.languageTranslationId?.configValue || doc.documentTypeDTO?.settingValue || '',
-          uploadDate: doc.uploadDate || '',
-          fileSize: parseInt(doc.documentSize || '0'),
-        })) : []
+        const mappedDocuments: DocumentData[] = Array.isArray(documentsResult)
+          ? documentsResult.map((doc: any) => {
+              const fileName =
+                doc.documentName ||
+                doc.fileName ||
+                doc.name ||
+                `Document_${doc.id ?? Date.now()}`
+
+              const documentType =
+                doc.documentTypeDTO?.languageTranslationId?.configValue ||
+                doc.documentTypeDTO?.settingValue ||
+                doc.documentType?.languageTranslationId?.configValue ||
+                doc.documentType?.settingValue ||
+                doc.documentClassification ||
+                'N/A'
+
+              const rawUploadDate =
+                doc.uploadDate ||
+                doc.createdDate ||
+                doc.createdOn ||
+                doc.createdAt ||
+                doc.updatedAt ||
+                null
+
+              const formattedUploadDate = rawUploadDate
+                ? dayjs(rawUploadDate).isValid()
+                  ? dayjs(rawUploadDate).format('DD/MM/YYYY')
+                  : rawUploadDate
+                : ''
+
+              const rawSize = doc.documentSize ?? doc.size ?? doc.fileSize ?? 0
+              const numericSize =
+                typeof rawSize === 'string'
+                  ? parseInt(rawSize.replace(/[^\d]/g, ''), 10) || 0
+                  : Number(rawSize) || 0
+
+              return {
+                id: doc.id?.toString() || '',
+                fileName,
+                documentType,
+                uploadDate: formattedUploadDate,
+                fileSize: numericSize,
+              }
+            })
+          : []
 
         const mappedClosureData: ClosureData[] = extractedClosureData.map((closure: any) => ({
           id: closure.id?.toString() || '',
-          totalIncomeFund: closure.reacTotalIncomeFund?.toString() || '0',
-          totalPayment: closure.reacTotalPayment?.toString() || '0',
-          checkGuaranteeDoc: closure.reacCheckGuranteeDoc || null,
+          totalIncomeFund: closure.mfAccountStatusDTO?.totalIncomeFund?.toString() || '0',
+          totalPayment: closure.mfAccountStatusDTO?.totalPayment?.toString() || '0',
+          checkGuaranteeDoc: closure.mfAccountStatusDTO?.checkGuranteeDoc || null,
           enabled: closure.enabled || false,
         }))
 

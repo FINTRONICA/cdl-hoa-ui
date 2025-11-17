@@ -11,7 +11,10 @@ import { getFeeRepushLabel } from '@/constants/mappings/feeRepushMapping'
 import { useFeeRepushLabelsWithCache } from '@/hooks/useFeeRepushLabelsWithCache'
 import { useAppStore } from '@/store'
 import { RotateCcw } from 'lucide-react'
-import { useSuccessNotification, useErrorNotification } from '@/store/notificationStore'
+import {
+  useSuccessNotification,
+  useErrorNotification,
+} from '@/store/notificationStore'
 
 // Import the fee repush UI data type from the service
 import type { FeeRepushUIData } from '@/services/api/feeRepushService'
@@ -22,6 +25,7 @@ import { GlobalLoading, GlobalError } from '@/components/atoms'
 interface FeeRepushTableData extends FeeRepushUIData, Record<string, unknown> {}
 
 const statusOptions = [
+  'Success',
   'Failed',
   'Pending',
   'Approved',
@@ -36,10 +40,8 @@ const FeeRepushPage: React.FC = () => {
 
   const currentLanguage = useAppStore((state) => state.language)
 
-
   const showSuccess = useSuccessNotification()
   const showError = useErrorNotification()
-
 
   const {
     data: feeRepushData,
@@ -50,8 +52,7 @@ const FeeRepushPage: React.FC = () => {
     feeRepush,
     updatePagination,
     pagination,
-  } = useFeeRepush(0, 20) 
-
+  } = useFeeRepush(0, 20)
 
   const {
     data: feeRepushLabels,
@@ -61,17 +62,14 @@ const FeeRepushPage: React.FC = () => {
     getLabel: getFeeRepushLabelFromAPI,
   } = useFeeRepushLabelsWithCache(currentLanguage)
 
-  
   const getFeeRepushLabelDynamic = React.useCallback(
     (configId: string): string => {
       const fallbackLabel = getFeeRepushLabel(configId)
 
- 
       if (feeRepushLabelMap && feeRepushLabelMap[configId]) {
         return feeRepushLabelMap[configId]
       }
 
-    
       if (getFeeRepushLabelFromAPI) {
         const apiLabel = getFeeRepushLabelFromAPI(configId)
         if (apiLabel !== configId) {
@@ -84,18 +82,17 @@ const FeeRepushPage: React.FC = () => {
     [feeRepushLabelMap, getFeeRepushLabelFromAPI]
   )
 
-
   const tableColumns = [
     {
       key: 'projectName',
-      label: getFeeRepushLabelDynamic('CDL_FEE_BPA_NAME'), 
+      label: getFeeRepushLabelDynamic('CDL_FEE_BPA_NAME'),
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
     },
     {
       key: 'feeType',
-      label: getFeeRepushLabelDynamic('CDL_FEE_TYPE'), 
+      label: getFeeRepushLabelDynamic('CDL_FEE_TYPE'),
       type: 'text' as const,
       width: 'w-48',
       sortable: true,
@@ -214,10 +211,7 @@ const FeeRepushPage: React.FC = () => {
 
     try {
       await feeRepush(row.id)
-      showSuccess(
-        'Fee Repush Initiated',
-        `${row.projectName} - ${row.feeType}`
-      )
+      showSuccess('Fee Repush Initiated', `${row.projectName} - ${row.feeType}`)
     } catch (error) {
       showError(
         'Fee Repush Failed',
@@ -407,8 +401,8 @@ const FeeRepushPage: React.FC = () => {
 
           {(feeRepushError || labelsError) && (
             <div className="flex-1 flex items-center justify-center">
-              <GlobalError 
-                error={feeRepushError || labelsError || 'Unknown error'} 
+              <GlobalError
+                error={feeRepushError || labelsError || 'Unknown error'}
                 onRetry={refetchFeeRepush}
                 title="Error loading data"
                 fullHeight
