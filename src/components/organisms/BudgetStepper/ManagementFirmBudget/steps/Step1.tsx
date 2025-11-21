@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, forwardRef, useImperativeHandle, useEffect, useCallback } from 'react'
+import { useState, forwardRef, useImperativeHandle, useEffect, useCallback, useRef } from 'react'
 import {
   Card,
   CardContent,
@@ -13,7 +13,7 @@ import {
 } from '@mui/material'
 import { KeyboardArrowDown as KeyboardArrowDownIcon } from '@mui/icons-material'
 import { Controller, useFormContext } from 'react-hook-form'
-import { useBudgetManagementFirmLabelsApi } from '@/hooks/useBudgetManagementFirmLabelsApi'
+import { useBudgetManagementFirmLabelsApi } from '@/hooks/useBudgetManagementFirmLabelsWithCache'
 import { useAppStore } from '@/store'
 import { budgetService } from '@/services/api/budgetApi/budgetService'
 import { buildPartnerService } from '@/services/api/buildPartnerService'
@@ -22,7 +22,9 @@ import { BudgetCategoryService } from '@/services/api/budgetApi/budgetCategorySe
 import { BudgetStep1Schema } from '@/lib/validation/budgetSchemas'
 import { BUDGET_LABELS } from '@/constants/mappings/budgetLabels'
 import { FormError } from '@/components/atoms/FormError'
-import type { BudgetRequest } from '@/constants/mappings/budgetMapper'
+import { DateRangePicker } from '@/app/dashboard/components/filters/DateRangePicker'
+import dayjs from 'dayjs'
+import type { BudgetRequest } from '@/utils/budgetMapper'
 import type { BuildPartner } from '@/services/api/buildPartnerService'
 import type { RealEstateAsset } from '@/services/api/projectService'
 import type { BudgetCategoryUIData } from '@/services/api/budgetApi/budgetCategoryService'
@@ -46,6 +48,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
     const {
       control,
       watch,
+      getValues,
       setValue,
       formState: { errors },
       setError,
@@ -66,6 +69,12 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
 
     const [isFormInitialized, setIsFormInitialized] = useState(false)
     const [isLoadingBudget, setIsLoadingBudget] = useState(false)
+
+    // Date range state
+    const [dateRange, setDateRange] = useState({
+      startDate: '',
+      endDate: '',
+    })
 
     // Fetch Asset Registers (Build Partners)
     useEffect(() => {
@@ -170,6 +179,9 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
       fetchBudgetCategories()
     }, [])
 
+    // Store budget data for later use
+    const [loadedBudgetData, setLoadedBudgetData] = useState<Awaited<ReturnType<typeof budgetService.getBudgetById>> | null>(null)
+
     // Load existing budget data in edit mode
     useEffect(() => {
       const loadBudgetData = async () => {
@@ -177,6 +189,9 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
           try {
             setIsLoadingBudget(true)
             const budgetData = await budgetService.getBudgetById(budgetId)
+            
+            // Store budget data for later use
+            setLoadedBudgetData(budgetData)
             
             // Debug: Log the budget data received from backend
             console.log('[Step1] Budget data loaded from backend:', {
@@ -189,24 +204,87 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
             // Set form values from loaded data
             if (budgetData.assetRegisterDTO?.id) {
               console.log('[Step1] Setting assetRegisterId to:', budgetData.assetRegisterDTO.id.toString())
-              setValue('assetRegisterId', budgetData.assetRegisterDTO.id.toString())
+              setValue('assetRegisterId', budgetData.assetRegisterDTO.id.toString(), { shouldValidate: false, shouldDirty: false })
             } else {
               console.warn('[Step1] assetRegisterDTO is null or missing id')
             }
             if (budgetData.managementFirmDTO?.id) {
               console.log('[Step1] Setting managementFirmId to:', budgetData.managementFirmDTO.id.toString())
-              setValue('managementFirmId', budgetData.managementFirmDTO.id.toString())
+              setValue('managementFirmId', budgetData.managementFirmDTO.id.toString(), { shouldValidate: false, shouldDirty: false })
             } else {
               console.warn('[Step1] managementFirmDTO is null or missing id')
             }
-            setValue('budgetId', budgetData.budgetId || '')
-            setValue('budgetName', budgetData.budgetName || '')
-            setValue('budgetPeriodCode', budgetData.budgetPeriodCode || '')
-            setValue('propertyGroupId', budgetData.propertyGroupId?.toString() || '')
-            setValue('propertyManagerEmail', budgetData.propertyManagerEmail || '')
-            setValue('masterCommunityName', budgetData.masterCommunityName || '')
-            setValue('masterCommunityNameLocale', budgetData.masterCommunityNameLocale || '')
-            setValue('isActive', budgetData.isActive ?? true)
+            
+            setValue('budgetId', budgetData.budgetId || '', { shouldValidate: false, shouldDirty: false })
+            setValue('budgetName', budgetData.budgetName || '', { shouldValidate: false, shouldDirty: false })
+            setValue('budgetPeriodCode', budgetData.budgetPeriodCode || '', { shouldValidate: false, shouldDirty: false })
+            
+            // Parse budgetPeriodCode to extract dates and set date range
+            // budgetPeriodCode format: "YYYY-MM-DD to YYYY-MM-DD" (e.g., "2025-11-29 to 2025-12-08")
+            if (budgetData.budgetPeriodCode) {
+              const parseDateRange = (periodCode: string) => {
+                try {
+                  // Split by " to " to get start and end dates
+                  const parts = periodCode.split(' to ')
+                  if (parts.length === 2 && parts[0] && parts[1]) {
+                    const startDateStr = parts[0].trim() // "YYYY-MM-DD"
+                    const endDateStr = parts[1].trim()   // "YYYY-MM-DD"
+                    
+                    // Convert YYYY-MM-DD to DD-MM-YYYY for display
+                    const convertToDisplayFormat = (dateStr: string) => {
+                      const dateParts = dateStr.split('-')
+                      if (dateParts.length === 3 && dateParts[0] && dateParts[1] && dateParts[2]) {
+                        const [year, month, day] = dateParts
+                        return `${day}-${month}-${year}` // DD-MM-YYYY
+                      }
+                      return ''
+                    }
+                    
+                    const startDate = convertToDisplayFormat(startDateStr)
+                    const endDate = convertToDisplayFormat(endDateStr)
+                    
+                    if (startDate && endDate) {
+                      return { startDate, endDate }
+                    }
+                  }
+                } catch (error) {
+                  console.error('[Step1] Error parsing budgetPeriodCode:', error)
+                }
+                return null
+              }
+              
+              const dateRange = parseDateRange(budgetData.budgetPeriodCode)
+              if (dateRange) {
+                console.log('[Step1] Setting date range from budgetPeriodCode:', dateRange)
+                setDateRange(dateRange)
+              }
+            }
+            
+            // Also check if budgetPeriodFrom and budgetPeriodTo exist (fallback)
+            const budgetPeriodFrom = 'budgetPeriodFrom' in budgetData ? (budgetData as { budgetPeriodFrom?: string | Date }).budgetPeriodFrom : undefined
+            const budgetPeriodTo = 'budgetPeriodTo' in budgetData ? (budgetData as { budgetPeriodTo?: string | Date }).budgetPeriodTo : undefined
+            if (budgetPeriodFrom && budgetPeriodTo && (!budgetData.budgetPeriodCode || budgetData.budgetPeriodCode === '')) {
+              const formatDate = (dateStr: string | Date) => {
+                if (!dateStr) return ''
+                const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr
+                if (isNaN(date.getTime())) return ''
+                const day = String(date.getDate()).padStart(2, '0')
+                const month = String(date.getMonth() + 1).padStart(2, '0')
+                const year = date.getFullYear()
+                return `${day}-${month}-${year}`
+              }
+              const startDate = formatDate(budgetPeriodFrom)
+              const endDate = formatDate(budgetPeriodTo)
+              if (startDate && endDate) {
+                console.log('[Step1] Setting date range from budgetPeriodFrom/To:', { startDate, endDate })
+                setDateRange({ startDate, endDate })
+              }
+            }
+            setValue('propertyGroupId', budgetData.propertyGroupId?.toString() || '', { shouldValidate: false, shouldDirty: false })
+            setValue('propertyManagerEmail', budgetData.propertyManagerEmail || '', { shouldValidate: false, shouldDirty: false })
+            setValue('masterCommunityName', budgetData.masterCommunityName || '', { shouldValidate: false, shouldDirty: false })
+            setValue('masterCommunityNameLocale', budgetData.masterCommunityNameLocale || '', { shouldValidate: false, shouldDirty: false })
+            setValue('isActive', budgetData.isActive ?? true, { shouldValidate: false, shouldDirty: false })
 
         setIsFormInitialized(true)
           } catch (error) {
@@ -220,26 +298,62 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
       loadBudgetData()
     }, [isEditMode, budgetId, isFormInitialized, setValue])
 
+    // ✅ FIX: Set budgetCategoryId separately when both budget data and options are available
+    useEffect(() => {
+      if (
+        isEditMode &&
+        loadedBudgetData &&
+        budgetCategoryOptions.length > 0 &&
+        !loadingBudgetCategories
+      ) {
+        // Extract category ID from budgetCategoriesDTOS
+        if (loadedBudgetData.budgetCategoriesDTOS && loadedBudgetData.budgetCategoriesDTOS.length > 0) {
+          const firstCategory = loadedBudgetData.budgetCategoriesDTOS[0] as unknown
+          if (firstCategory) {
+            let categoryId: number | null = null
+            if (typeof firstCategory === 'object' && firstCategory !== null && 'id' in firstCategory) {
+              categoryId = (firstCategory as { id: number }).id
+            } else if (typeof firstCategory === 'number') {
+              categoryId = firstCategory as number
+            }
+            
+            if (categoryId) {
+              const categoryIdString = categoryId.toString()
+              const currentValue = getValues('budgetCategoryId')
+              
+              // Only set if the value is different or not set
+              if (currentValue !== categoryIdString) {
+                console.log('[Step1] Setting budgetCategoryId to:', categoryIdString)
+                console.log('[Step1] Current value:', currentValue)
+                console.log('[Step1] Available budgetCategoryOptions:', budgetCategoryOptions)
+                console.log('[Step1] Options include this ID?', budgetCategoryOptions.some(opt => opt.id === categoryId))
+                
+                // Verify the option exists in the loaded options
+                const optionExists = budgetCategoryOptions.some(opt => opt.id === categoryId)
+                if (optionExists) {
+                  setValue('budgetCategoryId', categoryIdString, { shouldValidate: false, shouldDirty: false })
+                  console.log('[Step1] ✅ Successfully set budgetCategoryId')
+                } else {
+                  console.warn('[Step1] ⚠️ Budget category option not found in loaded options')
+                  console.warn('[Step1] Looking for categoryId:', categoryId)
+                  console.warn('[Step1] Available option IDs:', budgetCategoryOptions.map(opt => opt.id))
+                }
+              } else {
+                console.log('[Step1] budgetCategoryId already set to correct value:', categoryIdString)
+              }
+            }
+          }
+        }
+      }
+    }, [isEditMode, loadedBudgetData, budgetCategoryOptions, loadingBudgetCategories, setValue, getValues])
+
     const handleSaveAndNext = useCallback(async () => {
       try {
-        // Trigger validation
-        const fieldsToValidate = [
-          'assetRegisterId',
-          'managementFirmId',
-          'budgetId',
-          'budgetName',
-          'budgetPeriodCode',
-          'propertyGroupId',
-          'propertyManagerEmail',
-          'masterCommunityName',
-        ] as const
-        
-        const isValid = await trigger(fieldsToValidate as unknown as string[])
-        
         // Get form values
         const formValues = {
           assetRegisterId: watch('assetRegisterId'),
           managementFirmId: watch('managementFirmId'),
+          budgetCategoryId: watch('budgetCategoryId'),
           budgetId: watch('budgetId'),
           budgetName: watch('budgetName'),
           budgetPeriodCode: watch('budgetPeriodCode'),
@@ -261,34 +375,44 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
         // Validate with Zod
         const zodResult = BudgetStep1Schema.safeParse(formValues)
         
-        if (!isValid || !zodResult.success) {
+        if (!zodResult.success) {
+          // Clear all errors first
+          const fieldsToValidate = [
+            'assetRegisterId',
+            'managementFirmId',
+            'budgetId',
+            'budgetName',
+            'budgetPeriodCode',
+            'propertyGroupId',
+            'propertyManagerEmail',
+            'masterCommunityName',
+          ] as const
+          
           clearErrors(fieldsToValidate as unknown as string[])
           
-          if (!zodResult.success) {
-            zodResult.error.issues.forEach((issue) => {
-              const field = (issue.path?.[0] as string) || ''
-              if (field) {
-                setError(field as keyof typeof errors, {
-                  type: 'manual',
-                  message: issue.message,
-                })
-              }
-            })
-          }
+          // Set errors from Zod validation
+          zodResult.error.issues.forEach((issue) => {
+            const field = (issue.path?.[0] as string) || ''
+            if (field) {
+              setError(field as keyof typeof errors, {
+                type: 'manual',
+                message: issue.message,
+              })
+            }
+          })
           
-          await trigger(fieldsToValidate as unknown as string[])
-          
-          if (!zodResult.success && zodResult.error.issues.length > 0) {
+          // Scroll to first error
+          if (zodResult.error.issues.length > 0) {
             const firstError = zodResult.error.issues[0]
             if (firstError) {
-            const firstErrorField = (firstError.path?.[0] as string) || ''
-            if (firstErrorField) {
-              const element = document.querySelector(`[name="${firstErrorField}"]`) as HTMLElement
-              if (element) {
-                setTimeout(() => {
-                  element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                  element.focus()
-                }, 100)
+              const firstErrorField = (firstError.path?.[0] as string) || ''
+              if (firstErrorField) {
+                const element = document.querySelector(`[name="${firstErrorField}"]`) as HTMLElement
+                if (element) {
+                  setTimeout(() => {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    element.focus()
+                  }, 100)
                 }
               }
             }
@@ -304,13 +428,18 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
         const managementFirmId = formValues.managementFirmId 
           ? parseInt(formValues.managementFirmId.toString(), 10) 
           : null
+        const budgetCategoryId = formValues.budgetCategoryId 
+          ? parseInt(formValues.budgetCategoryId.toString(), 10) 
+          : null
 
         // Debug: Log parsed IDs
         console.log('[Step1] Parsed IDs:', {
           assetRegisterId,
           managementFirmId,
+          budgetCategoryId,
           assetRegisterIdValid: assetRegisterId && !isNaN(assetRegisterId) && assetRegisterId > 0,
           managementFirmIdValid: managementFirmId && !isNaN(managementFirmId) && managementFirmId > 0,
+          budgetCategoryIdValid: budgetCategoryId && !isNaN(budgetCategoryId) && budgetCategoryId > 0,
         })
 
         // Validate IDs are valid numbers
@@ -319,6 +448,12 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
         }
         if (!managementFirmId || isNaN(managementFirmId) || managementFirmId <= 0) {
           throw new Error('Management Firm ID is required and must be a valid number')
+        }
+
+        // Build budgetCategoriesDTOS array
+        const budgetCategoriesDTOS: Array<{ id: number }> = []
+        if (budgetCategoryId && !isNaN(budgetCategoryId) && budgetCategoryId > 0) {
+          budgetCategoriesDTOS.push({ id: budgetCategoryId })
         }
 
         // Prepare payload
@@ -341,7 +476,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
           managementFirmDTO: {
             id: managementFirmId,
           },
-          budgetCategoriesDTOS: [], // Will be added in Step 2
+          budgetCategoriesDTOS: budgetCategoriesDTOS,
         }
 
         // Debug: Log final payload
@@ -363,7 +498,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
         const errorMessage = error instanceof Error ? error.message : 'Failed to save budget'
         throw new Error(errorMessage)
       }
-    }, [watch, trigger, setError, clearErrors, isEditMode, budgetId, onSaveAndNext])
+    }, [watch, setError, clearErrors, isEditMode, budgetId, onSaveAndNext])
 
     useImperativeHandle(
       ref,
@@ -453,7 +588,6 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                   fullWidth
                   disabled={disabled || isViewMode || isLoadingBudget}
                   error={!!errors[name]}
-                  helperText={errors[name]?.message as string}
                   InputLabelProps={{ sx: labelSx }}
                   InputProps={{ sx: valueSx }}
                   sx={{
@@ -578,9 +712,9 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                     </MenuItem>
                   ) : (
                     options.map((option) => (
-                      <MenuItem key={option.id} value={option.settingValue}>
-                        {option.displayName}
-                      </MenuItem>
+                    <MenuItem key={option.id} value={option.settingValue}>
+                      {option.displayName}
+                    </MenuItem>
                     ))
                   )}
                 </Select>
@@ -595,17 +729,142 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
       )
     }
 
+    // DateRangeDisplay Component
+    const DateRangeDisplay = ({
+      startDate,
+      endDate,
+      onDateChange,
+    }: {
+      startDate: string
+      endDate: string
+      onDateChange: (start: string, end: string) => void
+    }) => {
+      const [isOpen, setIsOpen] = useState(false)
+      const [prevStartDate, setPrevStartDate] = useState(startDate)
+      const [prevEndDate, setPrevEndDate] = useState(endDate)
+      const containerRef = useRef<HTMLDivElement>(null)
+
+      // Auto-close when both dates are selected (only when end date is selected after start date)
+      useEffect(() => {
+        const endDateChanged = endDate !== prevEndDate
+        const startDateWasAlreadySelected = prevStartDate && prevStartDate !== ''
+
+        // Only auto-close if:
+        // 1. End date was just selected (changed)
+        // 2. Start date was already selected before this change
+        // 3. Both dates now exist
+        // 4. Picker is currently open
+        if (
+          endDateChanged &&
+          startDateWasAlreadySelected &&
+          startDate &&
+          endDate &&
+          isOpen
+        ) {
+          setIsOpen(false)
+        }
+
+        setPrevStartDate(startDate)
+        setPrevEndDate(endDate)
+      }, [startDate, endDate, isOpen, prevStartDate, prevEndDate])
+
+      // Close when clicking outside (but not when clicking inside DatePicker calendar)
+      useEffect(() => {
+        if (!isOpen) return undefined
+
+        const handleClickOutside = (event: MouseEvent) => {
+          if (!containerRef.current) return
+          
+          const target = event.target as Element
+          
+          // Check if click is inside a MUI DatePicker calendar popper (rendered in portal)
+          const isDatePickerPopper = target.closest('.MuiPickersPopper-root, .MuiPickersPopper-paper, [role="dialog"]')
+          if (isDatePickerPopper) {
+            // Don't close if clicking inside the DatePicker calendar
+            return
+          }
+          
+          // Check if click is inside the container (trigger button or popup wrapper)
+          if (containerRef.current.contains(target as Node)) {
+            // Don't close if clicking the trigger button or inside the popup wrapper
+            return
+          }
+          
+          // Click is outside, close the popup
+          setIsOpen(false)
+        }
+
+        // Use a delay to avoid immediate closing when opening
+        const timeoutId = setTimeout(() => {
+          document.addEventListener('mousedown', handleClickOutside, true) // Use capture phase
+        }, 200)
+
+        return () => {
+          clearTimeout(timeoutId)
+          document.removeEventListener('mousedown', handleClickOutside, true)
+        }
+      }, [isOpen])
+
       return (
-        <Card
-          sx={{
-            boxShadow: 'none',
-            backgroundColor: '#FFFFFFBF',
-            width: '84%',
-            margin: '0 auto',
-          }}
-        >
-          <CardContent>
-            <Grid container rowSpacing={4} columnSpacing={2}>
+        <div ref={containerRef} className="relative">
+          <div
+            className="px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 min-w-[200px] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer flex items-center gap-3"
+            onClick={() => setIsOpen(!isOpen)}
+            style={{
+              height: '46px',
+              borderRadius: '8px',
+              fontFamily: 'Outfit, sans-serif',
+            }}
+          >
+            <svg
+              className="w-4 h-4 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+            <span className="flex-1 text-gray-700">
+              {startDate || 'Start Date'} | {endDate || 'End Date'}
+            </span>
+          </div>
+
+          {isOpen && (
+            <div 
+              className="absolute top-full left-0 mt-1 z-[9999] w-96 max-w-[90vw] right-0"
+              onClick={(e) => {
+                // Prevent clicks inside the DatePicker from closing the popup
+                e.stopPropagation()
+              }}
+            >
+              <DateRangePicker
+                startDate={startDate || ''}
+                endDate={endDate || ''}
+                onChange={onDateChange}
+                className="w-full p-4 bg-white border border-gray-300 rounded-lg shadow-lg"
+              />
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    return (
+      <Card
+        sx={{
+          boxShadow: 'none',
+          backgroundColor: '#FFFFFFBF',
+          width: '84%',
+          margin: '0 auto',
+        }}
+      >
+        <CardContent>
+          <Grid container rowSpacing={4} columnSpacing={2}>
             {/* Asset Register Dropdown */}
             {renderSelectField(
               'assetRegisterId',
@@ -648,15 +907,51 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
                 true
               )}
 
-            {/* Budget Period Code */}
-              {renderTextField(
-              'budgetPeriodCode',
-              BUDGET_LABELS.FORM_FIELDS.BUDGET_PERIOD_CODE,
-              'Budget Period Code',
-              6,
-              false,
-                true
+            {/* Budget Period Date Range */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <DateRangeDisplay
+                startDate={dateRange.startDate || ''}
+                endDate={dateRange.endDate || ''}
+                onDateChange={(start: string, end: string) => {
+                  console.log('[Step1] Date range changed:', { start, end })
+                  
+                  // Validate end date is not before start date
+                  if (start && end) {
+                    const startDateObj = dayjs(start, 'DD-MM-YYYY')
+                    const endDateObj = dayjs(end, 'DD-MM-YYYY')
+                    if (endDateObj.isValid() && startDateObj.isValid() && endDateObj.isBefore(startDateObj, 'day')) {
+                      console.warn('[Step1] End date cannot be before start date')
+                      // Clear end date if it's invalid
+                      setDateRange({ startDate: start, endDate: '' })
+                      return
+                    }
+                  }
+                  
+                  setDateRange({ startDate: start, endDate: end })
+                  // Format dates and set budgetPeriodCode
+                  const formatDateForCode = (dateStr: string) => {
+                    if (!dateStr) return ''
+                    // Convert DD-MM-YYYY to YYYY-MM-DD for API
+                    const [day, month, year] = dateStr.split('-')
+                    return `${year}-${month}-${day}`
+                  }
+                  if (start && end) {
+                    const periodCode = `${formatDateForCode(start)} to ${formatDateForCode(end)}`
+                    console.log('[Step1] Setting budgetPeriodCode:', periodCode)
+                    setValue('budgetPeriodCode', periodCode, { shouldValidate: true, shouldDirty: true })
+                  } else if (start) {
+                    // If only start date is set, still update the code
+                    const periodCode = `${formatDateForCode(start)} to `
+                    setValue('budgetPeriodCode', periodCode, { shouldValidate: false, shouldDirty: true })
+                  }
+                }}
+              />
+              {errors.budgetPeriodCode && (
+                <FormError
+                  error={errors.budgetPeriodCode.message as string}
+                />
               )}
+            </Grid>
 
             {/* Property Group ID */}
               {renderTextField(
@@ -699,7 +994,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
               )}
 
             {/* Budget Category Dropdown */}
-            {renderSelectField(
+            {/* {renderSelectField(
               'budgetCategoryId',
               BUDGET_LABELS.FORM_FIELDS.SERVICE_CHARGE_GROUP_NAME,
               'Budget Category',
@@ -707,7 +1002,7 @@ const Step1 = forwardRef<Step1Ref, Step1Props>(
               6,
                 false,
               loadingBudgetCategories
-            )}
+            )} */}
             </Grid>
           </CardContent>
         </Card>

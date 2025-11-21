@@ -337,7 +337,7 @@ export const triggerPermissionRefresh = async (userId: string) => {
   
   try {
     // Fetch fresh permissions from API using the correct endpoint
-    // This calls: /auth-admin-user/auth/users/{userId}/group-mapping?page=0&size=1000
+    // This calls: /auth-admin-user/auth/users/{userId}/group-mapping?page=0&size=20
     const permissions = await authAdminUserService.getUserPermissionsSimple(userId)
     
     // Update the store and localStorage

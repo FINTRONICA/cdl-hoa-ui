@@ -42,7 +42,7 @@ const BUDGET_COMMON_LABELS = {
       'CDL_BDG_SERVICE_CHARGE_GROUP_ID': 'Service Charge Group ID', // Mandatory, Numeric (10,0)
       'CDL_BDG_SERVICE_CHARGE_GROUP_NAME': 'Service Charge Group Name', // Mandatory, Alphanumeric (50,0)
       'CDL_BDG_SERVICE_CHARGE_GROUP_LOCAL_NAME': 'Service Charge Group Local Name', // Mandatory, Alphanumeric (50,0)
-      'CDL_BDG_BUDGET_PERIOD_CODE': 'Budget Period Code', // Mandatory, Alphanumeric (20,0)
+      'CDL_BDG_BUDGET_PERIOD_CODE': 'Budget Period ', // Mandatory, Alphanumeric (20,0)
       'CDL_BDG_BUDGET_PERIOD_TITLE': 'Budget Period Title', // Mandatory, Alphanumeric (100,0)
       'CDL_BDG_BUDGET_PERIOD_FROM': 'Budget Period From', // Mandatory, ISO Date string
       'CDL_BDG_BUDGET_PERIOD_TO': 'Budget Period To', // Mandatory, ISO Date string
@@ -124,18 +124,18 @@ const BUDGET_COMMON_LABELS = {
       CATEGORIZATION: 'CDL_MASTER_BDG_SECTION_CATEGORIZATION',
     },
     FORM_FIELDS: {
-      CHARGE_TYPE_ID: 'CDL_BUD_CHARGE_TYPE_ID',
-      CHARGE_TYPE: 'CDL_BUD_CHARGE_TYPE',
-      GROUP_NAME: 'CDL_BUD_GROUP_NAME',
-      CATEGORY_CODE: 'CDL_BUD_CATEGORY_CODE',
-      CATEGORY_NAME: 'CDL_BUD_CATEGORY_NAME',
-      CATEGORY_SUB_CODE: 'CDL_BUD_CATEGORY_SUB_CODE',
-      CATEGORY_SUB_NAME: 'CDL_BUD_CATEGORY_SUB_NAME',
-      CATEGORY_SUB_TO_SUB_CODE: 'CDL_BUD_CATEGORY_SUB_TO_SUB_CODE',
-      CATEGORY_SUB_TO_SUB_NAME: 'CDL_BUD_CATEGORY_SUB_TO_SUB_NAME',
-      SERVICE_NAME: 'CDL_BUD_SERVICE_NAME',
-      SERVICE_CODE: 'CDL_BUD_SERVICE_CODE',
-      PROVISIONAL_BUDGET_CODE: 'CDL_BUD_PROVISIONAL_BUDGET_CODE',
+      CHARGE_TYPE_ID: 'Category ID',
+      CHARGE_TYPE: 'Category Type',
+      GROUP_NAME: 'Group Name',
+      CATEGORY_CODE: 'Category Code',
+      CATEGORY_NAME: 'Category Name',
+      CATEGORY_SUB_CODE: 'Category Sub Code',
+      CATEGORY_SUB_NAME: 'Category Sub Name',
+      CATEGORY_SUB_TO_SUB_CODE: 'Category Sub To Sub Code',
+      CATEGORY_SUB_TO_SUB_NAME: 'Category Sub To Sub Name',
+      SERVICE_NAME: 'Service Name',
+      SERVICE_CODE: 'Service Code',
+      PROVISIONAL_BUDGET_CODE: 'Provisional Budget Code',
     },
     REVIEW: {
       SUMMARY_TITLE: 'CDL_MASTER_BDG_REVIEW_SUMMARY',

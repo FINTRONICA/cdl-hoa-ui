@@ -526,12 +526,15 @@ export const API_ENDPOINTS = {
     GET_DATA: (id: string) => `/budget-category/data/${id}`,
     UPLOAD: '/budget-category/upload',
   },
+ 
 
 
   BUDGET_ITEM: {
     GET_ALL: '/budget-item?deleted.equals=false&enabled.equals=true',
     SAVE: '/budget-item',
-    GET_BY_ID: (id: string) => `/budget-item/${id}`,
+    // GET_BY_ID: (id: string) => `/budget-item/${id}`,
+    GET_BY_ID: (id: string) =>
+      `budget-item?budgetItemId.equals=${id}&deleted.equals=false&enabled.equals=true`,
     UPDATE: (id: string) => `/budget-item/${id}`,
     DELETE: (id: string) => `/budget-item/${id}`,
     SOFT_DELETE: (id: string) => `/budget-item/soft/${id}`,

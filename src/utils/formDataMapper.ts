@@ -53,6 +53,26 @@ export interface FormData {
   vatCapExceeded2?: string // Payment Sub Type
   vatCapExceeded3?: string // Indicative Rate
   vatCapExceeded4?: string // Corporate Certification Engineer's Fees
+
+  // Budget details
+  budgetDetails?: string
+  budgetItems?: string
+  budgetCategory?: string
+  budgetSubCategory?: string
+  budgetServiceName?: string
+  categoryCode?: string
+  subCategoryCode?: string
+  serviceCode?: string
+  provisionalBudgetId?: string
+  availableBudgetAmount?: string
+  utilizedBudgetAmount?: string
+  invoiceBudgetAmount?: string
+  provisionalBudget?: string
+  hoaExemption?: string
+  // Store full DTO objects for API payload
+  budgetDTO?: any // Full BudgetDTO object
+  budgetCategoryDTO?: any // Full BudgetCategoryDTO object
+  budgetItemDTO?: any // Full BudgetItemDTO object
   
   // Checkbox fields
   specialRate?: boolean
@@ -271,6 +291,39 @@ export function mapFormDataToFundEgress(
     feIndicativeRate: parseFloat(formData.vatCapExceeded3 || '0'),
     feCorpCertEngFee: formData.vatCapExceeded4 || null,
 
+    // Budget details - pass null for missing fields
+    feBudgetDetails: formData.budgetDetails || null,
+    feBudgetItems: formData.budgetItems || null,
+    feBudgetCategory: formData.budgetCategory || null,
+    feBudgetSubCategory: formData.budgetSubCategory || null,
+    feBudgetServiceName: formData.budgetServiceName || null,
+    feCategoryCode: formData.categoryCode || null,
+    feSubCategoryCode: formData.subCategoryCode || null,
+    feServiceCode: formData.serviceCode || null,
+    feProvisionalBudgetId: formData.provisionalBudgetId || null,
+    feAvailableBudgetAmount: parseFloat(formData.availableBudgetAmount || '0'),
+    feUtilizedBudgetAmount: parseFloat(formData.utilizedBudgetAmount || '0'),
+    feInvoiceBudgetAmount: parseFloat(formData.invoiceBudgetAmount || '0'),
+    feProvisionalBudget: formData.provisionalBudget || null,
+    feHoaExemption: formData.hoaExemption || null,
+    
+    // Budget DTO objects - pass full DTO objects with id, only if id is valid
+    budgetDTO: (formData.budgetDTO?.id && formData.budgetDTO.id > 0) 
+      ? { id: formData.budgetDTO.id } 
+      : (formData.budgetDetails && !isNaN(parseInt(formData.budgetDetails)) && parseInt(formData.budgetDetails) > 0)
+        ? { id: parseInt(formData.budgetDetails) }
+        : null,
+    budgetCategoryDTO: (formData.budgetCategoryDTO?.id && formData.budgetCategoryDTO.id > 0) 
+      ? { id: formData.budgetCategoryDTO.id } 
+      : (formData.budgetCategory && !isNaN(parseInt(formData.budgetCategory)) && parseInt(formData.budgetCategory) > 0)
+        ? { id: parseInt(formData.budgetCategory) }
+        : null,
+    budgetItemDTO: (formData.budgetItemDTO?.id && formData.budgetItemDTO.id > 0) 
+      ? { id: formData.budgetItemDTO.id } 
+      : (formData.budgetItems && !isNaN(parseInt(formData.budgetItems)) && parseInt(formData.budgetItems) > 0)
+        ? { id: parseInt(formData.budgetItems) }
+        : null,
+
     // Unit holder fields - pass null for missing fields
     feAmtRecdFromUnitHolder: parseFloat(formData.amountReceived || '0'),
     feForFeit: formData.Forfeit || false,
@@ -379,29 +432,43 @@ export function mapFormDataToFundEgress(
     feRefundAmount: null,
     feTransferAmount: null,
 
-    // DTOs - Send only the id field for dropdown selections, pass null if not found or arrays are empty
-    expenseTypeDTO: formData.paymentType ? { id: parseInt(formData.paymentType) } : null,
-    expenseSubTypeDTO: formData.paymentSubType ? { id: parseInt(formData.paymentSubType) } : null,
-    invoiceCurrencyDTO: formData.invoiceCurrency ? { id: parseInt(formData.invoiceCurrency) } : null,
-    paymentCurrencyDTO: formData.totalAmountPaid1 ? { id: parseInt(formData.totalAmountPaid1) } : null,
-    chargedCodeDTO: formData.bankCharges ? { id: parseInt(formData.bankCharges) } : null,
-    paymentModeDTO: formData.paymentMode ? { id: parseInt(formData.paymentMode) } : null,
-    transactionTypeDTO: formData.engineerFeePayment ? { id: parseInt(formData.engineerFeePayment) } : null,
+    // DTOs - Send only the id field for dropdown selections, pass null if not found or invalid
+    expenseTypeDTO: (formData.paymentType && !isNaN(parseInt(formData.paymentType)) && parseInt(formData.paymentType) > 0) 
+      ? { id: parseInt(formData.paymentType) } 
+      : null,
+    expenseSubTypeDTO: (formData.paymentSubType && !isNaN(parseInt(formData.paymentSubType)) && parseInt(formData.paymentSubType) > 0) 
+      ? { id: parseInt(formData.paymentSubType) } 
+      : null,
+    invoiceCurrencyDTO: (formData.invoiceCurrency && !isNaN(parseInt(formData.invoiceCurrency)) && parseInt(formData.invoiceCurrency) > 0) 
+      ? { id: parseInt(formData.invoiceCurrency) } 
+      : null,
+    paymentCurrencyDTO: (formData.totalAmountPaid1 && !isNaN(parseInt(formData.totalAmountPaid1)) && parseInt(formData.totalAmountPaid1) > 0) 
+      ? { id: parseInt(formData.totalAmountPaid1) } 
+      : null,
+    chargedCodeDTO: (formData.bankCharges && !isNaN(parseInt(formData.bankCharges)) && parseInt(formData.bankCharges) > 0) 
+      ? { id: parseInt(formData.bankCharges) } 
+      : null,
+    paymentModeDTO: (formData.paymentMode && !isNaN(parseInt(formData.paymentMode)) && parseInt(formData.paymentMode) > 0) 
+      ? { id: parseInt(formData.paymentMode) } 
+      : null,
+    transactionTypeDTO: (formData.engineerFeePayment && !isNaN(parseInt(formData.engineerFeePayment)) && parseInt(formData.engineerFeePayment) > 0) 
+      ? { id: parseInt(formData.engineerFeePayment) } 
+      : null,
 
     // Real estate asset - use projectName directly (id) if available
-    managementFirmDTO: formData.projectName
+    managementFirmDTO: (formData.projectName && !isNaN(parseInt(formData.projectName)) && parseInt(formData.projectName) > 0)
       ? { id: parseInt(formData.projectName) }
-      : selectedAsset
+      : (selectedAsset && selectedAsset.id && selectedAsset.id > 0)
       ? { id: selectedAsset.id }
       : null,
 
     // Build partner - try to use ID from formData if partner not found but developerId is numeric
     // Also try to get ID from selected asset's assetRegisterDTO as fallback
-    assetRegisterDTO: selectedPartner 
+    assetRegisterDTO: (selectedPartner && selectedPartner.id && selectedPartner.id > 0)
       ? { id: selectedPartner.id } 
-      : (selectedAsset && (selectedAsset as any).assetRegisterDTO?.id)
+      : (selectedAsset && (selectedAsset as any).assetRegisterDTO?.id && (selectedAsset as any).assetRegisterDTO.id > 0)
         ? { id: (selectedAsset as any).assetRegisterDTO.id }
-        : (formData.developerId && !isNaN(parseInt(formData.developerId)))
+        : (formData.developerId && !isNaN(parseInt(formData.developerId)) && parseInt(formData.developerId) > 0)
           ? { id: parseInt(formData.developerId) }
           : null,
 
@@ -591,6 +658,39 @@ export function mapFormDataToFundEgressSimplified(
     feTotalPayoutAmt: formData.totalPayoutAmount || '0',
     feAmountInTransit: formData.amountInTransit || '0',
     feIndicativeRate: formData.vatCapExceeded3 || '0',
+    
+    // Budget details - pass null for missing fields
+    feBudgetDetails: formData.budgetDetails || null,
+    feBudgetItems: formData.budgetItems || null,
+    feBudgetCategory: formData.budgetCategory || null,
+    feBudgetSubCategory: formData.budgetSubCategory || null,
+    feBudgetServiceName: formData.budgetServiceName || null,
+    feCategoryCode: formData.categoryCode || null,
+    feSubCategoryCode: formData.subCategoryCode || null,
+    feServiceCode: formData.serviceCode || null,
+    feProvisionalBudgetId: formData.provisionalBudgetId || null,
+    feAvailableBudgetAmount: parseFloat(formData.availableBudgetAmount || '0'),
+    feUtilizedBudgetAmount: parseFloat(formData.utilizedBudgetAmount || '0'),
+    feInvoiceBudgetAmount: parseFloat(formData.invoiceBudgetAmount || '0'),
+    feProvisionalBudget: formData.provisionalBudget || null,
+    feHoaExemption: formData.hoaExemption || null,
+    
+    // Budget DTO objects - pass full DTO objects with id, only if id is valid
+    budgetDTO: (formData.budgetDTO?.id && formData.budgetDTO.id > 0) 
+      ? { id: formData.budgetDTO.id } 
+      : (formData.budgetDetails && !isNaN(parseInt(formData.budgetDetails)) && parseInt(formData.budgetDetails) > 0)
+        ? { id: parseInt(formData.budgetDetails) }
+        : null,
+    budgetCategoryDTO: (formData.budgetCategoryDTO?.id && formData.budgetCategoryDTO.id > 0) 
+      ? { id: formData.budgetCategoryDTO.id } 
+      : (formData.budgetCategory && !isNaN(parseInt(formData.budgetCategory)) && parseInt(formData.budgetCategory) > 0)
+        ? { id: parseInt(formData.budgetCategory) }
+        : null,
+    budgetItemDTO: (formData.budgetItemDTO?.id && formData.budgetItemDTO.id > 0) 
+      ? { id: formData.budgetItemDTO.id } 
+      : (formData.budgetItems && !isNaN(parseInt(formData.budgetItems)) && parseInt(formData.budgetItems) > 0)
+        ? { id: parseInt(formData.budgetItems) }
+        : null,
 
     // Unit holder fields
     feAmtRecdFromUnitHolder: formData.amountReceived || '0',
@@ -690,29 +790,43 @@ export function mapFormDataToFundEgressSimplified(
     feDiscardPayment: false,
     feBeneficiaryToMaster: false,
 
-    // DTOs - Send only the id field, pass null if arrays are empty
-    expenseTypeDTO: formData.paymentType ? { id: parseInt(formData.paymentType) } : null,
-    expenseSubTypeDTO: formData.paymentSubType ? { id: parseInt(formData.paymentSubType) } : null,
-    invoiceCurrencyDTO: formData.invoiceCurrency ? { id: parseInt(formData.invoiceCurrency) } : null,
-    paymentCurrencyDTO: formData.totalAmountPaid1 ? { id: parseInt(formData.totalAmountPaid1) } : null,
-    chargedCodeDTO: formData.bankCharges ? { id: parseInt(formData.bankCharges) } : null,
-    paymentModeDTO: formData.paymentMode ? { id: parseInt(formData.paymentMode) } : null,
-    transactionTypeDTO: formData.engineerFeePayment ? { id: parseInt(formData.engineerFeePayment) } : null,
+    // DTOs - Send only the id field, pass null if not found or invalid
+    expenseTypeDTO: (formData.paymentType && !isNaN(parseInt(formData.paymentType)) && parseInt(formData.paymentType) > 0) 
+      ? { id: parseInt(formData.paymentType) } 
+      : null,
+    expenseSubTypeDTO: (formData.paymentSubType && !isNaN(parseInt(formData.paymentSubType)) && parseInt(formData.paymentSubType) > 0) 
+      ? { id: parseInt(formData.paymentSubType) } 
+      : null,
+    invoiceCurrencyDTO: (formData.invoiceCurrency && !isNaN(parseInt(formData.invoiceCurrency)) && parseInt(formData.invoiceCurrency) > 0) 
+      ? { id: parseInt(formData.invoiceCurrency) } 
+      : null,
+    paymentCurrencyDTO: (formData.totalAmountPaid1 && !isNaN(parseInt(formData.totalAmountPaid1)) && parseInt(formData.totalAmountPaid1) > 0) 
+      ? { id: parseInt(formData.totalAmountPaid1) } 
+      : null,
+    chargedCodeDTO: (formData.bankCharges && !isNaN(parseInt(formData.bankCharges)) && parseInt(formData.bankCharges) > 0) 
+      ? { id: parseInt(formData.bankCharges) } 
+      : null,
+    paymentModeDTO: (formData.paymentMode && !isNaN(parseInt(formData.paymentMode)) && parseInt(formData.paymentMode) > 0) 
+      ? { id: parseInt(formData.paymentMode) } 
+      : null,
+    transactionTypeDTO: (formData.engineerFeePayment && !isNaN(parseInt(formData.engineerFeePayment)) && parseInt(formData.engineerFeePayment) > 0) 
+      ? { id: parseInt(formData.engineerFeePayment) } 
+      : null,
 
     // Real estate asset - use projectName directly (id) if available
-    managementFirmDTO: formData.projectName
+    managementFirmDTO: (formData.projectName && !isNaN(parseInt(formData.projectName)) && parseInt(formData.projectName) > 0)
       ? { id: parseInt(formData.projectName) }
-      : selectedAsset
+      : (selectedAsset && selectedAsset.id && selectedAsset.id > 0)
       ? { id: selectedAsset.id }
       : null,
 
     // Build partner - try to use ID from formData if partner not found but developerId is numeric
     // Also try to get ID from selected asset's assetRegisterDTO as fallback
-    assetRegisterDTO: selectedPartner 
+    assetRegisterDTO: (selectedPartner && selectedPartner.id && selectedPartner.id > 0)
       ? { id: selectedPartner.id } 
-      : (selectedAsset && (selectedAsset as any).assetRegisterDTO?.id)
+      : (selectedAsset && (selectedAsset as any).assetRegisterDTO?.id && (selectedAsset as any).assetRegisterDTO.id > 0)
         ? { id: (selectedAsset as any).assetRegisterDTO.id }
-        : (formData.developerId && !isNaN(parseInt(formData.developerId)))
+        : (formData.developerId && !isNaN(parseInt(formData.developerId)) && parseInt(formData.developerId) > 0)
           ? { id: parseInt(formData.developerId) }
           : null,
 

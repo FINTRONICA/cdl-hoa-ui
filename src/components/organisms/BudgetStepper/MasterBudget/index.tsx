@@ -13,7 +13,7 @@ import {
 } from '@mui/material'
 import { FormProvider, useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 
 import Step1Component, { type Step1Ref } from './steps/Step1'
 import Step2 from './steps/Step2'
@@ -29,6 +29,8 @@ import {
 } from '@/lib/budgetSchemas';
 
 interface MasterBudgetStepperWrapperProps {
+  initialBudgetId?: string | null
+  initialStep?: number
   isReadOnly?: boolean;
 }
 
@@ -65,15 +67,18 @@ const mapFormToPayload = (values: BudgetMasterStep1FormValues) => ({
   deleted: false,
 })
 
-function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperWrapperProps) {
+function MasterBudgetStepperContent({ 
+  initialBudgetId = null,
+  initialStep = 0,
+  isReadOnly = false 
+}: MasterBudgetStepperWrapperProps) {
   const router = useRouter()
   const params = useParams()
-  const searchParams = useSearchParams()
   const { getLabel } = useBudgetLabelsWithCache('EN')
 
-  const [activeStep, setActiveStep] = useState(0)
-  const [savedId, setSavedId] = useState<string | null>(null)
-  const [isEditMode, setIsEditMode] = useState(false)
+  const [activeStep, setActiveStep] = useState(initialStep)
+  const [savedId, setSavedId] = useState<string | null>(initialBudgetId)
+  const [isEditMode, setIsEditMode] = useState(Boolean(initialBudgetId))
   const [isSaving, setIsSaving] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -111,6 +116,8 @@ function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperW
 
   useEffect(() => {
     const id = params?.id as string | undefined
+    const stepNumber = params?.stepNumber as string | undefined
+    
     if (id) {
       setSavedId(id)
       setIsEditMode(true)
@@ -118,24 +125,24 @@ function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperW
       setSavedId(null)
       setIsEditMode(false)
     }
-  }, [params?.id])
-
-  useEffect(() => {
-     const stepParam = searchParams?.get('step')
-     if (stepParam) {
-       const parsed = Number(stepParam)
-       if (!Number.isNaN(parsed) && parsed >= 0 && parsed < steps.length) {
-         setActiveStep(parsed)
-       }
-     }
-  }, [searchParams, steps])
+    
+    // Read step number from URL path parameter (1-based, convert to 0-based)
+    if (stepNumber) {
+      const parsed = parseInt(stepNumber)
+      if (!Number.isNaN(parsed) && parsed >= 1 && parsed <= steps.length) {
+        setActiveStep(parsed - 1)
+      }
+    } else if (initialStep !== undefined) {
+      setActiveStep(initialStep)
+    }
+  }, [params?.id, params?.stepNumber, initialStep, steps.length])
 
   const updateURL = useCallback(
     (step: number, id?: string | null) => {
       if (id && step >= 0) {
-        // For edit mode, use /budget/budget-master/{id}?editing=true
+        // For edit mode, use /budget/budget-master/{id}/step/{stepNumber}?editing=true
         const queryParam = isReadOnly ? '?mode=view' : '?editing=true'
-        router.push(`/budget/budget-master/${id}${queryParam}`)
+        router.push(`/budget/budget-master/${id}/step/${step + 1}${queryParam}`)
       } else if (step === 0) {
         // For new mode, use /budget/budget-master/new
         router.push('/budget/budget-master/new')
@@ -167,7 +174,7 @@ function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperW
   const navigateToNextStep = (targetId?: string) => {
     const nextStep = activeStep + 1
     if (nextStep < steps.length) {
-    setActiveStep(nextStep)
+      setActiveStep(nextStep)
       updateURL(nextStep, targetId || savedId)
     }
   }
@@ -178,7 +185,12 @@ function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperW
       setSavedId(data.id)
       setIsEditMode(true)
       setSuccessMessage('Master budget saved successfully. Proceed to document upload.')
-      // Navigation is handled by navigateToNextStep() in handleNext
+      // Navigate to next step with the new ID
+      const nextStep = activeStep + 1
+      if (nextStep < steps.length) {
+    setActiveStep(nextStep)
+        updateURL(nextStep, data.id)
+      }
     }
   }
 
@@ -218,9 +230,7 @@ function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperW
       console.log('[Index] Calling handleAsyncStep for step 0')
       const success = await handleAsyncStep(step1Ref.current)
       console.log('[Index] handleAsyncStep result:', success)
-      if (success) {
-        navigateToNextStep()
-      }
+      // Navigation is handled by handleStep1SaveAndNext callback
       return
     }
 
@@ -293,7 +303,10 @@ function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperW
         ...payload,
         id: Number(savedId),
       }
-      await budgetCategoryService.updateBudgetCategory(Number(savedId), updatePayload as any)
+      await budgetCategoryService.updateBudgetCategory(
+        Number(savedId), 
+        updatePayload as Parameters<typeof budgetCategoryService.updateBudgetCategory>[1]
+      )
 
       setSuccessMessage('Master budget submitted successfully!')
       
@@ -355,7 +368,7 @@ function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperW
 
         return (
           <DocumentUploadFactory
-            type="BUDGET"
+            type="BUDGET_CATEGORY"
             entityId={savedId}
             isOptional
             isReadOnly={isReadOnly}
@@ -371,6 +384,7 @@ function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperW
             onEdit={handleEdit}
             onEditDocuments={handleEditDocuments}
             isReadOnly={isReadOnly}
+            budgetId={savedId}
           />
         )
       default:
@@ -440,8 +454,8 @@ function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperW
                   letterSpacing: 0,
                 }}
               >
-                Cancel
-              </Button>
+                  Cancel
+                </Button>
               <Box>
                 {activeStep !== 0 && (
                   <Button
@@ -560,8 +574,16 @@ function MasterBudgetStepperContent({ isReadOnly = false }: MasterBudgetStepperW
 }
 
 export default function MasterBudgetStepperWrapper({
+  initialBudgetId = null,
+  initialStep = 0,
   isReadOnly = false,
 }: MasterBudgetStepperWrapperProps = {}) {
-  return <MasterBudgetStepperContent isReadOnly={isReadOnly} />
+  return (
+    <MasterBudgetStepperContent 
+      initialBudgetId={initialBudgetId}
+      initialStep={initialStep}
+      isReadOnly={isReadOnly} 
+    />
+  )
 }
 

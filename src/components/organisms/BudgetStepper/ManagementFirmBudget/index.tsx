@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useRouter, useParams, useSearchParams } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import {
   Stepper,
   Step,
@@ -37,7 +37,7 @@ type BudgetFormData = BudgetStep1Data &
     documents?: DocumentItem[]
   }
 
-import { useBudgetManagementFirmLabelsApi } from '@/hooks/useBudgetManagementFirmLabelsApi'
+import { useBudgetManagementFirmLabelsApi } from '@/hooks/useBudgetManagementFirmLabelsWithCache'
 import { useAppStore } from '@/store'
 import { BUDGET_LABELS } from '@/constants/mappings/budgetLabels'
 
@@ -70,7 +70,6 @@ export default function BudgetManagementFirmStepperWrapper({
 }: BudgetManagementFirmStepperWrapperProps = {}) {
   const router = useRouter()
   const params = useParams()
-  const searchParams = useSearchParams()
 
   // Get labels from API
   const { getLabel } = useBudgetManagementFirmLabelsApi()
@@ -137,9 +136,10 @@ export default function BudgetManagementFirmStepperWrapper({
   }
 
   useEffect(() => {
-    const stepFromUrl = searchParams.get('step')
-    if (stepFromUrl) {
-      const stepNumber = parseInt(stepFromUrl) - 1
+    // Read step from path params (stepNumber) instead of query params
+    const stepFromPath = params.stepNumber as string | undefined
+    if (stepFromPath) {
+      const stepNumber = parseInt(stepFromPath) - 1
       if (
         stepNumber !== activeStep &&
         stepNumber >= 0 &&
@@ -148,7 +148,7 @@ export default function BudgetManagementFirmStepperWrapper({
         setActiveStep(stepNumber)
       }
     }
-  }, [searchParams, activeStep, steps.length])
+  }, [params.stepNumber, activeStep, steps.length])
 
   useEffect(() => {
     if (params.id && !budgetId) {
@@ -345,7 +345,6 @@ export default function BudgetManagementFirmStepperWrapper({
       case 2:
         return (
           <Step2
-            key={`step2-${budgetId || 'new'}-${activeStep}`}
             ref={step2Ref}
             budgetId={budgetId}
             onSaveAndNext={handleStep2SaveAndNext}
@@ -358,6 +357,13 @@ export default function BudgetManagementFirmStepperWrapper({
           <Step3
             budgetId={budgetId}
             isViewMode={isViewMode}
+            onEditStep={(stepNumber) => {
+              // Navigate to the specified step with editing=true
+              if (budgetId) {
+                const step = stepNumber + 1 // Step numbers are 0-indexed in component, but 1-indexed in URL
+                router.push(`/budget/budget-management-firm/${budgetId}/step/${step}?editing=true`)
+              }
+            }}
           />
         )
       default:

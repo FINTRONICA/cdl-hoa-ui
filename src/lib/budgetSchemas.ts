@@ -121,8 +121,8 @@ const allCharactersString = (maxLength: number = 50, optional: boolean = false) 
 }
 
 export const budgetMasterStep1Schema = z.object({
-  // Charge Type ID - Numeric (10,0)
-  chargeTypeId: numericInteger(10),
+  // Charge Type ID - Optional, no validation
+  chargeTypeId: z.string().optional(),
   
   // Charge Type - Alphanumeric (50,0)
   chargeType: alphanumericString(50),

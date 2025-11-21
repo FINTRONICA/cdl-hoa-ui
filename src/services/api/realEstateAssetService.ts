@@ -144,13 +144,35 @@ export class RealEstateAssetService {
       })
       
       if (buildPartnerId) {
+        // The relationship between RealEstateAsset and BuildPartner is through assetRegisterDTO.id
+        // So we need to filter by assetRegisterDTO.id.equals (not buildPartnerId.equals)
+        params.append('assetRegisterDTO.id.equals', buildPartnerId.toString())
+        // Also try buildPartnerId.equals as fallback for backward compatibility
         params.append('buildPartnerId.equals', buildPartnerId.toString())
       }
       
       const url = buildApiUrl(`/real-estate-assest?${params.toString()}`)
+      console.log('[RealEstateAssetService] Fetching assets:', {
+        url,
+        buildPartnerId,
+        params: params.toString(),
+        filter: buildPartnerId ? `assetRegisterDTO.id.equals=${buildPartnerId}` : 'no filter',
+      })
       const result = await apiClient.get<
         RealEstateAssetResponse | RealEstateAsset[]
       >(url)
+      
+      console.log('[RealEstateAssetService] API Response:', {
+        hasContent: !!(result as any)?.content,
+        contentLength: Array.isArray((result as any)?.content) 
+          ? (result as any).content.length 
+          : (Array.isArray(result) ? result.length : 0),
+        isArray: Array.isArray(result),
+        sample: Array.isArray((result as any)?.content) 
+          ? (result as any).content[0] 
+          : (Array.isArray(result) ? result[0] : null),
+        fullResult: result,
+      })
 
       // Handle both response formats: direct array or paginated response
       let assets: RealEstateAsset[] = []
@@ -164,6 +186,15 @@ export class RealEstateAssetService {
       } else {
         assets = []
       }
+      
+      console.log('[RealEstateAssetService] Processed assets:', {
+        count: assets.length,
+        assets: assets.slice(0, 3).map((a: any) => ({
+          id: a.id,
+          mfName: a.mfName,
+          assetRegisterDTOId: a.assetRegisterDTO?.id,
+        })),
+      })
 
       return assets
     } catch (error) {

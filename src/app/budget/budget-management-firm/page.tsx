@@ -8,7 +8,7 @@ import { PageActionButtons } from '@/components/molecules/PageActionButtons'
 import LeftSlidePanel from '@/components/organisms/LeftSlidePanel/LeftSlidePanel'
 import { useTableState } from '@/hooks/useTableState'
 
-import { useBudgetManagementFirmLabelsApi } from '@/hooks/useBudgetManagementFirmLabelsApi'
+import { useBudgetManagementFirmLabelsApi } from '@/hooks/useBudgetManagementFirmLabelsWithCache'
 import { useAppStore } from '@/store'
 import { BudgetService } from '@/services/api/budgetApi/budgetService'
 import type { BudgetUIData } from '@/services/api/budgetApi/budgetService'
@@ -41,17 +41,17 @@ const getTableColumns = (getLabel: (configId: string, language?: string, fallbac
         width: 'w-56',
         sortable: true,
       },
-      {
-        key: 'budgetPeriodTitle',
-        label: getLabel(
-          BUDGET_LABELS.LIST.TABLE_HEADERS.BUDGET_PERIOD,
-          'EN',
-          BUDGET_LABELS.FALLBACKS.LIST.TABLE_HEADERS.BUDGET_PERIOD
-        ),
-        type: 'text' as const,
-        width: 'w-40',
-        sortable: true,
-      },
+      // {
+      //   key: 'budgetPeriodTitle',
+      //   label: getLabel(
+      //     BUDGET_LABELS.LIST.TABLE_HEADERS.BUDGET_PERIOD,
+      //     'EN',
+      //     BUDGET_LABELS.FALLBACKS.LIST.TABLE_HEADERS.BUDGET_PERIOD
+      //   ),
+      //   type: 'text' as const,
+      //   width: 'w-40',
+      //   sortable: true,
+      // },
       {
         key: 'budgetPeriodRange',
         label: getLabel(
@@ -271,7 +271,9 @@ const BudgetManagementFirmPage: React.FC = () => {
   const handleDownloadInvestorTemplate = async () => {
     try {
       await downloadInvestorTemplate(TEMPLATE_FILES.INVESTOR)
-    } catch (error) {}
+    } catch {
+      // Silently handle template download errors
+    }
   }
 
   const handleRowDelete = (row: BudgetData) => {
@@ -313,8 +315,8 @@ const BudgetManagementFirmPage: React.FC = () => {
   }
   const handleRowView = (row: BudgetData) => {
     if (row.id) {
-      // Navigate to view mode (read-only) with the budget ID
-      router.push(`/budget/budget-management-firm/${row.id}?mode=view`)
+      // Navigate to view mode (read-only) with the budget ID and step 1
+      router.push(`/budget/budget-management-firm/${row.id}/step/1?mode=view`)
     } else {
       alert('Cannot view: No ID found for this budget')
     }
@@ -322,8 +324,8 @@ const BudgetManagementFirmPage: React.FC = () => {
 
   const handleRowEdit = (row: BudgetData) => {
     if (row.id) {
-      // Navigate to edit mode with the budget ID and editing flag
-      router.push(`/budget/budget-management-firm/${row.id}?editing=true`)
+      // Navigate to edit mode with the budget ID, step 1, and editing flag
+      router.push(`/budget/budget-management-firm/${row.id}/step/1?editing=true`)
     } else {
       alert('Cannot edit: No ID found for this budget')
     }

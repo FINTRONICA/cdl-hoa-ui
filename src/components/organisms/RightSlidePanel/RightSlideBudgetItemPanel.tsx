@@ -1,106 +1,136 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   DialogTitle,
   DialogContent,
   IconButton,
   Grid,
   TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Button,
   Drawer,
   Box,
   Alert,
   Snackbar,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
   OutlinedInput,
 } from '@mui/material'
 import { KeyboardArrowDown as KeyboardArrowDownIcon } from '@mui/icons-material'
 import { Controller, useForm } from 'react-hook-form'
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined'
+import { BudgetStep2Schema } from '@/lib/validation/budgetSchemas'
 import {
-  useSaveBuildPartnerContact,
-  useBuildPartnerContactById,
-} from '@/hooks/useBuildPartners'
-import { DeveloperStep3Schema } from '@/lib/validation/developerSchemas'
-import { useFeeDropdownLabels } from '@/hooks/useFeeDropdowns'
-import {
-  type BuildPartnerContactData,
-  type BuildPartnerContactResponse,
-} from '@/services/api/buildPartnerService'
-import { useBuildPartnerLabelsWithCache } from '@/hooks/useBuildPartnerLabelsWithCache'
-import { getBuildPartnerLabel } from '@/constants/mappings/buildPartnerMapping'
+  useCreateBudgetItem, 
+  useUpdateBudgetItem 
+} from '@/hooks/budget/useBudgetItems'
+import { BudgetCategoryService } from '@/services/api/budgetApi/budgetCategoryService'
+import type { BudgetCategoryUIData } from '@/services/api/budgetApi/budgetCategoryService'
+import { useBudgetManagementFirmLabelsApi } from '@/hooks/useBudgetManagementFirmLabelsWithCache'
 import { useAppStore } from '@/store'
 import { FormError } from '../../atoms/FormError'
-import type { ContactData } from '../DeveloperStepper/developerTypes'
-import type { FeeDropdownOption } from '@/services/api/feeDropdownService'
+import { BUDGET_LABELS } from '@/constants/mappings/budgetLabels'
+import type { BudgetItemResponse, BudgetItemRequest } from '@/utils/budgetMapper'
 
-interface RightSlidePanelProps {
+interface RightSlideBudgetItemPanelProps {
   isOpen: boolean
   onClose: () => void
-  onContactAdded?: (contact: unknown) => void
-  onContactUpdated?: (contact: unknown, index: number) => void
+  onBudgetItemAdded?: (item: BudgetItemResponse) => void
+  onBudgetItemUpdated?: (item: BudgetItemResponse, index: number) => void
   title?: string
-  buildPartnerId?: string | undefined
+  budgetCategoryId?: string | number | undefined
+  budgetId?: number | null
   mode?: 'add' | 'edit'
-  contactData?: ContactData | null
-  contactIndex?: number
+  budgetItemData?: BudgetItemResponse | null
+  budgetItemIndex?: number
 }
 
-interface ContactFormData {
-  fname: string
-  lname: string
-  email: string
-  address1: string
-  address2: string
-  pobox: string
-  countrycode: string
-  telephoneno: string
-  mobileno: string
-  fax: string
+interface BudgetItemFormData {
+  budgetCategoryId: string
+  subCategoryCode: string
+  subCategoryName: string
+  subCategoryNameLocale: string
+  serviceCode: string
+  provisionalServiceCode: string
+  serviceName: string
+  serviceNameLocale: string
+  totalBudget: string | number
+  availableBudget: string | number
+  utilizedBudget: string | number
 }
 
-export const RightSlideBudgetItemPanel: React.FC<RightSlidePanelProps> = ({
+export const RightSlideBudgetItemPanel: React.FC<RightSlideBudgetItemPanelProps> = ({
   isOpen,
   onClose,
-  onContactAdded,
-  onContactUpdated,
-  buildPartnerId,
+  onBudgetItemAdded,
+  onBudgetItemUpdated,
+  budgetCategoryId,
+  budgetId,
   mode = 'add',
-  contactData,
-  contactIndex,
+  budgetItemData,
+  budgetItemIndex,
 }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [apiBudgetItemData, setApiBudgetItemData] = useState<BudgetItemResponse | null>(null)
+  const [loadingBudgetItem, setLoadingBudgetItem] = useState(false)
+  const [budgetCategoryOptions, setBudgetCategoryOptions] = useState<{ id: number; displayName: string; settingValue: string }[]>([])
+  const [loadingBudgetCategories, setLoadingBudgetCategories] = useState(true)
 
-  const addContactMutation = useSaveBuildPartnerContact()
-
-  const { data: apiContactData } = useBuildPartnerContactById(
-    mode === 'edit' && contactData?.id ? contactData.id : null
-  )
-
-  const {
-    countryCodes = [],
-    countryCodesLoading,
-    countryCodesError,
-    getDisplayLabel,
-  } = useFeeDropdownLabels()
-
-  // Phase 1: Dynamic label foundation
-  const { data: buildPartnerLabels, getLabel } =
-    useBuildPartnerLabelsWithCache()
+  const { getLabel } = useBudgetManagementFirmLabelsApi()
   const currentLanguage = useAppStore((state) => state.language) || 'EN'
+  
+  // Use React Query mutations for create and update
+  const createMutation = useCreateBudgetItem()
+  const updateMutation = useUpdateBudgetItem()
 
-  const getBuildPartnerLabelDynamic = useCallback(
-    (configId: string): string => {
-      const fallback = getBuildPartnerLabel(configId)
-      return buildPartnerLabels
-        ? getLabel(configId, currentLanguage, fallback)
-        : fallback
-    },
-    [buildPartnerLabels, currentLanguage, getLabel]
-  )
+  // Fetch Budget Categories
+  useEffect(() => {
+    const fetchBudgetCategories = async () => {
+      try {
+        setLoadingBudgetCategories(true)
+        const response = await BudgetCategoryService.getBudgetCategories(0, 1000)
+        const options = response.content.map((item: BudgetCategoryUIData) => ({
+          id: item.id,
+          displayName: item.categoryName || item.serviceName || `Budget Category ${item.id}`,
+          settingValue: item.id.toString(),
+        }))
+        setBudgetCategoryOptions(options)
+      } catch (error) {
+        console.error('Error fetching budget categories:', error)
+        setBudgetCategoryOptions([])
+      } finally {
+        setLoadingBudgetCategories(false)
+      }
+    }
+    if (isOpen) {
+      fetchBudgetCategories()
+    }
+  }, [isOpen])
+
+  // Fetch budget item by ID if in edit mode
+  useEffect(() => {
+    const fetchBudgetItem = async () => {
+      if (mode === 'edit' && budgetItemData?.id) {
+        try {
+          setLoadingBudgetItem(true)
+          const data = await budgetItemsService.getBudgetItemsById(budgetItemData.id)
+          setApiBudgetItemData(data)
+        } catch (error) {
+          console.error('Error fetching budget item:', error)
+          setApiBudgetItemData(null)
+        } finally {
+          setLoadingBudgetItem(false)
+        }
+      } else {
+        setApiBudgetItemData(null)
+      }
+    }
+    if (isOpen) {
+      fetchBudgetItem()
+    }
+  }, [isOpen, mode, budgetItemData?.id])
 
   const {
     control,
@@ -109,77 +139,69 @@ export const RightSlideBudgetItemPanel: React.FC<RightSlidePanelProps> = ({
     trigger,
     getValues,
     formState: { errors },
-  } = useForm<ContactFormData>({
+  } = useForm<BudgetItemFormData>({
     defaultValues: {
-      fname: '',
-      lname: '',
-      email: '',
-      address1: '',
-      address2: '',
-      pobox: '',
-      countrycode: '',
-      telephoneno: '',
-      mobileno: '',
-      fax: '',
+      budgetCategoryId: budgetCategoryId?.toString() || '',
+      subCategoryCode: '',
+      subCategoryName: '',
+      subCategoryNameLocale: '',
+      serviceCode: '',
+      provisionalServiceCode: '',
+      serviceName: '',
+      serviceNameLocale: '',
+      totalBudget: '',
+      availableBudget: '',
+      utilizedBudget: '',
     },
     mode: 'onChange',
   })
 
-  const validateContactField = (
-    fieldName: keyof ContactFormData,
+  const validateBudgetItemField = (
+    fieldName: keyof BudgetItemFormData,
     _value: unknown,
-    allValues: ContactFormData
+    allValues: BudgetItemFormData
   ) => {
     try {
-      const selectedCountryCode = countryCodes.find(
-        (country) =>
-          country.id?.toString() === allValues.countrycode?.toString()
-      )
-      const countryCodeValue =
-        selectedCountryCode?.configValue ?? allValues.countrycode ?? ''
-
-      const arcContactAddress = `${allValues.address1} ${allValues.address2}`.trim()
-      const contactForValidation = {
-        contactData: [
+      const budgetItemForValidation = {
+        budgetCategoryId: allValues.budgetCategoryId || budgetCategoryId?.toString() || '',
+        budgetItems: [
           {
-            arcContactName: `${allValues.fname} ${allValues.lname}`.trim(),
-            arcFirstName: allValues.fname,
-            arcLastName: allValues.lname,
-            arcContactEmail: allValues.email,
-            arcContactAddress,
-            arcContactAddressLine1: allValues.address1,
-            arcContactAddressLine2: allValues.address2,
-            arcContactPoBox: allValues.pobox,
-            arcContactTelCode: countryCodeValue,
-            arcCountryMobCode: countryCodeValue,
-            arcContactMobNo: allValues.mobileno,
-            arcContactTelNo: allValues.telephoneno,
-            arcContactFaxNo: allValues.fax,
-            assetRegisterDTO: buildPartnerId
-              ? {
-                  id: parseInt(buildPartnerId),
-                }
-              : undefined,
+            subCategoryCode: allValues.subCategoryCode || '',
+            subCategoryName: allValues.subCategoryName || '',
+            subCategoryNameLocale: allValues.subCategoryNameLocale || '',
+            serviceCode: allValues.serviceCode || '',
+            provisionalServiceCode: allValues.provisionalServiceCode || '',
+            serviceName: allValues.serviceName || '',
+            serviceNameLocale: allValues.serviceNameLocale || '',
+            totalBudget: typeof allValues.totalBudget === 'string' 
+              ? parseFloat(allValues.totalBudget) || 0 
+              : allValues.totalBudget || 0,
+            availableBudget: typeof allValues.availableBudget === 'string' 
+              ? parseFloat(allValues.availableBudget) || 0 
+              : allValues.availableBudget || 0,
+            utilizedBudget: typeof allValues.utilizedBudget === 'string' 
+              ? parseFloat(allValues.utilizedBudget) || 0 
+              : allValues.utilizedBudget || 0,
           },
         ],
       }
 
-      const result = DeveloperStep3Schema.safeParse(contactForValidation)
+      const result = BudgetStep2Schema.safeParse(budgetItemForValidation)
 
       if (result.success) {
         return true
       } else {
         const fieldMapping: Record<string, string> = {
-          fname: 'arcFirstName',
-          lname: 'arcLastName',
-          email: 'arcContactEmail',
-          address1: 'arcContactAddressLine1',
-          address2: 'arcContactAddressLine2',
-          pobox: 'arcContactPoBox',
-          countrycode: 'arcContactTelCode',
-          mobileno: 'arcContactMobNo',
-          telephoneno: 'arcContactTelNo',
-          fax: 'arcContactFaxNo',
+          subCategoryCode: 'subCategoryCode',
+          subCategoryName: 'subCategoryName',
+          subCategoryNameLocale: 'subCategoryNameLocale',
+          serviceCode: 'serviceCode',
+          provisionalServiceCode: 'provisionalServiceCode',
+          serviceName: 'serviceName',
+          serviceNameLocale: 'serviceNameLocale',
+          totalBudget: 'totalBudget',
+          availableBudget: 'availableBudget',
+          utilizedBudget: 'utilizedBudget',
         }
 
         const schemaFieldName = fieldMapping[fieldName]
@@ -190,7 +212,7 @@ export const RightSlideBudgetItemPanel: React.FC<RightSlidePanelProps> = ({
 
         const fieldError = result.error.issues.find(
           (issue) =>
-            issue.path.includes('contactData') &&
+            issue.path.includes('budgetItems') &&
             issue.path.includes(0) &&
             issue.path.includes(schemaFieldName)
         )
@@ -206,210 +228,201 @@ export const RightSlideBudgetItemPanel: React.FC<RightSlidePanelProps> = ({
     }
   }
 
-  React.useEffect(() => {
-    if (isOpen && mode === 'edit' && (apiContactData || contactData)) {
-      const dataToUse =
-        (apiContactData as BuildPartnerContactResponse | undefined) ??
-        contactData ??
-        ({} as ContactData)
-
-      const firstName = dataToUse.arcFirstName || ''
-      const lastName = dataToUse.arcLastName || ''
-
-      const address1 = dataToUse.arcContactAddressLine1 || ''
-      const address2 = dataToUse.arcContactAddressLine2 || ''
-
-      const countryCodeFromApi =
-        dataToUse.arcContactTelCode || dataToUse.arcCountryMobCode || ''
-      let countryCodeId = countryCodeFromApi
-
-      if (countryCodes.length > 0 && countryCodeFromApi) {
-        const matchingCountry = countryCodes.find(
-          (country) =>
-            country.configValue === countryCodeFromApi ||
-            country.id?.toString() === countryCodeFromApi
-        )
-        if (matchingCountry) {
-          countryCodeId = matchingCountry.id?.toString() || ''
-        }
-      }
+  useEffect(() => {
+    if (isOpen && mode === 'edit' && (apiBudgetItemData || budgetItemData) && !loadingBudgetItem) {
+      const dataToUse = apiBudgetItemData ?? budgetItemData ?? ({} as BudgetItemResponse)
+      const categoryId = dataToUse.budgetCategoryDTO?.id?.toString() || budgetCategoryId?.toString() || ''
 
       reset({
-        fname: firstName,
-        lname: lastName,
-          email: dataToUse.arcContactEmail || '',
-        address1: address1,
-        address2: address2,
-          pobox: dataToUse.arcContactPoBox || '',
-        countrycode: countryCodeId,
-          telephoneno: dataToUse.arcContactTelNo || '',
-          mobileno: dataToUse.arcContactMobNo || '',
-          fax: dataToUse.arcContactFaxNo || '',
+        budgetCategoryId: categoryId,
+        subCategoryCode: dataToUse.subCategoryCode || '',
+        subCategoryName: dataToUse.subCategoryName || '',
+        subCategoryNameLocale: dataToUse.subCategoryNameLocale || '',
+        serviceCode: dataToUse.serviceCode || '',
+        provisionalServiceCode: dataToUse.provisionalServiceCode || '',
+        serviceName: dataToUse.serviceName || '',
+        serviceNameLocale: dataToUse.serviceNameLocale || '',
+        totalBudget: dataToUse.totalBudget?.toString() || '',
+        availableBudget: dataToUse.availableBudget?.toString() || '',
+        utilizedBudget: dataToUse.utilizedBudget?.toString() || '',
       })
     } else if (isOpen && mode === 'add') {
       reset({
-        fname: '',
-        lname: '',
-        email: '',
-        address1: '',
-        address2: '',
-        pobox: '',
-        countrycode: '',
-        telephoneno: '',
-        mobileno: '',
-        fax: '',
+        budgetCategoryId: budgetCategoryId?.toString() || '',
+        subCategoryCode: '',
+        subCategoryName: '',
+        subCategoryNameLocale: '',
+        serviceCode: '',
+        provisionalServiceCode: '',
+        serviceName: '',
+        serviceNameLocale: '',
+        totalBudget: '',
+        availableBudget: '',
+        utilizedBudget: '',
       })
     }
-  }, [isOpen, mode, contactData, apiContactData, reset, countryCodes])
+  }, [isOpen, mode, budgetItemData, apiBudgetItemData, reset, loadingBudgetItem, budgetCategoryId])
 
-  const onSubmit = async (data: ContactFormData) => {
+  const onSubmit = async (data: BudgetItemFormData) => {
     try {
       setErrorMessage(null)
       setSuccessMessage(null)
+      setIsSubmitting(true)
 
       // Trigger validation on all fields to show errors even if not touched
       const isValid = await trigger([
-        'fname',
-        'lname',
-        'email',
-        'address1',
-        'address2',
-        'pobox',
-        'countrycode',
-        'mobileno',
-        'telephoneno',
-        'fax',
+        'budgetCategoryId',
+        'subCategoryCode',
+        'subCategoryName',
+        'serviceCode',
+        'serviceName',
+        'totalBudget',
+        'availableBudget',
+        'utilizedBudget',
       ])
 
       // If field-level validation fails, don't proceed
       if (!isValid) {
+        setIsSubmitting(false)
         return
       }
 
-      const selectedCountryCode = countryCodes.find(
-        (country) =>
-          country.id?.toString() === data.countrycode?.toString()
-      )
-      const countryCodeValue =
-        selectedCountryCode?.configValue ?? data.countrycode ?? ''
-
       const isEditing = mode === 'edit'
+      const selectedCategoryId = data.budgetCategoryId || budgetCategoryId?.toString() || ''
 
-      const arcContactAddress = `${data.address1} ${data.address2}`.trim()
-      const contactForValidation = {
-        contactData: [
+      const budgetItemForValidation = {
+        budgetCategoryId: selectedCategoryId,
+        budgetItems: [
           {
-            arcContactName: `${data.fname} ${data.lname}`.trim(),
-            arcFirstName: data.fname,
-            arcLastName: data.lname,
-            arcContactEmail: data.email,
-            arcContactAddress,
-            arcContactAddressLine1: data.address1,
-            arcContactAddressLine2: data.address2,
-            arcContactPoBox: data.pobox,
-            arcContactTelCode: countryCodeValue,
-            arcCountryMobCode: countryCodeValue,
-            arcContactMobNo: data.mobileno,
-            arcContactTelNo: data.telephoneno,
-            arcContactFaxNo: data.fax,
-            assetRegisterDTO: buildPartnerId
-              ? {
-                  id: parseInt(buildPartnerId),
-                }
-              : undefined,
+            subCategoryCode: data.subCategoryCode || '',
+            subCategoryName: data.subCategoryName || '',
+            subCategoryNameLocale: data.subCategoryNameLocale || '',
+            serviceCode: data.serviceCode || '',
+            provisionalServiceCode: data.provisionalServiceCode || '',
+            serviceName: data.serviceName || '',
+            serviceNameLocale: data.serviceNameLocale || '',
+            totalBudget: typeof data.totalBudget === 'string' 
+              ? parseFloat(data.totalBudget) || 0 
+              : data.totalBudget || 0,
+            availableBudget: typeof data.availableBudget === 'string' 
+              ? parseFloat(data.availableBudget) || 0 
+              : data.availableBudget || 0,
+            utilizedBudget: typeof data.utilizedBudget === 'string' 
+              ? parseFloat(data.utilizedBudget) || 0 
+              : data.utilizedBudget || 0,
           },
         ],
       }
 
-      const validationResult =
-        DeveloperStep3Schema.safeParse(contactForValidation)
+      const validationResult = BudgetStep2Schema.safeParse(budgetItemForValidation)
       if (!validationResult.success) {
         const errorMessages = validationResult.error.issues.map(
           (issue: { message: string }) => issue.message
         )
         setErrorMessage(errorMessages.join(', '))
+        setIsSubmitting(false)
         return
       }
 
-      const arcContactTelCodeValue =
-        selectedCountryCode?.configValue || countryCodeValue
-      const arcCountryMobCodeValue =
-        selectedCountryCode?.configValue || countryCodeValue
-
-      const contactPayload: BuildPartnerContactData = {
-        ...(isEditing && contactData?.id && { id: contactData.id }),
-        arcFirstName: data.fname,
-        arcLastName: data.lname,
-        arcContactEmail: data.email,
-        arcContactName: `${data.fname} ${data.lname}`.trim(),
-        arcContactAddress: `${data.address1} ${data.address2}`.trim(),
-        arcContactAddressLine1: data.address1,
-        arcContactAddressLine2: data.address2,
-        arcContactPoBox: data.pobox,
-        arcCountryMobCode: arcCountryMobCodeValue,
-        arcContactTelCode: arcContactTelCodeValue,
-        arcContactTelNo: data.telephoneno,
-        arcContactMobNo: data.mobileno,
-        arcContactFaxNo: data.fax,
-        enabled: true,
-        deleted: false,
-        workflowStatus:
-          (apiContactData as BuildPartnerContactResponse | undefined)
-            ?.workflowStatus ?? null,
-        ...(buildPartnerId && {
-          assetRegisterDTO: {
-            id: parseInt(buildPartnerId),
-            enabled: true,
-            deleted: false,
-          },
-        }),
+      if (!selectedCategoryId) {
+        setErrorMessage('Budget Category is required')
+        setIsSubmitting(false)
+        return
       }
 
-      await addContactMutation.mutateAsync({
-        data: contactPayload,
-        isEditing: isEditing,
-        developerId: buildPartnerId,
-      })
+      const categoryId = typeof selectedCategoryId === 'string' 
+        ? parseInt(selectedCategoryId) 
+        : selectedCategoryId
 
+      // Validate budgetId is available
+      if (!budgetId) {
+        setErrorMessage('Budget ID is required')
+        setIsSubmitting(false)
+        return
+      }
+
+      // Construct payload with only required fields
+      // ✅ IMPORTANT: budgetDTO should ONLY contain { id: budgetId } - no other fields
+      const payload: BudgetItemRequest = {
+        ...(isEditing && budgetItemData?.id && { id: budgetItemData.id }),
+        subCategoryCode: data.subCategoryCode || '',
+        subCategoryName: data.subCategoryName || '',
+        subCategoryNameLocale: data.subCategoryNameLocale || '',
+        serviceCode: data.serviceCode || '',
+        provisionalServiceCode: data.provisionalServiceCode || '',
+        serviceName: data.serviceName || '',
+        serviceNameLocale: data.serviceNameLocale || '',
+        totalBudget: typeof data.totalBudget === 'string' 
+          ? parseFloat(data.totalBudget) || 0 
+          : data.totalBudget || 0,
+        availableBudget: typeof data.availableBudget === 'string' 
+          ? parseFloat(data.availableBudget) || 0 
+          : data.availableBudget || 0,
+        utilizedBudget: typeof data.utilizedBudget === 'string' 
+          ? parseFloat(data.utilizedBudget) || 0 
+          : data.utilizedBudget || 0,
+        enabled: true,
+        deleted: false,
+        budgetCategoryDTO: {
+          id: categoryId,
+            enabled: true,
+        },
+        // ✅ CRITICAL: Only pass id in budgetDTO - create fresh object with ONLY id field
+        budgetDTO: {
+          id: budgetId,
+        },
+      }
+
+      // ✅ Double-check: Ensure budgetDTO only contains id (explicitly reassign to prevent any field leakage)
+      payload.budgetDTO = {
+        id: budgetId,
+      }
+
+      // Log the final payload structure to verify
+      const payloadToSend = {
+        ...payload,
+        budgetDTO: {
+          id: budgetId,
+        },
+      }
+
+      console.log('[RightSlideBudgetItemPanel] Final payload to send:', JSON.stringify(payloadToSend, null, 2))
+      console.log('[RightSlideBudgetItemPanel] budgetDTO (should ONLY have id):', JSON.stringify(payloadToSend.budgetDTO, null, 2))
+
+      // ✅ Use React Query mutations (they handle cache invalidation automatically)
+      let response: BudgetItemResponse
+      if (isEditing && budgetItemData?.id) {
+        response = await updateMutation.mutateAsync({
+          id: budgetItemData.id,
+          payload: payloadToSend
+        })
+      } else {
+        response = await createMutation.mutateAsync(payloadToSend)
+      }
+
+      console.log('[RightSlideBudgetItemPanel] ✅ Mutation completed')
+      console.log('[RightSlideBudgetItemPanel] Response:', response)
+      console.log('[RightSlideBudgetItemPanel] isEditing:', isEditing)
+      console.log('[RightSlideBudgetItemPanel] onBudgetItemAdded:', !!onBudgetItemAdded)
+      console.log('[RightSlideBudgetItemPanel] onBudgetItemUpdated:', !!onBudgetItemUpdated)
+
+      // Success message is handled by the mutation hook (toast)
       setSuccessMessage(
         isEditing
-          ? 'Contact updated successfully!'
-          : 'Contact added successfully!'
+          ? 'Budget item updated successfully!'
+          : 'Budget item added successfully!'
       )
 
-      const contactForForm: ContactData = {
-        ...(isEditing && contactData?.id && { id: contactData.id }),
-        arcContactName: contactPayload.arcContactName ?? null,
-        arcFirstName: contactPayload.arcFirstName ?? null,
-        arcLastName: contactPayload.arcLastName ?? null,
-        arcContactEmail: contactPayload.arcContactEmail ?? null,
-        arcContactAddress: contactPayload.arcContactAddress ?? null,
-        arcContactAddressLine1: contactPayload.arcContactAddressLine1 ?? null,
-        arcContactAddressLine2: contactPayload.arcContactAddressLine2 ?? null,
-        arcContactPoBox: contactPayload.arcContactPoBox ?? null,
-        arcCountryMobCode: contactPayload.arcCountryMobCode ?? null,
-        arcContactTelCode: contactPayload.arcContactTelCode ?? null,
-        arcContactTelNo: contactPayload.arcContactTelNo ?? null,
-        arcContactMobNo: contactPayload.arcContactMobNo ?? null,
-        arcContactFaxNo: contactPayload.arcContactFaxNo ?? null,
-        enabled: true,
-        deleted: false,
-        workflowStatus: contactPayload.workflowStatus ?? null,
-        ...(buildPartnerId && {
-          assetRegisterDTO: {
-            id: parseInt(buildPartnerId),
-            enabled: true,
-            deleted: false,
-          },
-        }),
+      // Call callbacks BEFORE closing panel to ensure refetch happens
+      if (isEditing && onBudgetItemUpdated && budgetItemIndex !== undefined) {
+        console.log('[RightSlideBudgetItemPanel] Calling onBudgetItemUpdated callback')
+        await onBudgetItemUpdated(response, budgetItemIndex)
+      } else if (!isEditing && onBudgetItemAdded) {
+        console.log('[RightSlideBudgetItemPanel] Calling onBudgetItemAdded callback')
+        await onBudgetItemAdded(response)
       }
 
-      if (isEditing && onContactUpdated && contactIndex !== undefined) {
-        onContactUpdated(contactForForm, contactIndex)
-      } else if (!isEditing && onContactAdded) {
-        onContactAdded(contactForForm)
-      }
-
+      // Close panel after a short delay to allow refetch to complete
       setTimeout(() => {
         reset()
         onClose()
@@ -422,8 +435,10 @@ export const RightSlideBudgetItemPanel: React.FC<RightSlidePanelProps> = ({
       const errorMessage =
         errorData?.response?.data?.message ||
         errorData?.message ||
-        'Failed to add contact. Please try again.'
+        'Failed to save budget item. Please try again.'
       setErrorMessage(errorMessage)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -462,24 +477,6 @@ export const RightSlideBudgetItemPanel: React.FC<RightSlidePanelProps> = ({
     },
   }
 
-  const selectStyles = {
-    height: '46px',
-    borderRadius: '8px',
-    '& .MuiOutlinedInput-notchedOutline': {
-      borderColor: '#CAD5E2',
-      borderWidth: '1px',
-    },
-    '&:hover .MuiOutlinedInput-notchedOutline': {
-      borderColor: '#CAD5E2',
-    },
-    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-      borderColor: '#2563EB',
-    },
-    '& .MuiSelect-icon': {
-      color: '#666',
-    },
-  }
-
   const labelSx = {
     color: '#6A7282',
     fontFamily: 'Outfit',
@@ -499,12 +496,31 @@ export const RightSlideBudgetItemPanel: React.FC<RightSlidePanelProps> = ({
     wordBreak: 'break-word',
   }
 
+  const selectStyles = {
+    height: '46px',
+    borderRadius: '8px',
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#CAD5E2',
+      borderWidth: '1px',
+    },
+    '&:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#CAD5E2',
+    },
+    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#2563EB',
+    },
+    '& .MuiSelect-icon': {
+      color: '#666',
+    },
+  }
+
   const renderTextField = (
-    name: keyof ContactFormData,
+    name: keyof BudgetItemFormData,
     label: string,
     defaultValue = '',
     gridSize: number = 6,
-    required = false
+    required = false,
+    type: 'text' | 'number' = 'text'
   ) => (
     <Grid key={name} size={{ xs: 12, md: gridSize }}>
       <Controller
@@ -514,7 +530,7 @@ export const RightSlideBudgetItemPanel: React.FC<RightSlidePanelProps> = ({
         rules={{
           validate: (value: unknown) => {
             const allValues = getValues()
-            return validateContactField(name, value, allValues)
+            return validateBudgetItemField(name, value, allValues)
           },
         }}
         render={({ field }) => (
@@ -522,12 +538,14 @@ export const RightSlideBudgetItemPanel: React.FC<RightSlidePanelProps> = ({
             <TextField
               {...field}
               label={label}
+              type={type}
               fullWidth
               required={required}
               error={!!errors[name]}
               InputLabelProps={{ sx: labelSx }}
               InputProps={{ sx: valueSx }}
               sx={errors[name] ? errorFieldStyles : commonFieldStyles}
+              value={field.value || ''}
             />
             <FormError
               error={(errors[name]?.message as string) || ''}
@@ -540,48 +558,9 @@ export const RightSlideBudgetItemPanel: React.FC<RightSlidePanelProps> = ({
   )
 
   const renderSelectField = (
-    name: keyof ContactFormData,
+    name: keyof BudgetItemFormData,
     label: string,
-    options: string[],
-    gridSize: number = 6,
-    required = false
-  ) => (
-    <Grid key={name} size={{ xs: 12, md: gridSize }}>
-      <Controller
-        name={name}
-        control={control}
-        rules={required ? { required: `${label} is required` } : {}}
-        defaultValue={''}
-        render={({ field }) => (
-          <FormControl fullWidth error={!!errors[name]}>
-            <InputLabel sx={labelSx}>{label}</InputLabel>
-            <Select
-              {...field}
-              input={<OutlinedInput label={label} />}
-              label={label}
-              sx={{ ...selectStyles, ...valueSx }}
-              IconComponent={KeyboardArrowDownIcon}
-            >
-              {options.map((opt) => (
-                <MenuItem key={opt} value={opt}>
-                  {opt}
-                </MenuItem>
-              ))}
-            </Select>
-            <FormError
-              error={(errors[name]?.message as string) || ''}
-              touched={true}
-            />
-          </FormControl>
-        )}
-      />
-    </Grid>
-  )
-
-  const renderApiSelectField = (
-    name: keyof ContactFormData,
-    label: string,
-    options: FeeDropdownOption[],
+    options: { id: number; displayName: string; settingValue: string }[],
     gridSize: number = 6,
     required = false,
     loading = false
@@ -593,13 +572,13 @@ export const RightSlideBudgetItemPanel: React.FC<RightSlidePanelProps> = ({
         rules={{
           validate: (value: unknown) => {
             const allValues = getValues()
-            return validateContactField(name, value, allValues)
+            return validateBudgetItemField(name, value, allValues)
           },
         }}
         defaultValue={''}
         render={({ field }) => (
           <FormControl fullWidth error={!!errors[name]} required={required}>
-            <InputLabel sx={labelSx}>
+            <InputLabel sx={labelSx} required={required}>
               {loading ? `Loading...` : label}
             </InputLabel>
             <Select
@@ -609,12 +588,23 @@ export const RightSlideBudgetItemPanel: React.FC<RightSlidePanelProps> = ({
               sx={{ ...selectStyles, ...valueSx }}
               IconComponent={KeyboardArrowDownIcon}
               disabled={loading}
+              value={field.value || ''}
             >
-              {options.map((option) => (
-                <MenuItem key={option.id} value={option.id}>
-                  {getDisplayLabel(option, option.configValue)}
+              {loading ? (
+                <MenuItem disabled value="">
+                  <em>Loading options...</em>
                 </MenuItem>
-              ))}
+              ) : options.length === 0 ? (
+                <MenuItem disabled value="">
+                  <em>No options available</em>
+                </MenuItem>
+              ) : (
+                options.map((option) => (
+                  <MenuItem key={option.id} value={option.settingValue}>
+                    {option.displayName}
+                  </MenuItem>
+                ))
+              )}
             </Select>
             <FormError
               error={(errors[name]?.message as string) || ''}
@@ -625,6 +615,7 @@ export const RightSlideBudgetItemPanel: React.FC<RightSlidePanelProps> = ({
       />
     </Grid>
   )
+
 
   return (
     <Drawer
@@ -664,8 +655,8 @@ export const RightSlideBudgetItemPanel: React.FC<RightSlidePanelProps> = ({
         }}
       >
         {mode === 'edit'
-          ? getBuildPartnerLabelDynamic('CDL_AR_CONTACT_EDIT')
-          : getBuildPartnerLabelDynamic('CDL_AR_CONTACT_ADD')}
+          ? getLabel('CDL_BDG_BUDGET_ITEM_EDIT', currentLanguage, 'Edit Budget Item')
+          : getLabel('CDL_BDG_BUDGET_ITEM_ADD', currentLanguage, 'Add Budget Item')}
         <IconButton onClick={handleClose}>
           <CancelOutlinedIcon />
         </IconButton>
@@ -691,99 +682,95 @@ export const RightSlideBudgetItemPanel: React.FC<RightSlidePanelProps> = ({
             marginBottom: '80px', // Space for fixed buttons
           }}
         >
-          {countryCodesError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              Failed to load country code options. Please refresh the page.
-            </Alert>
-          )}
-
-          {!countryCodesLoading &&
-            !countryCodesError &&
-            countryCodes.length === 0 && (
+          {loadingBudgetItem && (
               <Alert severity="info" sx={{ mb: 2 }}>
-                Using default country code options. API data not available.
+              Loading budget item data...
               </Alert>
             )}
 
           <Grid container rowSpacing={4} columnSpacing={2} mt={3}>
+            {/* Budget Category Dropdown */}
+            {renderSelectField(
+              'budgetCategoryId',
+              getLabel(BUDGET_LABELS.FORM_FIELDS.SERVICE_CHARGE_GROUP_NAME, currentLanguage, 'Budget Category'),
+              budgetCategoryOptions,
+              12,
+              true,
+              loadingBudgetCategories
+            )}
+
             {renderTextField(
-              'fname',
-              getBuildPartnerLabelDynamic('CDL_AR_AUTH_FIRST_NAME'),
+              'subCategoryCode',
+              getLabel('CDL_BDG_SUB_CATEGORY_CODE', currentLanguage, 'Sub-Category Code'),
               '',
               6,
               true
             )}
             {renderTextField(
-              'lname',
-              getBuildPartnerLabelDynamic('CDL_AR_AUTH_LAST_NAME'),
+              'subCategoryName',
+              getLabel('CDL_BDG_SUB_CATEGORY_NAME', currentLanguage, 'Sub-Category Name'),
               '',
               6,
               true
             )}
             {renderTextField(
-              'email',
-              getBuildPartnerLabelDynamic('CDL_AR_EMAIL_ADDRESS'),
+              'subCategoryNameLocale',
+              getLabel('CDL_BDG_SUB_CATEGORY_NAME_LOCALE', currentLanguage, 'Sub-Category Name (Local)'),
               '',
-              12,
-              true
-            )}
-            {renderTextField(
-              'address1',
-              getBuildPartnerLabelDynamic('CDL_AR_ADDRESS_LINE1'),
-              '',
-              12,
-              true
-            )}
-            {renderTextField(
-              'address2',
-              getBuildPartnerLabelDynamic('CDL_AR_ADDRESS_LINE2'),
-              '',
-              12,
+              6,
               false
             )}
             {renderTextField(
-              'pobox',
-              getBuildPartnerLabelDynamic('CDL_AR_POBOX'),
+              'serviceCode',
+              getLabel('CDL_BDG_SERVICE_CODE', currentLanguage, 'Service Code'),
               '',
-              12,
+              6,
+              true
+            )}
+            {renderTextField(
+              'provisionalServiceCode',
+              getLabel('CDL_BDG_PROVISIONAL_SERVICE_CODE', currentLanguage, 'Provisional Service Code'),
+              '',
+              6,
               false
             )}
-            {countryCodes.length > 0
-              ? renderApiSelectField(
-                  'countrycode',
-                  getBuildPartnerLabelDynamic('CDL_AR_COUNTRY_CODE'),
-                  countryCodes,
-                  6,
-                  true,
-                  countryCodesLoading
-                )
-              : renderSelectField(
-                  'countrycode',
-                  getBuildPartnerLabelDynamic('CDL_AR_COUNTRY_CODE'),
-                  ['+971', '+1', '+44', '+91'],
+            {renderTextField(
+              'serviceName',
+              getLabel('CDL_BDG_SERVICE_NAME', currentLanguage, 'Service Name'),
+              '',
                   6,
                   true
                 )}
             {renderTextField(
-              'telephoneno',
-              getBuildPartnerLabelDynamic('CDL_AR_TELEPHONE_NUMBER'),
+              'serviceNameLocale',
+              getLabel('CDL_BDG_SERVICE_NAME_LOCALE', currentLanguage, 'Service Name (Local)'),
               '',
               6,
               false
             )}
             {renderTextField(
-              'mobileno',
-              getBuildPartnerLabelDynamic('CDL_AR_MOBILE_NUMBER'),
+              'totalBudget',
+              getLabel('CDL_BDG_TOTAL_BUDGET', currentLanguage, 'Total Budget'),
               '',
               6,
-              true
+              true,
+              'number'
             )}
             {renderTextField(
-              'fax',
-              getBuildPartnerLabelDynamic('CDL_AR_FAX_NUMBER'),
+              'availableBudget',
+              getLabel('CDL_BDG_AVAILABLE_BUDGET', currentLanguage, 'Available Budget'),
               '',
-              12,
-              false
+              6,
+              false,
+              'number'
+            )}
+            {renderTextField(
+              'utilizedBudget',
+              getLabel('CDL_BDG_UTILIZED_BUDGET', currentLanguage, 'Utilized Budget'),
+              '',
+              6,
+              false,
+              'number'
             )}
           </Grid>
         </DialogContent>
@@ -807,7 +794,7 @@ export const RightSlideBudgetItemPanel: React.FC<RightSlidePanelProps> = ({
                 fullWidth
                 variant="outlined"
                 onClick={handleClose}
-                disabled={addContactMutation.isPending || countryCodesLoading}
+                disabled={isSubmitting || loadingBudgetItem}
                 sx={{
                   fontFamily: 'Outfit, sans-serif',
                   fontWeight: 500,
@@ -826,7 +813,7 @@ export const RightSlideBudgetItemPanel: React.FC<RightSlidePanelProps> = ({
                 variant="outlined"
                 color="primary"
                 type="submit"
-                disabled={addContactMutation.isPending || countryCodesLoading}
+                disabled={isSubmitting || loadingBudgetItem}
                 sx={{
                   fontFamily: 'Outfit, sans-serif',
                   fontWeight: 500,
@@ -838,7 +825,7 @@ export const RightSlideBudgetItemPanel: React.FC<RightSlidePanelProps> = ({
                   color: '#fff',
                 }}
               >
-                {addContactMutation.isPending
+                {isSubmitting
                   ? mode === 'edit'
                     ? 'Updating...'
                     : 'Adding...'

@@ -163,6 +163,9 @@ export interface LanguageTranslation {
         id: number
         enabled?: boolean
     }
+    budgetDTO?: {
+        id: number
+    } | null
   }
 
   export interface BudgetItemRequest {
@@ -183,6 +186,9 @@ export interface LanguageTranslation {
         id: number
         enabled?: boolean
     }
+    budgetDTO?: {
+        id: number
+    } | null
   }
 
   // Mapping function for Budget Response to UI Data

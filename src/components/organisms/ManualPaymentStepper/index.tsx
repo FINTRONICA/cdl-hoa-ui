@@ -287,13 +287,45 @@ function ManualPaymentStepperContent({
 
   const handleSaveAndNext = async () => {
     try {
+      console.log('[ManualPaymentStepper] handleSaveAndNext called')
       const formData = methods.getValues()
+      console.log('[ManualPaymentStepper] Form data:', formData)
+      
+      // Verify budget IDs are present
+      console.log('[ManualPaymentStepper] Budget IDs verification:', {
+        budgetDetails: formData.budgetDetails, // Should be BudgetDTO.id (e.g., "155")
+        budgetCategory: formData.budgetCategory, // Should be BudgetCategoryDTO.id (e.g., "160")
+        budgetItems: formData.budgetItems, // Should be BudgetItemDTO.id (e.g., "168")
+        verification: {
+          budgetDetailsType: typeof formData.budgetDetails,
+          budgetCategoryType: typeof formData.budgetCategory,
+          budgetItemsType: typeof formData.budgetItems,
+        }
+      })
+      
       const apiPayload = mapFormDataToFundEgressSimplified(
         formData,
         mappingOptions
       )
+      console.log('[ManualPaymentStepper] API payload:', apiPayload)
+      
+      // Verify budget IDs in final payload
+      console.log('[ManualPaymentStepper] Budget IDs in API payload:', {
+        feBudgetDetails: apiPayload.feBudgetDetails, // BudgetDTO.id (should be "155" in your example)
+        feBudgetCategory: apiPayload.feBudgetCategory, // BudgetCategoryDTO.id (should be "160" in your example)
+        feBudgetItems: apiPayload.feBudgetItems, // BudgetItemDTO.id (should be "168" in your example)
+        verification: {
+          allPresent: !!(apiPayload.feBudgetDetails && apiPayload.feBudgetCategory && apiPayload.feBudgetItems),
+          allAreStrings: typeof apiPayload.feBudgetDetails === 'string' && 
+                        typeof apiPayload.feBudgetCategory === 'string' && 
+                        typeof apiPayload.feBudgetItems === 'string',
+          note: 'These should match the IDs selected from the dropdowns'
+        }
+      })
 
+      console.log('[ManualPaymentStepper] Calling submitPayment API...')
       const result = await submitPayment(apiPayload)
+      console.log('[ManualPaymentStepper] API response:', result)
 
       setSavedId(result.id.toString())
 
@@ -303,9 +335,10 @@ function ManualPaymentStepperContent({
         'Payment saved successfully! Moving to document upload step.'
       )
     } catch (error) {
-      toast.error(
-        `Error: ${error instanceof Error ? error.message : 'Failed to save payment'}`
-      )
+      console.error('[ManualPaymentStepper] Error in handleSaveAndNext:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save payment'
+      console.error('[ManualPaymentStepper] Error message:', errorMessage)
+      toast.error(`Error: ${errorMessage}`)
     }
   }
 
@@ -709,14 +742,42 @@ function ManualPaymentStepperContent({
                     {/* Primary action button */}
                     {activeStep === 0 ? (
                       <Button
-                        onClick={() => {
-                          methods.handleSubmit(async () => {
+                        onClick={async () => {
+                          console.log('[ManualPaymentStepper] Save button clicked')
+                          console.log('[ManualPaymentStepper] Form values:', methods.getValues())
+                          console.log('[ManualPaymentStepper] Form errors:', methods.formState.errors)
+                          console.log('[ManualPaymentStepper] Is valid:', methods.formState.isValid)
+                          
+                          // Validate form first
+                          const isValid = await methods.trigger()
+                          console.log('[ManualPaymentStepper] Validation result:', isValid)
+                          
+                          if (!isValid) {
+                            const errors = methods.formState.errors
+                            console.error('[ManualPaymentStepper] Validation errors:', errors)
+                            const errorKeys = Object.keys(errors)
+                            if (errorKeys.length > 0) {
+                              toast.error(`Please fix ${errorKeys.length} validation error${errorKeys.length > 1 ? 's' : ''} before saving.`)
+                              // Focus first error
+                              const firstErrorKey = errorKeys[0] as any
+                              methods.setFocus(firstErrorKey)
+                            }
+                            return
+                          }
+                          
+                          // If validation passes, proceed with save
+                          try {
                             if (isEditMode) {
+                              console.log('[ManualPaymentStepper] Calling handleUpdate')
                               await handleUpdate()
                             } else {
+                              console.log('[ManualPaymentStepper] Calling handleSaveAndNext')
                               await handleSaveAndNext()
                             }
-                          }, onError)()
+                          } catch (error) {
+                            console.error('[ManualPaymentStepper] Error in save handler:', error)
+                            toast.error(`Failed to save: ${error instanceof Error ? error.message : 'Unknown error'}`)
+                          }
                         }}
                         variant="contained"
                         disabled={createProjectWorkflowRequest.isPending}

@@ -57,8 +57,8 @@ export const manualPaymentStep1Schema = z.object({
   tasReference: ManualPaymentPrimitives.nonEmptyTrimmed,
   developerName: ManualPaymentPrimitives.nonEmptyTrimmed,
   developerId: ManualPaymentPrimitives.nonEmptyTrimmed,
-  projectName: ManualPaymentPrimitives.idRequired,
-  projectId: ManualPaymentPrimitives.nonEmptyTrimmed,
+  projectName: ManualPaymentPrimitives.idOptional, // Made optional since field is commented out
+  projectId: z.string().optional().nullable(), // Made optional since field is commented out
 
   // Pre-populated from asset; do not validate as required
   projectStatus: ManualPaymentPrimitives.idOptional,

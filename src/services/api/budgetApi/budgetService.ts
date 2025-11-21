@@ -9,7 +9,7 @@ class MasterBudgetService {
    */
   async listBudgets(): Promise<MasterBudgetData[]> {
     try {
-      console.log('[MasterBudgetService] Calling getBudgetCategories with page=0, size=1000')
+      console.log('[MasterBudgetService] Calling getBudgetCategories with page=0, size=20')
       const response = await BudgetCategoryService.getBudgetCategories(0, 1000)
       console.log('[MasterBudgetService] getBudgetCategories response:', response)
       const mappedData = response.content.map(this.mapToMasterBudgetData)
@@ -113,11 +113,11 @@ import {
   mapBudget, 
   BudgetResponse, 
   BudgetRequest 
-} from '@/constants/mappings/budgetMapper'
+} from '@/utils/budgetMapper'
 import { BudgetCategoryUIData } from './budgetCategoryService'
 
 // Re-export types from mapper
-export type { BudgetResponse, BudgetRequest } from '@/constants/mappings/budgetMapper'
+export type { BudgetResponse, BudgetRequest } from '@/utils/budgetMapper'
 
 // ---------- UI Model ----------
 export interface BudgetUIData extends Record<string, unknown> {

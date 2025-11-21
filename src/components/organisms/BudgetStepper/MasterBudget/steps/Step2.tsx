@@ -25,16 +25,15 @@ import { useGetEnhanced } from '@/hooks/useApiEnhanced'
 import { API_ENDPOINTS } from '@/constants/apiEndpoints'
 
 import { GlobalLoading } from '@/components/atoms'
-import {
-  DocumentItem,
+import { buildPartnerService } from '@/services/api/buildPartnerService'
+import { MASTER_BUDGET_LABELS } from '@/constants/mappings/budgetLabels'
+import { type BudgetCategoryResponse } from '@/services/api/budgetApi/budgetCategoryService'
+import { useParams } from 'next/navigation'
+import { formatDate } from '@/utils'
+import type {
   ApiDocumentResponse,
   PaginatedDocumentResponse,
-} from '../../DeveloperStepper/developerTypes'
-import { buildPartnerService } from '@/services/api/buildPartnerService'
-import { mapApiToDocumentItem } from '../../../DocumentUpload/configs/budgetConfig'
-import { MASTER_BUDGET_LABELS } from '@/constants/mappings/budgetLabels'
-import { budgetCategoryService, type BudgetCategoryResponse } from '@/services/api/budgetApi/budgetCategoryService'
-import { useParams } from 'next/navigation'
+} from '../../../DeveloperStepper/developerTypes'
 
 const labelSx = {
   color: '#6A7282',
@@ -130,19 +129,22 @@ interface Step2Props {
   onEdit?: () => void
   onEditDocuments?: () => void
   isReadOnly?: boolean
+  budgetId?: string | null
 }
 
 const Step2: React.FC<Step2Props> = ({
   onEdit,
   onEditDocuments,
   isReadOnly = false,
+  budgetId: propBudgetId,
 }) => {
   const router = useRouter()
   const params = useParams()
   const { getLabel } = useBudgetLabelsWithCache('EN')
   const currentLanguage = useAppStore((state) => state.language)
 
-  const budgetId = params?.id as string | undefined
+  // Get budgetId from prop (preferred) or from URL params (fallback)
+  const budgetId = propBudgetId || (params?.id as string | undefined)
 
   const handleEditBasicDetails = () => {
     if (onEdit) {
@@ -175,7 +177,7 @@ const Step2: React.FC<Step2Props> = ({
 
 
 
-  const [documents, setDocuments] = React.useState<DocumentItem[]>([])
+  const [documents, setDocuments] = React.useState<DocumentData[]>([])
   const [isLoadingDocuments, setIsLoadingDocuments] = React.useState(false)
   const [documentsError, setDocumentsError] = React.useState<Error | null>(null)
 
@@ -191,28 +193,64 @@ const Step2: React.FC<Step2Props> = ({
       setDocumentsError(null)
 
       try {
+        console.log('[Step2] Fetching documents for budgetId:', budgetId, 'module: BUDGET_CATEGORY')
+        console.log('[Step2] budgetId type:', typeof budgetId, 'value:', budgetId)
+        
+        // Ensure budgetId is a string (API expects string for recordId)
+        const entityId = budgetId?.toString() || ''
+        console.log('[Step2] Calling getBuildPartnerDocuments with entityId:', entityId)
+        
         const response = await buildPartnerService.getBuildPartnerDocuments(
-          budgetId,
-          'BUDGET',
+          entityId,
+          'BUDGET_CATEGORY',
           0,
-          50
+          1000
         )
+
+        console.log('[Step2] Documents API response:', response)
+        console.log('[Step2] Response type:', typeof response)
+        console.log('[Step2] Is array?', Array.isArray(response))
+        console.log('[Step2] Has content?', response && 'content' in response)
 
         let apiDocuments: ApiDocumentResponse[] = []
 
         if (Array.isArray(response)) {
+          console.log('[Step2] Response is array, length:', response.length)
           apiDocuments = response as ApiDocumentResponse[]
-        } else if (response && 'content' in response) {
+        } else if (response && typeof response === 'object' && 'content' in response) {
           const paginated = response as PaginatedDocumentResponse
-          apiDocuments = paginated?.content ?? []
+          console.log('[Step2] Response is paginated, content length:', paginated?.content?.length || 0)
+          apiDocuments = Array.isArray(paginated?.content) ? paginated.content : []
+        } else {
+          console.warn('[Step2] Unexpected response format:', response)
         }
 
-        const mappedDocuments = apiDocuments.map(mapApiToDocumentItem)
+        console.log('[Step2] Extracted apiDocuments:', apiDocuments)
+        console.log('[Step2] Number of documents:', apiDocuments.length)
+
+        // Map documents similar to reference code
+        const mappedDocuments: DocumentData[] = apiDocuments.map((doc, index) => {
+          const mapped = {
+            id: doc.id?.toString() || `doc-${index}`,
+            fileName: doc.documentName || '',
+            documentType: doc.documentTypeDTO?.languageTranslationId?.configValue || 
+                         doc.documentType?.settingValue || 
+                         '',
+            uploadDate: doc.uploadDate || '',
+            fileSize: parseInt(doc.documentSize?.replace(' bytes', '') || '0'),
+          }
+          console.log(`[Step2] Mapped document ${index}:`, mapped)
+          return mapped
+        })
+
+        console.log('[Step2] Final mapped documents:', mappedDocuments)
         setDocuments(mappedDocuments)
       } catch (error) {
-        setDocumentsError(
-          error instanceof Error ? error : new Error('Failed to load documents')
-        )
+        console.error('[Step2] Error loading documents:', error)
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load documents'
+        console.error('[Step2] Error message:', errorMessage)
+        setDocumentsError(new Error(errorMessage))
+        setDocuments([]) // Clear documents on error
       } finally {
         setIsLoadingDocuments(false)
       }
@@ -221,21 +259,12 @@ const Step2: React.FC<Step2Props> = ({
     loadDocuments()
   }, [budgetId])
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '-'
-    try {
-      return new Date(dateString).toLocaleDateString()
-    } catch {
-      return dateString
-    }
-  }
-
-  const formatDocumentDate = (dateValue?: Date | string | null): string => {
-    if (!dateValue) return '-'
-    if (dateValue instanceof Date) {
-      return dateValue.toLocaleDateString()
-    }
-    return formatDate(dateValue)
+  interface DocumentData {
+    id: string
+    fileName: string
+    documentType: string
+    uploadDate: string
+    fileSize: number
   }
 
   const getBasicFields = () => {
@@ -347,240 +376,260 @@ const Step2: React.FC<Step2Props> = ({
   const basicFields = getBasicFields()
 
   return (
-    <Card
-      sx={{
-        boxShadow: 'none',
-        backgroundColor: '#FFFFFFBF',
-        width: '94%',
-        margin: '0 auto',
-      }}
-    >
-      <CardContent>
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={2}
-        >
-          <Typography
-            variant="h6"
-            fontWeight={600}
-            gutterBottom
-            sx={{
-              fontFamily: 'Outfit, sans-serif',
-              fontWeight: 500,
-              fontStyle: 'normal',
-              fontSize: '18px',
-              lineHeight: '28px',
-              letterSpacing: '0.15px',
-              verticalAlign: 'middle',
-            }}
+    <Box sx={{ width: '100%', p: 3 }}>
+      <Card
+        sx={{
+          boxShadow: 'none',
+          backgroundColor: '#FFFFFF',
+          width: '100%',
+          margin: '0 auto',
+          mb: 3,
+          border: '1px solid #E5E7EB',
+        }}
+      >
+        <CardContent sx={{ p: 3 }}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={3}
           >
-            {getLabel(
-              MASTER_BUDGET_LABELS.SECTION_TITLES.GENERAL,
-              currentLanguage,
-              MASTER_BUDGET_LABELS.FALLBACKS.SECTION_TITLES.GENERAL
-            )}
-          </Typography>
-          {!isReadOnly && (
-            <Button
-              startIcon={<EditIcon />}
-              onClick={handleEditBasicDetails}
-              sx={{
-                fontFamily: 'Outfit, sans-serif',
-                fontWeight: 500,
-                fontStyle: 'normal',
-                fontSize: '14px',
-                lineHeight: '24px',
-                letterSpacing: '0.5px',
-                verticalAlign: 'middle',
-              }}
-            >
-              Edit
-            </Button>
-          )}
-        </Box>
-        <Divider sx={{ mb: 2 }} />
-        {renderSectionContent(
-          getLabel(
-            MASTER_BUDGET_LABELS.SECTION_TITLES.GENERAL,
-            currentLanguage,
-            MASTER_BUDGET_LABELS.FALLBACKS.SECTION_TITLES.GENERAL
-          ),
-          isLoadingBasic,
-          errorBasic,
-          <Grid container spacing={3}>
-            {basicFields.map((field, idx) => (
-              <Grid size={{ xs: 12, md: field.gridSize }} key={`basic-${idx}`}>
-                {renderDisplayField(field.label, field.value)}
-              </Grid>
-            ))}
-          </Grid>
-        )}
-      </CardContent>
-
-      <CardContent>
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={2}
-        >
-          <Typography
-            variant="h6"
-            fontWeight={600}
-            gutterBottom
-            sx={{
-              fontFamily: 'Outfit, sans-serif',
-              fontWeight: 500,
-              fontStyle: 'normal',
-              fontSize: '18px',
-              lineHeight: '28px',
-              letterSpacing: '0.15px',
-              verticalAlign: 'middle',
-            }}
-          >
-            {getLabel(
-              MASTER_BUDGET_LABELS.DOCUMENTS.TITLE,
-              currentLanguage,
-              MASTER_BUDGET_LABELS.FALLBACKS.DOCUMENTS.TITLE
-            )}
-          </Typography>
-          {!isReadOnly && budgetId && (
-            <Button
-              startIcon={<EditIcon />}
-              onClick={() => {
-                if (onEditDocuments) {
-                  onEditDocuments()
-                } else {
-                  router.push(`/budget/budget-master/new/${budgetId}?step=1`)
-                }
-              }}
-              sx={{
-                fontFamily: 'Outfit, sans-serif',
-                fontWeight: 500,
-                fontStyle: 'normal',
-                fontSize: '14px',
-                lineHeight: '24px',
-                letterSpacing: '0.5px',
-                verticalAlign: 'middle',
-              }}
-            >
-              Edit
-            </Button>
-          )}
-        </Box>
-        <Divider sx={{ mb: 2 }} />
-        {renderSectionContent(
-          getLabel(
-            MASTER_BUDGET_LABELS.DOCUMENTS.TITLE,
-            currentLanguage,
-            MASTER_BUDGET_LABELS.FALLBACKS.DOCUMENTS.TITLE
-          ),
-          isLoadingDocuments,
-          documentsError,
-          documents.length > 0 ? (
-            <TableContainer
-              component={Paper}
-              sx={{ boxShadow: 'none', border: '1px solid #E5E7EB' }}
-            >
-              <Table>
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: '#F9FAFB' }}>
-                    <TableCell
-                      sx={{
-                        fontFamily: 'Outfit, sans-serif',
-                        fontWeight: 600,
-                        fontSize: '14px',
-                        color: '#374151',
-                        borderBottom: '1px solid #E5E7EB',
-                      }}
-                    >
-                      Name
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        fontFamily: 'Outfit, sans-serif',
-                        fontWeight: 600,
-                        fontSize: '14px',
-                        color: '#374151',
-                        borderBottom: '1px solid #E5E7EB',
-                      }}
-                    >
-                      Date
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        fontFamily: 'Outfit, sans-serif',
-                        fontWeight: 600,
-                        fontSize: '14px',
-                        color: '#374151',
-                        borderBottom: '1px solid #E5E7EB',
-                      }}
-                    >
-                      Type
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {documents.map((doc) => (
-                    <TableRow
-                      key={doc.id}
-                      sx={{ '&:hover': { backgroundColor: '#F9FAFB' } }}
-                    >
-                      <TableCell
-                        sx={{
-                          fontFamily: 'Outfit, sans-serif',
-                          fontSize: '14px',
-                          color: '#374151',
-                          borderBottom: '1px solid #E5E7EB',
-                        }}
-                      >
-                        {doc.name || 'Document'}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          fontFamily: 'Outfit, sans-serif',
-                          fontSize: '14px',
-                          color: '#374151',
-                          borderBottom: '1px solid #E5E7EB',
-                        }}
-                      >
-                        {formatDocumentDate(doc.uploadDate)}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          fontFamily: 'Outfit, sans-serif',
-                          fontSize: '14px',
-                          color: '#374151',
-                          borderBottom: '1px solid #E5E7EB',
-                        }}
-                      >
-                        {doc.classification || 'N/A'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          ) : (
             <Typography
+              variant="h6"
+              fontWeight={600}
               sx={{
                 fontFamily: 'Outfit, sans-serif',
-                fontSize: '14px',
-                color: '#6A7282',
+                fontWeight: 600,
+                fontSize: '18px',
+                lineHeight: '24px',
+                color: '#1E2939',
               }}
             >
               {getLabel(
-                MASTER_BUDGET_LABELS.DOCUMENTS.DESCRIPTION,
+                MASTER_BUDGET_LABELS.SECTION_TITLES.GENERAL,
                 currentLanguage,
-                'No documents uploaded.'
+                MASTER_BUDGET_LABELS.FALLBACKS.SECTION_TITLES.GENERAL
               )}
             </Typography>
-          )
-        )}
-      </CardContent>
-    </Card>
+            {!isReadOnly && (
+              <Button
+                startIcon={<EditIcon />}
+                variant="outlined"
+                onClick={handleEditBasicDetails}
+                sx={{
+                  fontFamily: 'Outfit, sans-serif',
+                  fontWeight: 500,
+                  fontSize: '14px',
+                  lineHeight: '20px',
+                  color: '#6B7280',
+                  borderColor: '#D1D5DB',
+                  textTransform: 'none',
+                  '&:hover': {
+                    borderColor: '#9CA3AF',
+                    backgroundColor: '#F9FAFB',
+                  },
+                }}
+              >
+                Edit
+              </Button>
+            )}
+          </Box>
+          <Divider sx={{ mb: 3, borderColor: '#E5E7EB' }} />
+          {renderSectionContent(
+            getLabel(
+              MASTER_BUDGET_LABELS.SECTION_TITLES.GENERAL,
+              currentLanguage,
+              MASTER_BUDGET_LABELS.FALLBACKS.SECTION_TITLES.GENERAL
+            ),
+            isLoadingBasic,
+            errorBasic,
+            <Grid container spacing={3}>
+              {basicFields.map((field, idx) => (
+                <Grid size={{ xs: 12, md: field.gridSize }} key={`basic-${idx}`}>
+                  {renderDisplayField(field.label, field.value)}
+                </Grid>
+              ))}
+            </Grid>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Submitted Documents Section - Always show, similar to reference */}
+      <Card
+        sx={{
+          boxShadow: 'none',
+          backgroundColor: '#FFFFFF',
+          width: '100%',
+          margin: '0 auto',
+          mb: 3,
+          border: '1px solid #E5E7EB',
+        }}
+      >
+        <CardContent sx={{ p: 3 }}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={3}
+          >
+            <Typography
+              variant="h6"
+              fontWeight={600}
+              sx={{
+                fontFamily: 'Outfit, sans-serif',
+                fontWeight: 600,
+                fontSize: '18px',
+                lineHeight: '24px',
+                color: '#1E2939',
+              }}
+            >
+              {getLabel(
+                MASTER_BUDGET_LABELS.DOCUMENTS.TITLE,
+                currentLanguage,
+                MASTER_BUDGET_LABELS.FALLBACKS.DOCUMENTS.TITLE
+              )}
+            </Typography>
+            {!isReadOnly && budgetId && (
+              <Button
+                startIcon={<EditIcon />}
+                variant="outlined"
+                onClick={() => {
+                  if (onEditDocuments) {
+                    onEditDocuments()
+                  } else {
+                    router.push(`/budget/budget-master/${budgetId}?editing=true&step=1`)
+                  }
+                }}
+                sx={{
+                  fontFamily: 'Outfit, sans-serif',
+                  fontWeight: 500,
+                  fontSize: '14px',
+                  lineHeight: '20px',
+                  color: '#6B7280',
+                  borderColor: '#D1D5DB',
+                  textTransform: 'none',
+                  '&:hover': {
+                    borderColor: '#9CA3AF',
+                    backgroundColor: '#F9FAFB',
+                  },
+                }}
+              >
+                Edit
+              </Button>
+            )}
+          </Box>
+          {renderSectionContent(
+            getLabel(
+              MASTER_BUDGET_LABELS.DOCUMENTS.TITLE,
+              currentLanguage,
+              MASTER_BUDGET_LABELS.FALLBACKS.DOCUMENTS.TITLE
+            ),
+            isLoadingDocuments,
+            documentsError,
+            documents.length > 0 ? (
+              <TableContainer
+                component={Paper}
+                sx={{ boxShadow: 'none', border: '1px solid #E5E7EB' }}
+              >
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: '#F9FAFB' }}>
+                      <TableCell
+                        sx={{
+                          fontFamily: 'Outfit, sans-serif',
+                          fontWeight: 600,
+                          fontSize: '14px',
+                          color: '#374151',
+                          borderBottom: '1px solid #E5E7EB',
+                        }}
+                      >
+                        Name
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontFamily: 'Outfit, sans-serif',
+                          fontWeight: 600,
+                          fontSize: '14px',
+                          color: '#374151',
+                          borderBottom: '1px solid #E5E7EB',
+                        }}
+                      >
+                        Date
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontFamily: 'Outfit, sans-serif',
+                          fontWeight: 600,
+                          fontSize: '14px',
+                          color: '#374151',
+                          borderBottom: '1px solid #E5E7EB',
+                        }}
+                      >
+                        Type
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {documents.map((doc, index) => (
+                      <TableRow
+                        key={doc.id || index}
+                        sx={{ '&:hover': { backgroundColor: '#F9FAFB' } }}
+                      >
+                        <TableCell
+                          sx={{
+                            fontFamily: 'Outfit, sans-serif',
+                            fontSize: '14px',
+                            color: '#374151',
+                            borderBottom: '1px solid #E5E7EB',
+                          }}
+                        >
+                          {doc.fileName}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            fontFamily: 'Outfit, sans-serif',
+                            fontSize: '14px',
+                            color: '#374151',
+                            borderBottom: '1px solid #E5E7EB',
+                          }}
+                        >
+                          {formatDate(doc.uploadDate, 'DD/MM/YYYY')}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            fontFamily: 'Outfit, sans-serif',
+                            fontSize: '14px',
+                            color: '#374151',
+                            borderBottom: '1px solid #E5E7EB',
+                          }}
+                        >
+                          {doc.documentType || 'N/A'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Typography
+                sx={{
+                  fontFamily: 'Outfit, sans-serif',
+                  fontSize: '14px',
+                  color: '#6B7280',
+                  p: 2,
+                }}
+              >
+                {getLabel(
+                  MASTER_BUDGET_LABELS.DOCUMENTS.DESCRIPTION,
+                  currentLanguage,
+                  'No documents uploaded.'
+                )}
+              </Typography>
+            )
+          )}
+        </CardContent>
+      </Card>
+    </Box>
   )
 }
 

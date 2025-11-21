@@ -8,6 +8,7 @@ import { createPaymentDocumentConfig } from './configs/paymentConfig'
 import { createSuretyBondDocumentConfig } from './configs/suretyBondConfig'
 import { createBudgetDocumentConfig } from './configs/budgetConfig'
 import { DocumentItem } from '../DeveloperStepper/developerTypes'
+import { createBudgetCategoryDocumentConfig } from './configs/budgerCategoryConfig'
 
 export type DocumentUploadType =
   | 'ASSET_REGISTER'
@@ -28,6 +29,7 @@ export type DocumentUploadType =
   | 'SURETY_BOND'
   | 'BUILD_PARTNER_ASSET'
   | 'BUDGET'
+  | 'BUDGET_CATEGORY'
 
 interface DocumentUploadFactoryProps {
   type: DocumentUploadType
@@ -191,6 +193,13 @@ const DocumentUploadFactory: React.FC<DocumentUploadFactoryProps> = ({
           ...baseOptions,
           title: 'Budget Documents',
           description: 'Upload budget-related documents.',
+        })
+
+      case 'BUDGET_CATEGORY':
+        return createBudgetCategoryDocumentConfig(entityId, {
+          ...baseOptions,
+          title: 'Budget Category Documents',
+          description: 'Upload budget category-related documents.',
         })
 
       default:

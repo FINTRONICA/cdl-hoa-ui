@@ -30,7 +30,7 @@ export const BudgetStep1Schema = z.object({
 
 // Step 2: Budget Items Schema
 export const BudgetStep2Schema = z.object({
-  budgetCategoryId: z.string().min(1, 'Budget Category is required'),
+  budgetCategoryId: z.string().optional().or(z.literal('')),
   budgetItems: z
     .array(
       z.object({

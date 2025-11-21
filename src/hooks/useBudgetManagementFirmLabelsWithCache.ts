@@ -4,7 +4,7 @@ import { useAppStore } from '@/store'
 
 // Hook that reads from Zustand store (labels are pre-loaded by ComplianceProvider)
 // No API calls are made here to avoid duplicate requests
-export function useBudgetManagementFirmLabelsApi() {
+export function useBudgetManagementFirmLabelsWithCache() {
   // Read labels from Zustand store (already loaded by ComplianceProvider)
   const budgetLabels = useAppStore((state) => state.budgetLabels)
   const budgetLabelsLoading = useAppStore((state) => state.budgetLabelsLoading)
@@ -52,4 +52,7 @@ export function useBudgetManagementFirmLabelsApi() {
     [labels, isLoading, error, getLabel, hasLabels, getAvailableLanguages]
   )
 }
+
+// Alias for backward compatibility
+export const useBudgetManagementFirmLabelsApi = useBudgetManagementFirmLabelsWithCache
 

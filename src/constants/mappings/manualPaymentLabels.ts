@@ -85,7 +85,8 @@ export const MANUAL_PAYMENT_LABELS = {
     BANK_CHARGES: 'CDL_PAYMENTS_BANK_CHARGES', // "Bank Charges"
     PAYMENT_FROM_CBS: 'CDL_PAYMENTS_PAYOUT_CBS', // "Payout via CBS"
     REVIEW_NOTE: 'CDL_PAYMENTS_REVIEW', // "Review Guarantee Details & Documents Prior to Submission"
-    BUDGET_YEAR: 'CDL_TRAN_BUDGET_YEAR', // "Budget Year"
+    BUDGET_DETAILS: 'CDL_TRAN_BUDGET_DETAILS', // "Budget Details"
+    BUDGET_ITEMS: 'CDL_TRAN_BUDGET_ITEMS', // "Budget Items"
     BUDGET_CATEGORY: 'CDL_TRAN_CATEGORY', // "Budget Category"
     BUDGET_SUB_CATEGORY: 'CDL_TRAN_SUBCATEGORY', // "Budget Sub Category"
     BUDGET_SERVICE_NAME: 'CDL_TRAN_SERVICE_NAME', // "Budget Service Name"
@@ -256,6 +257,22 @@ export const MANUAL_PAYMENT_LABELS = {
     TRANSACTION_TYPE: 'Loading Transaction Type...',
     BANK_CHARGES: 'Loading Bank Charges...',
     TOTAL_AMOUNT_PAID: 'Loading Amount...',
+    // BUDGET DETAILS START
+    BUDGET_DETAILS  :  'Loading Budget Details...',
+    BUDGET_ITEMS: 'Loading Budget Items...',
+    BUDGET_CATEGORY: 'Loading Budget Category...',
+    BUDGET_SUB_CATEGORY: 'Loading Budget Sub Category...',
+    BUDGET_SERVICE_NAME: 'Loading Budget Service Name...',
+    CATEGORY_CODE: 'Loading Category Code...',
+    SUB_CATEGORY_CODE: 'Loading Sub Category Code...',
+    SERVICE_CODE: 'Loading Service Code...',
+    PROVISIONAL_BUDGET_CODE: 'Loading Provisional Budget Code...',
+    AVAILABLE_BUDGET_AMOUNT: 'Loading Available Budget Amount...',
+    UTILIZED_BUDGET_AMOUNT: 'Loading Utilized Budget Amount...',
+    INVOICE_BUDGET_AMOUNT: 'Loading Invoice Budget Amount...',
+    PROVISIONAL_BUDGET: 'Loading Provisional Budget...',
+    HOA_EXEMPTION: 'Loading HOA Exemption...',
+    // BUDGET DETAILS END
   },
 
   // Fallback Labels (used when API doesn't have the specific label)
@@ -334,6 +351,22 @@ export const MANUAL_PAYMENT_LABELS = {
       BANK_CHARGES: 'Bank Charges',
       PAYMENT_FROM_CBS: 'Payment to be made from CBS',
       REVIEW_NOTE: 'Please review the Guarantee details and Documents before submitting the payment',
+      // BUDGET DETAILS START
+      BUDGET_DETAILS  :  'Budget Details',
+      BUDGET_ITEMS: 'Budget Items',
+      BUDGET_CATEGORY: 'Budget Category',
+      BUDGET_SUB_CATEGORY: 'Budget Sub Category',
+      BUDGET_SERVICE_NAME: 'Budget Service Name',
+      CATEGORY_CODE: 'Category Code',
+      SUB_CATEGORY_CODE: 'Sub Category Code',
+      SERVICE_CODE: 'Service Code', 
+      PROVISIONAL_BUDGET_CODE: 'Provisional Budget Code',
+      AVAILABLE_BUDGET_AMOUNT: 'Available Budget Amount',
+      UTILIZED_BUDGET_AMOUNT: 'Utilized Budget Amount',
+      INVOICE_BUDGET_AMOUNT: 'Invoice Budget Amount',
+      PROVISIONAL_BUDGET: 'Provisional Budget',
+      HOA_EXEMPTION: 'HOA Exemption',
+      
     },
     TABLE_COLUMNS: {
       DATE: 'Date',
@@ -430,7 +463,7 @@ export const getManualPaymentLabel = (
 
 // Helper function to get fallback label
 export const getManualPaymentFallback = (
-  category: Exclude<ManualPaymentLabelKey, 'FALLBACKS' | 'PAYMENT_TYPES' | 'PAYMENT_METHODS' | 'YES_NO' | 'LOADING_LABELS' | 'ADDITIONAL_FORM_FIELDS'>,
+  category: Exclude<ManualPaymentLabelKey, 'FALLBACKS' | 'PAYMENT_TYPES' | 'PAYMENT_METHODS' | 'YES_NO' | 'LOADING_LABELS' | 'ADDITIONAL_FORM_FIELDS' | 'BUDGET_DETAILS '  |'BUDGET_ITEMS' | 'BUDGET_CATEGORY' >,
   key: string
 ): string => {
   return (MANUAL_PAYMENT_LABELS.FALLBACKS[category] as any)?.[key] || key
@@ -470,6 +503,22 @@ export const getManualPaymentLoadingLabel = (fieldName: string, originalLabel?: 
     TRANSACTION_TYPE: MANUAL_PAYMENT_LABELS.LOADING_LABELS.TRANSACTION_TYPE,
     BANK_CHARGES: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BANK_CHARGES,
     TOTAL_AMOUNT_PAID: MANUAL_PAYMENT_LABELS.LOADING_LABELS.TOTAL_AMOUNT_PAID,
+    // BUDGET DETAILS START
+    BUDGET_DETAILS: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BUDGET_DETAILS,
+    BUDGET_ITEMS: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BUDGET_ITEMS,
+    BUDGET_CATEGORY: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BUDGET_CATEGORY,
+    BUDGET_SUB_CATEGORY: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BUDGET_SUB_CATEGORY,
+    BUDGET_SERVICE_NAME: MANUAL_PAYMENT_LABELS.LOADING_LABELS.BUDGET_SERVICE_NAME,
+    CATEGORY_CODE: MANUAL_PAYMENT_LABELS.LOADING_LABELS.CATEGORY_CODE,
+    SUB_CATEGORY_CODE: MANUAL_PAYMENT_LABELS.LOADING_LABELS.SUB_CATEGORY_CODE,
+    SERVICE_CODE: MANUAL_PAYMENT_LABELS.LOADING_LABELS.SERVICE_CODE,
+    PROVISIONAL_BUDGET_CODE: MANUAL_PAYMENT_LABELS.LOADING_LABELS.PROVISIONAL_BUDGET_CODE,
+    AVAILABLE_BUDGET_AMOUNT: MANUAL_PAYMENT_LABELS.LOADING_LABELS.AVAILABLE_BUDGET_AMOUNT,
+    UTILIZED_BUDGET_AMOUNT: MANUAL_PAYMENT_LABELS.LOADING_LABELS.UTILIZED_BUDGET_AMOUNT,
+    INVOICE_BUDGET_AMOUNT: MANUAL_PAYMENT_LABELS.LOADING_LABELS.INVOICE_BUDGET_AMOUNT,
+    PROVISIONAL_BUDGET: MANUAL_PAYMENT_LABELS.LOADING_LABELS.PROVISIONAL_BUDGET,
+    HOA_EXEMPTION: MANUAL_PAYMENT_LABELS.LOADING_LABELS.HOA_EXEMPTION,
+    // BUDGET DETAILS END
   }
 
   return loadingLabels[fieldName] || (originalLabel ? `Loading ${originalLabel.replace(/\*/g, '').trim()}...` : 'Loading...')

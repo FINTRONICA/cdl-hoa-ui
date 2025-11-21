@@ -36,6 +36,9 @@ import { fundEgressService } from '../../../../services/api/fundEgressService'
 // import { toast } from 'react-hot-toast' // Not used in this component
 import { FormError } from '../../../atoms/FormError'
 import { getFieldMaxLength } from '@/lib/validation'
+import { BudgetService } from '@/services/api/budgetApi/budgetService'
+import { budgetItemsService } from '@/services/api/budgetApi/budgetItemsService'
+import { BudgetCategoryService } from '@/services/api/budgetApi/budgetCategoryService'
 
 interface Step1Props {
   savedId?: string | null
@@ -53,7 +56,7 @@ const Step1 = ({
   refreshKey,
 }: Step1Props) => {
   // Form context
-  const { control, setValue, watch, trigger } = useFormContext()
+  const { control, setValue, watch, trigger, formState: { errors }, clearErrors } = useFormContext()
 
   // Get dynamic labels
   const { getLabel } = useManualPaymentLabelsWithCache('EN')
@@ -94,6 +97,26 @@ const Step1 = ({
   const [additionalProjectAssets, setAdditionalProjectAssets] = useState<
     { id: number; mfName: string; mfId: string }[]
   >([])
+
+  // Budget dropdown state
+  const [budgetOptions, setBudgetOptions] = useState<
+    { id: number; displayName: string; settingValue: string; dto: any }[]
+  >([])
+  const [budgetDetailsOptions, setBudgetDetailsOptions] = useState<
+    { id: number; displayName: string; settingValue: string; dto: any }[]
+  >([])
+  // Store full budget item data for auto-population
+  const [budgetItemsData, setBudgetItemsData] = useState<any[]>([])
+  const [budgetCategoryOptions, setBudgetCategoryOptions] = useState<
+    { id: number; displayName: string; settingValue: string; dto: any }[]
+  >([])
+  // Store full DTO objects for API payload
+  const [selectedBudgetDTO, setSelectedBudgetDTO] = useState<any>(null)
+  const [selectedBudgetCategoryDTO, setSelectedBudgetCategoryDTO] = useState<any>(null)
+  const [selectedBudgetItemDTO, setSelectedBudgetItemDTO] = useState<any>(null)
+  const [loadingBudgets, setLoadingBudgets] = useState<boolean>(false)
+  const [loadingBudgetDetails, setLoadingBudgetDetails] = useState<boolean>(false)
+  const [loadingBudgetCategories, setLoadingBudgetCategories] = useState<boolean>(false)
 
   // Build partners - fetch all at once (no pagination needed)
   // Remove pagination logic since we're fetching 1000 items in one call
@@ -275,14 +298,46 @@ const Step1 = ({
       ? filteredRealEstateAssets.assets
       : []
 
+    // Additional client-side filtering: ensure assets match the selected build partner
+    // This is a safety check in case the API filter doesn't work correctly
+    const filteredBaseAssets = baseAssets.filter((asset: any) => {
+      // If assetRegisterDTO exists and has an id, it should match selectedBuildPartnerId
+      if (asset?.assetRegisterDTO?.id) {
+        const matches = asset.assetRegisterDTO.id === selectedBuildPartnerId
+        if (!matches) {
+          console.warn('[Step1] Asset filtered out - assetRegisterDTO.id mismatch:', {
+            assetId: asset.id,
+            assetName: asset.mfName,
+            assetRegisterDTOId: asset.assetRegisterDTO.id,
+            selectedBuildPartnerId,
+          })
+        }
+        return matches
+      }
+      // If no assetRegisterDTO, include it (might be from additionalProjectAssets)
+      return true
+    })
+
+    console.log('[Step1] Asset filtering:', {
+      selectedBuildPartnerId,
+      baseAssetsCount: baseAssets.length,
+      filteredBaseAssetsCount: filteredBaseAssets.length,
+      filteredOut: baseAssets.length - filteredBaseAssets.length,
+      sampleFiltered: filteredBaseAssets.slice(0, 2).map((a: any) => ({
+        id: a.id,
+        mfName: a.mfName,
+        assetRegisterDTOId: a.assetRegisterDTO?.id,
+      })),
+    })
+
     // Only include additional assets if they're valid and baseAssets exist
     // Or if we're in edit mode and need to preserve prepopulated assets
-    const shouldIncludeAdditional = baseAssets.length > 0 || isEditMode
+    const shouldIncludeAdditional = filteredBaseAssets.length > 0 || isEditMode
 
     // Combine base assets with additional assets, removing duplicates by ID
     const allAssets = shouldIncludeAdditional
-      ? [...baseAssets, ...additionalProjectAssets]
-      : baseAssets
+      ? [...filteredBaseAssets, ...additionalProjectAssets]
+      : filteredBaseAssets
 
     const uniqueAssets = allAssets.reduce((acc: any[], asset: any) => {
       // Validate asset has required fields before adding
@@ -310,6 +365,31 @@ const Step1 = ({
     additionalProjectAssets,
     isEditMode,
   ])
+  
+  // Debug logging for real estate assets and project assets
+  useEffect(() => {
+    console.log('[Step1] Real Estate Assets & Project Assets Debug:', {
+      selectedBuildPartnerId,
+      selectedBuildPartnerName: selectedBuildPartner?.arName,
+      filteredRealEstateAssets: {
+        loading: filteredRealEstateAssets.loading,
+        assetsCount: filteredRealEstateAssets.assets?.length || 0,
+        assets: filteredRealEstateAssets.assets?.slice(0, 3).map((a: any) => ({ 
+          id: a.id, 
+          mfName: a.mfName,
+          mfId: a.mfId 
+        })) || [],
+        error: filteredRealEstateAssets.error,
+      },
+      projectAssets: {
+        count: projectAssets.length,
+        assets: projectAssets.slice(0, 3).map((a: any) => ({ 
+          id: a.id, 
+          mfName: a.mfName 
+        })),
+      },
+    })
+  }, [selectedBuildPartnerId, selectedBuildPartner, filteredRealEstateAssets.loading, filteredRealEstateAssets.assets, filteredRealEstateAssets.error, projectAssets])
 
   // State to track if prepopulation has been attempted
   const [prepopulationAttempted, setPrepopulationAttempted] =
@@ -991,6 +1071,192 @@ const Step1 = ({
     }
   }, [projectAssets, watch, setValue, trigger])
 
+  // Fetch Budgets for dropdown
+  useEffect(() => {
+    const fetchBudgets = async () => {
+      try {
+        setLoadingBudgets(true)
+        const response = await BudgetService.getBudgets(0, 20)
+        
+        if (!response || !response.content || !Array.isArray(response.content)) {
+          setBudgetOptions([])
+          return
+        }
+
+        const options = response.content
+          .filter((item: any) => item && item.id && item.budgetName)
+          .map((item: any) => ({
+            id: item.id, // BudgetDTO.id - numeric ID
+            displayName: `${item.budgetName} - ${item.budgetPeriodCode || ''}`.trim(),
+            settingValue: item.id.toString(), // Store ID as string for form field
+            dto: item, // Store full BudgetDTO object for API payload
+          }))
+        
+        console.log('[Step1] Budget options created (BudgetDTO):', {
+          count: options.length,
+          sample: options[0],
+          note: 'Each option stores BudgetDTO.id in settingValue'
+        })
+        setBudgetOptions(options)
+      } catch (error) {
+        console.error('[Step1] Error fetching budgets:', error)
+        setBudgetOptions([])
+      } finally {
+        setLoadingBudgets(false)
+      }
+    }
+    fetchBudgets()
+  }, [])
+
+  // Watch selected budget ID to fetch budget details
+  const selectedBudgetId = watch('budgetDetails')
+  
+  // Fetch Budget Details (Budget Items) when budget is selected
+  useEffect(() => {
+    const fetchBudgetDetails = async () => {
+      if (!selectedBudgetId || selectedBudgetId === '') {
+        setBudgetDetailsOptions([])
+        return
+      }
+
+      try {
+        setLoadingBudgetDetails(true)
+        const budgetId = typeof selectedBudgetId === 'string' 
+          ? parseInt(selectedBudgetId, 10) 
+          : Number(selectedBudgetId)
+        
+        if (isNaN(budgetId) || budgetId <= 0) {
+          console.warn('[Step1] Invalid budgetId:', selectedBudgetId)
+          setBudgetDetailsOptions([])
+          return
+        }
+
+        console.log('[Step1] Fetching budget items for budgetId:', budgetId)
+        console.log('[Step1] API URL will be: /budget-item?enabled.equals=true&deleted.equals=false&budgetId.equals=' + budgetId.toString())
+        
+        const response = await budgetItemsService.getAllBudgetItems(0, 1000, {
+          'budgetId.equals': budgetId.toString(),
+        })
+        
+        console.log('[Step1] Budget items API response:', response)
+        console.log('[Step1] Response type:', typeof response)
+        console.log('[Step1] Has content?', !!(response as any)?.content)
+        console.log('[Step1] Content is array?', Array.isArray((response as any)?.content))
+        
+        // Handle different response formats
+        let items: any[] = []
+        if (response && response.content && Array.isArray(response.content)) {
+          items = response.content
+        } else if (Array.isArray(response)) {
+          items = response
+        } else if (response && typeof response === 'object' && 'data' in response) {
+          items = Array.isArray((response as any).data) ? (response as any).data : []
+        }
+
+        console.log('[Step1] Extracted items:', items.length)
+
+        const options = items
+          .filter((item: any, index: number) => {
+            const hasId = item && item.id
+            const hasName = item.subCategoryName || item.serviceNameLocale
+            if (!hasId || !hasName) {
+              console.warn(`[Step1] Skipping invalid item at index ${index}:`, item)
+            }
+            return hasId && hasName
+          })
+          .map((item: any, index: number) => {
+            const subCategoryName = item.subCategoryName || ''
+            const serviceNameLocale = item.serviceNameLocale || ''
+            let displayName = ''
+            
+            if (subCategoryName && serviceNameLocale) {
+              displayName = `${subCategoryName} - ${serviceNameLocale}`
+            } else if (subCategoryName) {
+              displayName = subCategoryName
+            } else if (serviceNameLocale) {
+              displayName = serviceNameLocale
+            } else {
+              displayName = `Item ${item.id}`
+            }
+            
+            const mappedOption = {
+              id: item.id, // BudgetItemDTO.id - numeric ID
+              displayName: displayName.trim(),
+              settingValue: item.id.toString(), // Store ID as string for form field
+              dto: item, // Store full BudgetItemDTO object for API payload
+            }
+            
+            // Debug log for first few items
+            if (index < 3) {
+              console.log(`[Step1] Mapped budget item ${index}:`, {
+                original: { id: item.id, subCategoryName, serviceNameLocale },
+                mapped: mappedOption,
+                note: 'BudgetItemDTO.id stored in settingValue'
+              })
+            }
+            
+            return mappedOption
+          })
+        
+        console.log('[Step1] Budget items options created (BudgetItemDTO):', {
+          count: options.length,
+          sample: options[0],
+          note: 'Each option stores BudgetItemDTO.id in settingValue'
+        })
+        setBudgetDetailsOptions(options)
+        // Store full item data for auto-population when item is selected
+        setBudgetItemsData(items)
+      } catch (error) {
+        console.error('[Step1] Error fetching budget details:', error)
+        if (error instanceof Error) {
+          console.error('[Step1] Error message:', error.message)
+          console.error('[Step1] Error stack:', error.stack)
+        }
+        setBudgetDetailsOptions([])
+      } finally {
+        setLoadingBudgetDetails(false)
+      }
+    }
+    fetchBudgetDetails()
+  }, [selectedBudgetId])
+
+  // Fetch Budget Categories
+  useEffect(() => {
+    const fetchBudgetCategories = async () => {
+      try {
+        setLoadingBudgetCategories(true)
+        const response = await BudgetCategoryService.getBudgetCategories(0, 1000)
+        
+        if (!response || !response.content || !Array.isArray(response.content)) {
+          setBudgetCategoryOptions([])
+          return
+        }
+
+        const options = response.content
+          .filter((item: any) => item && item.id && item.categoryName)
+          .map((item: any) => ({
+            id: item.id, // BudgetCategoryDTO.id - numeric ID
+            displayName: item.categoryName || `Budget Category ${item.id}`,
+            settingValue: item.id.toString(), // Store ID as string for form field
+            dto: item, // Store full BudgetCategoryDTO object for API payload
+          }))
+        
+        console.log('[Step1] Budget category options created (BudgetCategoryDTO):', {
+          count: options.length,
+          sample: options[0],
+          note: 'Each option stores BudgetCategoryDTO.id in settingValue'
+        })
+        setBudgetCategoryOptions(options)
+      } catch (error) {
+        console.error('[Step1] Error fetching budget categories:', error)
+        setBudgetCategoryOptions([])
+      } finally {
+        setLoadingBudgetCategories(false)
+      }
+    }
+    fetchBudgetCategories()
+  }, [])
+
   // Initialize payment reference ID from form value and keep in sync
   React.useEffect(() => {
     const currentId = watch('tasReference')
@@ -1452,25 +1718,199 @@ const Step1 = ({
     isLoading = false,
     disabled = false
   ) => {
+    // Debug log for budget items dropdown
+    if (name === 'budgetItems') {
+      console.log('[Step1] renderSelectField - budgetItems called with:', {
+        optionsCount: options.length,
+        options: options.slice(0, 5), // First 5 options
+        isLoading,
+        optionsType: typeof options,
+        isArray: Array.isArray(options)
+      })
+    }
+    
     return (
       <Grid key={name} size={{ xs: 12, md: gridSize }}>
         <Controller
           name={name}
           control={control}
           defaultValue={''}
-          render={({ field, fieldState: { error } }) => (
+          render={({ field, fieldState: { error } }) => {
+            // Debug log for budget items field value
+            if (name === 'budgetItems' && process.env.NODE_ENV === 'development') {
+              console.log('[Step1] budgetItems field value:', field.value)
+            }
+            
+            return (
             <FormControl
               fullWidth
               error={!!error}
               aria-invalid={!!error}
               required={isRequired && !isReadOnly}
             >
-              <InputLabel sx={labelSx} required={isRequired && !isReadOnly}>
-                {label}
+              <InputLabel 
+                sx={labelSx} 
+                required={isRequired && !isReadOnly}
+                shrink={!!(field.value || isLoading)}
+              >
+                {isLoading ? 'Loading...' : label}
               </InputLabel>
               <Select
                 {...field}
-                label={label}
+                label={isLoading ? 'Loading...' : label}
+                value={field.value || ''}
+                onChange={(e) => {
+                  const newValue = e.target.value
+                  
+                  // Log for all budget dropdowns to verify ID storage
+                  if (name === 'budgetDetails' || name === 'budgetCategory' || name === 'budgetItems') {
+                    const selectedOption = options.find(opt => String(opt.settingValue || opt.id) === String(newValue))
+                    const storedId = newValue // This is the ID being stored
+                    const expectedId = selectedOption?.id?.toString() || selectedOption?.settingValue
+                    
+                    console.log(`[Step1] ${name} onChange - Storing ID:`, { 
+                      fieldName: name,
+                      storedValue: storedId, // This should be the ID (BudgetDTO.id, BudgetCategoryDTO.id, or BudgetItemDTO.id)
+                      storedValueType: typeof storedId,
+                      selectedOptionId: selectedOption?.id, // Numeric ID from backend
+                      selectedOptionDisplayName: selectedOption?.displayName,
+                      selectedOptionSettingValue: selectedOption?.settingValue, // String ID
+                      expectedId: expectedId,
+                      verification: String(selectedOption?.id) === String(storedId) ? '✅ ID matches' : '❌ ID mismatch',
+                      note: name === 'budgetDetails' ? 'Storing BudgetDTO.id' : 
+                            name === 'budgetCategory' ? 'Storing BudgetCategoryDTO.id' : 
+                            'Storing BudgetItemDTO.id'
+                    })
+                    
+                    // Verify the ID is correct
+                    if (selectedOption && String(selectedOption.id) !== String(storedId)) {
+                      console.warn(`[Step1] ⚠️ ID mismatch for ${name}:`, {
+                        stored: storedId,
+                        expected: selectedOption.id,
+                        settingValue: selectedOption.settingValue
+                      })
+                    }
+                  }
+                  
+                  if (name === 'budgetItems') {
+                    console.log(`[Step1] ${name} onChange:`, { 
+                      oldValue: field.value, 
+                      newValue,
+                      optionsCount: options.length,
+                      budgetItemsDataCount: budgetItemsData.length,
+                      selectedOption: options.find(opt => String(opt.settingValue || opt.id) === String(newValue))
+                    })
+                    
+                    // Auto-populate all budget-related fields when item is selected
+                    if (newValue) {
+                      const selectedItemId = parseInt(newValue, 10)
+                      const selectedItem = budgetItemsData.find((item: any) => item.id === selectedItemId)
+                      
+                      if (selectedItem) {
+                        console.log('[Step1] Selected budget item data:', selectedItem)
+                        
+                        // Populate all fields from the selected budget item
+                        setValue('budgetSubCategory', selectedItem.subCategoryName || '', {
+                          shouldDirty: true,
+                          shouldTouch: false,
+                        })
+                        setValue('budgetServiceName', selectedItem.serviceName || '', {
+                          shouldDirty: true,
+                          shouldTouch: false,
+                        })
+                        setValue('categoryCode', selectedItem.budgetCategoryDTO?.categoryCode || '', {
+                          shouldDirty: true,
+                          shouldTouch: false,
+                        })
+                        setValue('subCategoryCode', selectedItem.subCategoryCode || '', {
+                          shouldDirty: true,
+                          shouldTouch: false,
+                        })
+                        setValue('serviceCode', selectedItem.serviceCode || '', {
+                          shouldDirty: true,
+                          shouldTouch: false,
+                        })
+                        setValue('provisionalBudgetId', selectedItem.budgetDTO?.budgetId || '', {
+                          shouldDirty: true,
+                          shouldTouch: false,
+                        })
+                        setValue('availableBudgetAmount', selectedItem.availableBudget?.toString() || '', {
+                          shouldDirty: true,
+                          shouldTouch: false,
+                        })
+                        setValue('utilizedBudgetAmount', selectedItem.utilizedBudget?.toString() || '', {
+                          shouldDirty: true,
+                          shouldTouch: false,
+                        })
+                        setValue('invoiceBudgetAmount', selectedItem.totalBudget?.toString() || '', {
+                          shouldDirty: true,
+                          shouldTouch: false,
+                        })
+                      } else {
+                        console.warn('[Step1] Selected budget item not found in data:', selectedItemId, 'Available items:', budgetItemsData.map((item: any) => item.id))
+                      }
+                    } else {
+                      // Clear all fields when selection is cleared
+                      setValue('budgetSubCategory', '', { shouldDirty: true, shouldTouch: false })
+                      setValue('budgetServiceName', '', { shouldDirty: true, shouldTouch: false })
+                      setValue('categoryCode', '', { shouldDirty: true, shouldTouch: false })
+                      setValue('subCategoryCode', '', { shouldDirty: true, shouldTouch: false })
+                      setValue('serviceCode', '', { shouldDirty: true, shouldTouch: false })
+                      setValue('provisionalBudgetId', '', { shouldDirty: true, shouldTouch: false })
+                      setValue('availableBudgetAmount', '', { shouldDirty: true, shouldTouch: false })
+                      setValue('utilizedBudgetAmount', '', { shouldDirty: true, shouldTouch: false })
+                      setValue('invoiceBudgetAmount', '', { shouldDirty: true, shouldTouch: false })
+                      setValue('budgetItemDTO', null, { shouldDirty: true, shouldTouch: false })
+                      setSelectedBudgetItemDTO(null)
+                    }
+                  }
+                  
+                  // Clear DTO objects when other budget dropdowns are cleared
+                  if (name === 'budgetDetails' && !newValue) {
+                    setValue('budgetDTO', null, { shouldDirty: true, shouldTouch: false })
+                    setSelectedBudgetDTO(null)
+                    // Also clear dependent fields
+                    setValue('budgetItems', '', { shouldDirty: true, shouldTouch: false })
+                    setValue('budgetItemDTO', null, { shouldDirty: true, shouldTouch: false })
+                    setSelectedBudgetItemDTO(null)
+                  }
+                  
+                  if (name === 'budgetCategory' && !newValue) {
+                    setValue('budgetCategoryDTO', null, { shouldDirty: true, shouldTouch: false })
+                    setSelectedBudgetCategoryDTO(null)
+                  }
+                  
+                  // Store DTO objects when budget dropdowns are selected
+                  if (name === 'budgetDetails' || name === 'budgetCategory' || name === 'budgetItems') {
+                    const selectedOption = options.find(opt => String(opt.settingValue || opt.id) === String(newValue))
+                    
+                    if (selectedOption?.dto) {
+                      if (name === 'budgetDetails') {
+                        setValue('budgetDTO', selectedOption.dto, { shouldDirty: true, shouldTouch: false })
+                        setSelectedBudgetDTO(selectedOption.dto)
+                        console.log('[Step1] Stored BudgetDTO object in form:', selectedOption.dto)
+                      } else if (name === 'budgetCategory') {
+                        setValue('budgetCategoryDTO', selectedOption.dto, { shouldDirty: true, shouldTouch: false })
+                        setSelectedBudgetCategoryDTO(selectedOption.dto)
+                        console.log('[Step1] Stored BudgetCategoryDTO object in form:', selectedOption.dto)
+                      } else if (name === 'budgetItems') {
+                        setValue('budgetItemDTO', selectedOption.dto, { shouldDirty: true, shouldTouch: false })
+                        setSelectedBudgetItemDTO(selectedOption.dto)
+                        console.log('[Step1] Stored BudgetItemDTO object in form:', selectedOption.dto)
+                      }
+                    }
+                  }
+                  
+                  field.onChange(newValue)
+                  if (errors[name as keyof typeof errors]) {
+                    clearErrors(name as keyof typeof errors)
+                  }
+                  trigger(name as any)
+                }}
+                onBlur={() => {
+                  field.onBlur()
+                  trigger(name as any)
+                }}
                 sx={{
                   ...selectStyles,
                   ...valueSx,
@@ -1521,42 +1961,55 @@ const Step1 = ({
                   },
                 }}
               >
-                <MenuItem value="" disabled>
-                  -- Select --
+                {isLoading ? (
+                  <MenuItem disabled value="">
+                    <em>Loading options...</em>
                 </MenuItem>
-                {options.map((option, index) => (
-                  <MenuItem
-                    key={option.id || option || `option-${index}`}
-                    value={option.id || option || ''}
-                    sx={{
-                      fontSize: '14px',
-                      fontFamily:
-                        'Outfit, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                      color: '#374151',
-                      transition: 'all 0.2s ease-in-out',
-                      '&:hover': {
-                        backgroundColor: '#F3F4F6',
-                        color: '#111827',
-                      },
-                      '&.Mui-selected': {
-                        backgroundColor: '#EBF4FF',
-                        color: '#2563EB',
-                        fontWeight: 500,
-                        '&:hover': {
-                          backgroundColor: '#DBEAFE',
-                        },
-                      },
-                    }}
-                  >
-                    {option.displayName ||
-                      option.name ||
-                      (typeof option === 'string' ? option : '')}
+                ) : options.length === 0 ? (
+                  <MenuItem disabled value="">
+                    <em>No options available</em>
                   </MenuItem>
-                ))}
+                ) : (
+                  options.map((option, index) => {
+                    // Handle both object format { id, displayName, settingValue } and simple array format
+                    const optionId = option.id || option.value || `option-${index}`
+                    const optionValue = String(option.settingValue || option.value || option.id?.toString() || option.toString())
+                    const optionLabel = String(option.displayName || option.label || option.name || option.toString())
+                    
+                    // Debug log for budget items (only first 5 to avoid spam)
+                    if (name === 'budgetItems' && index < 5) {
+                      console.log(`[Step1] Rendering budget item option ${index}:`, {
+                        optionId,
+                        optionValue,
+                        optionLabel,
+                        optionValueType: typeof optionValue,
+                        currentFieldValue: field.value,
+                        currentFieldValueType: typeof field.value,
+                        willMatch: String(field.value) === optionValue,
+                        fullOption: option
+                      })
+                    }
+                    
+                    return (
+                  <MenuItem
+                        key={optionId}
+                        value={optionValue}
+                      >
+                        {optionLabel}
+                  </MenuItem>
+                    )
+                  })
+                )}
               </Select>
-              <FormError error={error?.message || ''} touched={true} />
+              {error && (
+                <FormError
+                  error={error.message as string}
+                  touched={true}
+                />
+              )}
             </FormControl>
-          )}
+            )
+          }}
         />
       </Grid>
     )
@@ -1588,8 +2041,17 @@ const Step1 = ({
               <Select
                 {...field}
                 label={label}
+                value={field.value || ''}
                 onChange={(e) => {
                   const newValue = e.target.value
+                  console.log('[Step1] Project Name onChange:', {
+                    newValue,
+                    projectAssetsCount: projectAssets.length,
+                    projectAssets: projectAssets.map((a: any) => ({ id: a.id, mfName: a.mfName })),
+                    selectedBuildPartnerId,
+                    filteredRealEstateAssetsLoading: filteredRealEstateAssets.loading,
+                    filteredRealEstateAssetsAssets: filteredRealEstateAssets.assets?.length || 0,
+                  })
                   field.onChange(newValue) // Update the form field
 
                   // Immediately update dependent fields
@@ -1604,6 +2066,8 @@ const Step1 = ({
                         asset.id === projectNameId ||
                         String(asset.id) === String(newValue)
                     )
+                    
+                    console.log('[Step1] Selected asset:', selectedAsset)
 
                     if (selectedAsset) {
                       // Update projectId immediately
@@ -1719,12 +2183,21 @@ const Step1 = ({
                 }}
               >
                 <MenuItem value="" disabled>
-                  -- Select --
+                  {filteredRealEstateAssets.loading 
+                    ? 'Loading assets...' 
+                    : projectAssets.length === 0 && selectedBuildPartnerId
+                      ? 'No assets available' 
+                      : '-- Select --'}
                 </MenuItem>
+                {projectAssets.length === 0 && !filteredRealEstateAssets.loading && selectedBuildPartnerId && (
+                  <MenuItem value="" disabled sx={{ fontStyle: 'italic', color: '#9ca3af' }}>
+                    No management firms found for this build partner
+                  </MenuItem>
+                )}
                 {projectAssets.map((asset) => (
                   <MenuItem
                     key={asset.id}
-                    value={asset.id}
+                    value={String(asset.id)}
                     sx={{
                       fontSize: '14px',
                       fontFamily:
@@ -2146,10 +2619,10 @@ const Step1 = ({
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROJECT_STATUS
               ),
-              buildAssetAccountStatuses.data,
+              buildAssetAccountStatuses.data || [],
               6,
               true,
-              false,
+              buildAssetAccountStatuses.loading,
               true // Disable - auto-populated from project name
             )}
             {renderAccountBalanceField(
@@ -2787,17 +3260,18 @@ const Step1 = ({
                 Budget Details
               </Typography>
             </Grid>
-            {/* BUDGER DROP DOWN FIELDS START */}
+            {/* BUDGET DROP DOWN FIELDS START */}
             {renderSelectField(
-              'budgetYear',
+              'budgetDetails',
               getLabel(
-                MANUAL_PAYMENT_LABELS.FORM_FIELDS.BUDGET_YEAR,
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.BUDGET_DETAILS,
                 'EN',
-                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.BUDGET_YEAR
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.BUDGET_DETAILS
               ),
-              boolYnOptions.data || [],
+              budgetOptions,
               6,
-              true
+              false,
+              loadingBudgets
             )}
             {renderSelectField(
               'budgetCategory',
@@ -2806,331 +3280,136 @@ const Step1 = ({
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.BUDGET_CATEGORY
               ),
-              boolYnOptions.data || [],
+              budgetCategoryOptions,
               6,
-              true
+              false,
+              loadingBudgetCategories
             )}
             {renderSelectField(
+              'budgetItems',
+              getLabel(
+                MANUAL_PAYMENT_LABELS.FORM_FIELDS.BUDGET_ITEMS,
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.BUDGET_ITEMS
+              ),
+              budgetDetailsOptions,
+              6,
+              false,
+              loadingBudgetDetails
+            )}
+            {renderTextField(
               'budgetSubCategory',
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.BUDGET_SUB_CATEGORY,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.BUDGET_SUB_CATEGORY
               ),
-              boolYnOptions.data || [],
               6,
-              true
+              '',
+              false,
+              true // Disabled - auto-populated
             )}
-            {renderSelectField(
+            {renderTextField(
               'budgetServiceName',
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.BUDGET_SERVICE_NAME,
                 'EN',
                 MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.BUDGET_SERVICE_NAME
               ),
-              boolYnOptions.data || [],
               6,
-              true
+              '',
+              false,
+              true // Disabled - auto-populated
             )}
             {/* BUDGER DROP DOWN FIELDS END */}
 
            
             {/* AUTO POPULATE BUDGET DETAILS START */}
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Controller
-                name="categoryCode"
-                control={control}
-                // defaultValue={
-                //   sanitizedData?.assetRegisterDTO?.arMasterName || ''
-                // }
-                // rules={{
-                //   validate: (value: any) =>
-                //     validateStep1Field('assetRegisterDTO.arMasterName', value),
-                // }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    value={field.value || ''}
-                    fullWidth
-                    disabled={true}
-                    label={getLabel(
+            {renderTextField(
+              'categoryCode',
+              getLabel(
                       MANUAL_PAYMENT_LABELS.FORM_FIELDS.CATEGORY_CODE,
-                      'language',
+                'EN',
                       MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.CATEGORY_CODE
-                    )}
-                    // error={!!errors.assetRegisterDTO?.arMasterName}
-                    // helperText={
-                    //   errors.assetRegisterDTO?.arMasterName?.message ||
-                    //   'Auto-filled when Management Firm is selected'
-                    // }
-                    // InputLabelProps={{
-                    //   sx: labelSx,
-                    //   shrink: !!field.value,
-                    // }}
-                    // InputProps={{ sx: valueSx }}
-                    // sx={
-                    //   errors.assetRegisterDTO?.arMasterName
-                    //     ? errorFieldStyles
-                    //     : commonFieldStyles
-                    // }
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Controller
-                name="subCategoryCode"
-                control={control}
-                // defaultValue={
-                //   sanitizedData?.assetRegisterDTO?.arMasterName || ''
-                // }
-                // rules={{
-                //   validate: (value: any) =>
-                //     validateStep1Field('assetRegisterDTO.arMasterName', value),
-                // }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    value={field.value || ''}
-                    fullWidth
-                    disabled={true}
-                    label={getLabel(
+              ),
+              6,
+              '',
+              false,
+              true // Disabled - auto-populated
+            )}
+            {renderTextField(
+              'subCategoryCode',
+              getLabel(
                       MANUAL_PAYMENT_LABELS.FORM_FIELDS.SUB_CATEGORY_CODE,
-                      'language',
-                      MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
-                        .SUB_CATEGORY_CODE
-                    )}
-                    // error={!!errors.assetRegisterDTO?.arMasterName}
-                    // helperText={
-                    //   errors.assetRegisterDTO?.arMasterName?.message ||
-                    //   'Auto-filled when Management Firm is selected'
-                    // }
-                    // InputLabelProps={{
-                    //   sx: labelSx,
-                    //   shrink: !!field.value,
-                    // }}
-                    // InputProps={{ sx: valueSx }}
-                    // sx={
-                    //   errors.assetRegisterDTO?.arMasterName
-                    //     ? errorFieldStyles
-                    //     : commonFieldStyles
-                    // }
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Controller
-                name="serviceCode"
-                control={control}
-                // defaultValue={
-                //   sanitizedData?.assetRegisterDTO?.arMasterName || ''
-                // }
-                // rules={{
-                //   validate: (value: any) =>
-                //     validateStep1Field('assetRegisterDTO.arMasterName', value),
-                // }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    value={field.value || ''}
-                    fullWidth
-                    disabled={true}
-                    label={getLabel(
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.SUB_CATEGORY_CODE
+              ),
+              6,
+              '',
+              false,
+              true // Disabled - auto-populated
+            )}
+            {renderTextField(
+              'serviceCode',
+              getLabel(
                       MANUAL_PAYMENT_LABELS.FORM_FIELDS.SERVICE_CODE,
-                      'language',
+                'EN',
                       MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.SERVICE_CODE
-                    )}
-                    // error={!!errors.assetRegisterDTO?.arMasterName}
-                    // helperText={
-                    //   errors.assetRegisterDTO?.arMasterName?.message ||
-                    //   'Auto-filled when Management Firm is selected'
-                    // }
-                    // InputLabelProps={{
-                    //   sx: labelSx,
-                    //   shrink: !!field.value,
-                    // }}
-                    // InputProps={{ sx: valueSx }}
-                    // sx={
-                    //   errors.assetRegisterDTO?.arMasterName
-                    //     ? errorFieldStyles
-                    //     : commonFieldStyles
-                    // }
-                  />
-                )}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Controller
-                name="provisionalBudgetCode"
-                control={control}
-                // defaultValue={
-                //   sanitizedData?.assetRegisterDTO?.arMasterName || ''
-                // }
-                // rules={{
-                //   validate: (value: any) =>
-                //     validateStep1Field('assetRegisterDTO.arMasterName', value),
-                // }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    value={field.value || ''}
-                    fullWidth
-                    disabled={true}
-                    label={getLabel(
+              ),
+              6,
+              '',
+              false,
+              true // Disabled - auto-populated
+            )}
+            {renderTextField(
+              'provisionalBudgetId',
+              getLabel(
                       MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROVISIONAL_BUDGET_CODE,
-                      'language',
-                      MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
-                        .PROVISIONAL_BUDGET_CODE
-                    )}
-                    // error={!!errors.assetRegisterDTO?.arMasterName}
-                    // helperText={
-                    //   errors.assetRegisterDTO?.arMasterName?.message ||
-                    //   'Auto-filled when Management Firm is selected'
-                    // }
-                    // InputLabelProps={{
-                    //   sx: labelSx,
-                    //   shrink: !!field.value,
-                    // }}
-                    // InputProps={{ sx: valueSx }}
-                    // sx={
-                    //   errors.assetRegisterDTO?.arMasterName
-                    //     ? errorFieldStyles
-                    //     : commonFieldStyles
-                    // }
-                  />
-                )}
-              />
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Controller
-                name="availableBudget"
-                control={control}
-                // defaultValue={
-                //   sanitizedData?.assetRegisterDTO?.arMasterName || ''
-                // }
-                // rules={{
-                //   validate: (value: any) =>
-                //     validateStep1Field('assetRegisterDTO.arMasterName', value),
-                // }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    value={field.value || ''}
-                    fullWidth
-                    disabled={true}
-                    label={getLabel(
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.PROVISIONAL_BUDGET_CODE
+              ),
+              6,
+              '',
+              false,
+              true // Disabled - auto-populated
+            )}
+            {renderTextField(
+              'availableBudgetAmount',
+              getLabel(
                       MANUAL_PAYMENT_LABELS.FORM_FIELDS.AVAILABLE_BUDGET_AMOUNT,
-                      'language',
-                      MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
-                        .AVAILABLE_BUDGET_AMOUNT
-                    )}
-                    // error={!!errors.assetRegisterDTO?.arMasterName}
-                    // helperText={
-                    //   errors.assetRegisterDTO?.arMasterName?.message ||
-                    //   'Auto-filled when Management Firm is selected'
-                    // }
-                    // InputLabelProps={{
-                    //   sx: labelSx,
-                    //   shrink: !!field.value,
-                    // }}
-                    // InputProps={{ sx: valueSx }}
-                    // sx={
-                    //   errors.assetRegisterDTO?.arMasterName
-                    //     ? errorFieldStyles
-                    //     : commonFieldStyles
-                    // }
-                  />
-                )}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Controller
-                name="utilizedBudget"
-                control={control}
-                // defaultValue={
-                //   sanitizedData?.assetRegisterDTO?.arMasterName || ''
-                // }
-                // rules={{
-                //   validate: (value: any) =>
-                //     validateStep1Field('assetRegisterDTO.arMasterName', value),
-                // }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    value={field.value || ''}
-                    fullWidth
-                    disabled={true}
-                    label={getLabel(
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.AVAILABLE_BUDGET_AMOUNT
+              ),
+              6,
+              '',
+              false,
+              true // Disabled - auto-populated
+            )}
+            {renderTextField(
+              'utilizedBudgetAmount',
+              getLabel(
                       MANUAL_PAYMENT_LABELS.FORM_FIELDS.UTILIZED_BUDGET_AMOUNT,
-                      'language',
-                      MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
-                        .UTILIZED_BUDGET_AMOUNT
-                    )}
-                    // error={!!errors.assetRegisterDTO?.arMasterName}
-                    // helperText={
-                    //   errors.assetRegisterDTO?.arMasterName?.message ||
-                    //   'Auto-filled when Management Firm is selected'
-                    // }
-                    // InputLabelProps={{
-                    //   sx: labelSx,
-                    //   shrink: !!field.value,
-                    // }}
-                    // InputProps={{ sx: valueSx }}
-                    // sx={
-                    //   errors.assetRegisterDTO?.arMasterName
-                    //     ? errorFieldStyles
-                    //     : commonFieldStyles
-                    // }
-                  />
-                )}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Controller
-                name="invoiceBudget"
-                control={control}
-                // defaultValue={
-                //   sanitizedData?.assetRegisterDTO?.arMasterName || ''
-                // }
-                // rules={{
-                //   validate: (value: any) =>
-                //     validateStep1Field('assetRegisterDTO.arMasterName', value),
-                // }}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    value={field.value || ''}
-                    fullWidth
-                    disabled={true}
-                    label={getLabel(
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.UTILIZED_BUDGET_AMOUNT
+              ),
+              6,
+              '',
+              false,
+              true // Disabled - auto-populated
+            )}
+            {renderTextField(
+              'invoiceBudgetAmount',
+              getLabel(
                       MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_BUDGET_AMOUNT,
-                      'language',
-                      MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS
-                        .INVOICE_BUDGET_AMOUNT
-                    )}
-                    // error={!!errors.assetRegisterDTO?.arMasterName}
-                    // helperText={
-                    //   errors.assetRegisterDTO?.arMasterName?.message ||
-                    //   'Auto-filled when Management Firm is selected'
-                    // }
-                    // InputLabelProps={{
-                    //   sx: labelSx,
-                    //   shrink: !!field.value,
-                    // }}
-                    // InputProps={{ sx: valueSx }}
-                    // sx={
-                    //   errors.assetRegisterDTO?.arMasterName
-                    //     ? errorFieldStyles
-                    //     : commonFieldStyles
-                    // }
-                  />
-                )}
-              />
-            </Grid>
+                'EN',
+                MANUAL_PAYMENT_LABELS.FALLBACKS.FORM_FIELDS.INVOICE_BUDGET_AMOUNT
+              ),
+              6,
+              '',
+              false,
+              true // Disabled - auto-populated
+            )}
+            {/* AUTO POPULATE BUDGET DETAILS END */}
              {/* CHECKBOX FIELDS START */}
              {renderCheckboxField(
               'provisionalBudget',
@@ -3142,7 +3421,7 @@ const Step1 = ({
               3
             )}
             {renderCheckboxField(
-              'HOAExemption',
+              'hoaExemption',
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.HOA_EXEMPTION,
                 'EN',
@@ -3192,8 +3471,8 @@ const Step1 = ({
               true
             )} */}
             {/* {renderAccountBalanceField(
-              'provisionalBudgetCode',
-              'provisionalBudgetCode',
+              'provisionalBudgetId',
+              'provisionalBudgetId',
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.PROVISIONAL_BUDGET_CODE,
                 'EN',
@@ -3207,7 +3486,7 @@ const Step1 = ({
             )} */}
 
             {/* {renderAccountBalanceField(
-              'availableBudget',
+              'availableBudgetAmount',
               'availableBudgetAmount',
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.AVAILABLE_BUDGET_AMOUNT,
@@ -3222,7 +3501,7 @@ const Step1 = ({
             )} */}
 
             {/* {renderAccountBalanceField(
-              'utilizedBudget',
+              'utilizedBudgetAmount',
               'utilizedBudgetAmount',
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.UTILIZED_BUDGET_AMOUNT,
@@ -3237,7 +3516,7 @@ const Step1 = ({
             )} */}
 
             {/* {renderAccountBalanceField(
-              'invoiceBudget',
+              'invoiceBudgetAmount',
               'invoiceBudgetAmount',
               getLabel(
                 MANUAL_PAYMENT_LABELS.FORM_FIELDS.INVOICE_BUDGET_AMOUNT,
