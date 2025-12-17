@@ -1,6 +1,6 @@
 'use client'
 import { Suspense } from 'react'
-import BudgetMasterStepperWrapper from '@/components/organisms/BudgetStepper/MasterBudget/Index'
+import BudgetMasterStepperWrapper from '@/components/organisms/BudgetStepper/MasterBudget'
 import { DashboardLayout } from '@/components/templates/DashboardLayout'
 import { useBudgetLabelsWithCache } from '@/hooks/budget/useBudgetLabelsWithCache'
 import { MASTER_BUDGET_LABELS } from '@/constants/mappings/budgetLabels'

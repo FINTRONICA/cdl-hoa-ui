@@ -1,7 +1,7 @@
 'use client'
 import { Suspense, useEffect, useState } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
-import BudgetMasterStepperWrapper from '@/components/organisms/BudgetStepper/MasterBudget/Index'
+import BudgetMasterStepperWrapper from '@/components/organisms/BudgetStepper/MasterBudget'
 import { DashboardLayout } from '@/components/templates/DashboardLayout'
 import { useBudgetLabelsWithCache } from '@/hooks/budget/useBudgetLabelsWithCache'
 import { MASTER_BUDGET_LABELS } from '@/constants/mappings/budgetLabels'

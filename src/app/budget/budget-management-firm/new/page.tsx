@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense } from 'react'
-import BudgetManagementFirmStepperWrapper from '@/components/organisms/BudgetStepper/ManagementFirmBudget/Index'
+import BudgetManagementFirmStepperWrapper from '@/components/organisms/BudgetStepper/ManagementFirmBudget'
 import { DashboardLayout } from '@/components/templates/DashboardLayout'
 import { GlobalLoading } from '@/components/atoms'
 
