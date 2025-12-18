@@ -17,11 +17,13 @@ import {
 } from '@/constants/sidebarConfig'
 import { useSidebarConfigWithLoading } from '@/hooks/useSidebarConfig'
 import { usePermissionFilteredSidebar } from '@/utils/sidebarPermissions'
+import { stripBasePath } from '@/utils/basePath'
 
 const Logo = lazy(() => import('./Logo'))
 
 const SidebarComponent = () => {
-  const pathname = usePathname()
+  const fullPathname = usePathname()
+  const pathname = stripBasePath(fullPathname)
   const [expandedItems, setExpandedItems] = useState<string[]>([])
   const router = useRouter()
   const [expandedSections, setExpandedSections] = useState<string[]>([])
@@ -43,8 +45,13 @@ const SidebarComponent = () => {
 
   const isActive = useCallback(
     (href: string) => {
-      if (pathname === href) return true
-      if (pathname.startsWith(href + '/')) return true
+      if (!href || href === '#') return false
+
+      // Sidebar config may provide hrefs with or without `/hoa`
+      const normalizedHref = stripBasePath(href)
+
+      if (pathname === normalizedHref) return true
+      if (pathname.startsWith(normalizedHref + '/')) return true
 
       return false
     },
@@ -241,7 +248,7 @@ const SidebarComponent = () => {
               >
                 {section.href ? (
                   <Link
-                    href={section.href}
+                    href={stripBasePath(section.href)}
                     className={`flex items-center gap-2 flex-1 p-1.5 rounded-lg transition-colors ${
                       isActive(section.href)
                         ? 'bg-[#DBEAFE] text-[#155DFC] font-medium'
@@ -312,7 +319,7 @@ const SidebarComponent = () => {
                             {item.children.map((child) => (
                               <Link
                                 key={child.id}
-                                href={child.href || '#'}
+                                href={child.href ? stripBasePath(child.href) : '#'}
                                 className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                                   child.href && isActive(child.href)
                                     ? 'bg-blue-100 text-blue-600'
@@ -335,7 +342,7 @@ const SidebarComponent = () => {
                       </>
                     ) : (
                       <Link
-                        href={item.href || '#'}
+                        href={item.href ? stripBasePath(item.href) : '#'}
                         className={`flex items-center gap-2 pl-[34px] py-2 pr-2 rounded-lg text-sm transition-colors font-outfit text-[13px] leading-[20px] align-middle ${
                           item.href && isActive(item.href)
                             ? 'bg-[#DBEAFE] text-[#155DFC] font-medium'
