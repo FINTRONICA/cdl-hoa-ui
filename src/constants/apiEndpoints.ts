@@ -1,9 +1,11 @@
 // API Base URL and Version
 export const API_CONFIG = {
   // BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'https://103.181.200.143:8082',
-  BASE_URL: process.env.NODE_ENV === 'production' ? '' : (process.env.NEXT_PUBLIC_API_URL || 'https://103.181.200.143:8082'),
+  BASE_URL: process.env.NODE_ENV === 'production' ? '/hoa-api' : (process.env.NEXT_PUBLIC_API_URL || 'https://103.181.200.143:8082'),
   VERSION: 'v1',
+  // API_PREFIX: '/api/v1',
   API_PREFIX: '/api/v1',
+
 } as const
 
 // API Endpoints organized by controller

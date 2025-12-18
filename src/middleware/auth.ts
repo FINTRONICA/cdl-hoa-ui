@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { AuthService, JWTPayload, Permission } from '../lib/auth';
+import { NextRequest, NextResponse } from 'next/server'
+import { AuthService, JWTPayload, Permission } from '../lib/auth'
+import { addBasePath } from '../utils/basePath'
 
 export interface AuthContext {
   user: JWTPayload;
@@ -12,13 +13,17 @@ export class AuthMiddleware {
     const token = AuthService.extractTokenFromRequest(request);
     
     if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
+      const url = request.nextUrl.clone()
+      url.pathname = addBasePath('/login')
+      return NextResponse.redirect(url)
     }
 
     const payload = AuthService.verifyToken(token);
     
     if (!payload) {
-      return NextResponse.redirect(new URL('/login', request.url));
+      const url = request.nextUrl.clone()
+      url.pathname = addBasePath('/login')
+      return NextResponse.redirect(url)
     }
 
     return {
@@ -80,7 +85,9 @@ export class AuthMiddleware {
     }
 
     if (!this.hasPermission(authResult.user, permission)) {
-      return NextResponse.redirect(new URL('/unauthorized', request.url));
+      const url = request.nextUrl.clone()
+      url.pathname = addBasePath('/unauthorized')
+      return NextResponse.redirect(url)
     }
 
     return authResult;
@@ -119,7 +126,9 @@ export class AuthMiddleware {
     }
 
     if (!this.hasAnyPermission(authResult.user, permissions)) {
-      return NextResponse.redirect(new URL('/unauthorized', request.url));
+      const url = request.nextUrl.clone()
+      url.pathname = addBasePath('/unauthorized')
+      return NextResponse.redirect(url)
     }
 
     return authResult;
@@ -158,7 +167,9 @@ export class AuthMiddleware {
     }
 
     if (!this.hasAllPermissions(authResult.user, permissions)) {
-      return NextResponse.redirect(new URL('/unauthorized', request.url));
+      const url = request.nextUrl.clone()
+      url.pathname = addBasePath('/unauthorized')
+      return NextResponse.redirect(url)
     }
 
     return authResult;
