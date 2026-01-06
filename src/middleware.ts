@@ -117,6 +117,8 @@ export function middleware(request: NextRequest) {
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
       "font-src 'self'",
+      // `connect-src 'self' ${process.env.NODE_ENV === 'production' ? '' : (process.env.NEXT_PUBLIC_API_URL || 'https://103.181.200.143:2022')}`,
+
       // connect-src must be ORIGINS (scheme+host+port), not URLs with paths.
       // If NEXT_PUBLIC_API_URL includes `/api` or `/api/v1`, browsers may ignore it and block requests
       // which shows up in Axios as "Network Error".
