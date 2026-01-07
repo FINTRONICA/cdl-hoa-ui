@@ -101,25 +101,7 @@ const nextConfig = {
     ],
   },
 
-  async redirects() {
-    return [
-      // Redirect root + non-basePath routes to the app mounted under `/hoa/*`
-      // (basePath is disabled for these rules so they apply to incoming raw paths)
-      {
-        source: "/",
-        destination: "/hoa",
-        permanent: false,
-        basePath: false,
-      },
-      {
-        source: "/:path((?!hoa|_next|next|api|favicon\\.ico).+)",
-        destination: "/hoa/:path",
-        permanent: false,
-        basePath: false,
-      },
-    ];
-  },
-
+  
   async headers() {
     return [
       {
