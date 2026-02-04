@@ -18,6 +18,8 @@ import {
   Snackbar,
   Alert,
 } from '@mui/material'
+import { useTheme, alpha } from '@mui/material/styles'
+import { buildPanelSurfaceTokens } from './panelTheme'
 import { CommentModal } from '@/components/molecules'
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined'
 import type { WorkflowRequest } from '@/services/api/workflowApi/workflowRequestService'
@@ -43,6 +45,9 @@ interface SectionProps {
 }
 
 const Section = ({ title, fields }: SectionProps) => {
+  const theme = useTheme()
+  const tokens = React.useMemo(() => buildPanelSurfaceTokens(theme), [theme])
+
   const renderDisplayField = (
     label: string,
     value: string | number | boolean | null | undefined
@@ -52,8 +57,7 @@ const Section = ({ title, fields }: SectionProps) => {
         sx={{
           fontSize: '14px',
           fontWeight: 600,
-          color: '#1e293b',
-          fontFamily: 'var(--font-outfit), system-ui, sans-serif',
+          ...tokens.label,
         }}
       >
         {label}
@@ -62,8 +66,7 @@ const Section = ({ title, fields }: SectionProps) => {
         sx={{
           fontSize: 14,
           fontWeight: 600,
-          color: '#64748b',
-          fontFamily: 'var(--font-outfit), system-ui, sans-serif',
+          ...tokens.value,
           wordBreak: 'break-word',
         }}
       >
@@ -78,8 +81,7 @@ const Section = ({ title, fields }: SectionProps) => {
         sx={{
           fontSize: '14px',
           fontWeight: 600,
-          color: '#1e293b',
-          fontFamily: 'var(--font-outfit), system-ui, sans-serif',
+          ...tokens.label,
         }}
       >
         {label}
@@ -88,8 +90,7 @@ const Section = ({ title, fields }: SectionProps) => {
         sx={{
           fontSize: 14,
           fontWeight: 600,
-          color: '#64748b',
-          fontFamily: 'var(--font-outfit), system-ui, sans-serif',
+          ...tokens.value,
         }}
       >
         {value ? 'Yes' : 'No'}
@@ -185,6 +186,8 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
   const createWorkflowExecutionMutation = useCreateWorkflowExecution()
   const router = useRouter()
   const { token } = useAuthStore()
+  const theme = useTheme()
+  const tokens = React.useMemo(() => buildPanelSurfaceTokens(theme), [theme])
 
   // Queue API hooks with fresh data fetching
   const {
@@ -490,19 +493,19 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
       dynamicDetails.push({
         gridSize: 4,
         label: 'CIFRERA',
-        value: detailsJson?.arCifrera || '-',
+        value: detailsJson?.bpCifrera || '-',
       })
 
       dynamicDetails.push({
         gridSize: 4,
         label: 'License No',
-        value: detailsJson?.arLicenseNo || '-',
+        value: detailsJson?.bpLicenseNo || '-',
       })
 
       dynamicDetails.push({
         gridSize: 4,
         label: 'Local Name',
-        value: detailsJson?.arNameLocal || '-',
+        value: detailsJson?.bpNameLocal || '-',
       })
 
       dynamicDetails.push({
@@ -532,13 +535,13 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
       dynamicDetails.push({
         gridSize: 4,
         label: 'Build Partner Name',
-        value: truncateWords(detailsJson?.arName, 15) || '-',
+        value: truncateWords(detailsJson?.bpName, 15) || '-',
       })
 
       dynamicDetails.push({
         gridSize: 4,
         label: 'Developer ID',
-        value: detailsJson?.arDeveloperId || '-',
+        value: detailsJson?.bpDeveloperId || '-',
       })
       dynamicDetails.push({
         gridSize: 4,
@@ -1177,8 +1180,6 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
       setModalOpen(false)
       setComment('')
     } catch (error) {
-      console.log(error)
-
       // Show error toast with API message if available
       let errorMessage = 'Failed to process request'
       if (error instanceof Error) {
@@ -1218,9 +1219,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
             height: 'calc(100vh - 48px)',
             maxHeight: 'calc(100vh - 48px)',
             borderRadius: '12px',
-            background: '#FFFFFFE5',
-            boxShadow: '-8px 0px 8px 0px #62748E14',
-            backdropFilter: 'blur(10px)',
+            ...tokens.paper,
             p: '24px',
             mt: '24px',
             mb: '12px',
@@ -1231,14 +1230,20 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
         }}
       >
         <DialogTitle
-          sx={{ display: 'flex', alignItems: 'flex-start', gap: 0, px: 0 }}
+          sx={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 0,
+            px: 0,
+            ...tokens.header,
+          }}
         >
           <Box sx={{ flex: '1 1 auto', minWidth: 0 }}>
             <Typography
               sx={{
                 fontSize: 24,
                 fontWeight: 600,
-                color: '#1e293b',
+                color: theme.palette.text.primary,
                 fontFamily: 'var(--font-outfit), system-ui, sans-serif',
               }}
             >
@@ -1257,14 +1262,14 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
               sx={{
                 fontSize: 12,
                 fontWeight: 500,
-                color: '#64748b',
+                ...tokens.label,
                 pt: 2,
                 fontFamily: 'var(--font-outfit), system-ui, sans-serif',
               }}
             >
               {
                 String()
-                // (activeTab === 'buildPartner' && (currentWorkflowData?.payloadJson?.arName || currentLogEntry?.detailsJson?.arName)) ||
+                // (activeTab === 'buildPartner' && (currentWorkflowData?.payloadJson?.bpName || currentLogEntry?.detailsJson?.bpName)) ||
                 // (activeTab === 'capitalPartner' && ((currentWorkflowData?.payloadJson as any)?.cpName || (currentLogEntry?.detailsJson as any)?.cpName)) ||
                 // (activeTab === 'payments' && ((currentWorkflowData?.payloadJson as any)?.recipientName || (currentLogEntry?.detailsJson as any)?.recipientName)) ||
                 // (activeTab === 'suretyBond' && ((currentWorkflowData?.payloadJson as any)?.bondName || (currentLogEntry?.detailsJson as any)?.bondName)) ||
@@ -1272,12 +1277,30 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
               }
             </Typography>
           </Box>
-          <IconButton onClick={onClose} size="small">
+          <IconButton
+            onClick={onClose}
+            size="small"
+            sx={{
+              color: theme.palette.text.secondary,
+              '&:hover': {
+                color: theme.palette.text.primary,
+                backgroundColor: alpha(theme.palette.action.hover, 0.1),
+              },
+            }}
+          >
             <CancelOutlinedIcon />
           </IconButton>
         </DialogTitle>
 
-        <DialogContent sx={{ p: 0, pt: '16px', overflowY: 'auto' }}>
+        <DialogContent
+          sx={{
+            p: 0,
+            pt: '16px',
+            overflowY: 'auto',
+            borderColor: tokens.dividerColor,
+            backgroundColor: tokens.paper.backgroundColor as string,
+          }}
+        >
           {children ?? (
             <>
               <Section title="" fields={transactionDetails} />
@@ -1288,7 +1311,12 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                 </Box>
               )}
 
-              <Box className="w-full h-px mt-3 bg-gray-800" />
+              <Box
+                className="w-full h-px mt-3"
+                sx={{
+                  backgroundColor: tokens.dividerColor,
+                }}
+              />
 
               {/* Dynamic Stepper */}
               <Box sx={{ mt: 3 }}>
@@ -1297,14 +1325,14 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                   alternativeLabel
                   sx={{
                     '& .MuiStepConnector-line': {
-                      borderColor: '#e5e7eb', // Default gray for future stages
+                      borderColor: alpha(theme.palette.divider, 0.5),
                     },
                     '& .MuiStepConnector-root': {
                       '&.Mui-active .MuiStepConnector-line': {
-                        borderColor: '#3b82f6', // Blue for active stage
+                        borderColor: theme.palette.primary.main,
                       },
                       '&.Mui-completed .MuiStepConnector-line': {
-                        borderColor: '#3b82f6', // Blue for completed stages
+                        borderColor: theme.palette.primary.main,
                       },
                     },
                   }}
@@ -1410,6 +1438,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                       >
                         <StepLabel
                           StepIconComponent={({ completed, active }) => {
+                            const isDark = theme.palette.mode === 'dark'
                             if (completed) {
                               return (
                                 <div
@@ -1417,16 +1446,15 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                     width: 24,
                                     height: 24,
                                     borderRadius: '50%',
-                                    backgroundColor: '#3b82f6',
+                                    backgroundColor: theme.palette.primary.main,
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    color: 'white',
+                                    color: theme.palette.primary.contrastText,
                                     fontSize: '14px',
                                     fontWeight: 'bold',
-                                    border: '2px solid #3b82f6',
-                                    boxShadow:
-                                      '0 2px 4px rgba(59, 130, 246, 0.3)',
+                                    border: `2px solid ${theme.palette.primary.main}`,
+                                    boxShadow: `0 2px 4px ${alpha(theme.palette.primary.main, 0.3)}`,
                                   }}
                                 >
                                   ✓
@@ -1440,16 +1468,15 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                     width: 24,
                                     height: 24,
                                     borderRadius: '50%',
-                                    backgroundColor: '#3b82f6',
+                                    backgroundColor: theme.palette.primary.main,
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    color: 'white',
+                                    color: theme.palette.primary.contrastText,
                                     fontSize: '14px',
                                     fontWeight: 'bold',
-                                    border: '2px solid #3b82f6',
-                                    boxShadow:
-                                      '0 2px 4px rgba(59, 130, 246, 0.3)',
+                                    border: `2px solid ${theme.palette.primary.main}`,
+                                    boxShadow: `0 2px 4px ${alpha(theme.palette.primary.main, 0.3)}`,
                                   }}
                                 >
                                   {index + 1}
@@ -1462,14 +1489,22 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                   width: 24,
                                   height: 24,
                                   borderRadius: '50%',
-                                  backgroundColor: '#e5e7eb',
+                                  backgroundColor: isDark
+                                    ? theme.palette.grey[700]
+                                    : theme.palette.grey[200],
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  color: '#6b7280',
+                                  color: isDark
+                                    ? theme.palette.grey[300]
+                                    : theme.palette.grey[600],
                                   fontSize: '14px',
                                   fontWeight: 'bold',
-                                  border: '2px solid #d1d5db',
+                                  border: `2px solid ${
+                                    isDark
+                                      ? theme.palette.grey[600]
+                                      : theme.palette.grey[300]
+                                  }`,
                                 }}
                               >
                                 {index + 1}
@@ -1482,11 +1517,10 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                               style={{
                                 fontSize: '14px',
                                 fontWeight: 600,
-                                color: isActive
-                                  ? '#3b82f6'
-                                  : isCompleted
-                                    ? '#3b82f6'
-                                    : '#3b82f6',
+                                color:
+                                  isActive || isCompleted
+                                    ? theme.palette.primary.main
+                                    : theme.palette.text.secondary,
                                 fontFamily:
                                   'var(--font-outfit), system-ui, sans-serif',
                               }}
@@ -1509,7 +1543,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                       sx={{
                         fontSize: 24,
                         fontWeight: 600,
-                        color: '#1e293b',
+                        color: theme.palette.text.primary,
                         mb: 2,
                         fontFamily: 'var(--font-outfit), system-ui, sans-serif',
                       }}
@@ -1533,10 +1567,13 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                               sx={{
                                 p: 3,
                                 mb: 2,
-                                backgroundColor: '#ffffff',
+                                backgroundColor: theme.palette.background.paper,
                                 borderRadius: 2,
-                                border: '1px solid #e5e7eb',
-                                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                                border: `1px solid ${tokens.dividerColor}`,
+                                boxShadow:
+                                  theme.palette.mode === 'dark'
+                                    ? '0 1px 3px rgba(0, 0, 0, 0.3)'
+                                    : '0 1px 3px rgba(0, 0, 0, 0.1)',
                               }}
                             >
                               <Box sx={{ mb: 1.5 }}>
@@ -1544,7 +1581,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                   sx={{
                                     fontSize: '18px',
                                     fontWeight: 600,
-                                    color: '#1e293b',
+                                    color: theme.palette.text.primary,
                                     fontFamily:
                                       'var(--font-outfit), system-ui, sans-serif',
                                   }}
@@ -1565,10 +1602,10 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                     sx={{
                                       fontSize: '12px',
                                       fontWeight: 500,
-                                      color: '#64748b',
+                                      ...tokens.label,
+                                      mb: 0.5,
                                       fontFamily:
                                         'var(--font-outfit), system-ui, sans-serif',
-                                      mb: 0.5,
                                     }}
                                   >
                                     Event By User
@@ -1577,7 +1614,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                     sx={{
                                       fontSize: '14px',
                                       fontWeight: 600,
-                                      color: '#1e293b',
+                                      ...tokens.value,
                                       fontFamily:
                                         'var(--font-outfit), system-ui, sans-serif',
                                     }}
@@ -1591,10 +1628,10 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                     sx={{
                                       fontSize: '12px',
                                       fontWeight: 500,
-                                      color: '#64748b',
+                                      ...tokens.label,
+                                      mb: 0.5,
                                       fontFamily:
                                         'var(--font-outfit), system-ui, sans-serif',
-                                      mb: 0.5,
                                     }}
                                   >
                                     Event By Group
@@ -1603,7 +1640,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                     sx={{
                                       fontSize: '14px',
                                       fontWeight: 600,
-                                      color: '#1e293b',
+                                      ...tokens.value,
                                       fontFamily:
                                         'var(--font-outfit), system-ui, sans-serif',
                                     }}
@@ -1617,10 +1654,10 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                     sx={{
                                       fontSize: '12px',
                                       fontWeight: 500,
-                                      color: '#64748b',
+                                      ...tokens.label,
+                                      mb: 0.5,
                                       fontFamily:
                                         'var(--font-outfit), system-ui, sans-serif',
-                                      mb: 0.5,
                                     }}
                                   >
                                     Event Date & Time
@@ -1629,7 +1666,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                     sx={{
                                       fontSize: '14px',
                                       fontWeight: 600,
-                                      color: '#1e293b',
+                                      ...tokens.value,
                                       fontFamily:
                                         'var(--font-outfit), system-ui, sans-serif',
                                     }}
@@ -1652,7 +1689,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                   sx={{
                     fontSize: 24,
                     fontWeight: 600,
-                    color: '#1e293b',
+                    color: theme.palette.text.primary,
                     mb: 3,
                     fontFamily: 'var(--font-outfit), system-ui, sans-serif',
                   }}
@@ -1672,7 +1709,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                       top: 0,
                       bottom: 0,
                       width: 2,
-                      backgroundColor: '#3b82f6',
+                      backgroundColor: theme.palette.primary.main,
                     },
                   }}
                 >
@@ -1706,11 +1743,14 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                             borderRadius: '50%',
                             backgroundColor: isCompleted
                               ? isApproval
-                                ? '#10b981'
-                                : '#3b82f6'
-                              : '#9ca3af',
-                            border: '3px solid #ffffff',
-                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                                ? theme.palette.success.main
+                                : theme.palette.primary.main
+                              : theme.palette.grey[400],
+                            border: `3px solid ${theme.palette.background.paper}`,
+                            boxShadow:
+                              theme.palette.mode === 'dark'
+                                ? '0 2px 4px rgba(0, 0, 0, 0.3)'
+                                : '0 2px 4px rgba(0, 0, 0, 0.1)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -1722,7 +1762,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                               sx={{
                                 width: 8,
                                 height: 6,
-                                border: '2px solid #3b82f6',
+                                border: `2px solid ${theme.palette.primary.main}`,
                                 borderTop: 'none',
                                 borderRight: 'none',
                                 display: 'inline-block',
@@ -1736,7 +1776,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                 width: 6,
                                 height: 6,
                                 borderRadius: '50%',
-                                backgroundColor: '#3b82f6',
+                                backgroundColor: theme.palette.primary.main,
                               }}
                             />
                           ) : null}
@@ -1746,7 +1786,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                 width: 4,
                                 height: 4,
                                 borderRadius: '50%',
-                                backgroundColor: '#3b82f6',
+                                backgroundColor: theme.palette.primary.main,
                               }}
                             />
                           ) : null}
@@ -1755,15 +1795,21 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                         {/* Content Card */}
                         <Box
                           sx={{
-                            backgroundColor: '#ffffff',
+                            backgroundColor: theme.palette.background.paper,
                             borderRadius: 3,
-                            border: '1px solid #e5e7eb',
-                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                            border: `1px solid ${tokens.dividerColor}`,
+                            boxShadow:
+                              theme.palette.mode === 'dark'
+                                ? '0 2px 8px rgba(0, 0, 0, 0.2)'
+                                : '0 2px 8px rgba(0, 0, 0, 0.08)',
                             p: 3,
                             ml: 1,
                             transition: 'all 0.2s ease',
                             '&:hover': {
-                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
+                              boxShadow:
+                                theme.palette.mode === 'dark'
+                                  ? '0 4px 12px rgba(0, 0, 0, 0.3)'
+                                  : '0 4px 12px rgba(0, 0, 0, 0.12)',
                               transform: 'translateY(-1px)',
                             },
                           }}
@@ -1776,9 +1822,9 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                 fontWeight: 700,
                                 color: isCompleted
                                   ? isApproval
-                                    ? '#10b981'
-                                    : '#3b82f6'
-                                  : '#6b7280',
+                                    ? theme.palette.success.main
+                                    : theme.palette.primary.main
+                                  : theme.palette.text.secondary,
                                 fontFamily:
                                   'var(--font-outfit), system-ui, sans-serif',
                                 textTransform: 'uppercase',
@@ -1796,7 +1842,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                   sx={{
                                     fontSize: '12px',
                                     fontWeight: 600,
-                                    color: '#64748b',
+                                    ...tokens.label,
                                     fontFamily:
                                       'var(--font-outfit), system-ui, sans-serif',
                                     textTransform: 'uppercase',
@@ -1828,7 +1874,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                 sx={{
                                   fontSize: '11px',
                                   fontWeight: 600,
-                                  color: '#9ca3af',
+                                  color: theme.palette.text.disabled,
                                   fontFamily:
                                     'var(--font-outfit), system-ui, sans-serif',
                                   textTransform: 'uppercase',
@@ -1842,7 +1888,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                 sx={{
                                   fontSize: '14px',
                                   fontWeight: 600,
-                                  color: '#1e293b',
+                                  ...tokens.value,
                                   fontFamily:
                                     'var(--font-outfit), system-ui, sans-serif',
                                   wordBreak: 'break-word',
@@ -1858,7 +1904,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                 sx={{
                                   fontSize: '11px',
                                   fontWeight: 600,
-                                  color: '#9ca3af',
+                                  color: theme.palette.text.disabled,
                                   fontFamily:
                                     'var(--font-outfit), system-ui, sans-serif',
                                   textTransform: 'uppercase',
@@ -1872,7 +1918,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                 sx={{
                                   fontSize: '14px',
                                   fontWeight: 600,
-                                  color: '#1e293b',
+                                  ...tokens.value,
                                   fontFamily:
                                     'var(--font-outfit), system-ui, sans-serif',
                                 }}
@@ -1889,7 +1935,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                 sx={{
                                   fontSize: '11px',
                                   fontWeight: 600,
-                                  color: '#9ca3af',
+                                  color: theme.palette.text.disabled,
                                   fontFamily:
                                     'var(--font-outfit), system-ui, sans-serif',
                                   textTransform: 'uppercase',
@@ -1903,7 +1949,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                 sx={{
                                   fontSize: '14px',
                                   fontWeight: 600,
-                                  color: '#1e293b',
+                                  ...tokens.value,
                                   fontFamily:
                                     'var(--font-outfit), system-ui, sans-serif',
                                 }}
@@ -1923,7 +1969,7 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                   sx={{
                                     fontSize: '11px',
                                     fontWeight: 600,
-                                    color: '#9ca3af',
+                                    color: theme.palette.text.disabled,
                                     fontFamily:
                                       'var(--font-outfit), system-ui, sans-serif',
                                     textTransform: 'uppercase',
@@ -1937,13 +1983,19 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                                   sx={{
                                     fontSize: '14px',
                                     fontWeight: 500,
-                                    color: '#374151',
+                                    color: theme.palette.text.secondary,
                                     fontFamily:
                                       'var(--font-outfit), system-ui, sans-serif',
-                                    backgroundColor: '#f9fafb',
+                                    backgroundColor:
+                                      theme.palette.mode === 'dark'
+                                        ? alpha(
+                                            theme.palette.background.default,
+                                            0.5
+                                          )
+                                        : alpha(theme.palette.grey[50], 0.8),
                                     padding: '8px 12px',
                                     borderRadius: '6px',
-                                    border: '1px solid #e5e7eb',
+                                    border: `1px solid ${tokens.dividerColor}`,
                                     wordBreak: 'break-word',
                                     lineHeight: '1.4',
                                   }}
@@ -1965,7 +2017,23 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
           )}
         </DialogContent>
 
-        <Box sx={{ mt: 'auto', pt: 1, display: 'flex', gap: 1.5 }}>
+        <Box
+          sx={{
+            mt: 'auto',
+            pt: 1,
+            display: 'flex',
+            gap: 1.5,
+            borderTop: `1px solid ${tokens.dividerColor}`,
+            backgroundColor: alpha(
+              tokens.paper.backgroundColor as string,
+              0.95
+            ),
+            backdropFilter: 'blur(10px)',
+            p: 2,
+            mx: -3,
+            mb: -3,
+          }}
+        >
           {canPerformAction ? (
             <>
               <Button
@@ -1973,14 +2041,24 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                 variant="contained"
                 onClick={handleApprove}
                 sx={{
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
+                  backgroundColor: theme.palette.primary.main,
+                  color: theme.palette.primary.contrastText,
                   fontFamily: 'var(--font-outfit), system-ui, sans-serif',
                   fontWeight: 600,
                   fontSize: '14px',
                   textTransform: 'none',
+                  borderWidth: '1px',
+                  borderStyle: 'solid',
+                  borderColor:
+                    theme.palette.mode === 'dark'
+                      ? theme.palette.primary.main
+                      : 'transparent',
                   '&:hover': {
-                    backgroundColor: '#2563eb',
+                    backgroundColor: theme.palette.primary.dark,
+                    borderColor:
+                      theme.palette.mode === 'dark'
+                        ? theme.palette.primary.main
+                        : 'transparent',
                   },
                 }}
               >
@@ -1999,14 +2077,24 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
                 variant="contained"
                 onClick={handleReject}
                 sx={{
-                  backgroundColor: '#ef4444',
-                  color: 'white',
+                  backgroundColor: theme.palette.error.main,
+                  color: theme.palette.error.contrastText,
                   fontFamily: 'var(--font-outfit), system-ui, sans-serif',
                   fontWeight: 600,
                   fontSize: '14px',
                   textTransform: 'none',
+                  borderWidth: '1px',
+                  borderStyle: 'solid',
+                  borderColor:
+                    theme.palette.mode === 'dark'
+                      ? theme.palette.error.main
+                      : 'transparent',
                   '&:hover': {
-                    backgroundColor: '#dc2626',
+                    backgroundColor: theme.palette.error.dark,
+                    borderColor:
+                      theme.palette.mode === 'dark'
+                        ? theme.palette.error.main
+                        : 'transparent',
                   },
                 }}
               >
@@ -2027,15 +2115,15 @@ export const RightSlideWorkflowTransactionStatePanel: React.FC<
               variant="contained"
               disabled
               sx={{
-                backgroundColor: '#9ca3af',
-                color: 'white',
+                backgroundColor: theme.palette.action.disabledBackground,
+                color: theme.palette.action.disabled,
                 fontFamily: 'var(--font-outfit), system-ui, sans-serif',
                 fontWeight: 600,
                 fontSize: '14px',
                 textTransform: 'none',
                 '&:disabled': {
-                  backgroundColor: '#9ca3af',
-                  color: 'white',
+                  backgroundColor: theme.palette.action.disabledBackground,
+                  color: theme.palette.action.disabled,
                 },
               }}
             >

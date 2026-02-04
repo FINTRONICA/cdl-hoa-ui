@@ -48,7 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
           <h1 className="text-[32px] font-sans text-[#1E2939] font-semibold leading-normal">
             {title}
           </h1>
-          <p className="text-gray-600 text-base mt-1">{subtitle}</p>
+          <p className="mt-1 text-base text-gray-600">{subtitle}</p>
         </div>
 
         {/* Spacer */}
@@ -56,6 +56,9 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right side - Controls */}
         <div className="flex items-center gap-6">
+          <div className="inline-flex items-center justify-center min-h-0 px-0.5 text-xs font-semibold text-white bg-blue-500 rounded-md shadow-sm aspect-square min-w-2">
+            HOA
+          </div>
           <UserProfile
             name={displayName}
             {...(displayEmail && { email: displayEmail })}
