@@ -383,7 +383,9 @@ const WorkflowDefinitionsPageImpl: React.FC = () => {
   if (workflowDefinitionsLoading || workflowDefinitionsFetching) {
     return (
       <DashboardLayout title="Workflow Definitions">
-        <div className="flex flex-col h-full bg-white/75 dark:bg-gray-800/80 rounded-2xl">
+        {/* <div className="flex flex-col h-full bg-white/75 dark:bg-gray-800/80 rounded-2xl"> */}
+        <div className="flex flex-col h-full bg-white/75 rounded-2xl">
+
           <GlobalLoading fullHeight />
         </div>
       </DashboardLayout>
@@ -394,7 +396,9 @@ const WorkflowDefinitionsPageImpl: React.FC = () => {
   return (
     <>
       <DashboardLayout title="Workflow Definitions">
-        <div className="relative flex flex-col h-full bg-white/75 dark:bg-gray-800/80 rounded-2xl">
+        {/* <div className="relative flex flex-col h-full bg-white/75 dark:bg-gray-800/80 rounded-2xl"> */}
+        <div className="relative flex flex-col h-full bg-white/75 rounded-2xl">
+
           {showRefreshOverlay && (
             <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
               <div className="flex items-center gap-2 px-4 py-2 rounded-md shadow bg-white/90 dark:bg-gray-900/90">
@@ -408,7 +412,9 @@ const WorkflowDefinitionsPageImpl: React.FC = () => {
           {workflowDefinitionsLoading ? (
             <LoadingSpinner />
           ) : workflowDefinitionsError ? (
-            <div className="flex flex-col h-full bg-white/75 dark:bg-gray-800/80 rounded-2xl">
+            // <div className="flex flex-col h-full bg-white/75 dark:bg-gray-800/80 rounded-2xl">
+            <div className="flex flex-col h-full bg-white/75 rounded-2xl">
+
               <ErrorMessage
                 error={workflowDefinitionsError}
                 onRetry={refetchWorkflowDefinitions}
@@ -416,7 +422,9 @@ const WorkflowDefinitionsPageImpl: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/75 dark:bg-gray-800/80 dark:border-gray-700 rounded-t-2xl">
+              {/* <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/75 dark:bg-gray-800/80 dark:border-gray-700 rounded-t-2xl"> */}
+              <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/75 rounded-t-2xl">
+
                 <PageActionButtons
                   entityType="workflowDefinition"
                   customActionButtons={[]}
