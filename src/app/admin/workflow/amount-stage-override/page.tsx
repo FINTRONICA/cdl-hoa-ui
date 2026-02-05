@@ -1,38 +1,77 @@
 'use client'
+
 import dynamic from 'next/dynamic'
-import React, { useState, useMemo, useCallback } from 'react'
-import { toast } from 'react-hot-toast'
-import { displayValue } from '@/utils/nullHandling'
+import React, { useCallback, useState, useMemo } from 'react'
 import { DashboardLayout } from '@/components/templates/DashboardLayout'
-import { ExpandableDataTable } from '@/components/organisms/ExpandableDataTable'
+import { PermissionAwareDataTable } from '@/components/organisms/PermissionAwareDataTable'
 import { useTableState } from '@/hooks/useTableState'
 import { PageActionButtons } from '@/components/molecules/PageActionButtons'
+import { getWorkflowLabelsByCategory as getWorkflowAmountStageOverrideLabel } from '@/constants/mappings/workflowMapping'
 import { GlobalLoading } from '@/components/atoms'
+
+// Dynamic import for heavy panel component with proper code splitting
+const RightSlideWorkflowAmountStageOverridePanel = dynamic(
+  () =>
+    import(
+      '@/components/organisms/RightSlidePanel/RightSlideWorkflowAmountStageOverridePanel'
+    ).then((mod) => ({ default: mod.RightSlideWorkflowAmountStageOverridePanel })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-full">
+        <GlobalLoading />
+      </div>
+    ),
+  }
+)
+
+// Main page component - no need for dynamic import since it's already a client component
+import {
+  useDeleteWorkflowAmountStageOverride,
+  useWorkflowAmountStageOverrides,
+  useBuildWorkflowAmountStageOverrideLabelsWithCache,
+} from '@/hooks/workflow'
 import {
   mapWorkflowAmountStageOverrideToUI,
   type WorkflowAmountStageOverrideUIData,
 } from '@/services/api/workflowApi'
-import { CommentModal } from '@/components/molecules'
-import {
-  useDeleteWorkflowAmountStageOverride,
-  useWorkflowAmountStageOverrides,
-} from '@/hooks/workflow'
-import { RightSlideWorkflowAmountStageOverridePanel } from '@/components/organisms/RightSlidePanel/RightSlideWorkflowAmountStageOverridePanel'
-import { getLabelByConfigId as getWorkflowAmountStageOverrideLabel } from '@/constants/mappings/workflowMapping'
+import type { WorkflowAmountStageOverrideFilters } from '@/services/api/workflowApi/workflowAmountStageOverrideService'
+import { useAppStore } from '@/store'
+import { useDeleteConfirmation } from '@/store/confirmationDialogStore'
 
-const ErrorMessage: React.FC<{ error: Error; onRetry?: () => void }> = ({
-  error,
-  onRetry,
-}) => (
-  <div className="flex items-center justify-center min-h-screen px-4 bg-gray-50">
+interface WorkflowAmountStageOverrideData
+  extends WorkflowAmountStageOverrideUIData,
+  Record<string, unknown> { }
+
+const statusOptions = [
+  'PENDING',
+  'APPROVED',
+  'REJECTED',
+  'IN_PROGRESS',
+  'DRAFT',
+  'INITIATED',
+  'Active',
+  'Inactive',
+  'Expired',
+  'Cancelled',
+]
+
+interface ErrorMessageProps {
+  error: Error
+  onRetry?: () => void
+}
+
+const ErrorMessage: React.FC<ErrorMessageProps> = ({ error, onRetry }) => (
+  <div className="flex items-center justify-center min-h-[400px] bg-gray-50 dark:bg-gray-900 rounded-2xl px-4">
     <div className="w-full max-w-md text-center">
       <div className="mb-8">
-        <div className="flex items-center justify-center w-24 h-24 mx-auto mb-6 bg-red-100 rounded-full">
+        <div className="flex items-center justify-center w-24 h-24 mx-auto mb-6 bg-red-100 rounded-full dark:bg-red-900/20">
           <svg
-            className="w-12 h-12 text-red-600"
+            className="w-12 h-12 text-red-600 dark:text-red-400"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
@@ -42,19 +81,19 @@ const ErrorMessage: React.FC<{ error: Error; onRetry?: () => void }> = ({
             />
           </svg>
         </div>
-        <h1 className="mb-4 text-2xl font-semibold text-gray-900">
+        <h1 className="mb-4 text-2xl font-semibold text-gray-900 dark:text-white">
           Failed to load workflow amount stage overrides
         </h1>
-        <p className="mb-4 text-gray-600">
+        <p className="mb-4 text-gray-600 dark:text-gray-300">
           {error.message ||
             'An error occurred while loading the data. Please try again.'}
         </p>
         {process.env.NODE_ENV === 'development' && (
           <details className="text-left">
-            <summary className="text-sm font-medium text-gray-600 cursor-pointer">
+            <summary className="text-sm font-medium text-gray-600 cursor-pointer dark:text-gray-300">
               Error Details (Development)
             </summary>
-            <pre className="p-4 mt-2 overflow-auto text-xs text-gray-500 bg-gray-100 rounded">
+            <pre className="p-4 mt-2 overflow-auto text-xs text-gray-500 bg-gray-100 rounded dark:text-gray-400 dark:bg-gray-800">
               {error.stack}
             </pre>
           </details>
@@ -63,7 +102,9 @@ const ErrorMessage: React.FC<{ error: Error; onRetry?: () => void }> = ({
       {onRetry && (
         <button
           onClick={onRetry}
-          className="w-full px-4 py-2 text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700"
+          type="button"
+          className="w-full px-4 py-2 text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+          aria-label="Retry loading data"
         >
           Try Again
         </button>
@@ -72,480 +113,393 @@ const ErrorMessage: React.FC<{ error: Error; onRetry?: () => void }> = ({
   </div>
 )
 
-const LoadingSpinner: React.FC = () => (
-  <DashboardLayout title="Amount Stage Override">
-    <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
-      <GlobalLoading fullHeight />
-    </div>
-  </DashboardLayout>
-)
+const LoadingSpinner: React.FC = () => <GlobalLoading fullHeight />
 
-type WorkflowAmountStageOverrideRow = {
-  id: number
-  stageOrder: number
-  requiredApprovals: number
-  keycloakGroup: string
-  stageKey: string
-  workflowAmountRuleId: number
-  workflowAmountRuleName?: string | undefined
-  active?: boolean | undefined
-}
-
-type ViewRow = {
-  _raw: WorkflowAmountStageOverrideRow
-} & {
-  id: string
-  stageOrder: React.JSX.Element
-  requiredApprovals: React.JSX.Element
-  keycloakGroup: React.JSX.Element
-  stageKey: React.JSX.Element
-  workflowAmountRuleId: number
-  workflowAmountRuleName: React.JSX.Element
-  active: React.JSX.Element
-  actions: React.JSX.Element
-}
-
-const WorkflowAmountStageOverridesPageImpl: React.FC = () => {
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [deleteIds, setDeleteIds] = useState<(string | number)[]>([])
-  const [currentPage, setCurrentPage] = useState(0)
-  const [pageSize, setPageSize] = useState(20)
+const WorkflowAmountStageOverridesPage: React.FC = () => {
+  const [isPanelOpen, setIsPanelOpen] = useState(false)
+  const [panelMode, setPanelMode] = useState<'add' | 'edit'>('add')
+  const [editingItem, setEditingItem] =
+    useState<WorkflowAmountStageOverrideData | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [isSidePanelOpen, setIsSidePanelOpen] = useState(false)
-  const [selectedStageOverrideForEdit, setSelectedStageOverrideForEdit] =
-    useState<WorkflowAmountStageOverrideUIData | null>(null)
-  const deleteMutation = useDeleteWorkflowAmountStageOverride()
+  const [currentApiPage, setCurrentApiPage] = useState(1)
+  const [currentApiSize, setCurrentApiSize] = useState(20)
+  const [filters] = useState<WorkflowAmountStageOverrideFilters>({})
+  const currentLanguage = useAppStore((state) => state.language)
 
   const {
     data: apiResponse,
-    isLoading,
-    error,
-    refetch,
-  } = useWorkflowAmountStageOverrides(currentPage, pageSize)
+    isLoading: workflowAmountStageOverridesLoading,
+    isFetching: workflowAmountStageOverridesFetching,
+    error: workflowAmountStageOverridesError,
+    refetch: refetchWorkflowAmountStageOverrides,
+  } = useWorkflowAmountStageOverrides(
+    Math.max(0, currentApiPage - 1),
+    currentApiSize,
+    filters
+  )
 
-  const workflowAmountStageOverridesData: WorkflowAmountStageOverrideRow[] =
-    useMemo(() => {
-      if (!apiResponse?.content) {
-        return []
-      }
+  const deleteMutation = useDeleteWorkflowAmountStageOverride()
+  const confirmDelete = useDeleteConfirmation()
 
-      const mappedData = apiResponse.content.map((item) => {
-        const uiData = mapWorkflowAmountStageOverrideToUI(item)
+  const { data: workflowAmountStageOverrideLabels, getLabel } =
+    useBuildWorkflowAmountStageOverrideLabelsWithCache()
 
-        return {
-          id: uiData.id,
-          stageOrder: uiData.stageOrder,
-          requiredApprovals: uiData.requiredApprovals,
-          keycloakGroup: uiData.keycloakGroup,
-          stageKey: uiData.stageKey,
-          workflowAmountRuleId: uiData.workflowAmountRuleId,
-          workflowAmountRuleName: uiData.workflowAmountRuleName,
-          active: uiData.active,
-        }
-      })
-
-      return mappedData
-    }, [apiResponse])
-
-  const confirmDelete = async () => {
-    if (isDeleting || (deleteMutation as { isPending?: boolean })?.isPending) {
-      return
+  const workflowAmountStageOverrideData = useMemo(() => {
+    if (apiResponse?.content) {
+      return apiResponse.content.map((item) =>
+        mapWorkflowAmountStageOverrideToUI(item)
+      ) as WorkflowAmountStageOverrideData[]
     }
-
-    if (!deleteIds?.length) {
-      setIsDeleteModalOpen(false)
-      return
-    }
-
-    setIsDeleting(true)
-    let successCount = 0
-    let errorCount = 0
-
-    try {
-      for (const id of Array.from(new Set(deleteIds))) {
-        try {
-          if (
-            typeof (
-              deleteMutation as {
-                mutateAsync?: (id: string) => Promise<unknown>
-              }
-            ).mutateAsync === 'function'
-          ) {
-            await (
-              deleteMutation as {
-                mutateAsync: (id: string) => Promise<unknown>
-              }
-            ).mutateAsync(id.toString())
-            successCount++
-          } else if (
-            typeof (deleteMutation as { mutate?: (id: string) => void })
-              .mutate === 'function'
-          ) {
-            ;(deleteMutation as { mutate: (id: string) => void }).mutate(
-              id.toString()
-            )
-            successCount++
-          } else if (
-            typeof (window as { deleteApi?: (id: string) => Promise<unknown> })
-              .deleteApi === 'function'
-          ) {
-            const win = window as unknown as {
-              deleteApi?: (id: string) => Promise<unknown>
-            }
-            if (typeof win.deleteApi === 'function') {
-              await win.deleteApi(id.toString())
-              successCount++
-            } else {
-              throw new Error(
-                'No delete function available (mutateAsync/mutate/deleteApi)'
-              )
-            }
-          }
-        } catch (innerErr) {
-          errorCount++
-          toast.error(`${innerErr}Failed to errorCount `)
-        }
-      }
-
-      if (successCount > 0 && errorCount === 0) {
-      } else if (successCount > 0 && errorCount > 0) {
-        toast.error(
-          `Deleted ${successCount} item(s), but failed to delete ${errorCount} item(s)`
-        )
-      } else if (errorCount > 0) {
-        toast.error(`Failed to delete ${errorCount} item(s)`)
-      }
-
-      if (typeof refetch === 'function') {
-        try {
-          await refetch()
-        } catch (refetchErr) {
-          toast.error(`${refetchErr}Failed to refresh data after deletion`)
-        }
-      }
-    } catch (err) {
-      toast.error(`${err}An unexpected error occurred during deletion`)
-    } finally {
-      setIsDeleteModalOpen(false)
-      setDeleteIds([])
-      setIsDeleting(false)
-    }
-  }
-  const statusOptions = ['Active', 'Inactive']
+    return []
+  }, [apiResponse])
 
   const getWorkflowAmountStageOverrideLabelDynamic = useCallback(
     (configId: string): string => {
-      return getWorkflowAmountStageOverrideLabel(configId)
+      const fallback = getWorkflowAmountStageOverrideLabel(configId)
+
+      if (workflowAmountStageOverrideLabels) {
+        return getLabel(configId, currentLanguage || 'EN', fallback)
+      }
+      return fallback
     },
-    []
+    [workflowAmountStageOverrideLabels, currentLanguage, getLabel]
   )
 
-  const tableColumns = [
-    {
-      key: 'stageOrder',
-      label: getWorkflowAmountStageOverrideLabelDynamic('CDL_WASO_STAGE_ORDER'),
-      type: 'text' as const,
-      width: 'w-20',
-      sortable: true,
-      render: (value: string | number | null | undefined) =>
-        displayValue(value),
-    },
-    {
-      key: 'requiredApprovals',
-      label: getWorkflowAmountStageOverrideLabelDynamic(
-        'CDL_WASO_REQUIRED_APPROVALS'
-      ),
-      type: 'text' as const,
-      width: 'w-20',
-      sortable: true,
-      render: (value: string | number | null | undefined) =>
-        displayValue(value),
-    },
-    {
-      key: 'keycloakGroup',
-      label: getWorkflowAmountStageOverrideLabelDynamic(
-        'CDL_WASO_KEYCLOAK_GROUP'
-      ),
-      type: 'text' as const,
-      width: 'w-26',
-      sortable: true,
-      render: (value: string | number | null | undefined) =>
-        displayValue(value),
-    },
-    {
-      key: 'stageKey',
-      label: getWorkflowAmountStageOverrideLabelDynamic('CDL_WASO_STAGE_KEY'),
-      type: 'text' as const,
-      width: 'w-26',
-      sortable: true,
-      render: (value: string | number | null | undefined) =>
-        displayValue(value),
-    },
-    {
-      key: 'workflowAmountRuleName',
-      label: getWorkflowAmountStageOverrideLabelDynamic(
-        'CDL_WAR_WORKFLOW_AMOUNT_RULE'
-      ),
-      type: 'text' as const,
-      width: 'w-26',
-      sortable: false,
-      render: (value: string | number | null | undefined) =>
-        value ? displayValue(value) : '-',
-    },
-    {
-      key: 'actions',
-      label: getWorkflowAmountStageOverrideLabelDynamic(
-        'CDL_WAR_WORKFLOW_ACTIONS'
-      ),
-      type: 'actions' as const,
-      width: 'w-20',
-    },
-  ]
+  const tableColumns = useMemo(
+    () => [
+      {
+        key: 'stageKey',
+        label: getWorkflowAmountStageOverrideLabelDynamic('CDL_WASO_STAGE_KEY'),
+        type: 'text' as const,
+        width: 'w-48',
+        sortable: true,
+        copyable: true,
+      },
+      {
+        key: 'stageOrder',
+        label: getWorkflowAmountStageOverrideLabelDynamic('CDL_WASO_STAGE_ORDER'),
+        type: 'text' as const,
+        width: 'w-32',
+        sortable: true,
+        copyable: true,
+      },
+      {
+        key: 'requiredApprovals',
+        label: getWorkflowAmountStageOverrideLabelDynamic(
+          'CDL_WASO_REQUIRED_APPROVALS'
+        ),
+        type: 'text' as const,
+        width: 'w-32',
+        sortable: true,
+        copyable: true,
+      },
+      {
+        key: 'keycloakGroup',
+        label: getWorkflowAmountStageOverrideLabelDynamic(
+          'CDL_WASO_KEYCLOAK_GROUP'
+        ),
+        type: 'text' as const,
+        width: 'w-48',
+        sortable: true,
+        copyable: true,
+      },
+
+      {
+        key: 'workflowAmountRuleName',
+        label: getWorkflowAmountStageOverrideLabelDynamic(
+          'CDL_WAR_WORKFLOW_AMOUNT_RULE'
+        ),
+        type: 'text' as const,
+        width: 'w-48',
+        sortable: true,
+        copyable: true,
+      },
+      {
+        key: 'status',
+        label: getWorkflowAmountStageOverrideLabelDynamic('CDL_COMMON_STATUS'),
+        type: 'status' as const,
+        width: 'w-32',
+        sortable: true,
+      },
+      {
+        key: 'actions',
+        label: getWorkflowAmountStageOverrideLabelDynamic('CDL_COMMON_ACTIONS'),
+        type: 'actions' as const,
+        width: 'w-20',
+      },
+    ],
+    [getWorkflowAmountStageOverrideLabelDynamic]
+  )
 
   const {
     search,
-    paginated: paginatedData,
+    paginated,
+    totalRows: localTotalRows,
+    totalPages: localTotalPages,
+    startItem,
+    endItem,
+    page: localPage,
+    rowsPerPage,
     selectedRows,
     expandedRows,
+    sortConfig,
     handleSearchChange,
+    handlePageChange: localHandlePageChange,
+    handleRowsPerPageChange: localHandleRowsPerPageChange,
     handleRowSelectionChange,
     handleRowExpansionChange,
+    handleSort,
   } = useTableState({
-    data: workflowAmountStageOverridesData,
+    data: workflowAmountStageOverrideData,
     searchFields: [
-      'id',
       'stageOrder',
       'requiredApprovals',
       'keycloakGroup',
       'stageKey',
       'workflowAmountRuleName',
+      'status',
     ],
-    initialRowsPerPage: pageSize,
+    initialRowsPerPage: currentApiSize,
   })
 
-  const totalRows = paginatedData.length
-  const totalPages = Math.ceil(totalRows / pageSize)
+  const handlePageChange = (newPage: number) => {
+    const hasSearch = Object.values(search).some((value) => value.trim())
 
-  const onPageChange = (nextPage: number) => setCurrentPage(nextPage)
-  const onRowsPerPageChange = (nextSize: number) => {
-    setPageSize(nextSize)
-    setCurrentPage(0)
+    if (hasSearch) {
+      localHandlePageChange(newPage)
+    } else {
+      setCurrentApiPage(newPage)
+    }
   }
 
-  const handleRowDelete = (
-    arg?: React.MouseEvent | (ViewRow | WorkflowAmountStageOverrideRow)
-  ) => {
-    if (arg && 'stopPropagation' in arg) arg.stopPropagation()
-
-    const singleId =
-      arg && typeof (arg as ViewRow)?.id === 'string'
-        ? (arg as ViewRow).id
-        : (arg as WorkflowAmountStageOverrideRow)?.id
-
-    const ids: (string | number)[] =
-      typeof singleId === 'string' || typeof singleId === 'number'
-        ? [singleId]
-        : selectedRows
-            .map((idx: number) => viewRows[idx]?._raw?.id)
-            .filter((v: number | undefined): v is number => v !== undefined)
-
-    if (!ids.length) return
-
-    setDeleteIds(ids)
-    setIsDeleteModalOpen(true)
+  const handleRowsPerPageChange = (newRowsPerPage: number) => {
+    setCurrentApiSize(newRowsPerPage)
+    setCurrentApiPage(1)
+    localHandleRowsPerPageChange(newRowsPerPage)
   }
 
-  const handleRowClick = (row: WorkflowAmountStageOverrideRow) => {
-    if (!row.id || row.id === 0) {
+  const apiTotal = apiResponse?.page?.totalElements || 0
+  const apiTotalPages = apiResponse?.page?.totalPages || 1
+
+  const hasActiveSearch = Object.values(search).some((value) => value.trim())
+
+  const effectiveTotalRows = hasActiveSearch ? localTotalRows : apiTotal
+  const effectiveTotalPages = hasActiveSearch ? localTotalPages : apiTotalPages
+  const effectivePage = hasActiveSearch ? localPage : currentApiPage
+
+  const effectiveStartItem = hasActiveSearch
+    ? startItem
+    : (currentApiPage - 1) * currentApiSize + 1
+  const effectiveEndItem = hasActiveSearch
+    ? endItem
+    : Math.min(currentApiPage * currentApiSize, apiTotal)
+
+  const actionButtons: Array<{
+    label: string
+    onClick: () => void
+    disabled?: boolean
+    variant?: 'primary' | 'secondary'
+    icon?: string
+    iconAlt?: string
+  }> = []
+
+  const handleRowDelete = useCallback(
+    (row: WorkflowAmountStageOverrideData) => {
+      if (isDeleting || deleteMutation.isPending) {
+        return
+      }
+
+      if (!row?.id) {
+        return
+      }
+
+      confirmDelete({
+        itemName: `workflow amount stage override: ${row.stageKey || row.id}`,
+        itemId: String(row.id),
+        onConfirm: async () => {
+          try {
+            setIsDeleting(true)
+            await deleteMutation.mutateAsync(String(row.id))
+            // Refetch data after successful delete
+            await refetchWorkflowAmountStageOverrides()
+          } catch (error) {
+            // Error is handled by the mutation's onError
+            throw error
+          } finally {
+            setIsDeleting(false)
+          }
+        },
+      })
+    },
+    [isDeleting, deleteMutation, confirmDelete, refetchWorkflowAmountStageOverrides]
+  )
+
+  const handleRowEdit = useCallback(
+    (row: WorkflowAmountStageOverrideData) => {
+      if (!row?.id) {
+        return
+      }
+      setEditingItem(row)
+      setPanelMode('edit')
+      setIsPanelOpen(true)
+    },
+    []
+  )
+
+  const handleAddNew = useCallback(() => {
+    setEditingItem(null)
+    setPanelMode('add')
+    setIsPanelOpen(true)
+  }, [])
+
+  const handleClosePanel = useCallback(() => {
+    setIsPanelOpen(false)
+    setEditingItem(null)
+    refetchWorkflowAmountStageOverrides()
+  }, [refetchWorkflowAmountStageOverrides])
+
+  const renderExpandedContent = () => (
+    <div className="grid grid-cols-2 gap-8"></div>
+  )
+
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const isRefreshLoading = isRefreshing || workflowAmountStageOverridesFetching
+  const showRefreshOverlay =
+    isRefreshLoading || workflowAmountStageOverridesLoading
+
+  const handleRefresh = useCallback(async () => {
+    if (isRefreshing) {
       return
     }
 
-    const uiData: WorkflowAmountStageOverrideUIData = {
-      id: row.id,
-      stageOrder: row.stageOrder,
-      requiredApprovals: row.requiredApprovals,
-      keycloakGroup: row.keycloakGroup,
-      stageKey: row.stageKey,
-      workflowAmountRuleId: row.workflowAmountRuleId,
-      workflowAmountRuleName: row.workflowAmountRuleName || '',
-      active: row.active || false,
+    setIsRefreshing(true)
+    try {
+      await refetchWorkflowAmountStageOverrides()
+    } finally {
+      setIsRefreshing(false)
     }
+  }, [isRefreshing, refetchWorkflowAmountStageOverrides])
 
-    setSelectedStageOverrideForEdit(uiData)
-    setIsSidePanelOpen(true)
-  }
+  if (workflowAmountStageOverridesLoading || workflowAmountStageOverridesFetching) {
+    return (
+      <DashboardLayout title="Workflow Amount Stage Overrides">
+        {/* <div className="flex flex-col h-full bg-white/75 dark:bg-gray-800/80 rounded-2xl"> */}
+        <div className="flex flex-col h-full bg-white/75 rounded-2xl">
 
-  if (isLoading) return <LoadingSpinner />
-
-  if (error) {
-    return <ErrorMessage error={error} onRetry={refetch} />
-  }
-
-  const viewRows: ViewRow[] = paginatedData.map((row) => {
-    return {
-      _raw: row,
-      id: row.id?.toString(),
-      workflowAmountRuleId: row.workflowAmountRuleId,
-      stageOrder: (
-        <div className="w-auto px-4 py-3.5 text-sm text-[#1E2939]">
-          {displayValue(row.stageOrder)}
-        </div>
-      ),
-      requiredApprovals: (
-        <div className="w-auto px-4 py-3.5 text-sm text-[#1E2939]">
-          {displayValue(row.requiredApprovals)}
-        </div>
-      ),
-      keycloakGroup: (
-        <div className="w-auto px-4 py-3.5 text-sm text-[#1E2939]">
-          {displayValue(row.keycloakGroup)}
-        </div>
-      ),
-      stageKey: (
-        <div className="w-auto px-4 py-3.5 text-sm text-[#1E2939]">
-          {displayValue(row.stageKey)}
-        </div>
-      ),
-      workflowAmountRuleName: (
-        <div className="w-auto px-4 py-3.5 text-sm text-[#1E2939]">
-          {displayValue(row.workflowAmountRuleName)}
-        </div>
-      ),
-      active: (
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            row.active
-              ? 'bg-green-100 text-green-800'
-              : 'bg-gray-100 text-gray-800'
-          }`}
-        >
-          {displayValue(row.active ? 'Active' : 'Inactive')}
-        </span>
-      ),
-      actions: (
-        <div className="w-auto px-4 py-3.5 text-sm text-[#1E2939]">
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                handleRowClick(row)
-              }}
-              className="text-sm font-medium text-blue-600 hover:text-blue-800"
-            >
-              Edit
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                handleRowDelete(row)
-              }}
-              className="text-sm font-medium text-red-600 hover:text-red-800"
-            >
-              Delete
-            </button>
-          </div>
-        </div>
-      ),
-    }
-  })
-
-  return (
-    <>
-      <RightSlideWorkflowAmountStageOverridePanel
-        isOpen={isSidePanelOpen}
-        onClose={() => {
-          setIsSidePanelOpen(false)
-          setSelectedStageOverrideForEdit(null)
-        }}
-        mode={selectedStageOverrideForEdit ? 'edit' : 'add'}
-        stageOverrideData={selectedStageOverrideForEdit}
-      />
-
-      <DashboardLayout title="Amount Stage Overrides">
-        <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
-          <div className="sticky top-0 z-10 bg-[#FFFFFFBF] border-b border-gray-200 rounded-t-2xl">
-            <PageActionButtons
-              entityType="workflowAmountStageOverride"
-              customActionButtons={[]}
-              showButtons={{ addNew: true }}
-              onAddNew={() => {
-                setSelectedStageOverrideForEdit(null)
-                setIsSidePanelOpen(true)
-              }}
-            />
-          </div>
-
-          <div className="flex flex-col flex-1 min-h-0">
-            <div className="flex-1 overflow-auto">
-              <ExpandableDataTable<ViewRow>
-                data={viewRows}
-                columns={tableColumns}
-                searchState={search}
-                onSearchChange={handleSearchChange}
-                paginationState={{
-                  page: currentPage + 1,
-                  rowsPerPage: pageSize,
-                  totalRows,
-                  totalPages,
-                  startItem: currentPage * pageSize + 1,
-                  endItem: Math.min((currentPage + 1) * pageSize, totalRows),
-                }}
-                onPageChange={onPageChange}
-                onRowsPerPageChange={onRowsPerPageChange}
-                selectedRows={selectedRows}
-                onRowSelectionChange={handleRowSelectionChange}
-                expandedRows={expandedRows}
-                onRowExpansionChange={handleRowExpansionChange}
-                statusOptions={statusOptions}
-                onRowClick={() => {}}
-                onRowDelete={handleRowDelete}
-                onRowView={(row: ViewRow) => handleRowClick(row._raw)}
-                showDeleteAction={true}
-                showViewAction={true}
-              />
-            </div>
-          </div>
-        </div>
-      </DashboardLayout>
-
-      <CommentModal
-        open={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        title="Delete  Amount Stage Overrides"
-        message={`Are you sure you want to delete`}
-        actions={[
-          {
-            label: 'Cancel',
-            onClick: () => setIsDeleteModalOpen(false),
-            color: 'secondary',
-          },
-          {
-            label: 'Delete',
-            onClick: confirmDelete,
-            color: 'error',
-          },
-        ]}
-      />
-    </>
-  )
-}
-
-const WorkflowAmountStageOverridesPageClient = dynamic(
-  () => Promise.resolve(WorkflowAmountStageOverridesPageImpl),
-  {
-    ssr: false,
-    loading: () => (
-      <DashboardLayout title="Amount Stage Override">
-        <div className="bg-[#FFFFFFBF] rounded-2xl flex flex-col h-full">
           <GlobalLoading fullHeight />
         </div>
       </DashboardLayout>
-    ),
+    )
   }
-)
 
-const WorkflowAmountStageOverridesPage: React.FC = () => {
-  return <WorkflowAmountStageOverridesPageClient />
+  return (
+    <>
+      <DashboardLayout title="Workflow Amount Stage Overrides">
+        {/* <div className="relative flex flex-col h-full bg-white/75 dark:bg-gray-800/80 rounded-2xl"> */}
+        <div className="relative flex flex-col h-full bg-white/75 rounded-2xl">
+
+          {showRefreshOverlay && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-md shadow bg-white/90 dark:bg-gray-900/90">
+                <span className="w-5 h-5 border-2 border-gray-300 rounded-full animate-spin border-t-blue-600 dark:border-gray-600 dark:border-t-blue-400" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                  Loading...
+                </span>
+              </div>
+            </div>
+          )}
+          {workflowAmountStageOverridesLoading ? (
+            <LoadingSpinner />
+          ) : workflowAmountStageOverridesError ? (
+            // <div className="flex flex-col h-full bg-white/75 dark:bg-gray-800/80 rounded-2xl">
+            <div className="flex flex-col h-full bg-white/75 rounded-2xl">
+
+              <ErrorMessage
+                error={workflowAmountStageOverridesError}
+                onRetry={refetchWorkflowAmountStageOverrides}
+              />
+            </div>
+          ) : (
+            <>
+              {/* <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/75 dark:bg-gray-800/80 dark:border-gray-700 rounded-t-2xl"> */}
+              <div className="sticky top-0 z-10 border-b border-gray-200 bg-white/75 rounded-t-2xl">
+
+                <PageActionButtons
+                  entityType="workflowAmountStageOverride"
+                  customActionButtons={actionButtons}
+                  onAddNew={handleAddNew}
+                  onRefresh={handleRefresh}
+                  isRefreshing={isRefreshLoading}
+                  showButtons={{
+                    addNew: true,
+                    refresh: true,
+                  }}
+                />
+              </div>
+
+              <div className="flex flex-col flex-1 min-h-0">
+                <div className="flex-1 overflow-auto">
+                  <PermissionAwareDataTable<WorkflowAmountStageOverrideData>
+                    data={paginated}
+                    columns={tableColumns}
+                    searchState={search}
+                    onSearchChange={handleSearchChange}
+                    paginationState={{
+                      page: effectivePage,
+                      rowsPerPage: rowsPerPage,
+                      totalRows: effectiveTotalRows,
+                      totalPages: effectiveTotalPages,
+                      startItem: effectiveStartItem,
+                      endItem: effectiveEndItem,
+                    }}
+                    onPageChange={handlePageChange}
+                    onRowsPerPageChange={handleRowsPerPageChange}
+                    selectedRows={selectedRows}
+                    onRowSelectionChange={handleRowSelectionChange}
+                    expandedRows={expandedRows}
+                    onRowExpansionChange={handleRowExpansionChange}
+                    renderExpandedContent={renderExpandedContent}
+                    statusOptions={statusOptions}
+                    onRowDelete={handleRowDelete}
+                    onRowEdit={handleRowEdit}
+                    deletePermissions={['*']}
+                    viewPermissions={['*']}
+                    editPermissions={['*']}
+                    updatePermissions={['*']}
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </DashboardLayout>
+
+      {isPanelOpen && (
+        <RightSlideWorkflowAmountStageOverridePanel
+          isOpen={isPanelOpen}
+          onClose={handleClosePanel}
+          mode={panelMode}
+          stageOverrideData={
+            editingItem
+              ? ({
+                id: editingItem.id,
+                stageOrder: editingItem.stageOrder,
+                requiredApprovals: editingItem.requiredApprovals,
+                keycloakGroup: editingItem.keycloakGroup,
+                stageKey: editingItem.stageKey,
+                workflowAmountRuleId: editingItem.workflowAmountRuleId,
+                workflowAmountRuleName:
+                  editingItem.workflowAmountRuleName || '',
+                active: editingItem.active ?? false,
+              } as WorkflowAmountStageOverrideUIData)
+              : null
+          }
+        />
+      )}
+    </>
+  )
 }
 
 export default WorkflowAmountStageOverridesPage

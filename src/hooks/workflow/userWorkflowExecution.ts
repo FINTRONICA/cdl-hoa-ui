@@ -59,7 +59,7 @@ export function useUpdateWorkflowExecution() {
       queryClient.invalidateQueries({ queryKey: [WORKFLOW_EXECUTIONS_QUERY_KEY] })
     },
     onError: (error) => {
-      console.log(error)
+      console.error(error)
     },
     retry: 2,
   })
@@ -76,7 +76,7 @@ export function useDeleteWorkflowExecution() {
       queryClient.invalidateQueries({ queryKey: [WORKFLOW_EXECUTIONS_QUERY_KEY] })
     },
     onError: (error) => {
-      console.log(error)
+      console.error(error)
     },
     retry: 2,
   })
