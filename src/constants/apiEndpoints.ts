@@ -340,13 +340,13 @@ export const API_ENDPOINTS = {
     FIND_ALL: '/asset-register-fees/find-all',
   },
 
-  // ASSET_REGISTER_ACCOUNT: {
-  //   GET_BY_ID: (id: string) => `/asset-register-account/${id}`,
-  //   UPDATE: (id: string) => `/asset-register-account/${id}`,
-  //   DELETE: (id: string) => `/asset-register-account/${id}`,
-  //   SAVE: '/asset-register-account',
-  //   FIND_ALL: '/asset-register-account/find-all',
-  // },
+  ASSET_REGISTER_ACCOUNT: {
+    GET_BY_ID: (id: string) => `/asset-register-account/${id}`,
+    UPDATE: (id: string) => `/asset-register-account/${id}`,
+    DELETE: (id: string) => `/asset-register-account/${id}`,
+    SAVE: '/asset-register-account',
+    FIND_ALL: '/asset-register-account/find-all',
+  },
   // END ASSET REGISTER APIs
 
 

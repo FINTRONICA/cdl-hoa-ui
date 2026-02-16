@@ -23,7 +23,6 @@ export function useWorkflowRequestLogs(page = 0, size = 20) {
         )
         return result
       } catch (error) {
-        console.error(error)
         throw error
       }
     },
@@ -58,7 +57,6 @@ export function useAllWorkflowRequestLogs(page = 0, size = 20) {
 
         return result
       } catch (error) {
-        console.error(error)
         throw error
       }
     },
@@ -83,7 +81,7 @@ export function useCreateWorkflowRequestLog() {
       })
     },
     onError: (error) => {
-      console.log(error)
+      throw error
     },
     retry: 2,
   })
@@ -115,7 +113,7 @@ export function useUpdateWorkflowRequestLog() {
       })
     },
     onError: (error) => {
-      console.error(error)
+      throw error
     },
     retry: 2,
   })
@@ -134,7 +132,7 @@ export function useDeleteWorkflowRequestLog() {
       })
     },
     onError: (error) => {
-      console.log(error)
+      throw error
     },
     retry: false,
   })

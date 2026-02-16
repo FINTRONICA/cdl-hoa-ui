@@ -41,7 +41,7 @@ export function useCreateWorkflowExecution() {
       queryClient.invalidateQueries({ queryKey: [WORKFLOW_EXECUTIONS_QUERY_KEY] })
     },
     onError: (error) => {
-      console.error('Workflow execution failed:', error)
+      throw error
     },
     retry: 2,
   })
@@ -59,7 +59,7 @@ export function useUpdateWorkflowExecution() {
       queryClient.invalidateQueries({ queryKey: [WORKFLOW_EXECUTIONS_QUERY_KEY] })
     },
     onError: (error) => {
-      console.error(error)
+      throw error
     },
     retry: 2,
   })
@@ -76,7 +76,7 @@ export function useDeleteWorkflowExecution() {
       queryClient.invalidateQueries({ queryKey: [WORKFLOW_EXECUTIONS_QUERY_KEY] })
     },
     onError: (error) => {
-      console.error(error)
+      throw error
     },
     retry: 2,
   })
